@@ -49,7 +49,7 @@ pnpm preview      # serve the built site
 pnpm typecheck    # astro check (TS + .astro)
 ```
 
-Local URL: `http://localhost:4321/megha-art-portfolio/` (subpath matches the GH Pages base).
+Local URL: `http://localhost:4321/folk-art-portfolio/` (subpath matches the GH Pages base).
 
 ## Test
 
@@ -57,7 +57,7 @@ Build + typecheck are the current quality gates. Playwright smoke test and Light
 
 ## Deploy
 
-GitHub Pages from this repo (`Sagargupta16/megha-art-portfolio`). `astro.config.mjs` is preconfigured with `site: 'https://Sagargupta16.github.io'` and `base: '/megha-art-portfolio/'`. When the custom domain lands, drop `base` and update `site`.
+GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). `astro.config.mjs` is preconfigured with `site: 'https://Sagargupta16.github.io'` and `base: '/folk-art-portfolio/'`. Live at <https://sagargupta16.github.io/folk-art-portfolio/>. When the artist's custom domain lands, drop `base` and update `site`.
 
 ## Entry points
 
@@ -91,7 +91,7 @@ GitHub Pages from this repo (`Sagargupta16/megha-art-portfolio`). `astro.config.
 ## Gotchas
 
 - Client (Megha) does not write code. Update flow is Sagar edits and ships -- no CMS yet. If she ever wants self-edit, the JSON-driven catalog is CMS-ready (Decap, Sanity, etc.) without restructuring.
-- Domain: client wants their own. Registrar / DNS not yet decided -- site is on `Sagargupta16.github.io/megha-art-portfolio/` until then. When DNS lands, drop `base` and set the custom `site` in `astro.config.mjs`.
+- Domain: client wants their own. Registrar / DNS not yet decided -- site is on `Sagargupta16.github.io/folk-art-portfolio/` until then. When DNS lands, drop `base` and set the custom `site` in `astro.config.mjs`.
 - Adding a new artwork: drop `<slug>.jpg` into [`public/artworks/`](public/artworks/), append an entry to [`src/data/artworks.json`](src/data/artworks.json) with matching `image: "<slug>.jpg"`. The site picks it up automatically.
 
 ## Branching and releases
@@ -114,3 +114,4 @@ GitHub Pages from this repo (`Sagargupta16/megha-art-portfolio`). `astro.config.
 
 - This is **client work**, not a personal project. Voice in copy = the artist's voice, not Sagar's. Don't apply Sagar's voice principles to anything user-facing.
 - Image rights are cleared (confirmed 2026-05-17). Hosting and using artwork imagery in this repo is fine.
+- **500-line file ceiling.** No source file (`.astro`, `.tsx`, `.ts`, `.css`, `.json`) may exceed 500 lines. If you hit the limit, split before committing -- extract a sub-component, lift styles to `globals.css`, or pull data into JSON. Generated/lockfiles (`pnpm-lock.yaml`, `dist/**`) are exempt. Bumping the ceiling is a real decision; don't.

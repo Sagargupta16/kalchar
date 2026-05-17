@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-17
 
-Repo-level memory for `megha-art-portfolio`. Stacks under workspace-root [MEMORY.md](../../MEMORY.md). Claude reads this at session start. No PII -- contact details, payment terms, and anything sensitive stay out of the repo.
+Repo-level memory for `folk-art-portfolio` (renamed from `megha-art-portfolio` 2026-05-17). Stacks under workspace-root [MEMORY.md](../../MEMORY.md). Claude reads this at session start. No PII -- contact details, payment terms, and anything sensitive stay out of the repo.
 
 ---
 
@@ -19,7 +19,7 @@ Repo-level memory for `megha-art-portfolio`. Stacks under workspace-root [MEMORY
 | Topic | Decision | Date | Rationale |
 | --- | --- | --- | --- |
 | Stack | Astro 6 + React 19 islands + TypeScript + Tailwind 4 | 2026-05-17 | TSX where interactive, zero JS otherwise. Latest stable. |
-| Hosting | GitHub Pages (`Sagargupta16/megha-art-portfolio`) | 2026-05-17 | Free, fast, custom-domain-ready. URL: `https://Sagargupta16.github.io/megha-art-portfolio/`. |
+| Hosting | GitHub Pages (`Sagargupta16/folk-art-portfolio`, public) | 2026-05-17 | Free, fast, custom-domain-ready. URL: `https://Sagargupta16.github.io/folk-art-portfolio/`. |
 | Content model | JSON-driven (`src/data/artworks.json`, `src/data/site.json`) loaded via Astro content collections in `src/content.config.ts`. | 2026-05-17 | Single source of truth for display data. CMS-ready without restructuring. |
 | Edit flow | Sagar edits and ships. No CMS. | 2026-05-17 | Client is non-technical; volume is low. |
 | Image rights | Cleared by client. Higher-resolution originals to follow when available. | 2026-05-17 | Confirmed verbally with client. |
@@ -35,7 +35,7 @@ Single source of truth lives in the new-artwork skill's "To-do before unstubbing
 
 Open beyond the skill checklist:
 
-- **Custom domain** -- registrar and DNS not yet chosen. Until then the site is on `Sagargupta16.github.io/megha-art-portfolio/`. When DNS lands: drop `base` and update `site` in `astro.config.mjs`.
+- **Custom domain** -- registrar and DNS not yet chosen. Until then the site is on `Sagargupta16.github.io/folk-art-portfolio/`. When DNS lands: drop `base` and update `site` in `astro.config.mjs`.
 
 ---
 
