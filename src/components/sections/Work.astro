@@ -40,15 +40,14 @@ const filters = ['All', ...styles] as const;
 ---
 <Section id="work" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
   <div data-gallery data-active="All">
-    <div role="tablist" aria-label="Filter by style" class="mb-10 flex flex-wrap justify-center gap-2">
+    <div role="group" aria-label="Filter by style" class="mb-10 flex flex-wrap justify-center gap-2">
       {filters.map((f, i) => (
         <button
           type="button"
-          role="tab"
           data-filter={f}
-          aria-selected={i === 0 ? 'true' : 'false'}
+          aria-pressed={i === 0 ? 'true' : 'false'}
           class:list={[
-            'gallery-pill rounded-full border px-4 py-1.5 text-xs uppercase tracking-[0.16em] transition',
+            'gallery-pill rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition',
             i === 0
               ? 'pill-active border-[var(--color-ink)]'
               : 'border-[var(--color-line)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
@@ -101,7 +100,7 @@ const filters = ['All', ...styles] as const;
       ))}
     </ul>
 
-    <p data-empty class="t-body mt-6 hidden text-[var(--color-muted)]">
+    <p data-empty aria-live="polite" class="t-body mt-6 hidden text-[var(--color-muted)]">
       No pieces in this style yet.
     </p>
   </div>
@@ -125,7 +124,7 @@ const filters = ['All', ...styles] as const;
       if (empty) empty.classList.toggle('hidden', visible > 0);
       pills.forEach((p) => {
         const active = p.getAttribute('data-filter') === filter;
-        p.setAttribute('aria-selected', active ? 'true' : 'false');
+        p.setAttribute('aria-pressed', active ? 'true' : 'false');
         p.classList.toggle('pill-active', active);
         p.classList.toggle('border-[var(--color-ink)]', active);
         p.classList.toggle('border-[var(--color-line)]', !active);
