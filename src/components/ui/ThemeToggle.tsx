@@ -11,7 +11,11 @@ function readInitial(): Theme {
 function apply(theme: Theme) {
   const root = document.documentElement;
   root.classList.toggle('dark', theme === 'dark');
-  localStorage.setItem(STORAGE_KEY, theme);
+  try {
+    localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+    // Private browsing or storage disabled -- theme still applies for the session.
+  }
 }
 
 export default function ThemeToggle() {
