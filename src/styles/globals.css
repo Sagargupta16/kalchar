@@ -214,6 +214,54 @@ body {
   transition: transform 220ms var(--ease-out-soft);
 }
 
+/* Continuous motion on the hero artwork: a slow Ken Burns zoom layered with a gentle float.
+   Two animations on different elements so they don't fight, and the user-driven parallax tilt
+   stays separate. */
+.motion-kenburns {
+  animation: kenburns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.motion-float {
+  animation: float 9s ease-in-out infinite;
+  will-change: transform;
+}
+.motion-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 30% 20%,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    transparent 60%
+  );
+  opacity: 0;
+  animation: pulse-glow 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes kenburns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1.5%, -1.5%); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-kenburns,
+  .motion-float,
+  .motion-glow::after {
+    animation: none;
+  }
+}
+
 /* Filter pills active ring */
 .pill-active {
   background: var(--color-ink);

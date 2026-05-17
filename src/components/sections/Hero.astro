@@ -37,19 +37,26 @@ const heroLabel = featured ? `${featured.title} · ${featured.style}` : '';
     </div>
 
     <div class="md:col-span-5">
-      <div id="hero-frame" class="parallax-frame relative mx-auto aspect-[3/4] w-full max-w-md md:max-w-none">
+      <div class="motion-float mx-auto w-full max-w-md md:max-w-none">
         <div
-          class="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
-          style="transform: translate(-1rem, 1rem) translateZ(-30px);"
-        ></div>
-        <img
-          src={heroImage}
-          alt={heroLabel || 'Hero artwork'}
-          class="relative h-full w-full object-cover"
-          loading="eager"
-          decoding="async"
-        />
-        {heroLabel && <p class="t-meta absolute -bottom-6 right-0">{heroLabel}</p>}
+          id="hero-frame"
+          class="parallax-frame motion-glow relative aspect-[3/4] w-full"
+        >
+          <div
+            class="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
+            style="transform: translate(-1rem, 1rem) translateZ(-30px);"
+          ></div>
+          <div class="relative h-full w-full overflow-hidden border border-[var(--color-line)]">
+            <img
+              src={heroImage}
+              alt={heroLabel || 'Hero artwork'}
+              class="motion-kenburns h-full w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          {heroLabel && <p class="t-meta absolute -bottom-6 right-0">{heroLabel}</p>}
+        </div>
       </div>
     </div>
   </div>
@@ -61,8 +68,10 @@ const heroLabel = featured ? `${featured.title} · ${featured.style}` : '';
       if (window.matchMedia('(hover: none)').matches) return;
       const frame = document.getElementById('hero-frame');
       if (!frame) return;
-      const inner = frame.querySelector('img');
-      const shadow = frame.querySelector('div');
+      // The first child div is the offset shadow; the second is the image wrapper.
+      const children = frame.children;
+      const shadow = children[0];
+      const inner = children[1];
       if (!inner || !shadow) return;
       let raf = 0;
       function onMove(e) {

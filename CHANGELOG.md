@@ -38,7 +38,12 @@ First public release. The site is live, content-complete with 21 artworks, light
 
 ### Hero and gallery
 
-- Hero -- typographic-led: italic display name with a Devanagari `म` accent, tagline, description, style pills, and a parallax-tilted artwork frame with layered drop shadow.
+- Hero -- typographic-led: italic display name with a Devanagari `म` accent, tagline, description, style pills, and a layered motion-design artwork frame:
+  - Slow Ken Burns zoom on the artwork itself (22s, alternating).
+  - Gentle vertical float on the framed wrapper (9s, ease-in-out).
+  - Pulsing accent halo behind the frame (6s).
+  - Mouse-driven parallax tilt with layered drop shadow on hover (desktop only).
+  - All four motion layers respect `prefers-reduced-motion` and `(hover: none)`.
 - **Marquee band** -- continuously scrolling animated strip of every artwork (CSS `@keyframes`, 60s loop, edge fades, pauses on hover, respects `prefers-reduced-motion`). Sits between Hero and Work for ambient discovery.
 - Gallery -- server-rendered cards (no React island for the grid). Uniform 3:4 frames with `object-contain` so full folk-art borders show. Filter pills toggle visibility via a tiny inline script + CSS attribute matching. Native `loading="lazy"` for off-screen images.
 - 3D card tilt on hover via vanilla rAF-coalesced transform. Skipped on `(hover: none)` and `prefers-reduced-motion`.
