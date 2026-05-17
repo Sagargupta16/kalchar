@@ -12,7 +12,13 @@
     "devanagariMark": "म",
     "location": "India",
     "logo": "logo.jpg",
-    "logoAlt": "Kalcher by Megha -- Art elevated by belief"
+    "logoAlt": "Kalcher by Megha -- Art elevated by belief",
+    "headline": {
+      "latinPrefix": "Kal",
+      "devanagariCore": "चर",
+      "connector": "by",
+      "suffix": "Megha"
+    }
   },
   "nav": [
     { "label": "Work", "href": "#work" },
