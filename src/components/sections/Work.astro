@@ -56,12 +56,11 @@ const filters = ['All', ...styles] as const;
       ))}
     </div>
 
-    <ul class="tilt-stage grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((it, i) => (
+    <ul class="tilt-stage stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((it) => (
         <li
           class="gallery-item reveal"
           data-style={it.style}
-          style={`transition-delay:${Math.min(i, 8) * 60}ms`}
         >
           <article class="group flex flex-col gap-4">
             <div class="tilt-card relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4]">

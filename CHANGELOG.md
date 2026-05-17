@@ -46,5 +46,27 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Gallery section now server-renders all artwork cards in HTML (no React island for the grid). Filter pills toggle visibility via a tiny inline script and CSS. First paint shows content; only off-screen images defer via `loading="lazy"`.
 - Tilt-on-hover for gallery cards moved to a vanilla inline script; Gallery React island removed.
 - New-artwork skill unstubbed -- now describes the actual JSON-driven flow (drop image into `public/artworks/`, append catalog entry, verify, commit).
+
+### CI / CD
+
+- GitHub Actions `ci.yml` -- typecheck + build on every PR and push to main, frozen-lockfile.
+- GitHub Actions `deploy.yml` -- builds and deploys to GitHub Pages on push to main, OIDC-based auth, queue-don't-cancel concurrency.
+
+### Polish
+
+- Theme toggle redesigned to "lined" style: hairline border on `--color-line`, transparent background, accent color on hover. Same visual weight as filter pills and contact dividers.
+- Header layout simplified -- toggle is now a direct flex child (no nested wrapper), so it never gets squeezed by overflowing nav on narrow viewports.
+- Reusable Astro primitives in [src/components/ui/](src/components/ui/): `IconButton.astro`, `Pill.astro`, `Card.astro`. Edit-once, used everywhere.
+- Auto-stagger reveal animation: `.stagger > .reveal:nth-child(n)` ladders transition-delays via CSS so sections no longer hand-code per-element delays inline. Hero, About, Work, Workshops, Contact all use it.
+
+### Hardening
+
+- `.gitignore` tightened: `.claude/settings.local.json`, `CLAUDE.local.md`, secrets (`*.key`, `*.p12`, `secrets.json`, `credentials.json`), root-level `*.png` (dev screenshots), editor noise (`*.swp`, `*~`, `.history/`) all explicitly ignored.
+
+### Hero carousel + icons
+
+- Hero artwork frame now auto-rotates through every artwork in the catalog -- crossfade transition, 4.5s interval. Pauses on hover and when the tab is hidden. Respects `prefers-reduced-motion` (static fallback to first piece).
+- Hero caption updates to match the active slide; small dot row indicates rotation rhythm.
+- Inline SVG icon components in [src/components/ui/icons/](src/components/ui/icons/): `Instagram.astro`, `Whatsapp.astro`, `Mail.astro`. Stroke uses `currentColor` so they theme automatically. Used in Contact rows and Footer links. No icon library dependency.
 - Hero section now picks a featured artwork from the catalog instead of using a placeholder.
 - Gallery cards now use a uniform 3:4 frame with `object-contain` and centered alignment -- preserves full borders of folk-art panels (vs cropping). Per-piece aspect ratio retained in catalog for future lightbox view.
