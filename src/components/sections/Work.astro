@@ -108,7 +108,7 @@ const filters = ['All', ...styles] as const;
         el.style.display = match ? '' : 'none';
         if (match) visible++;
       });
-      empty.classList.toggle('hidden', visible > 0);
+      if (empty) empty.classList.toggle('hidden', visible > 0);
       pills.forEach((p) => {
         const active = p.getAttribute('data-filter') === filter;
         p.setAttribute('aria-selected', active ? 'true' : 'false');
