@@ -1,32 +1,111 @@
 # folk-art-portfolio
 
-Portfolio website for **Megha Seth**, traditional artist -- Madhubani, Pichwai, Lippan, Gond and texture work, plus workshops.
+Portfolio website for **Megha Seth** -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art, plus a regular workshop practice.
 
-Live: <https://sagargupta16.github.io/folk-art-portfolio/>
+**Live:** <https://sagargupta.online/folk-art-portfolio/>
+**Mirror:** <https://sagargupta16.github.io/folk-art-portfolio/>
+
+A static, JSON-driven, light-and-dark single-page site -- artwork-forward typography, hand-rolled motion that respects `prefers-reduced-motion`, and a CMS-ready content model that lets the catalog grow by dropping a file and appending a JSON entry.
+
+---
 
 ## Stack
 
-Astro 6 + React 19 islands + TypeScript + Tailwind 4. Static build, deployed to GitHub Pages. Light + dark themes.
+| Layer | Choice |
+| --- | --- |
+| Framework | [Astro 6](https://astro.build) -- zero JS by default, React only on islands |
+| UI islands | React 19 + TypeScript (strict) |
+| Styling | Tailwind 4 via `@tailwindcss/vite`, theme tokens in `@theme` |
+| Fonts | Self-hosted Cormorant Garamond, Inter, Tiro Devanagari Hindi (`@fontsource(-variable)`) |
+| Content | JSON files validated by Zod, loaded as Astro content collections |
+| Deploy | GitHub Pages via Actions, OIDC auth |
 
-## Local dev
+No CDN font calls. No analytics. No tracking. The static build is everything.
+
+---
+
+## Quick start
 
 ```sh
 pnpm install
 pnpm dev          # http://localhost:4321/folk-art-portfolio/
 pnpm build        # static build to ./dist
-pnpm preview
-pnpm typecheck
+pnpm preview      # serve the production build
+pnpm typecheck    # astro check (TS + .astro)
 ```
 
-## Content
+Requires Node 20.18+ and pnpm 10. The pnpm version is pinned via the `packageManager` field in [`package.json`](package.json) -- Corepack will pick it up.
 
-All display data lives in two JSON files:
+---
 
-- [`src/data/site.json`](src/data/site.json) -- brand, nav, contact, sections, workshops.
-- [`src/data/artworks.json`](src/data/artworks.json) -- artwork catalog. One entry per piece. Image filename references [`public/artworks/`](public/artworks/).
+## Content model
 
-Adding a new artwork: drop the image into `public/artworks/<slug>.jpg`, append an entry to `artworks.json`. The site picks it up automatically.
+All display copy lives in two JSON files. Editing them updates the site.
+
+- [`src/data/site.json`](src/data/site.json) -- brand, nav, contact, every section's copy, the workshops list.
+- [`src/data/artworks.json`](src/data/artworks.json) -- the artwork catalog. One entry per piece: `slug`, `title`, `style`, `medium`, `aspectRatio`, `featured`, `order`, `description`, `image`.
+
+Schemas are enforced by Zod in [`src/content.config.ts`](src/content.config.ts) -- bad data fails the build, not the browser.
+
+### Add a new artwork
+
+1. Drop the image at `public/artworks/<slug>.jpg` (Astro generates AVIF + WebP at build).
+2. Append an entry to [`src/data/artworks.json`](src/data/artworks.json) with `image: "<slug>.jpg"`.
+3. `pnpm build` to verify.
+
+The [`new-artwork`](.claude/skills/new-artwork/SKILL.md) skill automates this end-to-end.
+
+---
+
+## Project layout
+
+```text
+src/
+  pages/index.astro          single-page composition
+  layouts/BaseLayout.astro   HTML shell, theme script, header/footer
+  components/
+    layout/                  Header, Footer, Section wrapper, Reveal controller
+    sections/                Hero, About, Work, Workshops, Contact
+    ui/                      Card, Pill, IconButton, ThemeToggle (TSX), icons/
+  content.config.ts          Zod schemas for the JSON collections
+  data/                      site.json, artworks.json -- single sources of truth
+  lib/                       artworkUrl, deterministic SVG placeholders
+  styles/globals.css         Tailwind + theme tokens + design-system utilities
+public/
+  artworks/                  one <slug>.jpg per piece
+  favicon.svg
+```
+
+Path alias `@/*` -> `src/*`. Always import via the alias.
+
+---
+
+## Design notes
+
+- **Theme.** Light + dark, warm off-white and charcoal palette, single terracotta accent. Tokens declared with Tailwind 4 `@theme` -- no hardcoded hex in components. No-FOUC inline script in `<head>` reads `localStorage` and `prefers-color-scheme` before paint.
+- **Typography.** Italic Cormorant Garamond for display, Inter for body, Tiro Devanagari Hindi for the `म` accent in the hero.
+- **Motion.** Single site-wide `IntersectionObserver` reveals `.reveal` elements; auto-stagger via CSS `nth-child` delays. Hero uses Ken Burns + float + glow + mouse-parallax in four independent layers. Every animation respects `prefers-reduced-motion`; tilt is suppressed on `(hover: none)`.
+- **Images.** Astro generates AVIF + WebP variants. Native `loading="lazy"` for the gallery grid.
+- **Iconography.** Inline SVGs that inherit `currentColor`. No icon-library dependency.
+
+---
+
+## CI / CD
+
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) -- typecheck + build on every PR and push to `main`. Frozen lockfile.
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- builds and deploys to GitHub Pages on push to `main`. OIDC-based auth, queue-don't-cancel concurrency.
+
+---
+
+## Branching
+
+- All changes land in `main` via PR. No direct push, no fast-forward from local.
+- Feature branches: `feat/<topic>` / `fix/<topic>` / `chore/<topic>` / `docs/<topic>`.
+- One open PR at a time; stack additional changes onto the existing branch.
+- SemVer, manual. See [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases" and the [`CHANGELOG.md`](CHANGELOG.md).
+
+---
 
 ## License
 
-Proprietary -- all rights reserved. See [`LICENSE`](LICENSE).
+Proprietary. All artwork rights belong to **Megha Seth**. Code is not licensed for reuse. See [`LICENSE`](LICENSE).
