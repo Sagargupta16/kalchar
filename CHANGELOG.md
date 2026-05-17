@@ -24,7 +24,7 @@ First public release. The site is live, content-complete with 21 artworks, light
 
 ### Layout
 
-- Single page composing `Hero`, `Marquee`, `Work`, `About`, `Workshops`, `Contact`. Sticky thin top nav with theme toggle. Footer with iconified social links.
+- Single page composing `Hero`, `Work`, `About`, `Workshops`, `Contact`. Sticky thin top nav with theme toggle. Footer with iconified social links.
 - All section copy comes from `site.json`; no hardcoded English in section components.
 - Section wrapper, header, footer, theme script, and reveal controller live under [`src/components/layout/`](src/components/layout/).
 - Reusable UI primitives -- `IconButton.astro`, `Pill.astro`, `Card.astro` -- live under [`src/components/ui/`](src/components/ui/) so design tokens stay consistent.
@@ -44,7 +44,6 @@ First public release. The site is live, content-complete with 21 artworks, light
   - Pulsing accent halo behind the frame (6s).
   - Mouse-driven parallax tilt with layered drop shadow on hover (desktop only).
   - All four motion layers respect `prefers-reduced-motion` and `(hover: none)`.
-- **Marquee band** -- continuously scrolling animated strip of every artwork (CSS `@keyframes`, 60s loop, edge fades, pauses on hover, respects `prefers-reduced-motion`). Sits between Hero and Work for ambient discovery.
 - Gallery -- server-rendered cards (no React island for the grid). Uniform 3:4 frames with `object-contain` so full folk-art borders show. Filter pills toggle visibility via a tiny inline script + CSS attribute matching. Native `loading="lazy"` for off-screen images.
 - 3D card tilt on hover via vanilla rAF-coalesced transform. Skipped on `(hover: none)` and `prefers-reduced-motion`.
 
