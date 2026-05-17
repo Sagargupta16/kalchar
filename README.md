@@ -1,6 +1,8 @@
-# megha-art-portfolio
+# folk-art-portfolio
 
 Portfolio website for **Megha Seth**, traditional artist -- Madhubani, Pichwai, Lippan, Gond and texture work, plus workshops.
+
+Live: <https://sagargupta16.github.io/folk-art-portfolio/>
 
 ## Stack
 
@@ -10,7 +12,7 @@ Astro 6 + React 19 islands + TypeScript + Tailwind 4. Static build, deployed to 
 
 ```sh
 pnpm install
-pnpm dev          # http://localhost:4321/megha-art-portfolio/
+pnpm dev          # http://localhost:4321/folk-art-portfolio/
 pnpm build        # static build to ./dist
 pnpm preview
 pnpm typecheck
