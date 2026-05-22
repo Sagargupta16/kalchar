@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.2.0 -- 2026-05-22
+
+Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.
+
+### Deploy
+
+- **Env-driven base path** in [`astro.config.mjs`](astro.config.mjs). `DEPLOY_ENV=beta` switches `base` from `/folk-art-portfolio/` to `/folk-art-portfolio/beta/`. The canonical origin (`https://sagargupta.online`) stays the same in both builds.
+- **Combined-dist workflow** in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). On any push to `main` or `dev`, the job checks out both branches, builds prod into the root and beta into `/beta/`, combines into a single artifact, and deploys via OIDC. Guarantees prod and beta never drift -- every deploy reflects current state of both branches.
+- **CI** now triggers on push and PR for both `main` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+### SEO hygiene on beta
+
+- **`<meta name="robots" content="noindex, nofollow">`** emitted on beta builds in [`BaseLayout.astro`](src/layouts/BaseLayout.astro). Prevents `/beta/` competing with prod for the same content in search results.
+- **Canonical rewrite.** Beta pages emit `<link rel="canonical">` pointing at the prod equivalent (e.g. `/folk-art-portfolio/beta/` -> `/folk-art-portfolio/`). Any inbound link to a beta URL still consolidates ranking signals at prod.
+
+### Branch protection
+
+- `main` -- PR-only, CI must pass before merge. Direct push and force-push blocked.
+- `dev` -- unprotected (solo workflow, fast iteration). CI still runs but doesn't gate.
+
+### Documentation
+
+- [`CLAUDE.md`](CLAUDE.md) "Branching and releases" rewritten to describe the two-branch flow and `DEPLOY_ENV` mechanics.
+- [`README.md`](README.md) lists prod + beta + mirror URLs and the promotion flow.
+- [`MEMORY.md`](MEMORY.md) records the two-env deploy decision and the protection posture.
+
 ## 1.1.0 -- 2026-05-17
 
 Discoverability + performance pass. Site now ships with build-time image optimization, full SEO infrastructure (sitemap, structured data, share-card metadata, canonical URL), and a handful of code-health and accessibility improvements. No content changes; the artwork catalog is unchanged at 21 pieces.

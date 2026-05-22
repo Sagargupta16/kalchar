@@ -23,7 +23,14 @@ const logoUrl = `${base}${brand.logo}`;
 const appleIconUrl = `${base}logo-180.png`;
 // Astro.site is configured in astro.config.mjs (https://sagargupta.online).
 const SITE = Astro.site!;
-const canonicalUrl = new URL(Astro.url.pathname, SITE).toString();
+// Beta builds (DEPLOY_ENV=beta, served at /folk-art-portfolio/beta/) must not be indexed --
+// they would otherwise compete with prod for the same content and split ranking signals.
+// Canonical also rewrites /beta/ -> / so any inbound links to beta still consolidate at prod.
+const isBeta = import.meta.env.DEPLOY_ENV === 'beta';
+const canonicalPath = isBeta
+  ? Astro.url.pathname.replace('/beta/', '/')
+  : Astro.url.pathname;
+const canonicalUrl = new URL(canonicalPath, SITE).toString();
 const absoluteLogoUrl = new URL(logoUrl, SITE).toString();
 ---
 <!doctype html>
@@ -32,6 +39,7 @@ const absoluteLogoUrl = new URL(logoUrl, SITE).toString();
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {isBeta && <meta name="robots" content="noindex, nofollow" />}
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15110d" media="(prefers-color-scheme: dark)" />

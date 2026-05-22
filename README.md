@@ -2,7 +2,8 @@
 
 Portfolio website for **Megha Seth** -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art, plus a regular workshop practice.
 
-**Live:** <https://sagargupta.online/folk-art-portfolio/>
+**Live (prod):** <https://sagargupta.online/folk-art-portfolio/>
+**Beta (dev):** <https://sagargupta.online/folk-art-portfolio/beta/> -- `noindex`, canonical points at prod
 **Mirror:** <https://sagargupta16.github.io/folk-art-portfolio/>
 
 A static, JSON-driven, light-and-dark single-page site -- artwork-forward typography, hand-rolled motion that respects `prefers-reduced-motion`, and a CMS-ready content model that lets the catalog grow by dropping a file and appending a JSON entry.
@@ -98,17 +99,21 @@ Path alias `@/*` -> `src/*`. Always import via the alias.
 
 ## CI / CD
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) -- typecheck + build on every PR and push to `main`. Frozen lockfile.
-- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- builds and deploys to GitHub Pages on push to `main`. OIDC-based auth, queue-don't-cancel concurrency.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) -- typecheck + build on every PR and push to `main` or `dev`. Frozen lockfile.
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- on every push to `main` or `dev`, checks out both branches, builds prod (root) and beta (`DEPLOY_ENV=beta` -> `/beta/`), combines into one artifact, deploys to GitHub Pages. OIDC auth, queue-don't-cancel concurrency.
 
 ---
 
 ## Branching
 
-- All changes land in `main` via PR. No direct push, no fast-forward from local.
-- Feature branches: `feat/<topic>` / `fix/<topic>` / `chore/<topic>` / `docs/<topic>`.
-- One open PR at a time; stack additional changes onto the existing branch.
-- SemVer, manual. See [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases" and the [`CHANGELOG.md`](CHANGELOG.md).
+Two long-lived branches:
+
+- `main` -- production, served at `/folk-art-portfolio/`. Protected: PR-only, CI must pass.
+- `dev` -- beta / staging, served at `/folk-art-portfolio/beta/`. `noindex`, canonical points at prod.
+
+Flow: `feat/<topic>` -> PR into `dev` -> verify on `/beta/` -> PR `dev` into `main` -> live.
+
+The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so the two URLs never drift. SemVer, manual -- see [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases" and the [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
