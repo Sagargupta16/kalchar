@@ -52,6 +52,16 @@ Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, m
 - **Filter pills hit 40px** ([`Work.astro`](src/components/sections/Work.astro)).
 - **Scroll-cue desktop-only.** [`motion.css`](src/styles/motion.css) `.scroll-cue` hidden under 768px -- it overlapped the artwork plate on phones and the kinetic typography is enough cue.
 
+### Hover-free, content-first pass
+
+Hover is unreliable on touch (iOS fires a synthetic hover on first tap, the user has to "fight" the interface to read content), so any **content** previously gated behind hover is now always visible. Hover may still embellish (link color shifts) but no longer hides anything.
+
+- **Artwork descriptions inline.** [`Work.astro`](src/components/sections/Work.astro) moved each piece's description out of the bottom-overlay slide-up (which only fired on `:hover`) into a static `<p>` below the title. Every artwork already had a description in [`artworks.json`](src/data/artworks.json) -- they just weren't visible to phone users.
+- **Image scale removed.** Gallery images no longer `group-hover:scale-[1.02]` -- pointer users see the same crisp render as touch users, no shifting frames mid-tap.
+- **Card-tilt static.** [`motion.css`](src/styles/motion.css) `.card-tilt` no longer applies `perspective(900px) rotateX(2deg) rotateY(-2deg) translateY(-4px)` on hover. Replaced with a static section-accent shadow at rest (`0 12px 28px -22px ...`). Touch + pointer get identical surfaces.
+- **Border-beam static ring.** `.border-beam::after` rotating conic sweep removed entirely. Only the always-on `::before` 1px accent outline remains; opacity bumped from 45% to 55% so the pigment identity is clearer at rest.
+- **Hero parallax kept hover-only** (script already early-returns on `(hover: none)`) -- it's pure embellishment that adds nothing on touch and would fight the kenburns motion if forced on.
+
 ### Minimal-motion pass
 
 Cut overlapping ambient loops so each remaining animation reads as intentional, not noise. Final motion vocabulary:

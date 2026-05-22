@@ -185,81 +185,28 @@
   .motion-kenburns { animation: none; }
 }
 
-/* Tilt-on-hover utility -- applies to .card-tilt; pairs with --section-accent
-   for a subtle 3D lift that uses the section's pigment. Used by Workshops +
-   CustomOrders cards. Touch devices show the static accent shadow at rest
-   (set on the always-on .border-beam::before ring) instead of a perpetual
-   breathe -- minimal motion. */
+/* Card resting state -- static accent shadow that uses the section pigment.
+   No hover-gated transform: touch devices and pointer devices see the same
+   surface, the way Apple HIG and NN/g recommend for content cards. The
+   pigment identity comes from the always-on .border-beam::before ring. */
 .card-tilt {
-  transform-style: preserve-3d;
-  transition:
-    transform 400ms var(--ease-out-soft),
-    box-shadow 400ms var(--ease-out-soft),
-    border-color 400ms var(--ease-out-soft);
-  will-change: transform;
-}
-.card-tilt:hover,
-.card-tilt:focus-within {
-  transform: perspective(900px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
-  box-shadow: 0 28px 60px -32px color-mix(in srgb, var(--section-accent, var(--color-accent)) 70%, transparent);
-}
-@media (prefers-reduced-motion: reduce) {
-  .card-tilt:hover, .card-tilt:focus-within { transform: translateY(-2px); }
+  box-shadow: 0 12px 28px -22px color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
 }
 
-/* Border-beam -- a hairline conic gradient sweeping the card border. The
-   pseudo-element sits one pixel outside the card and animates its background
-   rotation. Always visible at low opacity so mobile users (no hover) still
-   see the rotating accent; brightens on hover/focus. */
+/* Border-beam -- always-on accent ring. Every card carries its section
+   pigment as a static 1px outline so touch devices see the identity at
+   rest. The earlier rotating-conic ::after sweep was hover-only -- now
+   removed for parity across pointer + touch input. */
 .border-beam {
   position: relative;
   isolation: isolate;
 }
-/* Always-on accent ring: a soft 1px outline tinted in the section accent so
-   every card carries its pigment at rest. The animated beam (a brighter conic
-   sweep) layers on top via ::after on hover/focus. Splitting them avoids the
-   conic-rotation corner artifacts the always-on layer would otherwise show. */
 .border-beam::before {
   content: ''; position: absolute; inset: 0;
   z-index: -1;
   border-radius: inherit;
-  border: 1px solid color-mix(in srgb, var(--section-accent, var(--color-accent)) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
   pointer-events: none;
-  transition: border-color 240ms var(--ease-out-soft);
-}
-.border-beam::after {
-  content: ''; position: absolute; inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  padding: 1px;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    var(--section-accent, var(--color-accent)) 60deg,
-    transparent 140deg,
-    transparent 360deg
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 240ms var(--ease-out-soft);
-  animation: beam-rotate 6s linear infinite;
-  pointer-events: none;
-}
-.border-beam:hover::before,
-.border-beam:focus-within::before {
-  border-color: var(--section-accent, var(--color-accent));
-}
-.border-beam:hover::after,
-.border-beam:focus-within::after { opacity: 1; }
-@keyframes beam-rotate {
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .border-beam::after { animation: none; }
 }
 
 /* Drop-cap for editorial paragraphs (About). */
