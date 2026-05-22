@@ -7,12 +7,22 @@ interface Props {
   class?: string;
   /** 'center' (default, symmetric) or 'left' (editorial). */
   align?: 'left' | 'center';
+  /** CSS color or `var(--style-...)` token. Drives eyebrow color, h2 underline,
+      and any `.card:hover` accent inside this section. Falls back to the global
+      accent token when omitted. */
+  accent?: string;
 }
-const { id, eyebrow, title, lead, class: className = '', align = 'center' } = Astro.props;
+const { id, eyebrow, title, lead, class: className = '', align = 'center', accent } = Astro.props;
 const headerAlign =
   align === 'center' ? 'mx-auto text-center' : '';
+const styleAttr = accent ? `--section-accent:${accent};` : undefined;
 ---
-<section id={id} class={`section ${className}`}>
+<section
+  id={id}
+  class={`section ${className}`}
+  data-align={align}
+  style={styleAttr}
+>
   <div class="container-x">
     <header class={`mb-12 max-w-2xl reveal ${headerAlign}`}>
       {eyebrow && <p class="t-eyebrow mb-3">{eyebrow}</p>}

@@ -19,6 +19,13 @@ const artworks = defineCollection({
     order: z.number().int().default(100),
     description: z.string().optional(),
     image: z.string(),
+    /** 3-5 hex swatches sampled from the artwork. Powers the chromacard strip
+        and the per-card hover halo. Falls back to the style accent if absent. */
+    palette: z
+      .array(z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/))
+      .min(3)
+      .max(5)
+      .optional(),
   }),
 });
 

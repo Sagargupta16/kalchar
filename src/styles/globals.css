@@ -7,6 +7,9 @@
 @import '@fontsource-variable/inter/index.css';
 @import '@fontsource/tiro-devanagari-hindi/400.css';
 
+/* Motion + visual-effect utilities live here -- keeps globals.css under the 500-line ceiling. */
+@import './motion.css';
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -15,7 +18,7 @@
   --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-devanagari: 'Tiro Devanagari Hindi', ui-serif, serif;
 
-  /* Light palette */
+  /* Light palette -- warm chrome */
   --color-bg: #faf8f3;
   --color-bg-soft: #f3eee4;
   --color-ink: #14110d;
@@ -24,13 +27,27 @@
   --color-accent: #a0421c;
   --color-accent-soft: #d8a37e;
 
-  /* Per-style accents (used in placeholders + filter pills if desired) */
+  /* Authentic Madhubani saturated palette -- used by aurora backdrops, accents,
+     chromacard fallbacks. These are *the* colors traditional folk artists reach for,
+     so the chrome agrees with the work instead of softening it. */
+  --color-ruby: #c0392b;
+  --color-marigold: #e6a817;
+  --color-peacock: #1f6f8f;
+  --color-indigo: #2d3a78;
+  --color-vermillion: #d8541f;
+  --color-neem: #4a7c2f;
+  --color-ochre: #c98a3b;
+  --color-plum: #6b3e5a;
+
+  /* Per-style accents -- used by placeholders, filter pills, gallery card hover,
+     and section accent backdrops. Bumped from the original muted set to authentic
+     Madhubani saturation so each card carries its own pigment. */
   --style-madhubani: #c0392b;
-  --style-pichwai: #2d6a4f;
-  --style-lippan: #b08968;
+  --style-pichwai: #1f6f5a;
+  --style-lippan: #d4972f;
   --style-gond: #283c63;
-  --style-texture: #7d4f50;
-  --style-mixed: #8e735b;
+  --style-texture: #a0421c;
+  --style-mixed: #6b3e5a;
 
   /* Rhythm */
   --section-py: clamp(5rem, 8vw, 8.5rem);
@@ -52,6 +69,22 @@
   --color-line: #2a241d;
   --color-accent: #d87856;
   --color-accent-soft: #b56a47;
+  /* Saturated palette in dark mode -- slightly desaturated + lifted in luminance
+     so colors don't bloom unpleasantly against a near-black ground. */
+  --color-ruby: #d54e3f;
+  --color-marigold: #f0bd49;
+  --color-peacock: #3994b1;
+  --color-indigo: #5363a8;
+  --color-vermillion: #e36c3a;
+  --color-neem: #6fa14a;
+  --color-ochre: #d8a056;
+  --color-plum: #8b577a;
+  --style-madhubani: #d54e3f;
+  --style-pichwai: #3a8c75;
+  --style-lippan: #e8aa3f;
+  --style-gond: #4d62a8;
+  --style-texture: #c25a30;
+  --style-mixed: #8b577a;
 }
 
 html {
@@ -136,48 +169,82 @@ body {
     box-shadow 500ms var(--ease-out-soft);
 }
 .card:hover {
-  border-color: var(--color-accent);
+  border-color: var(--section-accent, var(--color-accent));
   transform: translateY(-2px);
-  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--color-accent) 70%, transparent);
+  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--section-accent, var(--color-accent)) 70%, transparent);
 }
 
-/* Reveal on scroll */
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
+/* Gallery card frame -- inherits color identity from --card-accent set inline
+   per item. Hover paints the border in the card's accent and casts a soft halo
+   so each piece glows in its own pigment, not a single global color. */
+.gallery-frame {
   transition:
-    opacity 700ms var(--ease-out-soft),
-    transform 700ms var(--ease-out-soft);
-  will-change: opacity, transform;
+    border-color 400ms var(--ease-out-soft),
+    box-shadow 500ms var(--ease-out-soft);
 }
-.reveal.is-visible {
+.gallery-item:hover .gallery-frame {
+  border-color: var(--card-accent, var(--color-accent));
+  box-shadow: 0 22px 50px -28px color-mix(in srgb, var(--card-accent, var(--color-accent)) 70%, transparent);
+}
+
+/* Chromacard -- 3-5 swatch strip under each gallery card. Reads like a museum
+   palette caption: small, uniform squares in the painting's actual pigments.
+   Powered by --chroma-1..5 set inline per artwork. */
+.chromacard {
+  display: flex;
+  gap: 0.25rem;
+  height: 0.5rem;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  opacity: 0.75;
+  transition: opacity 300ms var(--ease-out-soft);
+}
+.chromacard > span {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.gallery-item:hover .chromacard,
+.card:hover .chromacard {
   opacity: 1;
-  transform: none;
 }
 
-/* Auto-stagger: when several .reveal elements are siblings, each one waits a bit longer.
-   Avoids hand-coding inline transition-delay on every node. Caps at 8 to keep timing tight. */
-.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
-.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
-.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
-.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
-.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
-.stagger > .reveal:nth-child(6) { transition-delay: 380ms; }
-.stagger > .reveal:nth-child(7) { transition-delay: 440ms; }
-.stagger > .reveal:nth-child(n + 8) { transition-delay: 500ms; }
-
+/* Reduced-motion: also flatten scroll-behavior. (Reveal/stagger rules live in motion.css.) */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-  .stagger > .reveal {
-    transition-delay: 0ms !important;
-  }
-  html {
-    scroll-behavior: auto;
-  }
+  html { scroll-behavior: auto; }
+}
+
+/* Section accent system.
+   Each <Section> can set `--section-accent` to a Madhubani-palette color via the
+   `accent` prop. The accent powers the section's eyebrow, title underline, hover
+   state for cards in that section, and an optional aurora backdrop blob.
+   Defaults to the global accent so unannotated sections still look right. */
+.section {
+  --section-accent: var(--color-accent);
+}
+.section .t-eyebrow {
+  color: color-mix(in srgb, var(--section-accent) 75%, var(--color-muted));
+}
+.section h2.t-display::after {
+  content: '';
+  display: block;
+  width: 3rem;
+  height: 2px;
+  margin-top: 0.85rem;
+  margin-inline: auto;
+  background: var(--section-accent);
+  transform-origin: left;
+  animation: underline-grow 900ms var(--ease-out-soft) 200ms backwards;
+}
+.section[data-align='left'] h2.t-display::after {
+  margin-inline: 0;
+}
+@keyframes underline-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section h2.t-display::after { animation: none; }
 }
 
 /* Touch / coarse-pointer: reveal hover-only overlays so they're usable on tap. */
@@ -188,55 +255,50 @@ body {
   }
 }
 
-/* Hero parallax frame -- user-driven tilt only, no autonomous animation. */
-.parallax-frame {
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: transform 220ms var(--ease-out-soft);
+/* Filter pills.
+   Each pill carries --pill-accent (set inline). Hover lifts color toward the
+   accent without committing to it; active state paints the pill in the accent
+   so the filter visually previews what it filters to. */
+.gallery-pill {
+  transition:
+    background-color 240ms var(--ease-out-soft),
+    border-color 240ms var(--ease-out-soft),
+    color 240ms var(--ease-out-soft);
 }
-
-/* Hero artwork -- a single very slow scale "breathe" so the painting feels alive
-   without competing with itself. No translate dance, no float, no glow halo. */
-.motion-kenburns {
-  animation: kenburns 22s ease-in-out infinite alternate;
-  will-change: transform;
-  transform-origin: 50% 50%;
+.gallery-pill:not(.pill-active):hover {
+  border-color: var(--pill-accent, var(--color-accent));
+  color: var(--pill-accent, var(--color-accent));
 }
-
-@keyframes kenburns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.06); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .motion-kenburns {
-    animation: none;
-  }
-}
-
-/* Filter pills active ring */
 .pill-active {
-  background: var(--color-ink);
+  background: var(--pill-accent, var(--color-ink));
   color: var(--color-bg);
-  border-color: var(--color-ink);
+  border-color: var(--pill-accent, var(--color-ink));
+}
+:root.dark .pill-active {
+  /* In dark mode an active marigold pill against a near-black bg needs an
+     ink text color so the label stays legible. */
+  color: var(--color-bg);
 }
 
 /* Form controls -- shared shape for input, select, textarea so the order
-   form lines up visually instead of falling back to OS chrome. */
+   form lines up visually instead of falling back to OS chrome. iOS Safari
+   auto-zooms when an input's font-size is below 16px, so we hold at 1rem
+   (16px) to keep the page steady on focus. */
 .field-input,
 .field-select,
 .field-textarea {
   display: block;
   width: 100%;
-  padding: 0.7rem 0.9rem;
+  padding: 0.85rem 0.95rem;
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.4;
   color: var(--color-ink);
   background-color: var(--color-bg-soft);
   border: 1px solid var(--color-line);
   border-radius: 0;
   outline: none;
+  min-height: 48px;
   transition:
     border-color 200ms var(--ease-out-soft),
     box-shadow 200ms var(--ease-out-soft),

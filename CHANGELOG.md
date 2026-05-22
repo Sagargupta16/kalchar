@@ -2,6 +2,78 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.3.0 -- 2026-05-22
+
+Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, marigold, peacock, indigo, neem -- so the chrome agrees with the work instead of softening it. Each piece carries its own 3-5 swatch palette, drives a chromacard caption + card-hover halo, and tints its style label. Motion budget grew (BlurFade reveals, kinetic Devanagari, aurora backdrop, hero halo, marquee band, native `<dialog>` lightbox) but stays pure CSS -- zero new React islands. All animations honor `prefers-reduced-motion`.
+
+### Color identity
+
+- **Madhubani palette tokens** in [`globals.css`](src/styles/globals.css). Eight saturated pigments (ruby/marigold/peacock/indigo/vermillion/neem/ochre/plum) with light + dark variants. Per-style accents bumped from muted to authentic (Madhubani -> ruby, Pichwai -> jade, Lippan -> ochre, Gond -> indigo, Texture -> terracotta, Mixed -> plum).
+- **Per-artwork palette field.** [`src/content.config.ts`](src/content.config.ts) adds `palette: string[3..5]` (hex regex). [`src/data/artworks.json`](src/data/artworks.json) seeded for all 21 pieces with hand-picked swatches drawn from each painting.
+- **Chromacard component** at [`src/components/ui/Chromacard.astro`](src/components/ui/Chromacard.astro). Zero-JS swatch strip (museum palette caption) under each gallery card and inside the lightbox aside.
+- **Section accent cascade.** [`Section.astro`](src/components/layout/Section.astro) accepts an `accent` prop, sets `--section-accent` inline, drives the eyebrow tint and underline-grow on the section heading.
+- **Per-card hover halo.** [`Work.astro`](src/components/sections/Work.astro) sets `--card-accent` per `<li>` from a style -> color map, so a Pichwai card glows jade-green on hover and a Madhubani card glows ruby. Filter pills paint in the same accent when active.
+
+### Motion
+
+- **BlurFade reveals.** `.reveal` upgraded to `filter: blur(6px) -> blur(0)` alongside opacity + translateY. Magic UI vocabulary, pure CSS.
+- **Kinetic Devanagari.** Hero accent character animates a slow gradient shift through ruby -> marigold -> peacock. `.kinetic-devanagari` in [`globals.css`](src/styles/globals.css).
+- **Aurora backdrop** behind the hero -- two slow-drifting saturated radial blobs via filter blur. Used sparingly (hero only).
+- **Hero halo.** [`Hero.astro`](src/components/sections/Hero.astro) reads the featured artwork's first palette swatch into `--hero-halo`, painting a soft radial pulse behind the parallax frame. Reads as the painting's own light spilling out.
+- **Marquee band** between Hero and Work. New [`src/components/ui/Marquee.astro`](src/components/ui/Marquee.astro) interleaves 14 artwork titles with 7 Devanagari ornaments (कमल / मृग / गाय / मीन / मोर / वृक्ष / सरिता) on a doubled track for a seamless CSS-only loop. Pauses on hover.
+
+### Lightbox
+
+- **Native `<dialog>` lightbox** at [`src/components/ui/ArtworkLightbox.astro`](src/components/ui/ArtworkLightbox.astro). Zero dependencies -- the browser handles focus trap, ESC-to-close, and the `::backdrop` pseudo-element gives us a styled overlay for free. Single dialog in the DOM regardless of catalog size.
+- **Gallery cards as triggers.** Each `<li>` in [`Work.astro`](src/components/sections/Work.astro) is now a `<button data-lightbox-trigger>` carrying the artwork's full payload (slug, title, style, medium, year, description, alt, AVIF + WebP srcsets, palette, accent) on data-attributes. Click delegation in the lightbox script reads the payload and paints content on demand.
+- **Filter-aware navigation.** Prev/next buttons and ArrowLeft/ArrowRight cycle through siblings sharing the gallery's current filter -- a Madhubani filter restricts navigation to Madhubani pieces.
+- **Reuses image variants.** Lightbox `<picture>` builds AVIF + WebP `<source>` chains dynamically from the same 800/1200 wide variants the optimize-images script already generates. No extra build step, no new request types.
+
+### Section pigment + delight pass
+
+- **Hero rework.** [`Hero.astro`](src/components/sections/Hero.astro) gains an animated grid backdrop (radial-masked, slow drift) layered above the aurora, plus a scroll-cue link with a pulsing line and "scroll" eyebrow that anchors to `#work`.
+- **Workshops glow-up.** [`Workshops.astro`](src/components/sections/Workshops.astro) sets `accent="var(--style-pichwai)"`, replaces flat cards with `card-tilt` + `border-beam`. Cards lift on hover with a subtle perspective tilt; a conic-gradient beam rotates around the border (mask-composite trick, pure CSS). Duration chips and "Enquire" links paint in the section accent.
+- **CustomOrders glow-up.** [`CustomOrders.astro`](src/components/sections/CustomOrders.astro) sets `accent="var(--color-vermillion)"` so the form heading, label tints, submit button, and confetti burst all inherit the warm vermillion automatically.
+- **About ornate frame.** [`About.astro`](src/components/sections/About.astro) sets `accent="var(--color-marigold)"`. First paragraph gets a `.drop-cap` initial in italic display serif. Pull-quote uses the section accent for both the left rule and the quote text. A Devanagari "इति" (closing flourish from classical manuscripts) signs off the bio in muted accent ink, marked `aria-hidden`.
+- **Contact peacock pass.** [`Contact.astro`](src/components/sections/Contact.astro) sets `accent="var(--color-peacock)"`. Each contact row's icon, label, and address shift to the section accent on hover.
+- **OrderForm submit + celebration.** [`OrderForm.tsx`](src/components/ui/OrderForm.tsx) submit button now paints in `var(--section-accent)` (saturated vermillion, no longer flat ink). On submit, a CSS-only confetti burst of eight pigment-colored spans bursts behind the button; state resets after 1200ms so a second submit re-fires.
+- **Motion split.** [`globals.css`](src/styles/globals.css) shrunk from 559 lines to 348 by extracting all motion utilities (reveal, stagger, aurora, kinetic-devanagari, marquee, parallax-frame, hero-halo, ken-burns, plus the new card-tilt, border-beam, drop-cap, scroll-cue, hero-grid, celebrate-burst) into [`src/styles/motion.css`](src/styles/motion.css) and importing back. Keeps every source file under the 500-line ceiling.
+
+### Mobile + motion legibility pass
+
+- **2-up gallery on phones.** [`Work.astro`](src/components/sections/Work.astro) drops from a 1-column wall-of-thumbnails into `grid-cols-2` at base. Card title/style sizing tightens at small breakpoints; secondary "medium · year" line hides under `sm` so cards stay scannable in a tight 2-up.
+- **Beefier reveal motion.** `.reveal` displacement bumped from 18px to 28px and blur from 6px to 10px so BlurFade is unmistakable at thumb-distance, not just a CSS-curiosity. Stagger steps widened to 90ms so each child entry registers separately.
+- **Always-on accent ring.** [`motion.css`](src/styles/motion.css) `.border-beam` was hover-only -- mobile users (no hover) never saw it. Now every `.border-beam` card carries a quiet 1px outline tinted in the section accent at rest; the rotating conic beam sweep layers in via `::after` only on hover/focus. Mobile users see pigment, hover users see motion.
+- **Card-shadow breathe on touch.** [`motion.css`](src/styles/motion.css) on `(hover: none)`, `.card-tilt` runs a 7s shadow alternate (no transform) so cards visibly inhale/exhale without misaligning the beam ring. Even-indexed cards offset by half-period so siblings breathe out of phase.
+- **Brighter hero halo on mobile.** [`motion.css`](src/styles/motion.css) `.hero-halo::before` opacity 0.45 -> 0.6, period 8s -> 6s under `768px`. The hero-frame parallax tilt is hover-gated, so on phones the halo is the primary motion of the hero plate; this makes it visible.
+- **Form fields meet iOS / touch-target rules.** [`globals.css`](src/styles/globals.css) bumps `.field-input/.field-select/.field-textarea` to 1rem (16px, kills iOS auto-zoom on focus) and a 48px min-height. [`OrderForm.tsx`](src/components/ui/OrderForm.tsx) submit button `min-h-[48px]`, fallback email link `min-h-[44px]` -- both hit Apple HIG / Material touch-target floors.
+- **Mobile nav fits in 5.** [`Header.astro`](src/components/layout/Header.astro) swaps the horizontal-scroll mobile nav for a 2-row flex-wrap that fits all 5 nav items at 375px without sideways scroll. Each link min-height 40px for thumb comfort.
+- **Hero chip row tightens at base.** [`Hero.astro`](src/components/sections/Hero.astro) style chips drop to `text-[0.65rem]` and `px-2.5` on mobile so all 6 styles fit in two rows without wrapping awkwardly.
+- **Filter pills hit 40px** ([`Work.astro`](src/components/sections/Work.astro)).
+- **Scroll-cue desktop-only.** [`motion.css`](src/styles/motion.css) `.scroll-cue` hidden under 768px -- it overlapped the artwork plate on phones and the kinetic typography is enough cue.
+
+### Hover-free, content-first pass
+
+Hover is unreliable on touch (iOS fires a synthetic hover on first tap, the user has to "fight" the interface to read content), so any **content** previously gated behind hover is now always visible. Hover may still embellish (link color shifts) but no longer hides anything.
+
+- **Artwork descriptions inline.** [`Work.astro`](src/components/sections/Work.astro) moved each piece's description out of the bottom-overlay slide-up (which only fired on `:hover`) into a static `<p>` below the title. Every artwork already had a description in [`artworks.json`](src/data/artworks.json) -- they just weren't visible to phone users.
+- **Image scale removed.** Gallery images no longer `group-hover:scale-[1.02]` -- pointer users see the same crisp render as touch users, no shifting frames mid-tap.
+- **Card-tilt static.** [`motion.css`](src/styles/motion.css) `.card-tilt` no longer applies `perspective(900px) rotateX(2deg) rotateY(-2deg) translateY(-4px)` on hover. Replaced with a static section-accent shadow at rest (`0 12px 28px -22px ...`). Touch + pointer get identical surfaces.
+- **Border-beam static ring.** `.border-beam::after` rotating conic sweep removed entirely. Only the always-on `::before` 1px accent outline remains; opacity bumped from 45% to 55% so the pigment identity is clearer at rest.
+- **Hero parallax kept hover-only** (script already early-returns on `(hover: none)`) -- it's pure embellishment that adds nothing on touch and would fight the kenburns motion if forced on.
+
+### Minimal-motion pass
+
+Cut overlapping ambient loops so each remaining animation reads as intentional, not noise. Final motion vocabulary:
+
+- **Hero text zone:** `kinetic-shift` on the Devanagari word (slowed 12s -> 18s).
+- **Hero artwork:** `kenburns` breathe (slowed 22s -> 28s, displacement 6% -> 4%).
+- **Marquee band:** `marquee-scroll` (unchanged -- explicit feature).
+- **Hover-only:** `border-beam` rotation, card-tilt perspective lift.
+- **Event-only:** `confetti-pop` on form-submit success.
+
+Killed the always-on loops that competed with the above: aurora drift, hero-grid drift, scroll-cue pulse, hero-halo pulse, and the touch-only card-float breathe. Each killed effect is replaced with a static rendering of the same shape (aurora as still color, grid as still lattice, halo as still glow, scroll cue at fixed 0.6 opacity). Reveal-on-scroll calmed from translateY 28px / blur 10px / 850ms to 16px / 4px / 600ms; stagger steps tightened from 90ms to 60ms.
+
 ## 1.2.0 -- 2026-05-22
 
 Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.
