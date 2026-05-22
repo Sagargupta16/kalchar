@@ -12,6 +12,8 @@ export interface Artwork {
   order: number;
   description?: string;
   image: string;
+  /** Optional 3-5 hex swatches sampled from the work, used by the chromacard. */
+  palette?: string[];
 }
 
 /* Build the public URL for an artwork's image, given the site's base URL. */

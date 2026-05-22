@@ -14,7 +14,8 @@
       "featured": true,
       "order": 1,
       "description": "Radha and Krishna meeting beneath a flowering tree, in classical Madhubani style.",
-      "image": "radha-krishna.jpg"
+      "image": "radha-krishna.jpg",
+      "palette": ["#c0392b", "#e6a817", "#1f6f8f", "#2d3a78", "#4a7c2f"]
     },
     {
       "slug": "ganesha-pichwai",
@@ -25,7 +26,8 @@
       "featured": true,
       "order": 2,
       "description": "Ganesha seated under a scalloped arch with a lotus throne, in Pichwai tradition.",
-      "image": "ganesha-pichwai.jpg"
+      "image": "ganesha-pichwai.jpg",
+      "palette": ["#1f6f5a", "#e6a817", "#c0392b", "#f3eee4", "#2d3a78"]
     },
     {
       "slug": "shrinathji",
@@ -36,7 +38,8 @@
       "featured": true,
       "order": 3,
       "description": "Blue-faced Shrinathji bordered by lotuses, in Pichwai-Nathdwara style.",
-      "image": "shrinathji.jpg"
+      "image": "shrinathji.jpg",
+      "palette": ["#2d3a78", "#e6a817", "#c0392b", "#1f6f5a", "#f3eee4"]
     },
     {
       "slug": "pichwai-cow",
@@ -91,7 +94,8 @@
       "featured": true,
       "order": 8,
       "description": "Three fish nested within an oval, set against a green field with a patterned border.",
-      "image": "fish-family.jpg"
+      "image": "fish-family.jpg",
+      "palette": ["#4a7c2f", "#c0392b", "#e6a817", "#1f1a14"]
     },
     {
       "slug": "twin-fish",
@@ -113,7 +117,8 @@
       "featured": true,
       "order": 10,
       "description": "A pair of deer beneath a flowering tree. The Sanskrit title means 'pair of deer'.",
-      "image": "mrgayugma.jpg"
+      "image": "mrgayugma.jpg",
+      "palette": ["#c0392b", "#e6a817", "#4a7c2f", "#1f6f8f"]
     },
     {
       "slug": "lippan-birds",
@@ -124,7 +129,8 @@
       "featured": true,
       "order": 11,
       "description": "Two birds among lotus blooms in a yellow Lippan mirror panel.",
-      "image": "lippan-birds.jpg"
+      "image": "lippan-birds.jpg",
+      "palette": ["#d4972f", "#f3eee4", "#1f1a14", "#c0392b"]
     },
     {
       "slug": "texture-leaf-circle",
