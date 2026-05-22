@@ -102,9 +102,19 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`astro.config.
 
 ## Branching and releases
 
-- **No direct push to `main`.** Always work on a feature branch (`feat/<topic>`, `fix/<topic>`, `chore/<topic>`). Don't push the branch to remote until Sagar explicitly says so ("push it", "push and PR", etc.). Treat `main` as protected even if server-side branch protection isn't configured yet.
-- **PRs only.** All changes land in `main` via PR. No fast-forward merges from local.
-- **One open PR at a time.** Don't open a second PR while one is unmerged. Stack additional changes onto the existing branch. Exception: a true hotfix on a separate branch, with the existing PR linked in the new PR body.
+Two long-lived branches, two deploy targets, one Pages site:
+
+| Branch | URL | Role |
+| --- | --- | --- |
+| `main` | `sagargupta.online/folk-art-portfolio/` | Production. Protected: PR-only, CI must pass. |
+| `dev` | `sagargupta.online/folk-art-portfolio/beta/` | Beta / staging. `noindex` + canonical points at prod. |
+
+Promotion flow: `feat/<topic>` -> PR into `dev` -> deploys to `/beta/` -> review on the live URL -> PR `dev` into `main` -> deploys to prod.
+
+- **No direct push to `main` or `dev`.** Work on a feature branch (`feat/<topic>`, `fix/<topic>`, `chore/<topic>`). Don't push to remote until Sagar explicitly says so ("push it", "push and PR", etc.). Server-side branch protection is configured on `main`; `dev` relies on convention.
+- **PRs only into `main`.** All prod changes land via the `dev` -> `main` promotion PR. No fast-forward from local, no direct push.
+- **One open PR at a time per target.** Don't open a second PR into `dev` while one is unmerged; stack onto the existing branch. The `dev` -> `main` promotion PR is its own slot and may coexist with an open feature -> `dev` PR. Exception: a true hotfix on a separate branch, linked in the existing PR body.
+- **Beta builds set `DEPLOY_ENV=beta`.** [`astro.config.mjs`](astro.config.mjs) reads it and switches `base` to `/folk-art-portfolio/beta/`. [`BaseLayout.astro`](src/layouts/BaseLayout.astro) reads it and emits `<meta robots="noindex, nofollow">` plus a canonical that rewrites `/beta/` -> `/`. The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so prod and beta never drift.
 - **Versioning: SemVer, manual, pre-1.0.0** while the site is in build-out. 1.0.0 = first public launch on the client's domain.
   - **Patch** (`0.x.Y`): typo, broken link, image swap, CSS tweak, new artwork added.
   - **Minor** (`0.X.0`): new gallery section / page, content model change, stack swap.

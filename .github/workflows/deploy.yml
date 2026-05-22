@@ -1,8 +1,12 @@
 name: Deploy to GitHub Pages
 
+# Combined-dist deploy. On push to main OR dev, build both branches and ship them
+# as one artifact: prod at /folk-art-portfolio/, beta at /folk-art-portfolio/beta/.
+# This guarantees the two URLs never drift -- every deploy reflects the current state
+# of both branches, so a beta-only change can't accidentally clobber prod and vice versa.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -16,11 +20,21 @@ concurrency:
 
 jobs:
   build:
-    name: Build site
+    name: Build prod + beta
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (prod)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: prod
+
+      - name: Checkout dev (beta)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: beta
 
       - uses: pnpm/action-setup@v4
 
@@ -28,17 +42,35 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: prod/pnpm-lock.yaml
 
-      - name: Install dependencies
+      - name: Install prod deps
+        working-directory: prod
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build prod (root)
+        working-directory: prod
         run: pnpm build
+
+      - name: Install beta deps
+        working-directory: beta
+        run: pnpm install --frozen-lockfile
+
+      - name: Build beta (/beta/)
+        working-directory: beta
+        env:
+          DEPLOY_ENV: beta
+        run: pnpm build
+
+      - name: Combine into one dist
+        run: |
+          mkdir -p prod/dist/beta
+          cp -r beta/dist/* prod/dist/beta/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/
+          path: prod/dist/
 
   deploy:
     name: Deploy to GitHub Pages

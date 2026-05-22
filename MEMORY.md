@@ -1,6 +1,6 @@
 # Memory
 
-Last updated: 2026-05-17
+Last updated: 2026-05-22
 
 Repo-level memory for `folk-art-portfolio` (renamed from `megha-art-portfolio` 2026-05-17). Stacks under workspace-root [MEMORY.md](../../MEMORY.md). Claude reads this at session start. No PII -- contact details, payment terms, and anything sensitive stay out of the repo.
 
@@ -26,6 +26,8 @@ Repo-level memory for `folk-art-portfolio` (renamed from `megha-art-portfolio` 2
 | Versioning | Manual SemVer, pre-1.0.0 during build-out. See `CLAUDE.md` -> Branching and releases. | 2026-05-17 | Site has no consumers; auto-tooling not worth the config cost. |
 | Theme | Light + dark modes, warm off-white / charcoal, terracotta accent. Tokens in `src/styles/globals.css`. | 2026-05-17 | Madhubani palette is saturated; warm neutrals support it better than pure black/white. |
 | Branding accent | Devanagari character `म` as decorative accent in hero. | 2026-05-17 | Honors the tradition without making the whole site bilingual. |
+| Two-env deploy | `main` -> `/folk-art-portfolio/` (prod), `dev` -> `/folk-art-portfolio/beta/` (staging). Combined-dist workflow rebuilds both on every push. | 2026-05-22 | Lets Sagar verify changes on a real URL before promoting to prod. Beta sets `noindex` + canonical -> prod so SEO consolidates at the live URL. |
+| Branch protection | `main` is PR-only, CI required. `dev` unprotected (solo workflow, fast iteration). | 2026-05-22 | Prevents accidental direct pushes to prod; dev stays nimble. |
 
 ---
 
