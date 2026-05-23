@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.5.1 -- 2026-05-23
+
+Code-quality patch on top of 1.5.0. No behavior change, no bundle-size change. Targets the kind of smell SonarQube would flag: stringly-typed duplication, vestigial type coercion, unhandled promise paths, anti-pattern React keys, and DRY violations between build scripts.
+
+### Refactors
+
+- **Centralized feature detection.** `"(prefers-reduced-motion: reduce)"`, `"(hover: none)"`, and `"(pointer: coarse)"` were inlined as raw strings in 9 files (App, Hero, CustomCursor, ImageReveal, ParticleField, SplitText, useMagnetic, useScrollParallax, useTilt3D). New [`src/lib/media.ts`](src/lib/media.ts) exposes `prefersReducedMotion()`, `isTouchOnly()`, `hasCoarsePointer()`, and a combined `prefersNoFancyMotion()`. SSR-safe (return false when `window` is undefined). Every consumer now imports from one place.
+- **Typed catalog/workshops re-exports.** `(artworksData.items as Artwork[])` and `(siteData.workshops as Workshop[])` were duplicated across 4 files. [`src/lib/site.ts`](src/lib/site.ts) now exposes `artworks: readonly Artwork[]` and `workshops: readonly Workshop[]`, both pre-sorted by `order`. The `Workshop` type is promoted from local-to-Workshops.tsx to a public export. Hero, Work, Marquee, Workshops drop their casts.
+- **`as unknown as` cast removal in App.tsx.** `requestIdleCallback` and `cancelIdleCallback` were typed via `window as unknown as { requestIdleCallback?: ... }` -- a defensive workaround for a missing lib type. Both signatures have lived in `lib.dom.d.ts` since TypeScript 4. Now uses `typeof window.requestIdleCallback === "function"` for a clean feature check, no coercion.
+- **Lenis import error swallowed cleanly.** The dynamic `await import("lenis")` was invoked fire-and-forget inside the idle callback, so any rejection (network blip, ad blocker, MIME-type issue) surfaced as an unhandled-rejection console error. Now wrapped in a `kickoff` shim that calls `start().catch(() => {})` -- smooth scroll is purely cosmetic, native scroll is the right fallback.
+- **Stable React keys.** Five components used array-index keys where the underlying content has a natural identity:
+  - `Marquee.tsx`: `key={item.text}` (titles + Devanagari ornaments are unique strings).
+  - `ArtworkLightbox.tsx` + `Chromacard.tsx`: `key={hex}` (palette swatches are guaranteed-distinct hex codes per artwork).
+  - `About.tsx`: `key={p.slice(0, 24)}` (paragraph prefix is stable and unique).
+  - `SplitText.tsx`: kept index-based but composed as `key={`${i}-${char}`}` -- for character splits, position genuinely IS the identity (the same letter recurs and animation order is what we tween). Comment added so the choice is explicit.
+- **Shared scripts site-config.** `SITE`, `REPO_NAME`, `BASE`, and `PROD_URL` were duplicated between [`vite.config.ts`](vite.config.ts) and [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs). New [`scripts/site-config.mjs`](scripts/site-config.mjs) is the single source of truth -- ESM `.mjs` so Node can run it directly and the TS config can import via Vite's resolver. When the artist's domain lands, change one file.
+
+### Verification
+
+`pnpm lint` + `pnpm typecheck` + `pnpm build` all clean. Bundle output identical to 1.5.0: 245.17 kB main, 18.83 kB Lenis chunk (deferred), 5 decorative chunks under 2.3 kB each. `dist/index.html` 13.24 kB with full SEO injection. `dist/sitemap.xml` 6 entries.
+
 ## 1.5.0 -- 2026-05-22
 
 Post-migration audit pass. The 1.4.0 Astro -> Vite move shipped fast and left some debt: docs claiming features the new stack didn't have, no sitemap, JSON-LD only client-rendered, decoratives loaded eagerly, no lint config. This release closes the gap between what the README promises and what the build actually ships.
