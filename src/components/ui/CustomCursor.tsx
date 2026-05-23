@@ -1,13 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 
+// Match Tailwind's md breakpoint -- below this we assume the user might be on a
+// device that fakes hover, so we skip the cursor entirely.
+function prefersNoCursor() {
+	if (typeof window === "undefined") return true;
+	if (window.matchMedia("(hover: none)").matches) return true;
+	if (window.matchMedia("(pointer: coarse)").matches) return true;
+	if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
+	return false;
+}
+
 export default function CustomCursor() {
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const followerRef = useRef<HTMLDivElement>(null);
 	const [mode, setMode] = useState<"default" | "hover" | "gallery">("default");
+	const [enabled, setEnabled] = useState(false);
 
 	useEffect(() => {
-		if (window.matchMedia("(hover: none)").matches) return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		setEnabled(!prefersNoCursor());
+	}, []);
+
+	useEffect(() => {
+		if (!enabled) return;
 
 		if (!cursorRef.current || !followerRef.current) return;
 		const cursor: HTMLDivElement = cursorRef.current;
@@ -64,7 +78,9 @@ export default function CustomCursor() {
 			cancelAnimationFrame(raf);
 			document.documentElement.classList.remove("custom-cursor-active");
 		};
-	}, []);
+	}, [enabled]);
+
+	if (!enabled) return null;
 
 	const sizeClass =
 		mode === "gallery"

@@ -37,13 +37,13 @@ export default function Marquee() {
 	return (
 		<aside
 			className="relative border-y border-[var(--color-line)] bg-[var(--color-bg-soft)] py-7"
-			aria-label="Featured artworks"
+			aria-hidden="true"
 		>
 			<div className="marquee">
-				<div className="marquee__track" aria-hidden="false">
+				<div className="marquee__track">
 					<TrackContent />
 				</div>
-				<div className="marquee__track" aria-hidden="true">
+				<div className="marquee__track">
 					<TrackContent />
 				</div>
 			</div>
