@@ -12,7 +12,6 @@ import CustomCursor from "@/components/ui/CustomCursor";
 import Marquee from "@/components/ui/Marquee";
 import NoiseOverlay from "@/components/ui/NoiseOverlay";
 import ScrollProgress from "@/components/ui/ScrollProgress";
-import { StructuredData } from "@/lib/structured-data";
 
 function useRevealObserver() {
 	useEffect(() => {
@@ -61,7 +60,6 @@ export default function App() {
 
 	return (
 		<>
-			<StructuredData />
 			<CustomCursor />
 			<ScrollProgress />
 			<NoiseOverlay />
