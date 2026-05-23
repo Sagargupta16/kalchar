@@ -1,17 +1,8 @@
 import Section from "@/components/layout/Section";
-import siteData from "@/data/site.json";
 import { useTilt3D } from "@/hooks/useTilt3D";
-import { contact, sections } from "@/lib/site";
+import { contact, sections, type Workshop, workshops } from "@/lib/site";
 
-type Workshop = {
-	slug: string;
-	title: string;
-	blurb: string;
-	durationHours?: number;
-	order: number;
-};
-
-const items = (siteData.workshops as Workshop[]).sort((a, b) => a.order - b.order);
+const items = workshops;
 const w = sections.workshops;
 
 function WorkshopCard({ item }: { item: Workshop }) {

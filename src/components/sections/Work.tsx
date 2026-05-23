@@ -4,11 +4,9 @@ import ArtworkImage from "@/components/ui/ArtworkImage";
 import ArtworkLightbox from "@/components/ui/ArtworkLightbox";
 import Chromacard from "@/components/ui/Chromacard";
 import ImageReveal from "@/components/ui/ImageReveal";
-import artworksData from "@/data/artworks.json";
 import { useTilt3D } from "@/hooks/useTilt3D";
-import type { Artwork } from "@/lib/images";
 import { placeholderDataUri } from "@/lib/placeholder";
-import { sections, styles } from "@/lib/site";
+import { artworks, sections, styles } from "@/lib/site";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -23,7 +21,7 @@ const styleAccentVar: Record<string, string> = {
 
 const LIGHTBOX_WIDTHS = [800, 1200];
 
-const items = (artworksData.items as Artwork[])
+const items = artworks
 	.map((art) => {
 		const slug = art.image ? art.image.replace(/\.(jpe?g|png)$/i, "") : "";
 		const optBase = slug ? `${BASE}_opt/artworks/${slug}` : "";

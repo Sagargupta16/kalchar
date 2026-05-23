@@ -4,12 +4,10 @@ import Chromacard from "@/components/ui/Chromacard";
 import MeshBackground from "@/components/ui/MeshBackground";
 import OrbitRing from "@/components/ui/OrbitRing";
 import SplitText from "@/components/ui/SplitText";
-import artworksData from "@/data/artworks.json";
 import { useScrollParallax } from "@/hooks/useScrollParallax";
-import type { Artwork } from "@/lib/images";
 import { isTouchOnly, prefersReducedMotion } from "@/lib/media";
 import { placeholderDataUri } from "@/lib/placeholder";
-import { brand, styles } from "@/lib/site";
+import { artworks, brand, styles } from "@/lib/site";
 
 /* Heavy decoratives split into their own chunks. The hero text + image + parallax
    frame paints from the main bundle; the 3D lattice / particle canvas / floating
@@ -18,8 +16,7 @@ const FloatingShapes = lazy(() => import("@/components/ui/FloatingShapes"));
 const Lattice3D = lazy(() => import("@/components/ui/Lattice3D"));
 const ParticleField = lazy(() => import("@/components/ui/ParticleField"));
 
-const all = artworksData.items as Artwork[];
-const featured = all.find((a) => a.featured) ?? all[0];
+const featured = artworks.find((a) => a.featured) ?? artworks[0];
 
 const heroAccent = featured?.palette?.[0] ?? "var(--color-accent)";
 const heroHaloStyle = { "--hero-halo": heroAccent } as React.CSSProperties;
