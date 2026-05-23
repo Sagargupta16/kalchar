@@ -3,10 +3,8 @@ import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { PROD_URL, REPO_NAME } from "./scripts/site-config.mjs";
 
-const REPO_NAME = "folk-art-portfolio";
-const SITE = "https://sagargupta.online";
-const PROD_URL = `${SITE}/${REPO_NAME}/`;
 const IS_BETA = process.env.DEPLOY_ENV === "beta";
 const base = IS_BETA ? `/${REPO_NAME}/beta/` : `/${REPO_NAME}/`;
 

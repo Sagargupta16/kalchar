@@ -9,7 +9,7 @@ export default function About() {
 			<div className="grid gap-10 md:grid-cols-12">
 				<div className="stagger space-y-5 md:col-span-8">
 					{a.paragraphs.map((p: string, i: number) => (
-						<p key={i} className={`t-body reveal${i === 0 ? " drop-cap" : ""}`}>
+						<p key={p.slice(0, 24)} className={`t-body reveal${i === 0 ? " drop-cap" : ""}`}>
 							{p}
 						</p>
 					))}

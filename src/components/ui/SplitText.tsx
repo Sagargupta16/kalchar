@@ -42,8 +42,10 @@ export default function SplitText({
 	return (
 		<Tag ref={ref as React.Ref<never>} className={`split-text ${className}`} aria-label={children}>
 			{chars.map((char, i) => (
+				// Position IS the identity for character splits -- the same letter can
+				// appear multiple times in a word and order is what we animate.
 				<span
-					key={i}
+					key={`${i}-${char}`}
 					className="split-char"
 					style={{ "--char-index": i } as React.CSSProperties}
 					aria-hidden="true"

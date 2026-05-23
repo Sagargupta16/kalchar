@@ -158,8 +158,8 @@ export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props
 							<div className="mt-2">
 								<p className="t-meta mb-2">Palette</p>
 								<div className="chromacard" role="img" aria-label="Sampled palette">
-									{item.palette.map((hex, i) => (
-										<span key={i} style={{ background: hex }} aria-hidden="true" />
+									{item.palette.map((hex) => (
+										<span key={hex} style={{ background: hex }} aria-hidden="true" />
 									))}
 								</div>
 							</div>

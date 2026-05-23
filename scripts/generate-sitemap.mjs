@@ -16,13 +16,11 @@ import { existsSync } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { BASE, SITE } from "./site-config.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const ARTWORKS_PATH = join(ROOT, "src", "data", "artworks.json");
 const OUT_PATH = join(ROOT, "dist", "sitemap.xml");
-
-const SITE = "https://sagargupta.online";
-const BASE = "/folk-art-portfolio/";
 
 const SECTIONS = ["", "#work", "#about", "#workshops", "#custom-orders", "#contact"];
 

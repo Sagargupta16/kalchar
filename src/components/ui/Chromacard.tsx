@@ -15,8 +15,8 @@ export default function Chromacard({
 
 	return (
 		<div className="chromacard" role="img" aria-label={ariaLabel}>
-			{swatches.map((hex, i) => (
-				<span key={i} style={{ background: hex }} aria-hidden="true" />
+			{swatches.map((hex) => (
+				<span key={hex} style={{ background: hex }} aria-hidden="true" />
 			))}
 		</div>
 	);
