@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/media";
 
 type Props = {
 	children: string;
@@ -16,7 +17,7 @@ export default function SplitText({
 	const ref = useRef<HTMLElement>(null);
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		if (prefersReducedMotion()) {
 			ref.current?.classList.add("split-visible");
 			return;
 		}

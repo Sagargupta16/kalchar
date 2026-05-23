@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/media";
 
 type Particle = {
 	x: number;
@@ -29,7 +30,7 @@ export default function ParticleField() {
 	const animRef = useRef(0);
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (prefersReducedMotion()) return;
 
 		if (!canvasRef.current) return;
 		const canvas: HTMLCanvasElement = canvasRef.current;

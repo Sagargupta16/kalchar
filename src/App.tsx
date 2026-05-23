@@ -9,6 +9,7 @@ import Work from "@/components/sections/Work";
 import Workshops from "@/components/sections/Workshops";
 import Marquee from "@/components/ui/Marquee";
 import ScrollProgress from "@/components/ui/ScrollProgress";
+import { prefersReducedMotion } from "@/lib/media";
 
 /* Decoratives are split into their own chunk(s) so the initial JS payload
    carries only layout + sections. They mount with `null` Suspense fallbacks
@@ -18,7 +19,7 @@ const NoiseOverlay = lazy(() => import("@/components/ui/NoiseOverlay"));
 
 function useRevealObserver() {
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		if (prefersReducedMotion()) {
 			document.querySelectorAll(".reveal").forEach((el) => {
 				el.classList.add("is-visible");
 			});
@@ -44,7 +45,7 @@ function useRevealObserver() {
 
 function useSmoothScroll() {
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (prefersReducedMotion()) return;
 
 		// Dynamic-import Lenis on the next idle tick. Smooth scroll is pure polish
 		// -- delaying it keeps Lenis (~10 KB) out of the critical bundle so the

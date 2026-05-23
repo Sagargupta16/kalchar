@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { hasCoarsePointer, isTouchOnly, prefersReducedMotion } from "@/lib/media";
 
-// Match Tailwind's md breakpoint -- below this we assume the user might be on a
-// device that fakes hover, so we skip the cursor entirely.
+// True when we should skip the custom cursor entirely. Anything that fakes
+// hover (touch, hybrid devices, reduce-motion) gets the system cursor.
 function prefersNoCursor() {
-	if (typeof window === "undefined") return true;
-	if (window.matchMedia("(hover: none)").matches) return true;
-	if (window.matchMedia("(pointer: coarse)").matches) return true;
-	if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-	return false;
+	return isTouchOnly() || hasCoarsePointer() || prefersReducedMotion();
 }
 
 export default function CustomCursor() {

@@ -7,6 +7,7 @@ import SplitText from "@/components/ui/SplitText";
 import artworksData from "@/data/artworks.json";
 import { useScrollParallax } from "@/hooks/useScrollParallax";
 import type { Artwork } from "@/lib/images";
+import { isTouchOnly, prefersReducedMotion } from "@/lib/media";
 import { placeholderDataUri } from "@/lib/placeholder";
 import { brand, styles } from "@/lib/site";
 
@@ -37,8 +38,8 @@ const heroAlt = featured
 
 function useParallax(frameRef: React.RefObject<HTMLDivElement | null>) {
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		if (window.matchMedia("(hover: none)").matches) return;
+		if (prefersReducedMotion()) return;
+		if (isTouchOnly()) return;
 		if (!frameRef.current) return;
 		const frame: HTMLDivElement = frameRef.current;
 		const shadowEl = frame.querySelector<HTMLDivElement>("[data-shadow]");

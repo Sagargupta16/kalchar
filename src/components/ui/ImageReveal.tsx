@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/media";
 
 type Props = {
 	children: ReactNode;
@@ -10,7 +11,7 @@ export default function ImageReveal({ children, direction = "left", className = 
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		if (prefersReducedMotion()) {
 			ref.current?.classList.add("img-revealed");
 			return;
 		}
