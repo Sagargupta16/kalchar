@@ -1,8 +1,9 @@
-import { ArrowLeft, ArrowRight, ImageIcon, MessageCircle, Ruler } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImageIcon, MessageCircle, Palette, Ruler } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
@@ -134,6 +135,21 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 							) : null}
 						</dl>
 					</Reveal>
+
+					{art.palette && art.palette.length > 0 ? (
+						<Reveal delayMs={240}>
+							<div className="mt-6">
+								<p className="t-meta inline-flex items-center gap-1.5 normal-case tracking-normal">
+									<Palette size={13} aria-hidden="true" /> Palette
+								</p>
+								<Chromacard
+									palette={art.palette}
+									ariaLabel={`Palette sampled from ${art.title}`}
+									className="mt-2"
+								/>
+							</div>
+						</Reveal>
+					) : null}
 
 					<Reveal delayMs={260}>
 						<div className="mt-10">
