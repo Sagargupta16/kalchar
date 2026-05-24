@@ -23,7 +23,7 @@ Migrated 2026-05-22. Frontend-only, static deploy.
 - **Self-hosted fonts** -- Cormorant Garamond (display serif, italic-forward), Inter (body), Tiro Devanagari Hindi (accent). All via `@fontsource(-variable)`. No Google Fonts CDN call.
 - **JSON-driven content** -- single source of truth in [`src/data/site.json`](src/data/site.json) (brand, nav, sections, workshops) and [`src/data/artworks.json`](src/data/artworks.json) (artwork catalog). Imported directly via `resolveJsonModule`. Same model survives a future CMS or backend swap.
 - **Image pipeline** -- build-time `sharp` script at [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) generates AVIF + WebP variants (400/800/1200 widths) into `public/_opt/artworks/` (gitignored). [`src/components/ui/ArtworkImage.tsx`](src/components/ui/ArtworkImage.tsx) emits `<picture>` with multi-format `<source srcset>` chains; the original `.jpg` in `public/artworks/` stays as a fallback.
-- **SEO** -- A custom Vite plugin in [`vite.config.ts`](vite.config.ts) injects description / Open Graph / Twitter / canonical / JSON-LD into [`index.html`](index.html) at build time and writes `dist/sitemap.xml` from [`src/data/artworks.json`](src/data/artworks.json). Beta builds (`DEPLOY_ENV=beta`) get `<meta name="robots" content="noindex, nofollow">` and a canonical that rewrites `/beta/` -> prod. `robots.txt` lives in `public/`.
+- **SEO** -- A custom Vite plugin in [`vite.config.ts`](vite.config.ts) injects description / Open Graph / Twitter / canonical / JSON-LD into [`index.html`](index.html) at build time and writes `dist/sitemap.xml` from [`src/data/artworks.json`](src/data/artworks.json). URLs (canonical, OG, sitemap, JSON-LD `@id`s) all derive from a single source of truth at [`scripts/site-config.mjs`](scripts/site-config.mjs). `robots.txt` lives in `public/`.
 
 Backend hooks left as inert seams (contact form, workshop booking) -- to be activated when needed without restructuring.
 
@@ -50,7 +50,7 @@ pnpm preview      # serve the built site
 pnpm typecheck    # tsc -b (TS strict)
 ```
 
-Local URL: `http://localhost:5173/folk-art-portfolio/` (subpath matches the GH Pages base).
+Local URL: `http://localhost:5173/` (matches the apex production base).
 
 ## Test
 
@@ -58,7 +58,7 @@ Build + typecheck are the current quality gates. Playwright smoke test and Light
 
 ## Deploy
 
-GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.ts`](vite.config.ts) sets `base` to `/folk-art-portfolio/` (or `/folk-art-portfolio/beta/` when `DEPLOY_ENV=beta`). The same file's SEO plugin injects OG / Twitter / canonical / JSON-LD into [`index.html`](index.html) and writes `dist/sitemap.xml` from [`src/data/artworks.json`](src/data/artworks.json) at build time. When the artist's own domain lands, update the `base` and the `SITE` constant in `vite.config.ts`; the OG / canonical / sitemap will follow.
+GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`), served at <https://kalchar.co.in/> via [`public/CNAME`](public/CNAME). The single source of truth for URLs is [`scripts/site-config.mjs`](scripts/site-config.mjs) -- `SITE` and `BASE` flow from there into `vite.config.ts` (base path) and the SEO plugin (OG / canonical / JSON-LD) and into [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs). To swap domains, change one file.
 
 ## Entry points
 
@@ -96,24 +96,24 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.t
 ## Gotchas
 
 - Client (Megha) does not write code. Update flow is Sagar edits and ships -- no CMS yet. If she ever wants self-edit, the JSON-driven catalog is CMS-ready (Decap, Sanity, etc.) without restructuring.
-- Domain: client wants their own. Until DNS lands the site is mirrored on `Sagargupta16.github.io/folk-art-portfolio/` and proxied at `sagargupta.online/folk-art-portfolio/`. When the artist's domain lands, update `base` and the `SITE` constant in `vite.config.ts` -- everything else (canonical, OG URLs, sitemap, JSON-LD) is derived from those.
+- Domain: `kalchar.co.in` (apex), client-owned, landed 2026-05-24. Served from the repo root via [`public/CNAME`](public/CNAME). DNS at the registrar: 4 A records to GitHub Pages IPs (185.199.108.153, .109.153, .110.153, .111.153) plus `www` CNAME -> `sagargupta16.github.io`. To swap domains, edit only [`scripts/site-config.mjs`](scripts/site-config.mjs) -- everything else (canonical, OG URLs, sitemap, JSON-LD) derives from there.
 - Adding a new artwork: drop `<slug>.jpg` into [`public/artworks/`](public/artworks/), append an entry to [`src/data/artworks.json`](src/data/artworks.json) with matching `image: "<slug>.jpg"`. The build runs [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) automatically and the gallery + hero pick it up via [`ArtworkImage.tsx`](src/components/ui/ArtworkImage.tsx).
 
 ## Branching and releases
 
-Two long-lived branches, two deploy targets, one Pages site:
+Two long-lived branches, one deploy target:
 
 | Branch | URL | Role |
 | --- | --- | --- |
-| `main` | `sagargupta.online/folk-art-portfolio/` | Production. Protected: PR-only, CI must pass. |
-| `dev` | `sagargupta.online/folk-art-portfolio/beta/` | Beta / staging. `noindex` + canonical points at prod. |
+| `main` | `https://kalchar.co.in/` | Production. Protected: PR-only, CI must pass. |
+| `dev` | local-only (`pnpm preview`) | Integration. GH Pages allows one custom domain per repo, so no public staging URL. |
 
-Promotion flow: `feat/<topic>` -> PR into `dev` -> deploys to `/beta/` -> review on the live URL -> PR `dev` into `main` -> deploys to prod.
+Promotion flow: `feat/<topic>` -> PR into `dev` -> verify locally with `pnpm preview` -> PR `dev` into `main` -> deploys to prod.
 
 - **No direct push to `main` or `dev`.** Work on a feature branch (`feat/<topic>`, `fix/<topic>`, `chore/<topic>`). Don't push to remote until Sagar explicitly says so ("push it", "push and PR", etc.). Server-side branch protection is configured on `main`; `dev` relies on convention.
 - **PRs only into `main`.** All prod changes land via the `dev` -> `main` promotion PR. No fast-forward from local, no direct push.
 - **One open PR at a time per target.** Don't open a second PR into `dev` while one is unmerged; stack onto the existing branch. The `dev` -> `main` promotion PR is its own slot and may coexist with an open feature -> `dev` PR. Exception: a true hotfix on a separate branch, linked in the existing PR body.
-- **Beta builds set `DEPLOY_ENV=beta`.** [`vite.config.ts`](vite.config.ts) reads it and switches `base` to `/folk-art-portfolio/beta/`. The SEO plugin in the same file reads it and injects `<meta name="robots" content="noindex, nofollow">` plus a canonical that rewrites `/beta/` -> `/`. The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so prod and beta never drift.
+- **Single deploy target.** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) deploys only on push to `main`. `dev` is verified locally before promotion -- no public staging URL.
 - **Versioning: SemVer, manual, pre-1.0.0** while the site is in build-out. 1.0.0 = first public launch on the client's domain.
   - **Patch** (`0.x.Y`): typo, broken link, image swap, CSS tweak, new artwork added.
   - **Minor** (`0.X.0`): new gallery section / page, content model change, stack swap.

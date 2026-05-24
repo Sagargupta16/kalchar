@@ -2,9 +2,7 @@
 
 Portfolio website for **Megha Seth** -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art, plus a regular workshop practice.
 
-**Live (prod):** <https://sagargupta.online/folk-art-portfolio/>
-**Beta (dev):** <https://sagargupta.online/folk-art-portfolio/beta/> -- `noindex`, canonical points at prod
-**Mirror:** <https://sagargupta16.github.io/folk-art-portfolio/>
+**Live:** <https://kalchar.co.in/>
 
 A static, JSON-driven, light-and-dark single-page site -- artwork-forward typography, hand-rolled motion that respects `prefers-reduced-motion`, and a CMS-ready content model that lets the catalog grow by dropping a file and appending a JSON entry.
 
@@ -20,7 +18,7 @@ A static, JSON-driven, light-and-dark single-page site -- artwork-forward typogr
 | Fonts | Self-hosted Cormorant Garamond, Inter, Tiro Devanagari Hindi (`@fontsource(-variable)`) |
 | Content | JSON files in `src/data/` imported via `resolveJsonModule` -- one source of truth for copy + catalog |
 | Images | Build-time `sharp` pass: AVIF + WebP at 400/800/1200 widths, original JPEG as fallback |
-| SEO | Build-time Vite plugin injects OG/Twitter/canonical/JSON-LD into `index.html` and generates `sitemap.xml`. Beta builds get `noindex` + canonical -> prod. |
+| SEO | Build-time Vite plugin injects OG/Twitter/canonical/JSON-LD into `index.html` and generates `sitemap.xml`. |
 | Lint / format | [Biome 2](https://biomejs.dev) -- single tool, no ESLint/Prettier split |
 | Deploy | GitHub Pages via Actions, OIDC auth |
 
@@ -32,7 +30,7 @@ No CDN font calls. No analytics. No tracking. The static build is everything.
 
 ```sh
 pnpm install
-pnpm dev          # http://localhost:5173/folk-art-portfolio/
+pnpm dev          # http://localhost:5173/
 pnpm build        # static build to ./dist
 pnpm preview      # serve the production build
 pnpm typecheck    # tsc -b
@@ -112,14 +110,15 @@ The site is a client-rendered SPA, so search engines see whatever sits in static
 - **JSON-LD** (`Person` / `VisualArtist` + `WebSite` + one `VisualArtwork` per catalog entry) -- emitted into `<head>` as a single `<script type="application/ld+json">`. No client-side rendering for crawlers.
 - **`<link rel="preload" as="image">`** for the featured hero image so the Largest Contentful Paint candidate is fetched before the JS bundle parses.
 - **`sitemap.xml`** -- generated into `dist/` at build time by [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs). [`public/robots.txt`](public/robots.txt) points at it.
-- **Beta builds** (`DEPLOY_ENV=beta`) get `<meta name="robots" content="noindex, nofollow">` and a canonical that rewrites `/beta/` -> prod, so the staging URL doesn't compete with prod for SEO.
+
+URLs (canonical, OG, sitemap, JSON-LD `@id`s) all derive from a single source of truth at [`scripts/site-config.mjs`](scripts/site-config.mjs). Swapping domains is a one-file change.
 
 ---
 
 ## CI / CD
 
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) -- lint + typecheck + build on every PR and push to `main` or `dev`. Frozen lockfile.
-- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- on every push to `main` or `dev`, checks out both branches, builds prod (root) and beta (`DEPLOY_ENV=beta` -> `/beta/`), combines into one artifact, deploys to GitHub Pages. OIDC auth, queue-don't-cancel concurrency.
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- on every push to `main`, build and deploy to GitHub Pages. OIDC auth, queue-don't-cancel concurrency. The `public/CNAME` file ships `kalchar.co.in` to Pages.
 
 ---
 
@@ -127,12 +126,12 @@ The site is a client-rendered SPA, so search engines see whatever sits in static
 
 Two long-lived branches:
 
-- `main` -- production, served at `/folk-art-portfolio/`. Protected: PR-only, CI must pass.
-- `dev` -- beta / staging, served at `/folk-art-portfolio/beta/`. `noindex`, canonical points at prod.
+- `main` -- production, served at <https://kalchar.co.in/>. Protected: PR-only, CI must pass.
+- `dev` -- integration branch. Local-only; verify with `pnpm preview` before promoting.
 
-Flow: `feat/<topic>` -> PR into `dev` -> verify on `/beta/` -> PR `dev` into `main` -> live.
+Flow: `feat/<topic>` -> PR into `dev` -> review locally -> PR `dev` into `main` -> live.
 
-The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so the two URLs never drift. SemVer, manual -- see [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases" and the [`CHANGELOG.md`](CHANGELOG.md).
+SemVer, manual -- see [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases" and the [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
