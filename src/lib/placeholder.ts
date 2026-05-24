@@ -1,31 +1,75 @@
 import type { ArtStyle } from "./site";
 
+/* SVG placeholders are emitted as data URIs at module-init, so CSS custom
+   properties cannot be referenced -- the SVG renderer never sees the document.
+   We mirror the Tier 1 pigment primitives from globals.css here as a single
+   PIGMENTS constant, so a palette change is one edit per file (globals.css +
+   this file) instead of touching six per-style maps. */
+const PIGMENTS = {
+	terracotta: "#a0421c",
+	terracottaSoft: "#d8a37e",
+	ruby: "#c0392b",
+	rubyBg: "#f3d2a3",
+	rubyInk: "#7a1f12",
+	rubySoft: "#e8a87c",
+	pichwai: "#2d6a4f",
+	pichwaiBg: "#dceee0",
+	pichwaiInk: "#1f4d3a",
+	pichwaiSoft: "#88c4a3",
+	lippan: "#b08968",
+	lippanBg: "#efe1c8",
+	lippanInk: "#5a3a1d",
+	lippanSoft: "#d6b893",
+	gond: "#283c63",
+	gondBg: "#dde4f0",
+	gondInk: "#0f1d3a",
+	gondSoft: "#7791b8",
+	textureAccent: "#7d4f50",
+	textureBg: "#ecdcd6",
+	textureInk: "#3a1f1d",
+	textureSoft: "#b89490",
+	mixedAccent: "#8e735b",
+	mixedBg: "#e8dcc6",
+	mixedInk: "#3a2818",
+	mixedSoft: "#bea98a",
+} as const;
+
 const STYLE_PALETTE: Record<ArtStyle, { bg: string; ink: string; accent: string; soft: string }> = {
 	Madhubani: {
-		bg: "#f3d2a3",
-		ink: "#7a1f12",
-		accent: "#c0392b",
-		soft: "#e8a87c",
+		bg: PIGMENTS.rubyBg,
+		ink: PIGMENTS.rubyInk,
+		accent: PIGMENTS.ruby,
+		soft: PIGMENTS.rubySoft,
 	},
 	Pichwai: {
-		bg: "#dceee0",
-		ink: "#1f4d3a",
-		accent: "#2d6a4f",
-		soft: "#88c4a3",
+		bg: PIGMENTS.pichwaiBg,
+		ink: PIGMENTS.pichwaiInk,
+		accent: PIGMENTS.pichwai,
+		soft: PIGMENTS.pichwaiSoft,
 	},
-	Lippan: { bg: "#efe1c8", ink: "#5a3a1d", accent: "#b08968", soft: "#d6b893" },
-	Gond: { bg: "#dde4f0", ink: "#0f1d3a", accent: "#283c63", soft: "#7791b8" },
+	Lippan: {
+		bg: PIGMENTS.lippanBg,
+		ink: PIGMENTS.lippanInk,
+		accent: PIGMENTS.lippan,
+		soft: PIGMENTS.lippanSoft,
+	},
+	Gond: {
+		bg: PIGMENTS.gondBg,
+		ink: PIGMENTS.gondInk,
+		accent: PIGMENTS.gond,
+		soft: PIGMENTS.gondSoft,
+	},
 	Texture: {
-		bg: "#ecdcd6",
-		ink: "#3a1f1d",
-		accent: "#7d4f50",
-		soft: "#b89490",
+		bg: PIGMENTS.textureBg,
+		ink: PIGMENTS.textureInk,
+		accent: PIGMENTS.textureAccent,
+		soft: PIGMENTS.textureSoft,
 	},
 	"Mixed Media": {
-		bg: "#e8dcc6",
-		ink: "#3a2818",
-		accent: "#8e735b",
-		soft: "#bea98a",
+		bg: PIGMENTS.mixedBg,
+		ink: PIGMENTS.mixedInk,
+		accent: PIGMENTS.mixedAccent,
+		soft: PIGMENTS.mixedSoft,
 	},
 };
 

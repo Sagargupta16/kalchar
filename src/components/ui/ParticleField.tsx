@@ -12,18 +12,32 @@ type Particle = {
 	color: string;
 };
 
-const COLORS = [
-	"rgba(192, 57, 43, 0.6)", // ruby
-	"rgba(230, 168, 23, 0.5)", // marigold
-	"rgba(31, 111, 143, 0.5)", // peacock
-	"rgba(45, 58, 120, 0.4)", // indigo
-	"rgba(74, 124, 47, 0.4)", // neem
-	"rgba(216, 84, 31, 0.5)", // vermillion
+/* Particle pigments are read from the live CSS custom properties at mount, so
+   light/dark theme swaps on next remount automatically reflow the canvas. We
+   resolve each token to its computed color and sandwich a per-pigment alpha
+   on top via color-mix -- single source of truth lives in globals.css. */
+const PIGMENT_TOKENS: ReadonlyArray<{ token: string; alpha: number }> = [
+	{ token: "--color-ruby", alpha: 0.6 },
+	{ token: "--color-marigold", alpha: 0.5 },
+	{ token: "--color-peacock", alpha: 0.5 },
+	{ token: "--color-indigo", alpha: 0.4 },
+	{ token: "--color-neem", alpha: 0.4 },
+	{ token: "--color-vermillion", alpha: 0.5 },
 ];
+const CONNECTION_PIGMENT_TOKEN = "--color-ruby";
 
 const PARTICLE_COUNT = 60;
 const CONNECTION_DIST = 120;
 const ROTATION_SPEED = 0.0003;
+
+function readToken(name: string): string {
+	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+	return value || "#000";
+}
+
+function withAlpha(color: string, alpha: number): string {
+	return `color-mix(in oklch, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+}
 
 export default function ParticleField() {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -55,6 +69,9 @@ export default function ParticleField() {
 		resize();
 		window.addEventListener("resize", resize);
 
+		const colors = PIGMENT_TOKENS.map(({ token, alpha }) => withAlpha(readToken(token), alpha));
+		const connectionPigment = readToken(CONNECTION_PIGMENT_TOKEN);
+
 		const particles: Particle[] = [];
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
 			particles.push({
@@ -65,7 +82,7 @@ export default function ParticleField() {
 				vy: (Math.random() - 0.5) * 0.3,
 				vz: (Math.random() - 0.5) * 0.2,
 				size: Math.random() * 2.5 + 1,
-				color: COLORS[Math.floor(Math.random() * COLORS.length)],
+				color: colors[Math.floor(Math.random() * colors.length)],
 			});
 		}
 
@@ -124,7 +141,7 @@ export default function ParticleField() {
 						ctx.beginPath();
 						ctx.moveTo(a.sx, a.sy);
 						ctx.lineTo(b.sx, b.sy);
-						ctx.strokeStyle = `rgba(192, 57, 43, ${alpha})`;
+						ctx.strokeStyle = withAlpha(connectionPigment, alpha);
 						ctx.lineWidth = 0.5;
 						ctx.stroke();
 					}

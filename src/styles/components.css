@@ -1,0 +1,291 @@
+/* =============================================================================
+   COMPONENT PRIMITIVES
+   Reusable surface recipes built entirely from Tier 2 + Tier 3 tokens. No raw
+   hex, no magic numbers. Components reference these by class name; per-instance
+   overrides go through inline `style={{ '--surface-pigment': '...' }}` rather
+   than hardcoded color classes.
+   ============================================================================= */
+
+/* --- Glass surface --------------------------------------------------------- */
+/* Layered-depth glass: tinted base + pigmented overlay + inner highlight + soft
+   outer shadow. Picks up the active section's pigment via --surface-pigment.
+   Use `.glass` for the base recipe; `.glass-strong` for nav-bar density;
+   `.glass-floating` for elevated modals + lightbox. */
+.glass {
+	position: relative;
+	isolation: isolate;
+	background: linear-gradient(
+		135deg,
+		var(--surface-glass-bg),
+		var(--surface-glass-tint)
+	);
+	backdrop-filter: blur(var(--surface-glass-blur)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--surface-glass-blur)) saturate(var(--saturate-glass));
+	border: 1px solid var(--surface-glass-border);
+	box-shadow: var(--surface-glass-shadow);
+}
+.glass::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	background: linear-gradient(
+		180deg,
+		var(--surface-glass-highlight),
+		transparent 30%
+	);
+	opacity: 0.5;
+	mix-blend-mode: screen;
+	z-index: 1;
+}
+.glass > * {
+	position: relative;
+	z-index: 2;
+}
+
+.glass-strong {
+	background: var(--surface-glass-bg-strong);
+	backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	border: 1px solid var(--surface-glass-border);
+}
+
+.glass-floating {
+	background: linear-gradient(
+		135deg,
+		var(--surface-glass-bg-strong),
+		var(--surface-glass-tint)
+	);
+	backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	border: 1px solid var(--surface-glass-border);
+	box-shadow:
+		0 24px 64px -24px color-mix(in oklch, var(--color-ink) 35%, transparent),
+		0 8px 24px -12px color-mix(in oklch, var(--color-ink) 20%, transparent);
+}
+
+/* Disable backdrop blur for users who request reduced effects -- some users
+   experience motion-sickness from heavy blur. */
+@media (prefers-reduced-transparency: reduce) {
+	.glass,
+	.glass-strong,
+	.glass-floating {
+		background: var(--surface-glass-bg-strong);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+	}
+}
+
+/* --- Card surface ---------------------------------------------------------- */
+/* Solid card used inside sections and on top of glass. Hover lifts + casts a
+   pigmented halo using the active section accent. */
+.card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	border: 1px solid var(--surface-card-border);
+	background: var(--surface-card-bg);
+	padding: 1.25rem;
+	box-shadow: var(--surface-card-shadow-rest);
+	transition:
+		border-color var(--motion-hover),
+		transform var(--motion-hover),
+		box-shadow var(--motion-hover);
+}
+.card:hover {
+	border-color: var(--surface-pigment);
+	transform: translateY(-2px);
+	box-shadow: var(--surface-card-shadow-lift);
+}
+
+/* Gallery card frame -- inherits per-item pigment via --card-accent. */
+.gallery-frame {
+	transition:
+		border-color var(--motion-hover),
+		box-shadow var(--motion-hover);
+}
+.gallery-item:hover .gallery-frame {
+	border-color: var(--card-accent, var(--color-accent));
+	box-shadow: 0 22px 50px -28px
+		color-mix(in oklch, var(--card-accent, var(--color-accent)) 70%, transparent);
+}
+
+/* --- Chromacard ------------------------------------------------------------ */
+/* 3-5 swatch strip under each gallery card. Reads like a museum palette
+   caption: small uniform squares in the painting's actual pigments. Powered
+   by --chroma-1..5 set inline per artwork. */
+.chromacard {
+	display: flex;
+	gap: 0.25rem;
+	height: 0.5rem;
+	width: 100%;
+	border-radius: 999px;
+	overflow: hidden;
+	opacity: 0.75;
+	transition: opacity var(--motion-hover);
+}
+.chromacard > span {
+	flex: 1 1 0;
+	min-width: 0;
+}
+.gallery-item:hover .chromacard,
+.card:hover .chromacard {
+	opacity: 1;
+}
+
+/* --- Filter pills ---------------------------------------------------------- */
+/* Each pill carries --pill-accent (set inline). Hover lifts color toward the
+   accent; active state paints the pill in the accent so the filter visually
+   previews what it filters to. */
+.gallery-pill {
+	transition:
+		background-color var(--motion-tap),
+		border-color var(--motion-tap),
+		color var(--motion-tap);
+}
+.gallery-pill:not(.pill-active):hover {
+	border-color: var(--pill-accent, var(--color-accent));
+	color: var(--pill-accent, var(--color-accent));
+}
+.pill-active {
+	background: var(--pill-accent, var(--color-ink));
+	color: var(--color-bg);
+	border-color: var(--pill-accent, var(--color-ink));
+}
+:root.dark .pill-active {
+	color: var(--color-bg);
+}
+
+/* --- Form controls --------------------------------------------------------- */
+/* Shared shape for input, select, textarea so the order form lines up
+   visually instead of falling back to OS chrome. iOS Safari auto-zooms when
+   font-size < 16px, so we hold at 1rem to keep the page steady on focus. */
+.field-input,
+.field-select,
+.field-textarea {
+	display: block;
+	width: 100%;
+	padding: 0.85rem 0.95rem;
+	font-family: var(--font-body);
+	font-size: 1rem;
+	line-height: 1.4;
+	color: var(--color-ink);
+	background-color: var(--color-bg-soft);
+	border: 1px solid var(--color-line);
+	border-radius: 0;
+	outline: none;
+	min-height: 48px;
+	transition:
+		border-color var(--motion-tap),
+		box-shadow var(--motion-tap),
+		background-color var(--motion-tap);
+}
+.field-input::placeholder,
+.field-textarea::placeholder {
+	color: var(--color-muted);
+	opacity: 0.7;
+}
+.field-input:hover,
+.field-select:hover,
+.field-textarea:hover {
+	border-color: color-mix(in oklch, var(--color-accent) 50%, var(--color-line));
+}
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+	border-color: var(--color-accent);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 22%, transparent);
+	background-color: var(--color-bg);
+}
+
+/* Custom select chevron -- stroke uses currentColor so it themes for light/dark. */
+.field-select {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	padding-right: 2.5rem;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='5 8 10 13 15 8'/></svg>");
+	background-repeat: no-repeat;
+	background-position: right 0.85rem center;
+	background-size: 1rem 1rem;
+	cursor: pointer;
+}
+.field-select::-ms-expand {
+	display: none;
+}
+.field-textarea {
+	resize: vertical;
+	min-height: 6.5rem;
+}
+.field-select option {
+	background-color: var(--color-bg);
+	color: var(--color-ink);
+}
+
+/* --- Button primitives ----------------------------------------------------- */
+/* Primary: pigment-filled, lifts on hover. Ghost: bordered, fills on hover.
+   Both inherit --surface-pigment from their nearest section accent if no
+   explicit override, so a button inside an "About" section reads as marigold,
+   inside "Contact" as peacock. */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.85rem 1.5rem;
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition:
+		background-color var(--motion-tap),
+		color var(--motion-tap),
+		border-color var(--motion-tap),
+		transform var(--motion-tap),
+		box-shadow var(--motion-hover);
+	min-height: 44px;
+	user-select: none;
+}
+.btn-primary {
+	background: var(--surface-pigment);
+	color: var(--color-bg);
+	border-color: var(--surface-pigment);
+}
+.btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 12px 24px -12px color-mix(in oklch, var(--surface-pigment) 60%, transparent);
+}
+.btn-ghost {
+	background: transparent;
+	color: var(--color-ink);
+	border-color: var(--color-line);
+}
+.btn-ghost:hover {
+	border-color: var(--surface-pigment);
+	color: var(--surface-pigment);
+}
+
+/* --- Custom cursor visibility --------------------------------------------- */
+.custom-cursor-active,
+.custom-cursor-active * {
+	cursor: none;
+}
+
+/* --- Lenis smooth scroll body lock ---------------------------------------- */
+html.lenis,
+html.lenis body {
+	height: auto;
+}
+.lenis.lenis-smooth {
+	scroll-behavior: auto;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+	overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+	overflow: hidden;
+}

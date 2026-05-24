@@ -29,7 +29,7 @@ export default function About() {
 							lang="hi"
 							className="font-devanagari text-3xl"
 							style={{
-								color: "color-mix(in srgb, var(--section-accent) 70%, var(--color-muted))",
+								color: "color-mix(in oklch, var(--section-accent) 70%, var(--color-muted))",
 							}}
 						>
 							इति

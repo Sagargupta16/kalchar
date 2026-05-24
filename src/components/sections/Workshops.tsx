@@ -25,7 +25,7 @@ function WorkshopCard({ item }: { item: Workshop }) {
 						<span
 							className="t-meta rounded-full px-2.5 py-1"
 							style={{
-								background: "color-mix(in srgb, var(--section-accent) 14%, transparent)",
+								background: "color-mix(in oklch, var(--section-accent) 14%, transparent)",
 								color: "var(--section-accent)",
 							}}
 						>
