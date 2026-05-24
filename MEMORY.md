@@ -48,6 +48,7 @@ Live URL: <https://kalchar.co.in/>.
 | Motion accessibility | Every animation respects `prefers-reduced-motion`. Non-negotiable. | 2026-05-24 |
 | Design priority | **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps -- design and tune for mobile primarily, then scale up to tablet / desktop. | 2026-05-24 |
 | Custom-orders route | `/custom-orders` (not `/commission`). The word "commission" stays out of nav, route names, and code identifiers. It can still appear in artist's voice copy in `data/site.json`. | 2026-05-24 |
+| Catalog distinctness | All 21 artworks in `data/artworks.json` are **distinct pieces**. No duplicates, no auto-dedup. | 2026-05-24 |
 
 ## Observable on disk (factual, not session-confirmed)
 
