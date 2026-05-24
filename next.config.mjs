@@ -27,6 +27,13 @@ const nextConfig = {
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: false,
+	// Disable Next 15's in-app DevTools panel. On Windows + pnpm, its
+	// `segment-explorer-node` module gets out of sync with the React Client
+	// Manifest after a hot reload, crashing client-component pages with
+	// `__webpack_modules__[moduleId] is not a function` until the dev server
+	// is restarted. The panel adds zero value here -- production builds don't
+	// include it anyway.
+	devIndicators: false,
 };
 
 export default nextConfig;
