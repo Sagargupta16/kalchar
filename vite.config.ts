@@ -3,10 +3,9 @@ import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-import { PROD_URL, REPO_NAME } from "./scripts/site-config.mjs";
+import { BASE, PROD_URL } from "./scripts/site-config.mjs";
 
-const IS_BETA = process.env.DEPLOY_ENV === "beta";
-const base = IS_BETA ? `/${REPO_NAME}/beta/` : `/${REPO_NAME}/`;
+const base = BASE;
 
 /**
  * Build-time SEO transform.
@@ -17,13 +16,10 @@ const base = IS_BETA ? `/${REPO_NAME}/beta/` : `/${REPO_NAME}/`;
  *     catalog entry) as a static <script type="application/ld+json"> in <head>.
  *   - <link rel="preload" as="image"> for the featured hero artwork's WebP
  *     variant so the LCP candidate is fetched before the JS bundle parses.
- *   - For beta builds: rewrites <meta name="robots"> to noindex/nofollow and
- *     rewrites <link rel="canonical"> to the prod URL so SEO consolidates.
  *
  * The hand-written <meta name="description"> / OG / Twitter / canonical tags
- * already in `index.html` survive untouched -- this plugin only patches the
- * canonical href and robots content for beta, and inserts new tags at a
- * marker comment.
+ * already in `index.html` survive untouched -- this plugin only inserts new
+ * tags at a marker comment.
  */
 function seoPlugin(): Plugin {
 	const MARKER = "<!--seo-injection-marker-->";
@@ -141,21 +137,7 @@ function seoPlugin(): Plugin {
 
 				injections.push(`    <script type="application/ld+json">${JSON.stringify(graph)}</script>`);
 
-				let out = html.replace(MARKER, injections.join("\n"));
-
-				if (IS_BETA) {
-					// Beta: noindex + canonical pointing at prod.
-					out = out.replace(
-						/<meta name="robots" content="[^"]*"\s*\/?>/,
-						'<meta name="robots" content="noindex, nofollow" />',
-					);
-					out = out.replace(
-						/<link rel="canonical" href="[^"]*"\s*\/?>/,
-						`<link rel="canonical" href="${PROD_URL}" />`,
-					);
-				}
-
-				return out;
+				return html.replace(MARKER, injections.join("\n"));
 			},
 		},
 	};

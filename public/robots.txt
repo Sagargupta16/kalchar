@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap is generated at build time by scripts/generate-sitemap.mjs.
-Sitemap: https://sagargupta.online/folk-art-portfolio/sitemap.xml
+Sitemap: https://kalchar.co.in/sitemap.xml

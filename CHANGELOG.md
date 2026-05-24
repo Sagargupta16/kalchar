@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.6.0 -- 2026-05-24
+
+Custom domain. Site is now served from the apex `kalchar.co.in` (client-owned), no longer from the GH Pages subpath at `sagargupta.online/folk-art-portfolio/`. Single-env deploy: only `main` ships to prod; `dev` is local-only (GH Pages allows one custom domain per repo, so a public `/beta/` URL isn't possible without a second repo).
+
+### Domain
+
+- **`public/CNAME`** added with `kalchar.co.in`. Tells GitHub Pages to serve the build at the apex.
+- **[`scripts/site-config.mjs`](scripts/site-config.mjs)** swaps `SITE` from `https://sagargupta.online` to `https://kalchar.co.in` and `BASE` from `/folk-art-portfolio/` to `/`. Every URL in the build (canonical, OG, Twitter, sitemap entries, JSON-LD `@id`s and image fields) flows from these two constants.
+- **`vite.config.ts`** SEO plugin loses the `IS_BETA` switch and the canonical/robots beta-rewrite block -- there is no beta build anymore.
+- **`index.html`** static fallback meta tags (canonical, og:url, og:image, twitter:image, favicon, apple-touch-icon) updated to absolute `https://kalchar.co.in/` URLs and root-relative `/logo.jpg` / `/logo-180.png` paths. The build-time SEO plugin still overwrites the dynamic ones; these are what someone sees if they open the file without running a build.
+- **`public/robots.txt`** sitemap URL updated to `https://kalchar.co.in/sitemap.xml`.
+
+### Deploy
+
+- **[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)** rewritten as a single-checkout, single-build, main-only deploy. The previous combined-dist workflow that built both `main` and `dev` into one artifact (with `dev` at `/beta/`) is gone -- one custom domain means one build.
+
+### Documentation
+
+- **README.md** -- live URL collapsed from three (prod, beta, mirror) to one (`https://kalchar.co.in/`). Beta references removed from SEO and Branching sections. Dev URL updated to `http://localhost:5173/`.
+- **CLAUDE.md** -- Stack/Run/Deploy/Gotchas/Branching sections aligned with the apex domain. Branching table now shows one deploy target.
+- **MEMORY.md** -- locked-decisions table gains a Custom domain row, the two-env-deploy row becomes single-env-deploy, and the pending Custom-domain item is removed.
+
+### Verification
+
+`pnpm typecheck` + `pnpm build` clean. `dist/index.html` carries `https://kalchar.co.in/` in canonical, og:url, og:image, twitter:image, and the JSON-LD graph (`@id`s and `image` URLs throughout). `dist/sitemap.xml` lists `https://kalchar.co.in/` plus each section anchor. `dist/CNAME` ships verbatim.
+
+### Migration
+
+Out-of-band, by Sagar at the registrar: 4 A records on the apex pointing to GitHub Pages (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`), `www` CNAME to `sagargupta16.github.io`, then add the custom domain in repo Settings -> Pages and enable HTTPS.
+
 ## 1.5.1 -- 2026-05-23
 
 Code-quality patch on top of 1.5.0. No behavior change, no bundle-size change. Targets the kind of smell SonarQube would flag: stringly-typed duplication, vestigial type coercion, unhandled promise paths, anti-pattern React keys, and DRY violations between build scripts.
