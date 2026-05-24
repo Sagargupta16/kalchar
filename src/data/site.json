@@ -1,5 +1,4 @@
 {
-	"$schema": "./site.schema.json",
 	"_notes": [
 		"Single source of truth for all display copy. Edit this file, the site updates.",
 		"Image catalog lives separately in artworks.json (one entry per painting).",
