@@ -1,31 +1,25 @@
 # folk-art-portfolio
 
-Portfolio site for **Megha Seth** -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art, plus a regular workshop practice.
+Portfolio site for Megha Seth -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art.
 
 **Live:** <https://kalchar.co.in/>
 
 ## Status
 
-The frontend was wiped on 2026-05-24 for a clean rebuild. Currently a **skeleton repo** -- catalog data and build helpers are kept; the build pipeline (package.json, configs, entry HTML) has been removed and will be re-scaffolded under v3.
+Skeleton repo. The catalog data and artwork images are kept; the frontend and build pipeline have been removed and are being redesigned from scratch.
 
-## What's in the repo
+## What's on disk
 
 | Path | Purpose |
 | --- | --- |
-| [`data/`](data/) | The catalog. Two JSON files -- `site.json` (brand, nav, contact, section copy, workshops) and `artworks.json` (artwork list, one entry per piece). Source of truth for everything user-facing. |
-| [`public/`](public/) | Static assets shipped as-is. Artwork images, logo, `CNAME`, `robots.txt`. |
-| [`.github/workflows/`](.github/workflows/) | CI (lint + typecheck + build on PR) and deploy (push to `main` -> GitHub Pages via OIDC). Both will need re-confirming once v3 scaffolds the build pipeline. |
-| `CHANGELOG.md`, `LICENSE`, `MEMORY.md`, `CLAUDE.md` | Project meta. |
-
-## Adding a new artwork
-
-1. Drop the image at `public/artworks/<slug>.jpg`.
-2. Append an entry to [`data/artworks.json`](data/artworks.json) with `image: "<slug>.jpg"`.
-3. The v3 build (when scaffolded) will regenerate AVIF + WebP variants and the sitemap.
+| [`data/`](data/) | The catalog. `site.json` (copy) and `artworks.json` (artwork list). |
+| [`public/`](public/) | Static assets. Artwork images, logo, `CNAME`, `robots.txt`. |
+| [`.github/workflows/`](.github/workflows/) | CI + deploy. Will need re-confirming once the build pipeline is scaffolded. |
+| `CHANGELOG.md`, `LICENSE`, `renovate.json` | Project meta. |
 
 ## Deploy
 
-`main` -> <https://kalchar.co.in/> via GitHub Pages. [`public/CNAME`](public/CNAME) ships the apex domain. Single deploy environment -- `dev` is local-only.
+`main` -> <https://kalchar.co.in/> via GitHub Pages, configured by [`public/CNAME`](public/CNAME).
 
 ## License
 
