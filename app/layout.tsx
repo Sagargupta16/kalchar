@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { getSite } from "@/lib/data";
 import { siteConfig } from "@/lib/site-config";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
@@ -66,9 +67,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				>
 					Skip to content
 				</a>
-				<SiteHeader />
-				<div id="main">{children}</div>
-				<SiteFooter />
+				<MotionProvider>
+					<SiteHeader />
+					<div id="main">{children}</div>
+					<SiteFooter />
+				</MotionProvider>
 			</body>
 		</html>
 	);

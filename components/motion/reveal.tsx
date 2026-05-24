@@ -1,20 +1,21 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 /**
  * Reveal -- a fade-up wrapper used across home + page sections.
  *
  * The first time the element enters the viewport, it fades in and lifts
- * 16px. Subsequent scrolls don't replay (`once: true`). When the OS
- * prefers reduced motion, the element renders in its final state without
- * any animation -- accessibility contract is honoured here, not by
- * components that import this.
+ * 16px. Subsequent scrolls don't replay (`once: true`). When the user has
+ * `prefers-reduced-motion`, Motion's library-level handling (configured by
+ * <MotionConfig reducedMotion="user"> in the root layout) skips transitions
+ * and renders the final state -- we don't branch on a hook value here
+ * because doing so produces a different React tree shape on server vs.
+ * client and breaks hydration.
  *
  * `delayMs` is the entry delay (ms). Use in lists for a small stagger
- * (e.g. `delayMs={index * 60}`). Don't go past ~5 elements with stagger;
- * after that the eye reads choreography as theatrical.
+ * (e.g. `delayMs={index * 60}`).
  */
 interface RevealProps {
 	children: ReactNode;
@@ -25,15 +26,7 @@ interface RevealProps {
 }
 
 export function Reveal({ children, delayMs = 0, className, as = "div" }: RevealProps) {
-	const reduced = useReducedMotion();
 	const Tag = motion[as];
-
-	if (reduced) {
-		// Render the final state directly -- no opacity transition, no transform.
-		const Static = as;
-		return <Static className={className}>{children}</Static>;
-	}
-
 	return (
 		<Tag
 			className={className}
