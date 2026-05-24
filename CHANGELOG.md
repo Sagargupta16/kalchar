@@ -1,6 +1,70 @@
 # Changelog
 
-All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
+All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
+
+## 1.7.0 (2026-05-24)
+
+Full stack swap and frontend rebuild. The site moves from Vite + single-page anchor scroll to Next.js 15 with the App Router and statically exported routes. Catalog data is unchanged; the artwork images and `data/site.json` content carry forward as-is.
+
+### Stack
+
+- **Next.js 15 + React 19 + TypeScript strict + Tailwind 4 + Biome 2**, replacing the previous Vite SPA. Static export (`output: "export"`) keeps the GitHub Pages deploy path; `out/` replaces `dist/` as the build target.
+- **Motion 12 + Lenis** for animation, lazy-loaded on first idle. `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` library-wide.
+- **shadcn-style components** (Radix primitives via `class-variance-authority`), **lucide-react** for UI icons, **react-icons/si** for brand glyphs (WhatsApp, Instagram, Gmail).
+- **next/font/google** self-hosts Cormorant Garamond, Inter, Tiro Devanagari Hindi at build. No CDN font calls.
+
+### Routes
+
+- `/` (home): hero with character-entrance description, marquee band, Selected Work rail, Available Now rail (renders only when at least one piece has `priceInr`), About teaser, Workshops + Custom Orders CTA pair.
+- `/work`: 21-piece gallery with style filter (All / Madhubani / Pichwai / Lippan / Gond / Texture / Mixed Media), uniform 3:4 cards, palette swatches and description preview per card.
+- `/work/[slug]`: 21 statically generated detail pages with full image, metadata stack (medium / year / dimensions / status / price / palette), description, "Enquire on WhatsApp" CTA, prev/next nav.
+- `/about`: paragraphs with drop-cap on the first, marigold pull-quote with side bar, Devanagari iti article-end mark, "Based in" + "Open to" aside cards.
+- `/workshops`: card grid driven by `workshops[]`, duration pills, per-card WhatsApp enquire link, group/school enquiry CTA.
+- `/custom-orders`: 3-step "How it works" rail + form with name / preferred style / approx size / budget / timeline / brief. Submit opens WhatsApp with a pre-filled message; an email fallback link appears after submit.
+- `/contact`: three big channel rows (WhatsApp / Instagram / Gmail) with brand glyphs, monumental hover, custom-orders CTA card.
+
+### Data seam
+
+- New [`lib/data.ts`](lib/data.ts) is the single source the UI imports through. Today it reads `data/*.json`; in Phase 2 it will switch to a database query without touching any other file.
+- Catalog moved from `src/data/` to repo-root `data/` so it survives stack swaps cleanly.
+- New [`lib/site-config.ts`](lib/site-config.ts) holds `siteConfig.url` / `basePath` / `prodUrl`. `next.config.mjs` mirrors `basePath` as a literal because Next config files cannot import `.ts` at config-load.
+- New [`lib/whatsapp.ts`](lib/whatsapp.ts) builds wa.me deep links and the email fallback `mailto:` URL from a typed `CustomOrderDraft`.
+
+### Theme
+
+- 3-state theme toggle (Light / Dark / System) persisted to `localStorage`. Pre-paint script in `app/layout.tsx` resolves the chosen theme before first paint to avoid FOUC.
+- Section pigment accents wired across pages: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta accent. Drop-cap, pull-quote borders, hover states, accent links all derive from `--section-accent`.
+- Subtle, consistent corner radius (`rounded-md`) applied to every surface (cards, panels, fields, buttons, image plates). Pills and the theme toggle keep `rounded-full`.
+
+### Motion
+
+- Refined fade-up reveal on scroll (Motion 12), capped stagger so longer lists do not feel theatrical.
+- Hero description uses character-entrance via a small `SplitText` (8px lift, 12ms per-character stagger).
+- Lenis smooth scroll bootstrapped lazily on first idle. Bails out under `prefers-reduced-motion`. Failures (ad blocker, network blip) silently fall back to native scroll.
+- Tri-color scroll-progress bar fixed at the top of the viewport. Marquee band of artwork titles + Devanagari words between hero and Selected Work, pure CSS animation, pauses on hover.
+- Locked exclusions: no 3D tilt on cards, no decorative backdrops (mesh / lattice / particle / orbit / floating-shapes), no custom cursor. Earlier attempts read as busy.
+
+### Bug fixes
+
+- React hydration mismatch in motion components removed by hoisting reduced-motion handling to the library level instead of branching at the component.
+- `mrgayugma.aspectRatio` corrected from 0.77 to 0.73 to match the source image's real pixel ratio.
+- Next 15.5 in-app DevTools panel was crashing HMR on Windows + pnpm with `__webpack_modules__[moduleId] is not a function`. Disabled via `devIndicators: false` in `next.config.mjs`.
+
+### Conventions
+
+- **Mobile-first**: most traffic arrives from WhatsApp / Instagram link-taps. Pages are designed for phone width primarily.
+- **No literal `--` in user-facing copy** (page metadata, JSX strings, dropdown options, `data/*.json`). Replace with comma / period / colon / parentheses, or restructure. Internal code comments are exempt.
+- **CHANGELOG.md is updated on every PR**. Bump version in `package.json` to match.
+- 500-line file ceiling. No raw hex / rgb in components (CSS variables only). No magic timings (named tokens only).
+
+### Documentation
+
+- `CLAUDE.md` rewritten to describe the current stack and rules, including the no-double-dash rule and the changelog rule.
+- `MEMORY.md` "Current state on disk" lists every page that's actually built. Confirmed-decisions table picks up the new locked rules (motion exclusions, corner radius, section accents, no-double-dash).
+
+### Verification
+
+`pnpm typecheck` + `pnpm lint` + `pnpm build` all clean. 30 static pages generated, 21 of them via `generateStaticParams` for `/work/[slug]`. First Load JS: home 150 kB, /about 142, /workshops 142, /contact 145, /custom-orders 151, /work 159, /work/[slug] 150.
 
 ## 1.6.0 -- 2026-05-24
 

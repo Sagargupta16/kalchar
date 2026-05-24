@@ -68,6 +68,7 @@ pnpm format
 - **One open PR at a time per target.** Bot PRs (Renovate, ImgBot) count.
 - **Default branch is `main`.** Never `master`.
 - **Never force-push to `main`. Never amend published commits. Never skip hooks (`--no-verify`).**
+- **Update `CHANGELOG.md` on every PR.** Add a new top entry under a chosen version number (no `[Unreleased]` placeholder), and bump `package.json` `version` to match. Versioning: pre-1.0.0 patch (`0.x.Y`) for typo / link / image swap / new artwork, minor (`0.X.0`) for new section / content-model change / stack swap, major (`X.0.0`) reserved until after 1.0.0 (first public launch). On merge to `main`, tag the merge commit (`git tag v0.X.Y`) and push the tag.
 
 ## What's on disk
 
