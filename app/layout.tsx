@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -76,11 +77,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				>
 					Skip to content
 				</a>
+				<PaperGrain />
 				<MotionProvider>
 					<SmoothScroll />
 					<ScrollProgress />
 					<SiteHeader />
-					<div id="main">{children}</div>
+					<div id="main" className="relative z-10">
+						{children}
+					</div>
 					<SiteFooter />
 				</MotionProvider>
 			</body>

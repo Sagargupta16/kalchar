@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
@@ -33,13 +35,14 @@ export default function ContactPage() {
 	const isExternal = (url: string) => url.startsWith("http");
 
 	return (
-		<main style={sectionStyle} className="mx-auto max-w-3xl px-(--container-px) py-(--section-py)">
-			<header>
+		<main
+			style={sectionStyle}
+			className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py)"
+		>
+			<PigmentWash />
+			<header className="relative">
 				<Reveal>
-					<p className="t-eyebrow flex items-center gap-3">
-						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
-						<span>{c?.eyebrow ?? "Contact"}</span>
-					</p>
+					<MotifEyebrow motif="rangoli-star" label={c?.eyebrow ?? "Contact"} />
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{c?.title ?? "Get in touch"}

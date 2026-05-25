@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { getSite } from "@/lib/data";
 
@@ -36,10 +38,14 @@ export default function AboutPage() {
 	} as CSSProperties;
 
 	return (
-		<main style={sectionStyle} className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-			<header className="max-w-3xl">
+		<main
+			style={sectionStyle}
+			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
+		>
+			<PigmentWash intensity="soft" />
+			<header className="relative max-w-3xl">
 				<Reveal>
-					<p className="t-eyebrow">{a.eyebrow ?? "About"}</p>
+					<MotifEyebrow motif="peacock-feather" label={a.eyebrow ?? "About"} />
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl md:text-6xl">
 					{a.title ?? "On preserving folk traditions through practice"}

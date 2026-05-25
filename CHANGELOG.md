@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.8.0 (2026-05-25)
+
+Painterly register, take one. The site was type + photos on flat cream -- no gradients, no textures, no folk-art motifs visible anywhere despite the tradition being named in every page's copy. This release adds the first thematic decoration layer: ambient paper grain, pigment washes, and a hand-drawn motif library. Restrained-motion spec stays locked: no 3D, no particles, no decorative backdrops in the noise sense -- the additions are thematic, single-stroke, and reveal-driven.
+
+### Added
+
+- **`PaperGrain`** ([components/decor/paper-grain.tsx](components/decor/paper-grain.tsx)) -- inline SVG `feTurbulence` layer fixed to the viewport at low opacity, blended `multiply` on light mode and `overlay` on dark mode. The site now reads as warm cream paper instead of flat digital cream. ~600 bytes; no JS, no animation, no listener.
+- **`PigmentWash`** ([components/decor/pigment-wash.tsx](components/decor/pigment-wash.tsx)) -- soft radial-gradient backdrop in the page's `--section-accent`, painted into the top of each route's `<main>`. Two stacked gradients (centre dome + off-axis bloom) at 12-18% pigment opacity. Each route already sets its own pigment, so /work glows ruby, /about glows marigold, /workshops glows pichwai, /custom-orders glows vermillion, /contact glows peacock, and the home About teaser glows marigold. CSS-only, uses `color-mix(in oklch, ...)` for clean blending against the cream ground.
+- **Folk-art motif library** ([components/decor/motifs/index.tsx](components/decor/motifs/index.tsx)) -- seven single-stroke line-art SVG motifs as React components: fish (Madhubani), lotus (Pichwai), mirror-diamond (Lippan), leaf (Gond), paisley, peacock-feather, rangoli-star. Each renders in `currentColor` so one component works in any pigment, at any size. Uniform 24x24 viewBox.
+- **`MotifEyebrow`** ([components/decor/motif-eyebrow.tsx](components/decor/motif-eyebrow.tsx)) -- replaces the `<span className="h-px w-6">` accent rule that sat next to every section eyebrow with a folk-art motif glyph in the same pigment. Path-draws in once on scroll-into-view via Motion's `pathLength` primitive (1.1s ease-out-soft). Reduced-motion -> renders the motif instantly, no animation.
+
+### Changed
+
+- **Every page eyebrow gains a motif glyph** -- home Selected Work gets paisley (terracotta), home Available Now gets lotus (terracotta), home About teaser gets peacock-feather (marigold), /work gets fish (ruby), /about gets peacock-feather (marigold), /workshops gets lotus (pichwai), /custom-orders gets mirror-diamond (vermillion), /contact gets rangoli-star (peacock). The visual register now ties each section's pigment to a tradition's motif.
+- **Hero gets the first pigment wash** -- the home hero section is now `relative overflow-hidden` with a `<PigmentWash />` behind the headline + featured plate, so the inherited terracotta `--section-accent` glows into the top of the page. Subtle; doesn't compete with the artwork or the Devanagari flare.
+- **About teaser uses `intensity="soft"`** -- the only home-page section with the stronger wash, so the marigold glow registers against the `bg-bg-soft` panel.
+- **Each route's `<main>` becomes `relative`** so `<PigmentWash />` can sit absolutely behind the content; the `<header>` block becomes `relative` too so it lifts above the wash.
+
 ## 1.7.5 (2026-05-25)
 
 Audit pass. Removes a dead dependency, unifies the hover register across every CTA card on the site, wires the last unused pigment into a section, and broadens the scroll bar's chromatic arc. No new visual ideas, no spec change -- this is the cleanup release before any further direction work.

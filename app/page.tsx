@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Marquee } from "@/components/decor/marquee";
+import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -42,6 +44,7 @@ export default function HomePage() {
 				<SectionShell
 					number="01"
 					eyebrow="Selected work"
+					motif="paisley"
 					title={site.sections.work?.title ?? "Selected pieces from the archive"}
 					lead={site.sections.work?.lead}
 					href="/work"
@@ -61,6 +64,7 @@ export default function HomePage() {
 				<SectionShell
 					number="02"
 					eyebrow="Available now"
+					motif="lotus"
 					title="Pieces ready to find a home"
 					lead="Each one ships from India. Tap to enquire."
 					href="/work"
@@ -102,8 +106,9 @@ function Hero({
 	totalCount: number;
 }) {
 	return (
-		<section className="border-b border-line">
-			<div className="mx-auto grid max-w-6xl gap-10 px-(--container-px) py-(--section-py) md:grid-cols-12 md:items-center md:gap-12">
+		<section className="relative overflow-hidden border-b border-line">
+			<PigmentWash />
+			<div className="relative mx-auto grid max-w-6xl gap-10 px-(--container-px) py-(--section-py) md:grid-cols-12 md:items-center md:gap-12">
 				<div className="md:col-span-7">
 					<Reveal>
 						<p className="t-eyebrow">{site.brand.tagline}</p>
@@ -183,6 +188,7 @@ function Hero({
 function SectionShell({
 	number,
 	eyebrow,
+	motif,
 	title,
 	lead,
 	href,
@@ -192,6 +198,7 @@ function SectionShell({
 	/** Two-digit gallery-register number, e.g. "01". Optional. */
 	number?: string;
 	eyebrow: string;
+	motif: import("@/components/decor/motifs").MotifKey;
 	title: string;
 	lead?: string;
 	href: string;
@@ -203,11 +210,7 @@ function SectionShell({
 			<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
 				<header className="max-w-2xl">
 					<Reveal>
-						<p className="t-eyebrow flex items-center gap-3">
-							<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
-							{number ? <span className="tabular-nums">{number} /</span> : null}
-							<span>{eyebrow}</span>
-						</p>
+						<MotifEyebrow motif={motif} number={number} label={eyebrow} />
 					</Reveal>
 					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 						{title}
@@ -249,16 +252,13 @@ function AboutTeaser({
 }) {
 	return (
 		<section
-			className="border-b border-line bg-bg-soft"
+			className="relative overflow-hidden border-b border-line bg-bg-soft"
 			style={{ "--section-accent": "var(--color-marigold)" } as React.CSSProperties}
 		>
-			<div className="mx-auto max-w-3xl px-(--container-px) py-(--section-py) text-center">
+			<PigmentWash intensity="soft" />
+			<div className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py) text-center">
 				<Reveal>
-					<p className="t-eyebrow flex items-center justify-center gap-3">
-						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
-						<span className="tabular-nums">03 /</span>
-						<span>{eyebrow}</span>
-					</p>
+					<MotifEyebrow motif="peacock-feather" number="03" label={eyebrow} centered />
 				</Reveal>
 				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 					{title}

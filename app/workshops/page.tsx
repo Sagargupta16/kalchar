@@ -1,6 +1,8 @@
 import { Clock, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllWorkshops, getSite } from "@/lib/data";
@@ -37,10 +39,14 @@ export default function WorkshopsPage() {
 	} as CSSProperties;
 
 	return (
-		<main style={sectionStyle} className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-			<header className="max-w-2xl">
+		<main
+			style={sectionStyle}
+			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
+		>
+			<PigmentWash />
+			<header className="relative max-w-2xl">
 				<Reveal>
-					<p className="t-eyebrow">{w.eyebrow ?? "Workshops"}</p>
+					<MotifEyebrow motif="lotus" label={w.eyebrow ?? "Workshops"} />
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{w.title ?? "Hands-on sessions"}

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { WorkFilter } from "@/components/gallery/work-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { getAllArtworks, getSite } from "@/lib/data";
@@ -28,13 +30,14 @@ export default function WorkPage() {
 	const sectionStyle = { "--section-accent": "var(--color-ruby)" } as CSSProperties;
 
 	return (
-		<main style={sectionStyle} className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-			<header className="max-w-2xl">
+		<main
+			style={sectionStyle}
+			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
+		>
+			<PigmentWash />
+			<header className="relative max-w-2xl">
 				<Reveal>
-					<p className="t-eyebrow flex items-center gap-3">
-						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
-						<span>{work?.eyebrow ?? "Work"}</span>
-					</p>
+					<MotifEyebrow motif="fish" label={work?.eyebrow ?? "Work"} />
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{work?.title ?? "Selected work"}
