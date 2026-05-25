@@ -295,10 +295,11 @@ function CtaPair() {
 					<Reveal>
 						<Link
 							href="/workshops"
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[background-color,border-color,transform] active:scale-[0.99] hover:border-accent"
+							style={{ "--section-accent": "var(--color-pichwai)" } as React.CSSProperties}
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft active:scale-[0.99] hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg"
 						>
 							<p className="t-eyebrow">Workshops</p>
-							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">
+							<h3 className="t-display mt-3 text-3xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
 								Hands-on sessions
 							</h3>
 							<p className="mt-3 text-sm text-muted">
@@ -306,26 +307,37 @@ function CtaPair() {
 									? `${wsCount} session formats, from beginner to focused folk-art deep dives.`
 									: "From beginner to focused folk-art deep dives."}
 							</p>
-							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">
-								Browse <ArrowRight size={14} aria-hidden="true" />
+							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-[gap] duration-(--duration-base) ease-out-soft group-hover:gap-3">
+								Browse{" "}
+								<ArrowRight
+									size={14}
+									aria-hidden="true"
+									className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+								/>
 							</p>
 						</Link>
 					</Reveal>
 					<Reveal delayMs={80}>
 						<Link
 							href="/custom-orders"
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[background-color,border-color,transform] active:scale-[0.99] hover:border-accent"
+							style={{ "--section-accent": "var(--color-vermillion)" } as React.CSSProperties}
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft active:scale-[0.99] hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg"
 						>
 							<p className="t-eyebrow">Custom Orders</p>
-							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">
+							<h3 className="t-display mt-3 text-3xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
 								Order a custom piece
 							</h3>
 							<p className="mt-3 text-sm text-muted">
 								Commissions in any of the styles. Send a brief and we&rsquo;ll discuss over
 								WhatsApp.
 							</p>
-							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">
-								Start a brief <ArrowRight size={14} aria-hidden="true" />
+							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-[gap] duration-(--duration-base) ease-out-soft group-hover:gap-3">
+								Start a brief{" "}
+								<ArrowRight
+									size={14}
+									aria-hidden="true"
+									className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+								/>
 							</p>
 						</Link>
 					</Reveal>

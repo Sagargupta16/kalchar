@@ -41,7 +41,7 @@ Live URL: <https://kalchar.co.in/>.
 | Stack: language | TypeScript (latest stable, strict) | 2026-05-24 |
 | Stack: runtime | React 19 | 2026-05-24 |
 | Stack: styling | Tailwind CSS 4 + shadcn/ui (copy-paste, Radix-based, lucide-react icons) | 2026-05-24 |
-| Stack: motion | Motion 12 (formerly Framer Motion) for choreographed animations + Lenis for smooth scroll (lazy-loaded) + tw-animate-css for utility-class animations | 2026-05-24 |
+| Stack: motion | Motion 12 (formerly Framer Motion) for choreographed animations + Lenis for smooth scroll (lazy-loaded). Animations live in components or `globals.css` keyframes; `tw-animate-css` was removed in 1.7.5 (unused). | 2026-05-25 |
 | Stack: lint/format | Biome 2 | 2026-05-24 |
 | Stack: package manager | pnpm 10 | 2026-05-24 |
 | Versions policy | Latest stable across the board. No "safe but old" pins without a documented constraint. | 2026-05-24 |

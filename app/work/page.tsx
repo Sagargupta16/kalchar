@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { WorkFilter } from "@/components/gallery/work-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { getAllArtworks, getSite } from "@/lib/data";
@@ -16,17 +17,24 @@ export const metadata: Metadata = {
  * (desktop) grid. The style filter is a Client island that filters the
  * rendered subset locally (no re-fetch, no network round-trip). No-JS
  * visitors see the unfiltered grid -- the filter pills require JS to toggle.
+ *
+ * Section accent: ruby. The catalog/archive register reads as a deeper
+ * collection-room red, distinct from the global terracotta on the home page.
  */
 export default function WorkPage() {
 	const all = getAllArtworks();
 	const { styles, sections } = getSite();
 	const work = sections.work;
+	const sectionStyle = { "--section-accent": "var(--color-ruby)" } as CSSProperties;
 
 	return (
-		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<main style={sectionStyle} className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
 			<header className="max-w-2xl">
 				<Reveal>
-					<p className="t-eyebrow">{work?.eyebrow ?? "Work"}</p>
+					<p className="t-eyebrow flex items-center gap-3">
+						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
+						<span>{work?.eyebrow ?? "Work"}</span>
+					</p>
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{work?.title ?? "Selected work"}

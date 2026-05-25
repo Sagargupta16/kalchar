@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.7.5 (2026-05-25)
+
+Audit pass. Removes a dead dependency, unifies the hover register across every CTA card on the site, wires the last unused pigment into a section, and broadens the scroll bar's chromatic arc. No new visual ideas, no spec change -- this is the cleanup release before any further direction work.
+
+### Changed
+
+- **Workshops cards + home CTA pair now match the contact / artwork hover pattern** -- full transition list (`transform`, `border-color`, `box-shadow`), `-translate-y-0.5` lift, soft shadow, and the title tints to `--section-accent` instead of the global accent. The home Workshops CTA inherits pichwai, the Custom Orders CTA inherits vermillion, so both cards preview the pigment of the section they link into. Browse / Start a brief arrows now slide 4px right on hover with the same easing.
+- **Gallery card hover ring inherits `--section-accent`** -- artwork cards on `/work` (ruby) ring deep red on hover, cards in any future section that sets a different pigment will tint to that pigment. Title underline + text tint already use `--section-accent`; the ring was the last hardcoded `accent` reference on the card.
+- **Scroll-progress bar cycles all five pigments** -- vermillion -> marigold -> pichwai -> peacock -> ruby across the page width, replacing the three-stop ruby/marigold/peacock gradient. The bar now visually traverses the same chromatic arc the page does as you scroll.
+- **`/work` index gets the ruby pigment** (the only token that was defined but never assigned). The catalog/archive register reads as a deeper collection-room red, distinct from the global terracotta on the home page. Eyebrow gains the same short rule as the home and contact pages so the section reads as part of the gallery register.
+
+### Removed
+
+- **`tw-animate-css` dependency + `@import "tw-animate-css"` in `globals.css`** -- repo-wide grep showed zero `animate-*` utility classes anywhere outside the import line. Dead dep; gone.
+
 ## 1.7.4 (2026-05-25)
 
 Contact-page hierarchy + hover coordination. The page now visually backs the copy's promise that WhatsApp is the fastest reply, instead of treating all three channels as equal rows.

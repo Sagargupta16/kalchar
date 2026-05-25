@@ -61,8 +61,10 @@ export default function WorkshopsPage() {
 					});
 					return (
 						<Reveal key={item.slug} as="li" delayMs={Math.min(i, 5) * 60}>
-							<article className="flex h-full flex-col rounded-md border border-line bg-bg-soft p-6 transition-colors hover:border-(--section-accent)">
-								<h3 className="t-display text-2xl">{item.title}</h3>
+							<article className="group flex h-full flex-col rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
+								<h3 className="t-display text-2xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
+									{item.title}
+								</h3>
 								<p className="mt-3 text-sm text-muted">{item.blurb}</p>
 								{item.durationHours ? (
 									<p className="mt-4 inline-flex items-center gap-1.5 text-xs uppercase tracking-meta text-(--section-accent)">

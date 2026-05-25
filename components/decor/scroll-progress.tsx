@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 
 /**
- * ScrollProgress -- thin tri-color bar at the top of the viewport that
- * scales with how far the visitor has scrolled. Pure cosmetic; sits behind
- * everything except modals (z-50). No animation if the bar isn't moving,
- * so reduced-motion users see the same final state at every scroll point.
+ * ScrollProgress -- thin gradient bar at the top of the viewport that
+ * scales with how far the visitor has scrolled. Cycles through all five
+ * section pigments (vermillion -> marigold -> pichwai -> peacock -> ruby)
+ * so the bar visually traverses the same chromatic arc as the page beneath.
+ * Pure cosmetic; sits behind everything except modals (z-50). No animation
+ * if the bar isn't moving, so reduced-motion users see the same final
+ * state at every scroll point.
  */
 export function ScrollProgress() {
 	const [progress, setProgress] = useState(0);
@@ -38,7 +41,7 @@ export function ScrollProgress() {
 				style={{
 					transform: `scaleX(${progress})`,
 					background:
-						"linear-gradient(90deg, var(--color-ruby), var(--color-marigold), var(--color-peacock))",
+						"linear-gradient(90deg, var(--color-vermillion), var(--color-marigold), var(--color-pichwai), var(--color-peacock), var(--color-ruby))",
 					transition: "transform 150ms linear",
 				}}
 			/>
