@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.13.0 (2026-05-25)
+
+Build-time image pipeline. Originals stay pristine in the repo as the single source of truth; only optimized derivatives ship to the deployed `out/`. Visitors on a phone over 4G now get the page in roughly 1/15th the bytes they were receiving, with no functional, visual, or accessibility change. The repo's masters never change quality, so future re-encodes can pick a different profile without quality loss.
+
+### Added
+
+- **Real `scripts/optimize-images.mjs`** -- replaces the stub. Reads each `public/artworks/<slug>.jpg` master and emits AVIF + WebP variants at 400 / 800 / 1200 / 1600 widths, plus a mozjpeg-encoded JPG fallback at master width, into `public/_opt/artworks/`. Idempotent (mtime-cached), strips EXIF + ICC, honors EXIF orientation. Tuned for hand-painted folk art (AVIF q60, WebP q72, JPG q82 mozjpeg). 21 sources -> 168 variants in ~80s cold, ~7s warm.
+- **Post-build prune** ([scripts/prune-build.mjs](scripts/prune-build.mjs)) -- after `next build` writes to `out/`, deletes `out/artworks/` (the raw masters Next copied through `public/`). Refuses to delete if `out/_opt/artworks/` is missing -- bails loudly so a missing fallback never reaches deploy. The repo's `public/artworks/` stays untouched.
+
+### Changed
+
+- **`<ArtImage>` rewritten as native `<picture>`** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- AVIF + WebP `<source>` srcsets at all four widths, `<img>` fallback to the mozjpeg JPG. The browser picks the smallest variant whose width covers `rendered CSS width x DPR`, so a 180px-wide phone cell pulls the 400px AVIF (~30-50 KB) instead of the 2 MB master. Drops the `next/image` dependency for catalog images -- on `output: "export"` with `images.unoptimized: true`, `next/image` was just emitting a plain `<img>` to the master anyway. `priority` now controls `loading` / `decoding` / `fetchPriority` directly. Reduced motion, hover, error fallback all unchanged.
+- **`/work/[slug]` Open Graph image** points at `/_opt/artworks/<slug>-1200.webp` instead of the master JPG, so social-card crawlers fetch ~150 KB instead of ~2 MB.
+- **`pnpm build`** chain now runs `optimize:images` -> `next build` -> `prune-build`. The deployed `out/` shrinks from ~32 MB to ~14-16 MB; the visible bandwidth saving is far larger because most browsers pull AVIF (smallest of the three).
+- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalcher by Megha` etc. via the layout's title template.
+- **Logo in header** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- the brand-mark Link now leads with a 32-36 px circular `logo.jpg` ring before the wordmark. Mobile-first: 32 px at base, 36 px at md:. Eager + priority decode so it never lags the wordmark next to it. Hover lights the ring with the section accent in step with the wordmark colour change.
+
 ## 1.12.0 (2026-05-25)
 
 Three voice-and-positioning lifts inspired by a peer artist's site (Shivani Gupta, "trippin-on-hue / The Neutrals -- India"). Captured the page with Playwright, read its 30-section structure, and pulled the patterns that translate to ours without copying anything that hurts mobile or accessibility.

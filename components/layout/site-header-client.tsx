@@ -2,6 +2,7 @@
 
 import { ArrowRight, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -108,15 +109,25 @@ export function SiteHeaderClient({
 			>
 				<Link
 					href="/"
-					className="t-display text-xl tracking-tight transition-colors hover:text-accent md:text-2xl"
+					className="group flex items-center gap-2.5 transition-colors hover:text-accent md:gap-3"
 					aria-label="Home"
 				>
-					<span className="not-italic">{brandLatinPrefix}</span>
-					<span lang="hi" className="font-devanagari not-italic text-accent">
-						{brandDevanagariCore}
-					</span>
-					<span className="ml-2 text-base text-muted md:text-lg">
-						<span className="not-italic">{brandConnector}</span> <span>{brandSuffix}</span>
+					<Image
+						src="/logo.jpg"
+						alt=""
+						width={36}
+						height={36}
+						priority
+						className="h-8 w-8 rounded-full ring-1 ring-line transition-shadow group-hover:ring-accent md:h-9 md:w-9"
+					/>
+					<span className="t-display text-xl tracking-tight md:text-2xl">
+						<span className="not-italic">{brandLatinPrefix}</span>
+						<span lang="hi" className="font-devanagari not-italic text-accent">
+							{brandDevanagariCore}
+						</span>
+						<span className="ml-2 text-base text-muted md:text-lg">
+							<span className="not-italic">{brandConnector}</span> <span>{brandSuffix}</span>
+						</span>
 					</span>
 				</Link>
 

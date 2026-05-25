@@ -227,10 +227,9 @@ function Hero({
 								<ArtImage
 									src={`/artworks/${featured.image}`}
 									alt={featured.description ?? featured.title}
-									fill
 									sizes="(min-width: 768px) 40vw, 90vw"
 									priority
-									className="object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
+									className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
 								/>
 							</div>
 							{featuredIndex >= 0 ? (

@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 		title: art.title,
 		description: art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`,
 		openGraph: {
-			images: [{ url: `/artworks/${art.image}` }],
+			images: [{ url: `/_opt/artworks/${art.slug}-1200.webp`, width: 1200 }],
 		},
 	};
 }
@@ -78,10 +78,9 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
-							fill
 							sizes="(min-width: 768px) 60vw, 100vw"
 							priority
-							className="object-cover"
+							className="absolute inset-0 h-full w-full object-cover"
 						/>
 					</div>
 				</Reveal>
