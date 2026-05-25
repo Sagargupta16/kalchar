@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
@@ -12,44 +13,33 @@ export const metadata: Metadata = {
 };
 
 /**
- * /contact -- three big channel rows, then a custom-orders CTA.
+ * /contact -- channel hierarchy reflects the actual reply-speed promise.
  *
- * Each row is a tappable target sized for thumbs (min-h matches mobile
- * accessibility guidelines), uses a lucide icon for instant recognition,
- * and shows the display string clearly. Hovering / focusing lifts the
- * accent and shifts the trailing arrow.
+ * WhatsApp gets a hero plate (peacock-tinted, large icon, response-time
+ * chip) because the copy promises it's the fastest reply. Instagram and
+ * Email step down into a 2-up grid beneath -- equal weight to each other,
+ * lighter than WhatsApp.
+ *
+ * All three rows share one coordinated hover: the icon pellet rings to
+ * peacock, the display text tints peacock, and the trailing Lucide arrow
+ * slides 4px right -- in one 400ms ease-out-soft motion, not three
+ * independent transitions. Same unification pass as the artwork cards.
  */
 export default function ContactPage() {
 	const { contact, sections } = getSite();
 	const c = sections.contact;
 	const sectionStyle = { "--section-accent": "var(--color-peacock)" } as React.CSSProperties;
 
-	const channels = [
-		{
-			key: "whatsapp",
-			Icon: WhatsAppIcon,
-			...contact.whatsapp,
-			caption: "Fastest reply, usually same day.",
-		},
-		{
-			key: "instagram",
-			Icon: InstagramIcon,
-			...contact.instagram,
-			caption: "DMs welcome. Recent work and process snippets here.",
-		},
-		{
-			key: "email",
-			Icon: GmailIcon,
-			...contact.email,
-			caption: "Best for longer briefs or formal enquiries.",
-		},
-	];
+	const isExternal = (url: string) => url.startsWith("http");
 
 	return (
 		<main style={sectionStyle} className="mx-auto max-w-3xl px-(--container-px) py-(--section-py)">
 			<header>
 				<Reveal>
-					<p className="t-eyebrow">{c?.eyebrow ?? "Contact"}</p>
+					<p className="t-eyebrow flex items-center gap-3">
+						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
+						<span>{c?.eyebrow ?? "Contact"}</span>
+					</p>
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{c?.title ?? "Get in touch"}
@@ -61,41 +51,103 @@ export default function ContactPage() {
 				) : null}
 			</header>
 
-			<ul className="mt-12 divide-y divide-line border-y border-line">
-				{channels.map((ch, i) => {
-					const isExternal = ch.url.startsWith("http");
-					return (
-						<Reveal key={ch.key} as="li" delayMs={i * 80}>
-							<a
-								href={ch.url}
-								target={isExternal ? "_blank" : undefined}
-								rel={isExternal ? "noopener noreferrer" : undefined}
-								className="group flex items-center gap-5 py-6 transition-colors hover:bg-bg-soft sm:py-8"
-							>
-								<span
-									className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors group-hover:ring-(--section-accent) sm:h-14 sm:w-14"
-									aria-hidden="true"
-								>
-									<ch.Icon size={20} />
+			{/* Primary channel: WhatsApp hero plate */}
+			<Reveal delayMs={200}>
+				<a
+					href={contact.whatsapp.url}
+					target={isExternal(contact.whatsapp.url) ? "_blank" : undefined}
+					rel={isExternal(contact.whatsapp.url) ? "noopener noreferrer" : undefined}
+					className="group mt-12 block rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-8"
+				>
+					<div className="flex items-start gap-5 sm:gap-6">
+						<span
+							className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent) sm:h-16 sm:w-16"
+							aria-hidden="true"
+						>
+							<WhatsAppIcon size={26} />
+						</span>
+						<div className="flex-1">
+							<div className="flex flex-wrap items-center gap-2">
+								<p className="t-eyebrow">{contact.whatsapp.label}</p>
+								<span className="rounded-full bg-(--section-accent)/10 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-meta text-(--section-accent)">
+									Fastest reply
 								</span>
-								<span className="flex-1">
-									<span className="t-eyebrow">{ch.label}</span>
-									<span className="t-display mt-1 block text-2xl transition-colors group-hover:text-(--section-accent) sm:text-3xl">
-										{ch.display ?? ch.label}
-									</span>
-									<span className="mt-1 block text-sm text-muted">{ch.caption}</span>
-								</span>
-								<span
-									aria-hidden="true"
-									className="text-muted transition-transform group-hover:translate-x-1 group-hover:text-(--section-accent)"
-								>
-									&rarr;
-								</span>
-							</a>
-						</Reveal>
-					);
-				})}
-			</ul>
+							</div>
+							<p className="t-display mt-2 text-3xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent) sm:text-4xl">
+								{contact.whatsapp.display ?? contact.whatsapp.label}
+							</p>
+							<p className="mt-2 text-sm text-muted">
+								Usually same-day. Send a photo, a link, or a short brief.
+							</p>
+						</div>
+						<ArrowRight
+							size={20}
+							aria-hidden="true"
+							className="mt-2 shrink-0 text-muted transition-[transform,color] duration-(--duration-base) ease-out-soft group-hover:translate-x-1 group-hover:text-(--section-accent)"
+						/>
+					</div>
+				</a>
+			</Reveal>
+
+			{/* Secondary channels: Instagram + Email */}
+			<div className="mt-6 grid gap-6 sm:grid-cols-2">
+				<Reveal delayMs={260}>
+					<a
+						href={contact.instagram.url}
+						target={isExternal(contact.instagram.url) ? "_blank" : undefined}
+						rel={isExternal(contact.instagram.url) ? "noopener noreferrer" : undefined}
+						className="group flex h-full items-start gap-4 rounded-md border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
+					>
+						<span
+							className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"
+							aria-hidden="true"
+						>
+							<InstagramIcon size={18} />
+						</span>
+						<div className="flex-1">
+							<p className="t-eyebrow">{contact.instagram.label}</p>
+							<p className="t-display mt-1 text-lg transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent) sm:text-xl">
+								{contact.instagram.display ?? contact.instagram.label}
+							</p>
+							<p className="mt-1 text-sm text-muted">
+								DMs welcome. Recent work and process snippets.
+							</p>
+						</div>
+						<ArrowRight
+							size={16}
+							aria-hidden="true"
+							className="mt-1 shrink-0 text-muted transition-[transform,color] duration-(--duration-base) ease-out-soft group-hover:translate-x-1 group-hover:text-(--section-accent)"
+						/>
+					</a>
+				</Reveal>
+				<Reveal delayMs={320}>
+					<a
+						href={contact.email.url}
+						target={isExternal(contact.email.url) ? "_blank" : undefined}
+						rel={isExternal(contact.email.url) ? "noopener noreferrer" : undefined}
+						className="group flex h-full items-start gap-4 rounded-md border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
+					>
+						<span
+							className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"
+							aria-hidden="true"
+						>
+							<GmailIcon size={18} />
+						</span>
+						<div className="flex-1">
+							<p className="t-eyebrow">{contact.email.label}</p>
+							<p className="t-display mt-1 text-lg transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent) sm:text-xl">
+								{contact.email.display ?? contact.email.label}
+							</p>
+							<p className="mt-1 text-sm text-muted">Best for longer briefs or formal enquiries.</p>
+						</div>
+						<ArrowRight
+							size={16}
+							aria-hidden="true"
+							className="mt-1 shrink-0 text-muted transition-[transform,color] duration-(--duration-base) ease-out-soft group-hover:translate-x-1 group-hover:text-(--section-accent)"
+						/>
+					</a>
+				</Reveal>
+			</div>
 
 			<Reveal delayMs={320}>
 				<div className="mt-16 flex flex-col items-start gap-4 rounded-md border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">

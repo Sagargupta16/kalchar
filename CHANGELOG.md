@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.7.4 (2026-05-25)
+
+Contact-page hierarchy + hover coordination. The page now visually backs the copy's promise that WhatsApp is the fastest reply, instead of treating all three channels as equal rows.
+
+### Changed
+
+- **WhatsApp promoted to a hero plate** -- bordered card with a larger 14/16 icon pellet, a peacock "Fastest reply" chip, the display number in `t-display 3xl/4xl`, and a one-liner explaining what to send. Lifts on hover (`-translate-y-0.5`) with a soft shadow and a peacock border, all in one 400ms ease-out-soft motion.
+- **Instagram + Email step down to a 2-up grid** -- equal weight to each other, lighter than WhatsApp. Compact `t-display lg/xl` titles, smaller 11-unit pellets, same coordinated hover (lift + border + tint + arrow slide) as the hero card.
+- **Coordinated hover** -- pellet ring, title color, and trailing arrow now move as one tinted unit, replacing the three independent transition-colors fades that the cards had before. Same unification approach as the artwork card pass.
+- **Trailing arrow** -- replaced the literal `&rarr;` HTML entity with Lucide's `ArrowRight` icon for consistency with every other arrow on the site.
+- **Eyebrow gets a peacock rule** -- matches the home-page numbered-eyebrow treatment so the contact section reads as part of the gallery register.
+
 ## 1.7.3 (2026-05-25)
 
 Second polish pass. Card hover choreography, hero entrance, header indicator, numbered section eyebrows. All visual; no behaviour or data changes.
