@@ -37,13 +37,13 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			className={cn("group block focus-visible:outline-none", className)}
 			aria-label={`${artwork.title}, ${artwork.style}`}
 		>
-			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
+			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
 					fill
 					sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-					className="object-cover transition-transform duration-(--duration-slow) ease-out-soft group-hover:scale-[1.03]"
+					className="object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.03]"
 					priority={priority}
 				/>
 				{isAvailable ? (
@@ -73,7 +73,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			<p className="mt-2 text-xs text-muted">{artwork.medium}</p>
 
 			{isAvailable ? (
-				<p className="mt-1 text-sm font-medium text-ink">
+				<p className="mt-1 text-sm font-medium text-ink tabular-nums">
 					INR {artwork.priceInr?.toLocaleString("en-IN")}
 				</p>
 			) : null}

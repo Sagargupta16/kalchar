@@ -134,14 +134,14 @@ function Hero({
 							className="group block focus-visible:outline-none"
 							aria-label={`Featured work: ${featured.title}`}
 						>
-							<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent">
+							<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 transition-shadow group-hover:ring-accent dark:ring-white/10">
 								<ArtImage
 									src={`/artworks/${featured.image}`}
 									alt={featured.description ?? featured.title}
 									fill
 									sizes="(min-width: 768px) 40vw, 90vw"
 									priority
-									className="object-cover transition-transform duration-(--duration-slow) ease-out-soft group-hover:scale-[1.02]"
+									className="object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
 								/>
 							</div>
 							<p className="mt-4 flex items-baseline justify-between gap-3">
@@ -262,7 +262,7 @@ function CtaPair() {
 					<Reveal>
 						<Link
 							href="/workshops"
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[background-color,border-color,transform] active:scale-[0.99] hover:border-accent"
 						>
 							<p className="t-eyebrow">Workshops</p>
 							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">
@@ -281,7 +281,7 @@ function CtaPair() {
 					<Reveal delayMs={80}>
 						<Link
 							href="/custom-orders"
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[background-color,border-color,transform] active:scale-[0.99] hover:border-accent"
 						>
 							<p className="t-eyebrow">Custom Orders</p>
 							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">

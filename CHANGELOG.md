@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.7.2 (2026-05-25)
+
+UI polish pass driven by a multi-skill critique (emil-design-eng, make-interfaces-feel-better, 12-principles-of-animation, baseline-ui, fixing-motion-performance). All visual-only; no behaviour changes.
+
+### Changed
+
+- **Tactile press feedback** -- added `active:scale-[0.97]` to the `Button` cva base so every CTA acknowledges the tap; the two large home-page CTA cards (Workshops, Custom Orders) get a gentler `active:scale-[0.99]` so the surface feels pressed without overshooting.
+- **Numeric prices use `tabular-nums`** -- artwork card and detail-page price lines now render with monospaced figures, so prices in a grid or rail line up regardless of digit width.
+- **Type wrap roles** -- `.t-display` gets `text-wrap: balance` (so display headings break evenly instead of leaving an orphan word) and `.t-lead` gets `text-wrap: pretty` (so leads avoid widow lines on the last row). One CSS edit covers the home, work, about, workshops, custom-orders, and contact pages.
+- **Reveal duration** dropped from 700ms to 500ms. The original timing felt cinematic but read as slow on a content-dense scroll; 500ms still lets the fade register without holding the reader up.
+- **Hover-scale duration** on artwork cards and the hero featured image moved from `--duration-slow` (700ms) to `--duration-base` (400ms). Hover is feedback, not choreography -- 400ms lands inside the 200--400ms band where users feel the affordance instead of the animation.
+- **Image-plate rings** switched from the warm-tinted `ring-line` token to neutral `ring-black/10 dark:ring-white/10` on the home featured plate, the artwork card grid, and the artwork detail plate. Lets the artwork's own colour story define the plate boundary instead of pulling page-chrome warmth into the frame. Hover/focus states still ring `accent`.
+
 ## 1.7.1 (2026-05-25)
 
 PR #20 review-pass. Resilience, accessibility, and validation fixes uncovered by a multi-agent review of the 1.7.0 rebuild. No visual or behavioural changes on the happy path; failure paths now degrade gracefully.

@@ -114,6 +114,7 @@ body {
 	font-weight: 500;
 	letter-spacing: var(--tracking-display);
 	line-height: 1.05;
+	text-wrap: balance;
 }
 .t-eyebrow {
 	font-family: var(--font-body);
@@ -134,6 +135,7 @@ body {
 	font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
 	line-height: 1.65;
 	color: var(--color-muted);
+	text-wrap: pretty;
 }
 
 /* Drop-cap for editorial paragraphs (used in the About page first paragraph). */
