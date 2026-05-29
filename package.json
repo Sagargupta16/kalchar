@@ -9,7 +9,7 @@
 		"node": ">=22"
 	},
 	"scripts": {
-		"dev": "next dev",
+		"dev": "next dev --turbopack",
 		"build": "pnpm run optimize:images && next build && node scripts/prune-build.mjs",
 		"preview": "pnpm run build && npx -y serve out",
 		"start": "next start",

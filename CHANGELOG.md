@@ -25,6 +25,7 @@ A-to-z audit pass: two production-breaking bugs fixed, reduced-motion holes clos
 
 - **`app/sitemap.ts`** -- static `MetadataRoute` sitemap emitted to `out/sitemap.xml` (the file `robots.txt` already advertised but nothing generated). Routes + per-artwork slugs come through the data seam and base URL from `lib/site-config`.
 - **`pnpm preview`** script -- builds then serves `out/` locally (the command `deploy.yml` referenced but didn't exist).
+- **Turbopack dev server** -- `pnpm dev` now runs `next dev --turbopack` (Rust bundler, multi-core). Cold start ~1.1s vs the webpack dev server's several seconds; faster HMR. Dev-only, production build is unchanged.
 
 ### Docs
 
