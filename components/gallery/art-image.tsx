@@ -118,7 +118,7 @@ export function ArtImage({ src, alt, className, priority = false, sizes }: ArtIm
 				className={cn(
 					imgClass,
 					animate &&
-						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-out-soft",
+						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-out-soft motion-reduce:transition-none",
 				)}
 			/>
 		</picture>
