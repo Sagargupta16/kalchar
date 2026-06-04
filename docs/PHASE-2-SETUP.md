@@ -15,6 +15,8 @@ Do these **in order**. Code scaffolding (Part 3) is blocked until the env vars e
 
 ### 1. Neon Postgres database
 
+> **Account decided:** Neon can stay on the **same account** as ledger-sync — a separate Neon project (`kalchar`) is free and isolated, no second account needed (capacity is a non-issue at ~0.6 KB/row). Composio can create this project + fetch `DATABASE_URL` programmatically (`NEON_CREATE_PROJECT_WITH_QUOTA_AND_SETTINGS` → `NEON_GET_PROJECT_CONNECTION_URI`); it needs `org_id` from `NEON_GET_USER_ORGANIZATIONS` first.
+
 Easiest path: add it through Vercel (step 5) — Vercel → Storage → create a Neon Postgres DB, and `DATABASE_URL` is injected into the project automatically. Or directly:
 
 1. [Neon console](https://console.neon.tech/) → New Project (region near your users, e.g. `ap-southeast-1`).
@@ -45,7 +47,9 @@ Easiest path: add it through Vercel (step 5) — Vercel → Storage → create a
 
 ### 5. Vercel project (when ready to deploy the branch)
 
-1. Import the GitHub repo into Vercel, set the production branch to the Phase 2 branch (NOT `main`).
+> **Account decided:** use the dedicated **`sagar-2`** Vercel account (`sg20001016@gmail.com`, Hobby plan, currently 0 projects) — NOT the personal account that hosts ledger-sync. Reasons: kalchar takes buy-intent (commercial-ish, and Hobby is non-commercial-only on the shared account), clean ownership separation, and isolated bandwidth/build quota. This account is connected in Composio (`vercel_ignore-owk`), so project creation + env + deploy can be driven programmatically once the code is deploy-ready.
+
+1. Import the GitHub repo into the `sagar-2` Vercel account, set the production branch to the Phase 2 branch (NOT `main`).
 2. Paste every env var below into Vercel → Project → Settings → Environment Variables.
 3. Vercel auto-detects Next.js; no custom build command needed once `output: "export"` is removed on that branch.
 
