@@ -1,24 +1,24 @@
 /**
- * Turso (libSQL) connection for the Phase 2 data seam.
+ * Neon (Postgres) connection for the Phase 2 data seam.
  *
- * Reads TURSO_DATABASE_URL + TURSO_AUTH_TOKEN from the environment (see
- * .env.example). Imported only by lib/data.ts and server-side scripts -- never
- * from a client component, since it holds the auth token.
+ * Reads DATABASE_URL from the environment (see .env.example). Imported only by
+ * lib/data.ts and server-side scripts -- never from a client component, since
+ * the connection string holds credentials.
  *
- * The module-level singleton is fine on serverless: each warm Lambda/edge
- * instance reuses one client across invocations.
+ * Uses the neon-http driver: fastest for single, non-interactive queries,
+ * which is exactly the gallery's read pattern. The module-level singleton is
+ * fine on serverless -- each warm Lambda/edge instance reuses one client.
  */
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
+const url = process.env.DATABASE_URL;
 
 if (!url) {
-	throw new Error("TURSO_DATABASE_URL is not set. See docs/PHASE-2-SETUP.md Part 1.");
+	throw new Error("DATABASE_URL is not set. See docs/PHASE-2-SETUP.md Part 1.");
 }
 
-const client = createClient({ url, authToken });
+const sql = neon(url);
 
-export const db = drizzle(client, { schema });
+export const db = drizzle({ client: sql, schema });

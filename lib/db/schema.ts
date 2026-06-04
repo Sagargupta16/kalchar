@@ -1,17 +1,20 @@
 /**
- * Drizzle schema for the Phase 2 catalog (Turso / libSQL, SQLite dialect).
+ * Drizzle schema for the Phase 2 catalog (Neon Postgres).
  *
- * This mirrors the `Artwork` / `Workshop` shape in lib/types.ts so the data
- * seam (lib/data.ts) can swap from JSON-file reads to DB queries without any
- * UI change. SQLite has no native array/object columns, so `palette` is stored
- * as a JSON string and parsed in the seam.
+ * Postgres chosen to match the ledger-sync app (one DB provider across both
+ * repos, reusing the Neon + Vercel integration). This mirrors the
+ * `Artwork` / `Workshop` shape in lib/types.ts so the data seam (lib/data.ts)
+ * can swap from JSON-file reads to DB queries without any UI change.
+ *
+ * Postgres has a native `jsonb` column, so `palette` (string[]) is stored
+ * structured rather than as a serialized string.
  *
  * Status is stored explicitly here (Phase 1 derived it from price). The seam
  * keeps the same derive-fallback so older rows without a status still resolve.
  */
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, integer, jsonb, pgTable, real, text } from "drizzle-orm/pg-core";
 
-export const artworks = sqliteTable("artworks", {
+export const artworks = pgTable("artworks", {
 	slug: text("slug").primaryKey(),
 	title: text("title").notNull(),
 	style: text("style").notNull(),
@@ -20,7 +23,7 @@ export const artworks = sqliteTable("artworks", {
 	dimensions: text("dimensions"),
 	/** width / height, for gallery layout decisions. */
 	aspectRatio: real("aspect_ratio").notNull().default(0.75),
-	featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+	featured: boolean("featured").notNull().default(false),
 	/** Sort key, ascending. Lower = earlier in the gallery. */
 	order: integer("order").notNull(),
 	description: text("description"),
@@ -31,15 +34,15 @@ export const artworks = sqliteTable("artworks", {
 	 * URL differs.
 	 */
 	image: text("image").notNull(),
-	/** JSON-encoded string[] of 3-5 hex values. Parsed in the seam. */
-	palette: text("palette"),
+	/** Sampled palette of 3-5 hex values. */
+	palette: jsonb("palette").$type<string[]>(),
 	/** "archive" | "available" | "sold". */
 	status: text("status").notNull().default("archive"),
 	/** INR. When set, the piece is considered for-sale. */
 	priceInr: integer("price_inr"),
 });
 
-export const workshops = sqliteTable("workshops", {
+export const workshops = pgTable("workshops", {
 	slug: text("slug").primaryKey(),
 	title: text("title").notNull(),
 	blurb: text("blurb").notNull(),

@@ -1,5 +1,5 @@
 /**
- * One-shot migration: data/*.json -> Turso DB rows.
+ * One-shot migration: data/*.json -> Neon Postgres rows.
  *
  * Run ONCE, after `pnpm db:push` has created the tables and the env vars are
  * set (see docs/PHASE-2-SETUP.md):
@@ -44,7 +44,7 @@ async function main() {
 				order: a.order,
 				description: a.description,
 				image: a.image,
-				palette: a.palette ? JSON.stringify(a.palette) : null,
+				palette: a.palette ?? null,
 				status: deriveStatus(a),
 				priceInr: a.priceInr,
 			})
@@ -61,7 +61,7 @@ async function main() {
 					order: a.order,
 					description: a.description,
 					image: a.image,
-					palette: a.palette ? JSON.stringify(a.palette) : null,
+					palette: a.palette ?? null,
 					status: deriveStatus(a),
 					priceInr: a.priceInr,
 				},
