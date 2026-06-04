@@ -21,7 +21,8 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:seed": "tsx --env-file=.env.local scripts/migrate-json-to-db.ts"
+		"db:seed": "tsx --env-file=.env.local scripts/migrate-json-to-db.ts",
+		"db:images": "tsx --env-file=.env.local scripts/migrate-images-to-r2.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1061.0",
