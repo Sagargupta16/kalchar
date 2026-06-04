@@ -12,7 +12,7 @@
  * Status is stored explicitly here (Phase 1 derived it from price). The seam
  * keeps the same derive-fallback so older rows without a status still resolve.
  */
-import { boolean, integer, jsonb, pgTable, real, text } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
 export const artworks = pgTable("artworks", {
 	slug: text("slug").primaryKey(),
@@ -50,7 +50,27 @@ export const workshops = pgTable("workshops", {
 	order: integer("order").notNull(),
 });
 
+/**
+ * Admin allowlist. Replaces a static ADMIN_EMAILS env var so a logged-in
+ * maintainer can add/remove others from the panel without a redeploy. The
+ * Auth.js signIn callback checks an email against this table.
+ *
+ * `isRoot` marks the bootstrap maintainer (sg85207@gmail.com); root rows can't
+ * be removed, so the panel can never delete its way into a lockout.
+ */
+export const maintainers = pgTable("maintainers", {
+	email: text("email").primaryKey(),
+	name: text("name"),
+	/** True for the seeded bootstrap maintainer; protected from removal. */
+	isRoot: boolean("is_root").notNull().default(false),
+	/** Email of the maintainer who added this one (null for the root seed). */
+	addedBy: text("added_by"),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;
 export type WorkshopRow = typeof workshops.$inferSelect;
 export type WorkshopInsert = typeof workshops.$inferInsert;
+export type MaintainerRow = typeof maintainers.$inferSelect;
+export type MaintainerInsert = typeof maintainers.$inferInsert;

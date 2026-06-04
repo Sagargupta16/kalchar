@@ -1,30 +1,25 @@
 /**
- * Auth.js v5 (NextAuth) config -- Google sign-in gated to an admin allowlist.
+ * Auth.js v5 (NextAuth) config -- Google sign-in gated to the maintainer roster.
  *
- * Only emails in ADMIN_EMAILS (comma-separated) may sign in; everyone else is
- * rejected at the `signIn` callback. Admins are Sagar + Megha (see
- * docs/PHASE-2-SETUP.md). This protects the /admin panel.
+ * Login is allowed only for emails in the `maintainers` DB table (see
+ * lib/maintainers.ts). The roster is seeded with sg85207@gmail.com as root and
+ * is editable from the /admin panel, so access can change without a redeploy.
  *
  * Env vars (see .env.example):
- *   AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, ADMIN_EMAILS
+ *   AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET
  *
  * Auth.js auto-reads AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET for the Google
  * provider, so no explicit clientId/clientSecret wiring is needed.
  */
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-
-const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-	.split(",")
-	.map((e) => e.trim().toLowerCase())
-	.filter(Boolean);
+import { isMaintainer } from "@/lib/maintainers";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
 	providers: [Google],
 	callbacks: {
-		signIn({ profile }) {
-			const email = profile?.email?.toLowerCase();
-			return Boolean(email && adminEmails.includes(email));
+		async signIn({ profile }) {
+			return await isMaintainer(profile?.email);
 		},
 	},
 });
