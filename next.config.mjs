@@ -21,10 +21,16 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	output: "export",
+	// PHASE 2 (this branch): static export is OFF. The admin panel needs auth
+	// route handlers + middleware + server actions, which require a Node runtime
+	// (Vercel). `main` keeps `output: "export"` for the GitHub Pages fallback.
+	// To revert to static: re-add `output: "export"`.
+	// output: "export",
 	trailingSlash: true,
 	basePath: "",
 	images: {
+		// Gallery serves R2 images via a hand-rolled <picture> (not next/image),
+		// so the optimizer stays off either way.
 		unoptimized: true,
 	},
 	reactStrictMode: true,

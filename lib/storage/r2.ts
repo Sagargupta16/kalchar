@@ -13,7 +13,7 @@
  * (sharp -> -400/-800/-1200/-1600 .avif/.webp/.jpg) writes sibling keys under
  * the same prefix, preserving the existing filename contract.
  */
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -47,6 +47,17 @@ export async function uploadObject(
 		}),
 	);
 	return `${PUBLIC_BASE_URL}/${key}`;
+}
+
+/** Delete a batch of objects by key. No-op on an empty list. */
+export async function deleteObjects(keys: string[]): Promise<void> {
+	if (keys.length === 0) return;
+	await r2.send(
+		new DeleteObjectsCommand({
+			Bucket: BUCKET,
+			Delete: { Objects: keys.map((Key) => ({ Key })) },
+		}),
+	);
 }
 
 export const r2Config = { bucket: BUCKET, publicBaseUrl: PUBLIC_BASE_URL };
