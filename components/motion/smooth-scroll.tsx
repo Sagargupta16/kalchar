@@ -17,6 +17,11 @@ import { useEffect } from "react";
  * Reduced-motion: bails out before init -- visitors who prefer reduced
  * motion get native scroll, no easing, no smoothing.
  *
+ * Touch devices: bails out too. Lenis intercepting touch scroll fights the
+ * browser's native momentum/rubber-band on iOS Safari, which is the main
+ * cause of "janky / hangy" scrolling on phones. Smooth easing is a
+ * fine-pointer (mouse/trackpad) nicety; touch gets native scroll.
+ *
  * Failure paths: a network blip / ad blocker that fails the dynamic
  * import is swallowed silently. The user just gets native scroll, which
  * is fine.
@@ -25,6 +30,7 @@ export function SmoothScroll() {
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
 		let cancelled = false;
 		let destroy: (() => void) | null = null;

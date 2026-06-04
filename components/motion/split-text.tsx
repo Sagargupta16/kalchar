@@ -11,8 +11,8 @@ import { motion } from "motion/react";
  * motion -- no per-component branching needed.
  *
  * Restraint: characters animate over a small distance (8px) and fast
- * (300ms each) with a small per-character delay (12ms) so the total
- * lands inside ~1.5s for a typical 80-char description. Anything more
+ * (300ms each) with a small per-character delay (8ms) so the total
+ * lands inside ~1s for a typical 80-char description. Anything more
  * theatrical than this reads as an intro animation, not a flourish.
  */
 interface SplitTextProps {
@@ -36,7 +36,7 @@ export function SplitText({ text, className, startDelayMs = 0 }: SplitTextProps)
 					animate={{ opacity: 1, y: 0 }}
 					transition={{
 						duration: 0.3,
-						delay: (startDelayMs + i * 12) / 1000,
+						delay: (startDelayMs + i * 8) / 1000,
 						ease: [0.16, 1, 0.3, 1],
 					}}
 				>
