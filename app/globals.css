@@ -99,10 +99,15 @@ html {
 	font-family: var(--font-body);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
+	/* Guard against accidental horizontal scroll on narrow phones (wide rails,
+	   the marquee band). `clip` rather than `hidden` so it doesn't create a
+	   scroll container that would break the sticky header. */
+	overflow-x: clip;
 }
 
 body {
 	min-height: 100dvh;
+	overflow-x: clip;
 }
 
 ::selection {
