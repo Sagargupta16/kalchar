@@ -119,6 +119,36 @@ pnpm add -D drizzle-kit tsx
 
 ---
 
+## Capacity — will the free tiers hold the catalog?
+
+Yes, by a wide margin. Measured against the real catalog + current free-tier limits (verified 2026-06-04).
+
+### Footprint per artwork
+
+| Item | Size |
+| --- | --- |
+| Raw master JPG | ~1.29 MB avg (21 masters = 28 MB) |
+| Optimized variants (`_opt/`: AVIF/WebP/JPG × 4 widths + fallback = 13 files) | ~1.8 MB |
+| **Total stored on R2 per piece** (master + variants) | **~3.1 MB** |
+| DB row (metadata + palette JSON) | ~0.6 KB |
+
+### Free-tier limits and headroom
+
+| Service | Free tier | What it means here |
+| --- | --- | --- |
+| **Cloudflare R2** (images) | 10 GB storage · 1M writes/mo · 10M reads/mo · **egress free** | **The only real constraint.** At ~3.1 MB/piece → **~3,000 artworks** free. Variants-only (drop master, ~1.8 MB) → ~5,600. Uploads are ~13 Class-A ops/piece; you'd upload ~75k pieces/mo to hit the write cap. |
+| **Turso** (metadata DB) | 5 GB · 500M row-reads/mo · 10M row-writes/mo | Effectively infinite. 0.6 KB rows → 5 GB holds **~8M artworks**; gallery reads ~30 rows/visit → **~16M page views/mo** before the read cap. |
+| **Vercel** (hosting) | 100 GB bandwidth/mo (Hobby) | Not image-bound (images come from R2). At ~160 KB/page → **~650k page loads/mo**. |
+
+### Verdict
+
+- **Binding limit: R2 storage at ~3,000 pieces.** A working artist makes ~20-50 pieces/year, so the free 10 GB is **60+ years** of output. Megha will not reach a paid tier.
+- **R2's free egress** is why the runbook chose it over S3: serving an image-heavy public gallery costs nothing regardless of traffic, whereas S3 bills per GB served.
+- **No over-engineering needed** at this scale: no CDN tiering, no image-CDN service, no lifecycle rules. Upload master + variants to R2, serve directly.
+- **Decision: keep the masters on R2** (~3.1 MB/piece). Storage is free either way, and keeping masters lets variants be regenerated later if widths/formats change, without a re-shoot.
+
+---
+
 ## Next action
 
 When you've created the four services (Part 1) and have the env vars, say so and point me at this file — I'll scaffold Part 3 on a dedicated `feat/phase-2-backend` branch and walk each verifiable step. Until then, nothing backend ships, and the live site is unaffected.
