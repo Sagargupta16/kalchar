@@ -6,8 +6,12 @@
  *   pnpm db:generate   # emit SQL migration files under ./drizzle
  *   pnpm db:migrate    # apply generated migrations
  */
-import "dotenv/config";
+import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
+
+// Next.js reads .env.local automatically, but drizzle-kit does not -- load it
+// explicitly so `pnpm db:*` picks up DATABASE_URL from the same file the app uses.
+config({ path: ".env.local" });
 
 export default defineConfig({
 	out: "./drizzle",

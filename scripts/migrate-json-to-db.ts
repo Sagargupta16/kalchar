@@ -13,7 +13,7 @@
  * Idempotent: uses onConflictDoUpdate keyed on slug, so re-running re-syncs
  * rather than duplicating.
  */
-import "dotenv/config";
+// DATABASE_URL is loaded via `tsx --env-file=.env.local` (see the db:seed script).
 import artworksJson from "../data/artworks.json";
 import siteJson from "../data/site.json";
 import { db } from "../lib/db/client";

@@ -35,12 +35,14 @@ import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
  * is locked in MEMORY.md; if you add or remove a section here, update that
  * file and confirm with the user first.
  */
-export default function HomePage() {
+export default async function HomePage() {
 	const site = getSite();
-	const featured = getFeaturedArtwork();
-	const all = getAllArtworks();
-	const available = getAvailableArtworks();
-	const allWorkshops = getAllWorkshops();
+	const [featured, all, available, allWorkshops] = await Promise.all([
+		getFeaturedArtwork(),
+		getAllArtworks(),
+		getAvailableArtworks(),
+		getAllWorkshops(),
+	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
 	// Featured rail: pieces explicitly marked, capped at 6, with the hero

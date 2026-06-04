@@ -11,11 +11,10 @@ import "./marquee.css";
 
 const DEVANAGARI_WORDS: readonly string[] = ["कमल", "मृग", "गाय", "मीन", "मोर", "वृक्ष", "सरिता"];
 
-function buildItems() {
-	const titles = getAllArtworks()
-		.slice(0, 14)
-		.map((a) => a.title);
-	const items: { text: string; lang?: "hi" }[] = [];
+type MarqueeItem = { text: string; lang?: "hi" };
+
+function buildItems(titles: readonly string[]): MarqueeItem[] {
+	const items: MarqueeItem[] = [];
 	const max = Math.max(titles.length, DEVANAGARI_WORDS.length);
 	for (let i = 0; i < max; i++) {
 		const t = titles[i];
@@ -26,8 +25,7 @@ function buildItems() {
 	return items;
 }
 
-function Track() {
-	const items = buildItems();
+function Track({ items }: { items: readonly MarqueeItem[] }) {
 	return (
 		<>
 			{items.map((item) => (
@@ -47,7 +45,9 @@ function Track() {
 	);
 }
 
-export function Marquee() {
+export async function Marquee() {
+	const all = await getAllArtworks();
+	const items = buildItems(all.slice(0, 14).map((a) => a.title));
 	return (
 		<aside
 			aria-hidden="true"
@@ -55,10 +55,10 @@ export function Marquee() {
 		>
 			<div className="marquee">
 				<div className="marquee__track">
-					<Track />
+					<Track items={items} />
 				</div>
 				<div className="marquee__track" aria-hidden="true">
-					<Track />
+					<Track items={items} />
 				</div>
 			</div>
 		</aside>

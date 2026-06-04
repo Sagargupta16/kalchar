@@ -14,13 +14,13 @@ interface PageProps {
 	params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-	return getAllArtworkSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+	return (await getAllArtworkSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { slug } = await params;
-	const art = getArtworkBySlug(slug);
+	const art = await getArtworkBySlug(slug);
 	if (!art) return { title: "Artwork not found" };
 	return {
 		title: art.title,
@@ -43,10 +43,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  */
 export default async function ArtworkDetailPage({ params }: PageProps) {
 	const { slug } = await params;
-	const art = getArtworkBySlug(slug);
+	const art = await getArtworkBySlug(slug);
 	if (!art) notFound();
 
-	const all = getAllArtworks();
+	const all = await getAllArtworks();
 	const idx = all.findIndex((a) => a.slug === art.slug);
 	const prev = idx > 0 ? all[idx - 1] : undefined;
 	const next = idx < all.length - 1 ? all[idx + 1] : undefined;
