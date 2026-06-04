@@ -15,7 +15,7 @@ Do these **in order**. Code scaffolding (Part 3) is blocked until the env vars e
 
 ### 1. Neon Postgres database
 
-> **Account decided:** Neon can stay on the **same account** as ledger-sync — a separate Neon project (`kalchar`) is free and isolated, no second account needed (capacity is a non-issue at ~0.6 KB/row). Composio can create this project + fetch `DATABASE_URL` programmatically (`NEON_CREATE_PROJECT_WITH_QUOTA_AND_SETTINGS` → `NEON_GET_PROJECT_CONNECTION_URI`); it needs `org_id` from `NEON_GET_USER_ORGANIZATIONS` first.
+> **Account decided:** dedicated **`sg20001016@gmail.com`** Neon account (same identity as the `sagar-2` Vercel account — fully separate from ledger-sync, which is on `sg85207@gmail.com`). Fresh free account, org `org-young-dawn-25789104`. Connected in Composio as `neon_tug-heft`. Composio creates the `kalchar` project + fetches `DATABASE_URL` programmatically (`NEON_CREATE_PROJECT_WITH_QUOTA_AND_SETTINGS` with that `org_id` → `NEON_GET_PROJECT_CONNECTION_URI`). Region `ap-southeast-1` (Singapore) for the India audience.
 
 Easiest path: add it through Vercel (step 5) — Vercel → Storage → create a Neon Postgres DB, and `DATABASE_URL` is injected into the project automatically. Or directly:
 
