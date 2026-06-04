@@ -93,6 +93,8 @@ Every catalog read goes through `lib/data.ts`. Phase 2 swaps its body from JSON-
 
 ### B2. Database — recommendation
 
+> **DECIDED (2026-06-04): Neon Postgres.** Chosen over Turso to match the ledger-sync app, so one Neon + Vercel integration serves both repos and Phase 3 relational needs are covered. Scaffolded on `feat/phase-2-backend`. The table below is the original comparison, kept for context.
+
 | Option | Fit | Cost | Verdict |
 | --- | --- | --- | --- |
 | **Turso (libSQL/SQLite) + Drizzle** | Tiny catalog, read-heavy, edge-friendly | Free tier generous | **Recommended for non-AWS path.** Simplest, cheapest, Drizzle types flow into the seam |
@@ -210,7 +212,7 @@ AWS here is **pennies**, but it's non-zero ops and a cert/DNS to babysit. The ju
 | Fix order | **Track A first, fully**, before any backend/AWS work | The "hang" and mobile complaints are live UX bugs on a shipped site. Backend/AWS are future. |
 | "Hang" root cause | **JS/animation layer, not images** | Verified: prod serves optimized `_opt/` variants. Target Lenis+rAF, card tilt, SVG splash. |
 | Phase 1 hosting | **Stay on GitHub Pages** | Free, working, zero ops. Don't migrate a static site for no gain. |
-| Phase 2 DB | **Turso (non-AWS) or DynamoDB (AWS)** | Both sit behind the seam; pick at kickoff. Cheapest options that fit. |
+| Phase 2 DB | **Neon Postgres (DECIDED)** | Matches ledger-sync; sits behind the seam. DynamoDB only if going all-AWS. |
 | Image storage (P2) | **Cloudflare R2 (non-AWS) / S3+CloudFront (AWS)** | R2 = no egress fees; S3 if already on AWS. |
 | AWS migration | **Only for showcase or Phase-2 SSR**, with Pages as permanent fallback | Pennies in cost but real ops; no perf benefit for a static site. Amplify Hosting if SSR. |
 

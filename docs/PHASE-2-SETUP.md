@@ -1,9 +1,9 @@
 # Phase 2 setup — kickoff checklist
 
 _Created: 2026-06-04_
-_Decisions locked: **Vercel** hosting · **Turso + Drizzle** DB · **Cloudflare R2** image storage · **Auth.js v5 + Google** · admins = **Sagar + Megha**._
+_Decisions locked: **Vercel** hosting · **Neon Postgres + Drizzle** DB · **Cloudflare R2** image storage · **Auth.js v5 + Google** · admins = **Sagar + Megha**._
 
-This is the actionable runbook for Phase 2 (admin panel: Google login, image upload, edit metadata / price / availability). It complements the strategy in [ROADMAP.md](../ROADMAP.md) Track B. Auth.js and Drizzle/Turso specifics below were verified against current official docs on 2026-06-04.
+This is the actionable runbook for Phase 2 (admin panel: Google login, image upload, edit metadata / price / availability). It complements the strategy in [ROADMAP.md](../ROADMAP.md) Track B. Auth.js and Drizzle/Neon specifics below were verified against current official docs on 2026-06-04. **DB note:** Neon (Postgres) chosen over Turso to match the ledger-sync app, so one Neon + Vercel integration serves both repos and Phase 3 relational needs (orders/bookings) are covered.
 
 > **Hard constraint — read first.** The live site is a GitHub Pages **static export** (`output: "export"`). A static export **cannot** contain `app/api/*` route handlers or dynamic routes — `next build` fails the moment they exist. Therefore Phase 2 **cannot ship on `main`**. It lives on a branch that drops the export and deploys to **Vercel**, while `main` keeps serving the static site on Pages as the permanent fallback. DNS for `kalchar.co.in` only moves at a deliberate cutover (ROADMAP C4); rollback = repoint DNS to Pages.
 
@@ -13,13 +13,13 @@ This is the actionable runbook for Phase 2 (admin panel: Google login, image upl
 
 Do these **in order**. Code scaffolding (Part 3) is blocked until the env vars exist, because nothing is verifiable without real services. Collect everything into `.env.local` (gitignored — never commit it).
 
-### 1. Turso database
+### 1. Neon Postgres database
 
-1. Install CLI: `curl -sSfL https://tur.so/install.sh | bash` (or `brew install tursodatabase/tap/turso`).
-2. `turso auth signup` (GitHub login).
-3. `turso db create kalchar` — creates the DB.
-4. `turso db show kalchar --url` → copy as `TURSO_DATABASE_URL` (the `libsql://...` value).
-5. `turso db tokens create kalchar` → copy as `TURSO_AUTH_TOKEN`.
+Easiest path: add it through Vercel (step 5) — Vercel → Storage → create a Neon Postgres DB, and `DATABASE_URL` is injected into the project automatically. Or directly:
+
+1. [Neon console](https://console.neon.tech/) → New Project (region near your users, e.g. `ap-southeast-1`).
+2. Create a database named `kalchar`.
+3. Connection Details → copy the **pooled** connection string → use as `DATABASE_URL` (includes `-pooler` in the host and `?sslmode=require`).
 
 ### 2. Cloudflare R2 (image storage)
 
@@ -56,8 +56,7 @@ AUTH_SECRET=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 ADMIN_EMAILS=sagar@example.com,megha@example.com   # comma-separated allowlist
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+DATABASE_URL=                                       # Neon pooled connection string
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -69,45 +68,47 @@ R2_PUBLIC_BASE_URL=
 
 ---
 
-## Part 2 — Packages to add
+## Part 2 — Packages (already installed on `feat/phase-2-backend`)
 
 ```sh
-pnpm add next-auth@beta drizzle-orm @libsql/client @aws-sdk/client-s3
-pnpm add -D drizzle-kit tsx
+pnpm add next-auth@beta drizzle-orm @neondatabase/serverless @aws-sdk/client-s3
+pnpm add -D drizzle-kit tsx dotenv
 ```
 
-(`next-auth@beta` is Auth.js v5. R2 speaks the S3 API, so the AWS S3 SDK is the R2 client.)
+(`next-auth@beta` is Auth.js v5. `@neondatabase/serverless` is the Neon Postgres driver. R2 speaks the S3 API, so the AWS S3 SDK is the R2 client.)
 
 ---
 
-## Part 3 — Code scaffold (files to create, once creds exist)
+## Part 3 — Code scaffold
 
-| File | Purpose |
-| --- | --- |
-| `next.config.phase2.mjs` or branch edit | **Remove `output: "export"`**; keep everything else. This branch builds dynamic. |
-| `auth.ts` (root) | `NextAuth({ providers: [Google], callbacks })` — the `signIn` callback rejects any email not in `ADMIN_EMAILS`. Exports `handlers, signIn, signOut, auth`. |
-| `app/api/auth/[...nextauth]/route.ts` | `export const { GET, POST } = handlers`. |
-| `middleware.ts` | `export { auth as middleware }` + matcher protecting `/admin/*`. (Next 16 renames this to `proxy.ts`; we're on 15.5.x → `middleware.ts`.) |
-| `lib/db/schema.ts` | Drizzle `sqliteTable` for `artworks` (mirrors the current `data/artworks.json` shape: slug, title, style, medium, dimensions, year, priceInr, status, order, palette JSON, image key, description). |
-| `lib/db/client.ts` | `drizzle({ connection: { url, authToken } })` from Turso env. |
-| `drizzle.config.ts` | `dialect: 'turso'`, schema + dbCredentials. |
-| `lib/data.ts` | **Swap the seam body** from JSON reads to Drizzle queries. **Becomes async** — callers (page components) become `async` server components. This is the largest change. |
-| `lib/storage/r2.ts` | S3-SDK client pointed at R2; `uploadArtwork()` puts the master + (optionally) runs sharp to emit `_opt`-style variants, returns the public URL base. |
-| `app/admin/page.tsx` | Admin dashboard (list, reorder, toggle availability, set price). |
-| `app/admin/upload/page.tsx` | Upload form → server action → R2 + DB insert. |
-| `app/api/admin/*` or server actions | CRUD mutations, all behind the `auth()` gate. |
-| `scripts/migrate-json-to-db.mjs` | One-shot: read `data/artworks.json` → insert rows → upload existing `public/artworks/*` to R2. Run once, then retire `/data`. |
-| `.env.example` | Committed key contract (blank values). |
+Status key: **[done]** = already on `feat/phase-2-backend` (compiles, unwired, Phase 1 build unaffected). **[todo]** = needs live credentials to build + verify, so not scaffolded blind.
+
+| File | Status | Purpose |
+| --- | --- | --- |
+| `lib/db/schema.ts` | **[done]** | Drizzle `pgTable` for `artworks` + `workshops`, mirroring the `data/*.json` shape; `palette` is native `jsonb`. |
+| `lib/db/client.ts` | **[done]** | `drizzle({ client: neon(DATABASE_URL) })` via the neon-http driver. |
+| `drizzle.config.ts` | **[done]** | `dialect: 'postgresql'`, schema + `DATABASE_URL`. |
+| `lib/storage/r2.ts` | **[done]** | S3-SDK client pointed at R2; `uploadObject()` returns the public URL. |
+| `auth.ts` (root) | **[done]** | `NextAuth({ providers: [Google], callbacks })`; the `signIn` callback rejects any email not in `ADMIN_EMAILS`. Exports `handlers, signIn, signOut, auth`. |
+| `scripts/migrate-json-to-db.ts` | **[done]** | One-shot `pnpm db:seed`: idempotent `data/*.json` → DB rows. |
+| `.env.example` | **[done]** | Committed key contract (blank values). |
+| `next.config.mjs` edit | **[todo]** | **Remove `output: "export"`** on this branch so it builds dynamic. **This is the cutover off static.** |
+| `app/api/auth/[...nextauth]/route.ts` | **[todo]** | `export const { GET, POST } = handlers`. |
+| `middleware.ts` | **[todo]** | `export { auth as middleware }` + matcher protecting `/admin/*`. (Next 16 renames this to `proxy.ts`; we're on 15.5.x → `middleware.ts`.) |
+| `lib/data.ts` | **[todo]** | **Swap the seam body** from JSON reads to Drizzle queries. **Becomes async** — callers (page components) become `async` server components. Largest change. |
+| `lib/storage/r2.ts` variant gen | **[todo]** | Add `sharp` on upload to emit `_opt`-style AVIF/WebP/JPG widths under the same key prefix. |
+| `app/admin/page.tsx` | **[todo]** | Admin dashboard (list, reorder, toggle availability, set price). |
+| `app/admin/upload/page.tsx` | **[todo]** | Upload form → server action → R2 + DB insert. |
+| `app/api/admin/*` or server actions | **[todo]** | CRUD mutations, all behind the `auth()` gate. |
 
 **Order of build (each step verifiable):**
 
-1. DB layer + schema + `drizzle-kit push` → verify with a read script. (No UI change yet; static export still works because no route handlers exist.)
-2. Migration script → confirm rows + images land in Turso/R2.
-3. Drop `output: "export"`; rewrite `lib/data.ts` async; make page components async → `pnpm build` + run app, gallery still renders (now from DB). **This is the cutover point off static.**
-4. Auth.js + middleware → sign in with both Google accounts, confirm non-allowlisted emails are rejected.
-5. `/admin` pages + upload + CRUD → upload a test piece end-to-end, see it appear in the gallery.
-6. Deploy branch to Vercel preview, repeat 4-5 against the preview URL.
-7. ROADMAP C4 cutover when satisfied.
+1. `pnpm db:push` → tables created in Neon. `pnpm db:seed` → confirm 21 rows land. (No UI change yet; static export still works because nothing imports the DB.)
+2. Drop `output: "export"`; rewrite `lib/data.ts` async; make page components async → `pnpm build` + run app, gallery still renders (now from Neon). **This is the cutover point off static.**
+3. Auth.js route handler + middleware → sign in with both Google accounts, confirm non-allowlisted emails are rejected.
+4. `/admin` pages + upload + CRUD + R2 variant gen → upload a test piece end-to-end, see it appear in the gallery.
+5. Deploy branch to Vercel preview, repeat 3-4 against the preview URL.
+6. ROADMAP C4 cutover when satisfied.
 
 ---
 
@@ -137,7 +138,7 @@ Yes, by a wide margin. Measured against the real catalog + current free-tier lim
 | Service | Free tier | What it means here |
 | --- | --- | --- |
 | **Cloudflare R2** (images) | 10 GB storage · 1M writes/mo · 10M reads/mo · **egress free** | **The only real constraint.** At ~3.1 MB/piece → **~3,000 artworks** free. Variants-only (drop master, ~1.8 MB) → ~5,600. Uploads are ~13 Class-A ops/piece; you'd upload ~75k pieces/mo to hit the write cap. |
-| **Turso** (metadata DB) | 5 GB · 500M row-reads/mo · 10M row-writes/mo | Effectively infinite. 0.6 KB rows → 5 GB holds **~8M artworks**; gallery reads ~30 rows/visit → **~16M page views/mo** before the read cap. |
+| **Neon** (metadata DB) | 0.5 GB storage · ample compute hours on the free plan | Effectively infinite for this catalog. 0.6 KB rows → 0.5 GB holds **~800k artworks**. Matches the ledger-sync DB provider, so one Neon account covers both apps. |
 | **Vercel** (hosting) | 100 GB bandwidth/mo (Hobby) | Not image-bound (images come from R2). At ~160 KB/page → **~650k page loads/mo**. |
 
 ### Verdict
