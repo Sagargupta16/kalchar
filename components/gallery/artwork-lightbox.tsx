@@ -114,6 +114,27 @@ export function ArtworkLightbox() {
 		[zoom],
 	);
 
+	// Touch swipe navigation for mobile. A horizontal swipe > 50px threshold
+	// triggers prev/next. Passive listeners keep scroll jank-free.
+	const touchStartX = useRef(0);
+	const handleTouchStart = useCallback((e: React.TouchEvent) => {
+		const touch = e.touches[0];
+		if (touch) touchStartX.current = touch.clientX;
+	}, []);
+	const handleTouchEnd = useCallback(
+		(e: React.TouchEvent) => {
+			const touch = e.changedTouches[0];
+			if (!touch) return;
+			const dx = touch.clientX - touchStartX.current;
+			if (Math.abs(dx) > 50) {
+				if (dx > 0) prevArtwork();
+				else nextArtwork();
+				setZoom(false);
+			}
+		},
+		[nextArtwork, prevArtwork],
+	);
+
 	const handleNext = () => {
 		setZoom(false);
 		nextArtwork();
@@ -150,6 +171,8 @@ export function ArtworkLightbox() {
 						setPanPos({ x: 50, y: 50 });
 					}}
 					onMouseMove={handleMouseMove}
+					onTouchStart={handleTouchStart}
+					onTouchEnd={handleTouchEnd}
 				/>
 			) : null}
 		</AnimatePresence>
@@ -171,6 +194,8 @@ interface LightboxViewProps {
 	onZoomEnter: () => void;
 	onZoomLeave: () => void;
 	onMouseMove: (e: React.MouseEvent) => void;
+	onTouchStart: (e: React.TouchEvent) => void;
+	onTouchEnd: (e: React.TouchEvent) => void;
 }
 
 function LightboxView({
@@ -188,6 +213,8 @@ function LightboxView({
 	onZoomEnter,
 	onZoomLeave,
 	onMouseMove,
+	onTouchStart,
+	onTouchEnd,
 }: Readonly<LightboxViewProps>) {
 	const isAvailable = typeof artwork.priceInr === "number";
 	const whatsappLink = buildWhatsAppLink({
@@ -239,7 +266,7 @@ function LightboxView({
 				type="button"
 				onClick={onClose}
 				aria-label="Close lightbox"
-				className="absolute right-4 top-4 z-110 flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line hover:text-accent transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-accent"
+				className="absolute right-4 top-4 z-110 flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line hover:text-accent transition-colors duration-(--duration-fast) shadow-sm focus:outline-none focus:ring-2 focus:ring-accent"
 			>
 				<X size={20} />
 			</button>
@@ -253,13 +280,17 @@ function LightboxView({
 				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-md border border-line bg-bg shadow-2xl md:grid-cols-12"
 			>
 				{/* Image frame view */}
-				<div className="relative flex flex-1 items-center justify-center bg-bg-soft p-6 md:col-span-8">
+				<div
+					className="relative flex flex-1 items-center justify-center bg-bg-soft p-6 md:col-span-8"
+					onTouchStart={onTouchStart}
+					onTouchEnd={onTouchEnd}
+				>
 					{hasSiblings ? (
 						<button
 							type="button"
 							onClick={onPrev}
 							aria-label="Previous artwork"
-							className="absolute left-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
+							className="absolute left-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors duration-(--duration-fast) shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
 						>
 							<ArrowLeft size={20} />
 						</button>
@@ -310,7 +341,7 @@ function LightboxView({
 							type="button"
 							onClick={onNext}
 							aria-label="Next artwork"
-							className="absolute right-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
+							className="absolute right-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors duration-(--duration-fast) shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
 						>
 							<ArrowRight size={20} />
 						</button>
@@ -380,7 +411,7 @@ function LightboxView({
 							href={whatsappLink}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-3 text-xs uppercase tracking-meta font-medium text-white shadow-md hover:bg-accent/90 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+							className="flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-3 text-xs uppercase tracking-meta font-medium text-bg shadow-md hover:bg-accent/90 transition-colors duration-(--duration-fast) focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
 						>
 							<MessageCircle size={16} />
 							Enquire on WhatsApp

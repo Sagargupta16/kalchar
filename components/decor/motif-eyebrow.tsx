@@ -45,7 +45,7 @@ export function MotifEyebrow({
 				whileInView={{ pathLength: 1, opacity: 1 }}
 				viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
 				transition={{
-					pathLength: { duration: 1.1, ease: [0.22, 1, 0.36, 1] },
+					pathLength: { duration: 1.2, ease: [0.22, 1, 0.36, 1] },
 					opacity: { duration: 0.4 },
 				}}
 			>

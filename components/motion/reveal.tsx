@@ -40,7 +40,7 @@ export function Reveal({ children, delayMs = 0, className, as = "div" }: Readonl
 			whileInView={{ opacity: 1, y: 0 }}
 			viewport={{ once: true, margin: "0px 0px -10% 0px" }}
 			transition={{
-				duration: 0.5,
+				duration: 0.4,
 				ease: [0.16, 1, 0.3, 1],
 				delay: delayMs / 1000,
 			}}

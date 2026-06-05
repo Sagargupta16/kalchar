@@ -50,6 +50,7 @@ export const viewport: Viewport = {
 		{ media: "(prefers-color-scheme: light)", color: "#faf8f3" },
 		{ media: "(prefers-color-scheme: dark)", color: "#15110d" },
 	],
+	viewportFit: "cover",
 };
 
 /**
@@ -58,11 +59,28 @@ export const viewport: Viewport = {
  * see a flash of light styles. Default is light when nothing is stored -- the
  * gallery's resting register, not the OS preference (see ThemeToggle).
  */
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "Person",
+	name: site.brand.publicName,
+	url: siteConfig.prodUrl,
+	jobTitle: "Folk Artist & Workshop Facilitator",
+	description: site.brand.description,
+	image: `${siteConfig.url}/logo.jpg`,
+	sameAs: [site.contact.instagram.url],
+	knowsAbout: ["Madhubani painting", "Pichwai painting", "Lippan art", "Gond art"],
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
+				<script
+					type="application/ld+json"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD from build-time data
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+				/>
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint script must be inline
 					dangerouslySetInnerHTML={{

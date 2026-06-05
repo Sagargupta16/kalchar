@@ -53,6 +53,7 @@
 	--duration-fast: 200ms;
 	--duration-base: 400ms;
 	--duration-slow: 700ms;
+	--duration-draw: 1200ms;
 
 	--ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 	--ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -103,11 +104,13 @@ html {
 	   the marquee band). `clip` rather than `hidden` so it doesn't create a
 	   scroll container that would break the sticky header. */
 	overflow-x: clip;
+	-webkit-tap-highlight-color: transparent;
 }
 
 body {
 	min-height: 100dvh;
 	overflow-x: clip;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 
 ::selection {
@@ -182,6 +185,29 @@ body {
 	line-height: 0.9;
 	padding: 0.35rem 0.6rem 0 0;
 	color: var(--section-accent);
+}
+
+/* SplitText character entrance -- CSS-driven to avoid per-character JS
+   animation controllers which cause INP spikes on mobile. */
+.split-char {
+	opacity: 0;
+	transform: translateY(8px);
+	animation: split-char-in var(--duration-fast) var(--ease-glide) forwards;
+}
+
+@keyframes split-char-in {
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.split-char {
+		opacity: 1;
+		transform: none;
+		animation: none;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

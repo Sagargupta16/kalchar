@@ -42,7 +42,7 @@ export function ScrollProgress() {
 					transform: `scaleX(${progress})`,
 					background:
 						"linear-gradient(90deg, var(--color-vermillion), var(--color-marigold), var(--color-pichwai), var(--color-peacock), var(--color-ruby))",
-					transition: "transform 150ms linear",
+					transition: "transform 200ms linear",
 				}}
 			/>
 		</div>
