@@ -8,6 +8,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { getSite } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
 	title: "Contact",
@@ -202,8 +203,16 @@ export default function ContactPage() {
 							Send a brief and we&rsquo;ll talk on WhatsApp.
 						</p>
 					</div>
-					<Link href="/custom-orders" className={buttonVariants({ variant: "primary" })}>
+					<Link
+						href="/custom-orders"
+						className={cn(buttonVariants({ variant: "primary" }), "group")}
+					>
 						Start a brief
+						<ArrowRight
+							size={16}
+							aria-hidden="true"
+							className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+						/>
 					</Link>
 				</div>
 			</Reveal>

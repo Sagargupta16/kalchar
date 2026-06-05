@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import Link from "next/link";
 import { useRef } from "react";
@@ -150,7 +151,8 @@ export function ArtworkCard({
 						priority={priority}
 					/>
 					{isAvailable && !isSold ? (
-						<span className="absolute left-3.5 top-3.5 z-25 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+						<span className="absolute left-3.5 top-3.5 z-25 inline-flex items-center gap-1 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+							<Check size={11} aria-hidden="true" className="text-(--section-accent)" />
 							Available
 						</span>
 					) : null}

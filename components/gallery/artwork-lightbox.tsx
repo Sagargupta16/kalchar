@@ -1,6 +1,16 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Calendar, ImageIcon, MessageCircle, Ruler, X } from "lucide-react";
+import {
+	ArrowLeft,
+	ArrowRight,
+	Calendar,
+	ImageIcon,
+	MessageCircle,
+	Palette,
+	Ruler,
+	X,
+	ZoomIn,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
@@ -330,9 +340,12 @@ function LightboxView({
 							/>
 						</picture>
 
-						{/* Dynamic zoom help overlay */}
-						<div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-meta text-white backdrop-blur-sm opacity-60">
-							Hover to zoom
+						{/* Zoom affordance hint. Hover-pan is pointer-only, so the label
+						    is desktop-targeted; the icon carries the meaning on touch. */}
+						<div className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-meta text-white backdrop-blur-sm opacity-60">
+							<ZoomIn size={11} aria-hidden="true" />
+							<span className="hidden sm:inline">Hover to zoom</span>
+							<span className="sm:hidden">Zoom</span>
 						</div>
 					</figure>
 
@@ -395,7 +408,9 @@ function LightboxView({
 
 						{artwork.palette && artwork.palette.length > 0 && (
 							<div className="mt-6 border-t border-line/50 pt-5">
-								<h4 className="t-meta text-xs">Color Palette</h4>
+								<h4 className="t-meta text-xs flex items-center gap-1.5">
+									<Palette size={13} className="text-muted" /> Color Palette
+								</h4>
 								<Chromacard
 									palette={artwork.palette}
 									ariaLabel={`Palette swatches for ${artwork.title}`}

@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function GlobalError({
 
 	return (
 		<main className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center px-(--container-px) py-(--section-py) text-center">
+			<AlertCircle size={28} aria-hidden="true" className="mb-4 text-ruby" />
 			<p className="t-eyebrow">Something went wrong</p>
 			<h1 className="t-display mt-3 text-4xl sm:text-5xl">We hit a snag</h1>
 			<p className="t-lead mt-5">

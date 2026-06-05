@@ -87,9 +87,14 @@ export function ContactTeaser({
 					<div className="mt-12 sm:mt-16">
 						<Link
 							href="/contact"
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
 						>
-							Full contact page <ArrowRight size={14} aria-hidden="true" />
+							Full contact page
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>

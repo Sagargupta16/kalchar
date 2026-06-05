@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, ChevronDown, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ChevronDown, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
@@ -167,8 +167,9 @@ export function CustomOrderForm({
 
 			<div aria-live="polite" aria-atomic="true">
 				{error ? (
-					<p className="text-sm text-ruby" role="alert">
-						{error}
+					<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
+						<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+						<span>{error}</span>
 					</p>
 				) : null}
 				{sent && !error ? (

@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
@@ -87,7 +88,11 @@ export function SiteFooter() {
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
 					<div className="flex items-center gap-4">
-						<Link href="/admin" className="transition-colors hover:text-accent">
+						<Link
+							href="/admin"
+							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
+						>
+							<Lock size={11} aria-hidden="true" />
 							Maintainer login
 						</Link>
 						<span className="text-[0.65rem]">Site by Sagar Gupta</span>
