@@ -18,6 +18,20 @@ import "./globals.css";
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
+// Origin of the Cloudflare R2 bucket that serves artwork images. Preconnecting
+// to it lets the browser open the TCP + TLS connection in parallel with HTML
+// parsing, so the LCP artwork image (home + detail pages) fetches sooner. Empty
+// string when the env var is unset (local without R2), in which case we skip
+// the hint rather than emit a malformed <link>.
+const imageOrigin = (() => {
+	const base = process.env.NEXT_PUBLIC_IMAGE_BASE_URL ?? process.env.R2_PUBLIC_BASE_URL ?? "";
+	try {
+		return base ? new URL(base).origin : "";
+	} catch {
+		return "";
+	}
+})();
+
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
 	title: {
@@ -50,6 +64,7 @@ export const viewport: Viewport = {
 		{ media: "(prefers-color-scheme: light)", color: "#faf8f3" },
 		{ media: "(prefers-color-scheme: dark)", color: "#15110d" },
 	],
+	viewportFit: "cover",
 };
 
 /**
@@ -58,11 +73,32 @@ export const viewport: Viewport = {
  * see a flash of light styles. Default is light when nothing is stored -- the
  * gallery's resting register, not the OS preference (see ThemeToggle).
  */
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "Person",
+	name: site.brand.publicName,
+	url: siteConfig.prodUrl,
+	jobTitle: "Folk Artist & Workshop Facilitator",
+	description: site.brand.description,
+	image: `${siteConfig.url}/logo.jpg`,
+	sameAs: [site.contact.instagram.url],
+	knowsAbout: ["Madhubani painting", "Pichwai painting", "Lippan art", "Gond art"],
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
+				{/* Open the TCP+TLS connection to the R2 image origin early so the
+				    LCP artwork image (home + detail) fetches without a cold-connect
+				    penalty. crossOrigin matches the <img> CORS-less fetch. */}
+				{imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
+				<script
+					type="application/ld+json"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD from build-time data
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+				/>
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint script must be inline
 					dangerouslySetInnerHTML={{

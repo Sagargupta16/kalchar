@@ -1,19 +1,20 @@
 "use client";
 
-import { motion } from "motion/react";
-
 /**
  * Character-by-character entrance for the hero lead.
  *
- * Each character renders as a span; on mount the spans fade up in
- * sequence. `MotionConfig reducedMotion="user"` from the root layout
- * automatically suppresses the animation when the user prefers reduced
- * motion -- no per-component branching needed.
+ * Each character renders as a span with a CSS animation that fades + lifts
+ * in sequence via computed `animation-delay`. Previous implementation used
+ * 80+ individual Motion `<motion.span>` elements, each running a JS-driven
+ * spring solver -- this caused INP spikes on mid-range Android devices during
+ * hero load. CSS animations offload the work to the compositor thread.
  *
- * Restraint: characters animate over a small distance (8px) and fast
- * (300ms each) with a small per-character delay (8ms) so the total
- * lands inside ~1s for a typical 80-char description. Anything more
- * theatrical than this reads as an intro animation, not a flourish.
+ * Reduced-motion: the global `MotionConfig reducedMotion="user"` doesn't
+ * reach raw CSS animations, so we use a CSS media query in the keyframe
+ * declaration (in globals.css) to collapse the animation to instant.
+ *
+ * `startDelayMs` offsets the first character so the text entrance sequences
+ * after the headline Reveal above it finishes.
  */
 interface SplitTextProps {
 	text: string;
@@ -26,22 +27,16 @@ export function SplitText({ text, className, startDelayMs = 0 }: Readonly<SplitT
 	return (
 		<span className={className}>
 			{chars.map((ch, i) => (
-				<motion.span
-					// Position IS the identity for a character split; the same letter can
-					// appear multiple times and order is what we animate.
+				<span
 					// biome-ignore lint/suspicious/noArrayIndexKey: stable position-based split
 					key={`${i}-${ch}`}
-					className="inline-block"
-					initial={{ opacity: 0, y: 8 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{
-						duration: 0.3,
-						delay: (startDelayMs + i * 8) / 1000,
-						ease: [0.16, 1, 0.3, 1],
+					className="split-char inline-block"
+					style={{
+						animationDelay: `${startDelayMs + i * 8}ms`,
 					}}
 				>
 					{ch === " " ? " " : ch}
-				</motion.span>
+				</span>
 			))}
 		</span>
 	);

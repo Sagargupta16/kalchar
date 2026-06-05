@@ -84,7 +84,7 @@ export function ContactTeaser({
 				</div>
 
 				<Reveal delayMs={260}>
-					<div className="mt-12 sm:mt-14">
+					<div className="mt-12 sm:mt-16">
 						<Link
 							href="/contact"
 							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"

@@ -57,6 +57,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 
 	return (
 		<>
+			<h2 className="sr-only">Gallery</h2>
 			<fieldset className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0">
 				<legend className="sr-only">Filter by style</legend>
 				{filters.map((f) => {

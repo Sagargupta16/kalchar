@@ -20,3 +20,26 @@ const r2Base = (
 
 /** Base URL for artwork variants: the R2 public origin + "/artworks". */
 export const ARTWORK_IMAGE_BASE = `${r2Base}/artworks`;
+
+/** Width tiers emitted by the sharp pipeline. Mirrors WIDTHS in art-image.tsx. */
+const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
+
+/**
+ * Build an AVIF srcset string for an artwork slug, for use in a
+ * `<link rel="preload" as="image">` hint. Preloading the LCP artwork (home
+ * hero, detail plate) starts the fetch at HTML parse instead of after the
+ * browser discovers the <picture>, which is the dominant lever on image-LCP
+ * pages. AVIF only -- it's what every target browser (iOS 16+, Chrome) picks,
+ * and a preload can only advertise one type.
+ *
+ * `maxWidth` caps the offered tiers so the preload resolves to the same
+ * variant the (capped) <img> picks -- otherwise the browser preloads 1200w but
+ * the <img> loads 800w, double-fetching. Keep it in lockstep with the
+ * ArtImage `maxWidth` on the same element.
+ */
+export function artworkPreloadSrcset(image: string, maxWidth?: number): string {
+	const slug = image.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
+		.map((w) => `${ARTWORK_IMAGE_BASE}/${slug}-${w}.avif ${w}w`)
+		.join(", ");
+}

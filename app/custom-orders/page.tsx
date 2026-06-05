@@ -53,11 +53,11 @@ export default function CustomOrdersPage() {
 				<Reveal>
 					<MotifEyebrow motif="mirror-diamond" label={co.eyebrow ?? "Custom orders"} />
 				</Reveal>
-				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+				<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{co.title ?? "Order a custom painting"}
 				</Reveal>
 				<BrushStroke className="mt-5" width={240} />
-				<Reveal delayMs={160}>
+				<Reveal eager delayMs={160}>
 					<p className="t-lead mt-4">
 						{co.lead ??
 							"Tell us what you have in mind. We'll review and get back to you on WhatsApp. No payment until we've talked."}
@@ -69,7 +69,7 @@ export default function CustomOrdersPage() {
 				{/* How it works */}
 				<aside className="md:col-span-5">
 					<Reveal>
-						<p className="t-eyebrow">How it works</p>
+						<h2 className="t-eyebrow">How it works</h2>
 					</Reveal>
 					<ol className="mt-6 space-y-6">
 						<Reveal as="li" delayMs={60}>
@@ -98,6 +98,7 @@ export default function CustomOrdersPage() {
 
 				{/* Form */}
 				<section aria-label="Custom order form" className="md:col-span-7">
+					<h2 className="sr-only">Order details</h2>
 					<Reveal delayMs={120}>
 						<div className="rounded-md border border-line bg-bg-soft p-6 sm:p-8">
 							<CustomOrderForm

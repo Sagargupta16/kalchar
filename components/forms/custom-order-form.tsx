@@ -166,7 +166,11 @@ export function CustomOrderForm({
 			</Field>
 
 			<div aria-live="polite" aria-atomic="true">
-				{error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
+				{error ? (
+					<p className="text-sm text-ruby" role="alert">
+						{error}
+					</p>
+				) : null}
 				{sent && !error ? (
 					<div className="flex items-start gap-3 rounded-md border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
 						<span
