@@ -8,6 +8,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
@@ -32,6 +33,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	};
 }
 
+/** Prev/next neighbours in catalog sort order, for sweeping through the archive. */
+function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; next?: Artwork } {
+	const idx = all.findIndex((a) => a.slug === slug);
+	return {
+		prev: idx > 0 ? all[idx - 1] : undefined,
+		next: idx < all.length - 1 ? all[idx + 1] : undefined,
+	};
+}
+
+/** CTA label + supporting note, derived from the piece's availability state. */
+function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: string; note: string } {
+	if (isSold) {
+		return {
+			label: "Ask about a similar piece",
+			note: "This piece has found a home. Reach out for a commission in the same style.",
+		};
+	}
+	if (isAvailable) {
+		return {
+			label: "Enquire on WhatsApp",
+			note: "Tap to open a pre-filled WhatsApp message. Ships from India.",
+		};
+	}
+	return {
+		label: "Ask about this piece",
+		note: "Listed in the archive. Reach out if you'd like a similar piece commissioned.",
+	};
+}
+
 /**
  * Artwork detail page.
  *
@@ -42,15 +72,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Prev/next links derive from sort order so the visitor can sweep through
  * the archive without bouncing back to /work.
  */
-export default async function ArtworkDetailPage({ params }: PageProps) {
+export default async function ArtworkDetailPage({ params }: Readonly<PageProps>) {
 	const { slug } = await params;
 	const art = await getArtworkBySlug(slug);
 	if (!art) notFound();
 
 	const all = await getAllArtworks();
-	const idx = all.findIndex((a) => a.slug === art.slug);
-	const prev = idx > 0 ? all[idx - 1] : undefined;
-	const next = idx < all.length - 1 ? all[idx + 1] : undefined;
+	const { prev, next } = getSiblings(all, art.slug);
 
 	const { contact } = getSite();
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
@@ -61,6 +89,7 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 
 	const isAvailable = typeof art.priceInr === "number";
 	const isSold = art.status === "sold";
+	const cta = getCtaCopy(isAvailable, isSold);
 
 	return (
 		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
@@ -172,19 +201,9 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 								className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}
 							>
 								<MessageCircle size={16} aria-hidden="true" />
-								{isSold
-									? "Ask about a similar piece"
-									: isAvailable
-										? "Enquire on WhatsApp"
-										: "Ask about this piece"}
+								{cta.label}
 							</a>
-							<p className="mt-3 text-xs text-muted">
-								{isSold
-									? "This piece has found a home. Reach out for a commission in the same style."
-									: isAvailable
-										? "Tap to open a pre-filled WhatsApp message. Ships from India."
-										: "Listed in the archive. Reach out if you'd like a similar piece commissioned."}
-							</p>
+							<p className="mt-3 text-xs text-muted">{cta.note}</p>
 						</div>
 					</Reveal>
 				</div>

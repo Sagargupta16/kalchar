@@ -6,7 +6,7 @@ import type { Artwork } from "@/lib/types";
 import { deleteArtwork, setFeatured, setPrice, setStatus } from "../actions";
 import { adminBtn, adminBtnDestructive, adminField } from "./controls";
 
-export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
+export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: string }>) {
 	const router = useRouter();
 	const [pending, startTransition] = useTransition();
 	const [price, setPriceInput] = useState(art.priceInr?.toString() ?? "");

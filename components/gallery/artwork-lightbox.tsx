@@ -45,7 +45,7 @@ export function ArtworkLightbox() {
 
 	const [zoom, setZoom] = useState(false);
 	const [panPos, setPanPos] = useState({ x: 50, y: 50 });
-	const imageRef = useRef<HTMLDivElement>(null);
+	const imageRef = useRef<HTMLElement>(null);
 	const dialogRef = useRef<HTMLDivElement>(null);
 	// The element focused before the lightbox opened, so we can restore it.
 	const triggerRef = useRef<HTMLElement | null>(null);
@@ -98,8 +98,8 @@ export function ArtworkLightbox() {
 				}
 			}
 		};
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
+		globalThis.addEventListener("keydown", handleKeyDown);
+		return () => globalThis.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
 
 	// Mouse pan math to map local coordinates to scale origins
@@ -164,7 +164,7 @@ interface LightboxViewProps {
 	zoom: boolean;
 	panPos: { x: number; y: number };
 	dialogRef: React.RefObject<HTMLDivElement | null>;
-	imageRef: React.RefObject<HTMLDivElement | null>;
+	imageRef: React.RefObject<HTMLElement | null>;
 	onClose: () => void;
 	onNext: () => void;
 	onPrev: () => void;
@@ -188,7 +188,7 @@ function LightboxView({
 	onZoomEnter,
 	onZoomLeave,
 	onMouseMove,
-}: LightboxViewProps) {
+}: Readonly<LightboxViewProps>) {
 	const isAvailable = typeof artwork.priceInr === "number";
 	const whatsappLink = buildWhatsAppLink({
 		phoneE164NoPlus: whatsappPhone,
@@ -266,14 +266,13 @@ function LightboxView({
 					) : null}
 
 					{/* Artwork Canvas Frame with Mouse Pan Zoom */}
-					<div
+					<figure
 						ref={imageRef}
 						onMouseMove={onMouseMove}
 						onMouseEnter={onZoomEnter}
 						onMouseLeave={onZoomLeave}
-						role="figure"
 						aria-label="Interactive artwork detail zoom viewer"
-						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-md ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in"
+						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-md ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in m-0"
 					>
 						{/* R2-served variants: AVIF/WebP at 1600w (capped at master
 						    width) with the master-width mozjpeg as the <img> base. On
@@ -304,7 +303,7 @@ function LightboxView({
 						<div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-meta text-white backdrop-blur-sm opacity-60">
 							Hover to zoom
 						</div>
-					</div>
+					</figure>
 
 					{hasSiblings ? (
 						<button

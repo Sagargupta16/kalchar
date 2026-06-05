@@ -31,7 +31,7 @@ interface RevealProps {
 	as?: "div" | "section" | "article" | "li" | "h1" | "h2" | "h3" | "p";
 }
 
-export function Reveal({ children, delayMs = 0, className, as = "div" }: RevealProps) {
+export function Reveal({ children, delayMs = 0, className, as = "div" }: Readonly<RevealProps>) {
 	const Tag = motion[as];
 	return (
 		<Tag

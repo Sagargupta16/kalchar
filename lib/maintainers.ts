@@ -30,11 +30,10 @@ export async function isMaintainer(email: string | null | undefined): Promise<bo
 /** Full roster, root first then by date added. */
 export async function listMaintainers(): Promise<readonly MaintainerRow[]> {
 	const rows = await db.select().from(maintainers);
-	return rows
-		.slice()
-		.sort((a, b) =>
-			a.isRoot === b.isRoot ? a.createdAt.getTime() - b.createdAt.getTime() : a.isRoot ? -1 : 1,
-		);
+	return rows.slice().sort((a, b) => {
+		if (a.isRoot !== b.isRoot) return a.isRoot ? -1 : 1;
+		return a.createdAt.getTime() - b.createdAt.getTime();
+	});
 }
 
 /** Add a maintainer. Idempotent on email. `addedBy` records who invited them. */

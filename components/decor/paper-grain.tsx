@@ -27,7 +27,7 @@ export function PaperGrain() {
 				xmlns="http://www.w3.org/2000/svg"
 				className="h-full w-full"
 				preserveAspectRatio="none"
-				role="presentation"
+				aria-hidden="true"
 			>
 				<title>Paper grain backdrop</title>
 				<filter id="paper-grain-noise">

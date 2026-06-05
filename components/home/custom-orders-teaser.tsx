@@ -14,12 +14,12 @@ export function CustomOrdersTeaser({
 	eyebrow,
 	title,
 	lead,
-}: {
+}: Readonly<{
 	phone: string;
 	eyebrow: string;
 	title: string;
 	lead?: string;
-}) {
+}>) {
 	const quickWa = buildWhatsAppLink({
 		phoneE164NoPlus: phone,
 		message: "Hi, I'd like to discuss a custom piece.",
@@ -102,11 +102,11 @@ function TeaserStep({
 	icon: Icon,
 	title,
 	body,
-}: {
+}: Readonly<{
 	icon: typeof Brush;
 	title: string;
 	body: string;
-}) {
+}>) {
 	return (
 		<div className="flex h-full flex-col rounded-md border border-line bg-bg p-6">
 			<span

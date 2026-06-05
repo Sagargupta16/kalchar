@@ -34,7 +34,7 @@ function MotifBase({
 	strokeWidth = 1.5,
 	children,
 	...rest
-}: MotifProps & { children: React.ReactNode }) {
+}: Readonly<MotifProps & { children: React.ReactNode }>) {
 	return (
 		<svg
 			width={size}
@@ -55,7 +55,7 @@ function MotifBase({
 	);
 }
 
-export function FishMotif(props: MotifProps) {
+export function FishMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Body -- pointed almond, head left */}
@@ -70,7 +70,7 @@ export function FishMotif(props: MotifProps) {
 	);
 }
 
-export function LotusMotif(props: MotifProps) {
+export function LotusMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Five petals from a centre point at 12,14 -- the bloom faces up */}
@@ -83,7 +83,7 @@ export function LotusMotif(props: MotifProps) {
 	);
 }
 
-export function MirrorDiamondMotif(props: MotifProps) {
+export function MirrorDiamondMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Outer diamond */}
@@ -96,7 +96,7 @@ export function MirrorDiamondMotif(props: MotifProps) {
 	);
 }
 
-export function LeafMotif(props: MotifProps) {
+export function LeafMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Pointed leaf with central vein */}
@@ -110,7 +110,7 @@ export function LeafMotif(props: MotifProps) {
 	);
 }
 
-export function PaisleyMotif(props: MotifProps) {
+export function PaisleyMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Paisley teardrop with inner curl */}
@@ -120,7 +120,7 @@ export function PaisleyMotif(props: MotifProps) {
 	);
 }
 
-export function PeacockFeatherMotif(props: MotifProps) {
+export function PeacockFeatherMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* Stem */}
@@ -134,7 +134,7 @@ export function PeacockFeatherMotif(props: MotifProps) {
 	);
 }
 
-export function RangoliStarMotif(props: MotifProps) {
+export function RangoliStarMotif(props: Readonly<MotifProps>) {
 	return (
 		<MotifBase {...props}>
 			{/* 8-point star -- two overlaid rotated squares */}
@@ -155,7 +155,7 @@ export const MOTIFS: Record<MotifKey, React.ComponentType<MotifProps>> = {
 	"rangoli-star": RangoliStarMotif,
 };
 
-export function Motif({ name, ...rest }: MotifProps & { name: MotifKey }) {
+export function Motif({ name, ...rest }: Readonly<MotifProps & { name: MotifKey }>) {
 	const Cmp = MOTIFS[name];
 	return <Cmp {...rest} />;
 }

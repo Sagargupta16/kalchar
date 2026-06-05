@@ -20,7 +20,7 @@ interface PigmentWashProps {
 	className?: string;
 }
 
-export function PigmentWash({ intensity = "subtle", className }: PigmentWashProps) {
+export function PigmentWash({ intensity = "subtle", className }: Readonly<PigmentWashProps>) {
 	const alpha = intensity === "soft" ? 0.26 : 0.18;
 	return (
 		<div

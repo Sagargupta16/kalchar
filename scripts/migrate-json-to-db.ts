@@ -68,7 +68,7 @@ async function main() {
 			});
 	}
 
-	const shops = ((siteJson as { workshops?: Workshop[] }).workshops ?? []) as Workshop[];
+	const shops = (siteJson as { workshops?: Workshop[] }).workshops ?? [];
 	console.log(`Seeding ${shops.length} workshops...`);
 	for (const w of shops) {
 		await db

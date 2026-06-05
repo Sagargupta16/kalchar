@@ -13,7 +13,7 @@ import { adminBtn } from "./_components/controls";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
 	const session = await auth();
 	const email = session?.user?.email;
 	if (!email || !(await isMaintainer(email))) redirect("/login?callbackUrl=/admin");

@@ -50,7 +50,7 @@ export function SiteHeaderClient({
 	brandDevanagariCore,
 	brandConnector,
 	brandSuffix,
-}: SiteHeaderClientProps) {
+}: Readonly<SiteHeaderClientProps>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
@@ -77,7 +77,7 @@ export function SiteHeaderClient({
 		document.addEventListener("keydown", onKey);
 
 		const { body } = document;
-		const scrollY = window.scrollY;
+		const scrollY = globalThis.scrollY;
 		const prev = {
 			position: body.style.position,
 			top: body.style.top,
@@ -98,7 +98,7 @@ export function SiteHeaderClient({
 			body.style.left = prev.left;
 			body.style.right = prev.right;
 			body.style.width = prev.width;
-			window.scrollTo(0, scrollY);
+			globalThis.scrollTo(0, scrollY);
 		};
 	}, [open]);
 
@@ -110,14 +110,14 @@ export function SiteHeaderClient({
 		const onScroll = () => {
 			if (raf) return;
 			raf = requestAnimationFrame(() => {
-				setScrolled(window.scrollY > 80);
+				setScrolled(globalThis.scrollY > 80);
 				raf = 0;
 			});
 		};
 		onScroll();
-		window.addEventListener("scroll", onScroll, { passive: true });
+		globalThis.addEventListener("scroll", onScroll, { passive: true });
 		return () => {
-			window.removeEventListener("scroll", onScroll);
+			globalThis.removeEventListener("scroll", onScroll);
 			if (raf) cancelAnimationFrame(raf);
 		};
 	}, []);

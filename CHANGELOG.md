@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.20.1 (2026-06-05)
+
+SonarCloud cleanup. Cleared the code-quality findings on the project (`Sagargupta16_folk-art-portfolio`); no behavior or visual change. Verified with typecheck, lint, build, and an in-browser check of the converted components.
+
+### Fixed
+
+- **Read-only props (S6759)** -- every React component's props parameter is now `Readonly<...>` across the home, gallery, decor, motion, layout, admin, and forms components.
+- **`globalThis` over `window` (S7764)** -- browser-global access (`matchMedia`, `scrollY`, `requestAnimationFrame`, listeners) uses `globalThis.*` in smooth-scroll, the hooks, header, lightbox, theme toggle, scroll-progress, and the order form.
+- **Native a11y elements (S6819)** -- `role="figure"` to a real `<figure>` (lightbox), `role="group"` to a `<fieldset>` with an `sr-only` `<legend>` (theme toggle, work filter), and a decorative `role="presentation"` swapped for `aria-hidden` (paper grain). Visuals preserved (UA chrome reset).
+- **Nested ternaries extracted (S3358)** -- pulled into named locals in `/work/[slug]`, the order form, work filter, maintainer roster, and `lib/maintainers`.
+- **FormData typing (S6551)** -- `createArtwork` reads fields through a typed string helper instead of `formData.get(...) ?? ""`.
+- **Cognitive complexity (S3776)** -- `/work/[slug]` page extracted `getSiblings` + `getCtaCopy` helpers (21 to under 15).
+- **Context value memoized (S6481)** -- the lightbox provider value is wrapped in `useMemo`.
+- **Re-exports (S7763)** -- `brand-icons` uses one `export ... from` statement.
+- **Misc** -- `RegExp.exec` over `String.match` and a single `Array.push` in `whatsapp.ts`; removed needless type assertions (S4325); inverted negated conditionals (S7735); JSX spacing (S6772).
+- **GitHub Actions hardening** -- moved workflow-level `permissions` to job level in `deploy.yml` (S8264/S8233) and SHA-pinned `pnpm/action-setup` in both workflows (S7637).
+
 ## 1.20.0 (2026-06-05)
 
 Theme, auth-entry, and admin UI/UX consistency pass.

@@ -34,7 +34,12 @@ interface ArtworkCardProps {
 	siblings?: readonly Artwork[];
 }
 
-export function ArtworkCard({ artwork, priority = false, className, siblings }: ArtworkCardProps) {
+export function ArtworkCard({
+	artwork,
+	priority = false,
+	className,
+	siblings,
+}: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 	const cardRef = useRef<HTMLDivElement>(null);
 

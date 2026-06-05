@@ -52,7 +52,7 @@ const MODES: { value: Mode; label: string; Icon: typeof Sun }[] = [
 	{ value: "dark", label: "Dark", Icon: Moon },
 ];
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 	const [mode, setMode] = useState<Mode>("light");
 	const [mounted, setMounted] = useState(false);
 
@@ -80,11 +80,13 @@ export function ThemeToggle({ className }: { className?: string }) {
 	}
 
 	return (
-		<div
-			role="group"
-			aria-label="Theme"
-			className={cn("inline-flex rounded-full border border-line bg-bg-soft p-0.5", className)}
+		<fieldset
+			className={cn(
+				"inline-flex min-w-0 rounded-full border border-line bg-bg-soft p-0.5",
+				className,
+			)}
 		>
+			<legend className="sr-only">Theme</legend>
 			{MODES.map(({ value, label, Icon }) => {
 				const active = mode === value;
 				return (
@@ -104,6 +106,6 @@ export function ThemeToggle({ className }: { className?: string }) {
 					</button>
 				);
 			})}
-		</div>
+		</fieldset>
 	);
 }

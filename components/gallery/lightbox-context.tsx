@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { Artwork } from "@/lib/types";
 
 interface LightboxContextType {
@@ -25,10 +25,10 @@ const LightboxContext = createContext<LightboxContextType | undefined>(undefined
 export function LightboxProvider({
 	children,
 	whatsappPhone,
-}: {
+}: Readonly<{
 	children: React.ReactNode;
 	whatsappPhone: string;
-}) {
+}>) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeArtwork, setActiveArtwork] = useState<Artwork | null>(null);
 	const [artworksList, setArtworksList] = useState<Artwork[]>([]);
@@ -67,22 +67,30 @@ export function LightboxProvider({
 	const nextArtwork = useCallback(() => step(1), [step]);
 	const prevArtwork = useCallback(() => step(-1), [step]);
 
-	return (
-		<LightboxContext.Provider
-			value={{
-				isOpen,
-				activeArtwork,
-				artworksList,
-				whatsappPhone,
-				openLightbox,
-				closeLightbox,
-				nextArtwork,
-				prevArtwork,
-			}}
-		>
-			{children}
-		</LightboxContext.Provider>
+	const value = useMemo(
+		() => ({
+			isOpen,
+			activeArtwork,
+			artworksList,
+			whatsappPhone,
+			openLightbox,
+			closeLightbox,
+			nextArtwork,
+			prevArtwork,
+		}),
+		[
+			isOpen,
+			activeArtwork,
+			artworksList,
+			whatsappPhone,
+			openLightbox,
+			closeLightbox,
+			nextArtwork,
+			prevArtwork,
+		],
 	);
+
+	return <LightboxContext.Provider value={value}>{children}</LightboxContext.Provider>;
 }
 
 export function useLightbox() {

@@ -8,9 +8,9 @@
  *
  * Lucide stays the default for non-brand icons (ArrowRight, Menu, etc.).
  */
-import { SiGmail, SiGoogle, SiInstagram, SiWhatsapp } from "react-icons/si";
-
-export const InstagramIcon = SiInstagram;
-export const WhatsAppIcon = SiWhatsapp;
-export const GmailIcon = SiGmail;
-export const GoogleIcon = SiGoogle;
+export {
+	SiGmail as GmailIcon,
+	SiGoogle as GoogleIcon,
+	SiInstagram as InstagramIcon,
+	SiWhatsapp as WhatsAppIcon,
+} from "react-icons/si";

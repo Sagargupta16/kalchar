@@ -35,7 +35,7 @@ export function Section({
 	className,
 	innerClassName,
 	children,
-}: SectionProps) {
+}: Readonly<SectionProps>) {
 	const style = accent ? ({ "--section-accent": accent } as CSSProperties) : undefined;
 	const isCentered = align === "center";
 	return (

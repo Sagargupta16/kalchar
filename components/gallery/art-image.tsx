@@ -62,7 +62,13 @@ function jpegFallback(slug: string): string {
 	return `${ARTWORK_IMAGE_BASE}/${slug}.jpg`;
 }
 
-export function ArtImage({ src, alt, className, priority = false, sizes }: ArtImageProps) {
+export function ArtImage({
+	src,
+	alt,
+	className,
+	priority = false,
+	sizes,
+}: Readonly<ArtImageProps>) {
 	const [failed, setFailed] = useState(false);
 	const [loaded, setLoaded] = useState(false);
 	const reduceMotion = usePrefersReducedMotion();

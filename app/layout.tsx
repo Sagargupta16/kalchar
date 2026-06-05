@@ -56,7 +56,7 @@ export const viewport: Viewport = {
  * see a flash of light styles. Default is light when nothing is stored -- the
  * gallery's resting register, not the OS preference (see ThemeToggle).
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>

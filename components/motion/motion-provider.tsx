@@ -13,6 +13,6 @@ import type { ReactNode } from "react";
  * `useReducedMotion()` cause SSR/CSR hydration mismatches because the value
  * differs between render passes.
  */
-export function MotionProvider({ children }: { children: ReactNode }) {
+export function MotionProvider({ children }: Readonly<{ children: ReactNode }>) {
 	return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
 }

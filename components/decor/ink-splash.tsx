@@ -52,7 +52,7 @@ export function InkSplash({
 	align = "left",
 	density = "subtle",
 	className,
-}: InkSplashProps) {
+}: Readonly<InkSplashProps>) {
 	const baseAlpha = density === "rich" ? 0.32 : 0.22;
 	const splatterAlpha = density === "rich" ? 0.45 : 0.3;
 
@@ -72,12 +72,12 @@ export function InkSplash({
 		keyframes: Record<string, number[]>,
 		duration: number,
 	): Record<string, unknown> =>
-		!animateWash
-			? {}
-			: {
+		animateWash
+			? {
 					animate: keyframes,
 					transition: { duration, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
-				};
+				}
+			: {};
 
 	return (
 		<div

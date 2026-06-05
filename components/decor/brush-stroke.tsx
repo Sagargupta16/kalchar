@@ -30,7 +30,7 @@ interface BrushStrokeProps {
 	className?: string;
 }
 
-export function BrushStroke({ width = 240, className }: BrushStrokeProps) {
+export function BrushStroke({ width = 240, className }: Readonly<BrushStrokeProps>) {
 	return (
 		<motion.svg
 			aria-hidden="true"

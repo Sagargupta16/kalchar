@@ -16,12 +16,12 @@ export function ContactTeaser({
 	eyebrow,
 	title,
 	lead,
-}: {
+}: Readonly<{
 	contact: Contact;
 	eyebrow: string;
 	title: string;
 	lead?: string;
-}) {
+}>) {
 	return (
 		<section
 			className="relative overflow-hidden"
@@ -106,7 +106,7 @@ function ChannelCard({
 	display,
 	note,
 	highlight = false,
-}: {
+}: Readonly<{
 	href: string;
 	external: boolean;
 	icon: React.ReactNode;
@@ -114,7 +114,7 @@ function ChannelCard({
 	display: string;
 	note: string;
 	highlight?: boolean;
-}) {
+}>) {
 	return (
 		<a
 			href={href}

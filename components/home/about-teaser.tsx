@@ -12,12 +12,12 @@ export function AboutTeaser({
 	title,
 	lead,
 	location,
-}: {
+}: Readonly<{
 	eyebrow: string;
 	title: string;
 	lead?: string;
 	location: string;
-}) {
+}>) {
 	return (
 		<section
 			className="relative overflow-hidden border-b border-line bg-bg-soft"

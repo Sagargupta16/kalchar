@@ -21,7 +21,7 @@ interface SplitTextProps {
 	startDelayMs?: number;
 }
 
-export function SplitText({ text, className, startDelayMs = 0 }: SplitTextProps) {
+export function SplitText({ text, className, startDelayMs = 0 }: Readonly<SplitTextProps>) {
 	const chars = Array.from(text);
 	return (
 		<span className={className}>

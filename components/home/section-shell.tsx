@@ -20,7 +20,7 @@ export function SectionShell({
 	href,
 	hrefLabel,
 	children,
-}: {
+}: Readonly<{
 	/** Two-digit gallery-register number, e.g. "01". Optional. */
 	number?: string;
 	eyebrow: string;
@@ -30,7 +30,7 @@ export function SectionShell({
 	href: string;
 	hrefLabel: string;
 	children: React.ReactNode;
-}) {
+}>) {
 	return (
 		<section className="border-b border-line">
 			<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
