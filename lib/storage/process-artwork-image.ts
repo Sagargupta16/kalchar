@@ -1,7 +1,7 @@
 /**
- * Process an uploaded artwork image into the same variant set the static
- * pipeline produces (scripts/optimize-images.mjs), then upload all variants to
- * R2 under `artworks/<slug>...`. Server-only (sharp + R2 keys).
+ * Process an uploaded artwork image into the full responsive variant set, then
+ * upload all variants to R2 under `artworks/<slug>...`. Server-only (sharp +
+ * R2 keys). Shared by the admin upload action and the `pnpm db:images` script.
  *
  * Output keys match the ARTWORK_IMAGE_BASE contract exactly:
  *   artworks/<slug>-<w>.avif|webp|jpg  (w in 400/800/1200/1600)

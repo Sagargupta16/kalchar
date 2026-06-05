@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.19.0 (2026-06-05)
+
+Engineering docs suite, cleanup of the retired static-export pipeline, and a full dependency refresh to latest (including framework majors) with zero security advisories remaining. Everything verified green (typecheck, lint, build); the production stack (data seam reads Neon, R2 image serving, 21 prerendered artwork pages, the auth proxy) is intact.
+
+### Added
+
+- **`docs/` engineering suite** -- [ARCHITECTURE.md](docs/ARCHITECTURE.md) (system, layers, data seam, rendering, request lifecycles), [DATABASE.md](docs/DATABASE.md), [AUTH.md](docs/AUTH.md), [IMAGES.md](docs/IMAGES.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md), [DEVELOPMENT.md](docs/DEVELOPMENT.md), indexed by [docs/README.md](docs/README.md). Each carries dark-theme Mermaid diagrams (flowcharts, sequence diagrams, an ERD) grounded in the actual source.
+
+### Changed
+
+- **Next.js 15.5 -> 16** ([package.json](package.json)). The required migration: `middleware.ts` renamed to [proxy.ts](proxy.ts) (Next 16's network-boundary rename; the Auth.js `auth()` wrapper still supplies the default export Next runs as the proxy, `config.matcher` unchanged). The app was already compliant on the larger breaking changes (async `params` in `/work/[slug]`, no `next lint`, no AMP, no runtime config). Turbopack is now the default build.
+- **TypeScript 5.9 -> 6.0** ([package.json](package.json)). TS6 errors on side-effect imports of untyped modules (TS2882), which hit `import "./globals.css"`; added an ambient [css.d.ts](css.d.ts) (`declare module "*.css"`) and wired it into [tsconfig.json](tsconfig.json) `include`. Next 16 also set `jsx: "react-jsx"` in tsconfig.
+- **lucide-react 0.473 -> 1.17** and **tailwind-merge 2.6 -> 3.6** ([package.json](package.json)). lucide's named-import API is unchanged; tailwind-merge v3 is the line that targets Tailwind 4 (which this app already uses), and the vanilla `cn()` helper ([lib/utils.ts](lib/utils.ts)) needs no config change.
+- **Patch bumps**: react / react-dom 19.2.7, @aws-sdk/client-s3 3.1062, @biomejs/biome 2.4.16, @types/react 19.2.16. `@types/node` held at 22.x on purpose (it must track the Node 22 runtime, not chase 25). Biome `$schema` pinned to the installed 2.4.16.
+- **`pnpm db:images` rewired** ([scripts/migrate-images-to-r2.ts](scripts/migrate-images-to-r2.ts)) -- now reads the master JPGs in `public/artworks/` and runs the same `sharp` pipeline the admin upload uses ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts)), instead of the deleted `public/_opt/` directory. One variant-generation path for both upload and bulk migration.
+- **Build is plain `next build`** -- the static-export prebuild (`optimize:images` + `prune-build`) is gone; the gallery serves variants from R2, so generating them at build time was dead work (it was the cause of the 8-minute Vercel builds). [lib/image-base.ts](lib/image-base.ts) is R2-only; [next.config.mjs](next.config.mjs) drops the `output: "export"` era leftovers.
+
+### Removed
+
+- **`scripts/optimize-images.mjs`, `scripts/prune-build.mjs`** -- the build-time AVIF/WebP variant generator and the post-build master-pruner, both obsolete now that images live in R2.
+- **`docs/PHASE-2-SETUP.md`** -- the backend bring-up runbook; Phase 2 is live, and the setup steps now live in the docs suite ([DATABASE.md](docs/DATABASE.md), [IMAGES.md](docs/IMAGES.md), [AUTH.md](docs/AUTH.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+
+### Security
+
+- **Zero advisories** (was 2 moderate). Added a [package.json](package.json) `pnpm.overrides` block forcing `postcss >=8.5.10` (XSS in CSS stringify, transitive via Next) and `esbuild >=0.25.0` (dev-server request advisory, transitive via `drizzle-kit > @esbuild-kit/*`). Both were build/dev-time only and never shipped to the browser; the overrides clear them tree-wide.
+
 ## 1.17.0 (2026-06-04)
 
 Mobile smoothness pass. The site felt janky/"hangy" on phones; the cause was the JS/animation layer (not image bytes, which already ship as optimized `_opt/` AVIF/WebP variants). Pointer-only flourishes are now gated to fine pointers so touch devices get clean native behaviour, and the iOS drawer scroll-lock is fixed. Captured in [ROADMAP.md](ROADMAP.md).

@@ -1,7 +1,7 @@
 /**
  * Drizzle Kit config for the Neon (Postgres) catalog DB.
  *
- * Usage (after env vars are set, see docs/PHASE-2-SETUP.md):
+ * Usage (after env vars are set, see .env.example and docs/DATABASE.md):
  *   pnpm db:push       # push schema straight to the DB (rapid dev)
  *   pnpm db:generate   # emit SQL migration files under ./drizzle
  *   pnpm db:migrate    # apply generated migrations

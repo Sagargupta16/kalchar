@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 /**
  * Admin server actions. Every action re-checks the session (defense in depth --
- * middleware already gates /admin, but actions can be invoked directly) and
+ * the proxy already gates /admin, but actions can be invoked directly) and
  * confirms the caller is a maintainer before mutating.
  *
  * Artwork mutations touch both the DB row and the R2 image variants; maintainer

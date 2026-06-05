@@ -21,10 +21,9 @@ import { useLightbox } from "./lightbox-context";
  *   - Keyboard shortcuts: Arrow keys navigate between selected pieces, Escape
  *     exits.
  *
- * Image source: the viewer renders the optimized `_opt/` variants (a <picture>
- * with AVIF/WebP at 1600w + a mozjpeg fallback), NOT the raw `public/artworks/`
- * master. The post-build prune deletes `out/artworks/`, so pointing at the
- * master would 404 in production.
+ * Image source: the viewer renders the R2-served variants (a <picture> with
+ * AVIF/WebP at 1600w + a mozjpeg fallback) via ARTWORK_IMAGE_BASE, NOT the raw
+ * repo master in public/artworks/ (which is the regenerate source, not served).
  */
 
 /** "radha-krishna.jpg" -> "radha-krishna" (mirrors art-image.tsx). */

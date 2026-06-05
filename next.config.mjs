@@ -1,46 +1,29 @@
 /**
- * Phase 1 -- static export to GitHub Pages.
+ * Next.js config. The app runs as a dynamic Next app on Vercel: public pages
+ * are static/SSG (built from Neon at build time), `/admin` + `/api` are
+ * server-rendered. See docs/ARCHITECTURE.md.
  *
- * `output: "export"` makes `next build` write a static `out/` directory.
- * `images.unoptimized: true` -- GH Pages can't run Next's image runtime, so
- *   we generate AVIF/WebP variants at build time via scripts/optimize-images.mjs
- *   and serve them as plain assets.
- * `trailingSlash: true` -- GH Pages serves a directory's `index.html` only
- *   when the URL ends in a slash (e.g. `/work/`). Without this, Next would
- *   emit links to `/work` and Pages would 404 because there's no
- *   `out/work` file, only `out/work/index.html`.
+ * `trailingSlash: true` keeps the canonical `/work/` URL shape the site has
+ * always used (preserves links + SEO from the earlier static era).
  *
- * Phase 2 transition: remove `output: "export"`, remove `images.unoptimized`,
- * and the same project starts serving dynamic routes + image optimization.
- *
- * `basePath` mirrors `siteConfig.basePath` in lib/site-config.ts. Next.js
- * config files are plain ESM evaluated before TypeScript is set up, so we
- * cannot import the .ts file here; keep the two values in sync manually.
- * Empty string = served at apex (kalchar.co.in/), no subpath.
+ * `images.unoptimized: true` -- the gallery serves artwork from Cloudflare R2
+ * via a hand-rolled <picture> (lib/image-base.ts), not next/image, so Next's
+ * image optimizer is intentionally off.
  */
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	// PHASE 2 (this branch): static export is OFF. The admin panel needs auth
-	// route handlers + middleware + server actions, which require a Node runtime
-	// (Vercel). `main` keeps `output: "export"` for the GitHub Pages fallback.
-	// To revert to static: re-add `output: "export"`.
-	// output: "export",
 	trailingSlash: true,
-	basePath: "",
 	images: {
-		// Gallery serves R2 images via a hand-rolled <picture> (not next/image),
-		// so the optimizer stays off either way.
 		unoptimized: true,
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: false,
-	// Disable Next 15's in-app DevTools panel. On Windows + pnpm, its
-	// `segment-explorer-node` module gets out of sync with the React Client
-	// Manifest after a hot reload, crashing client-component pages with
-	// `__webpack_modules__[moduleId] is not a function` until the dev server
-	// is restarted. The panel adds zero value here -- production builds don't
-	// include it anyway.
+	// Disable the in-app DevTools panel. It first landed in Next 15.5 where, on
+	// Windows + pnpm, its `segment-explorer-node` module drifted out of sync
+	// with the React Client Manifest after a hot reload and crashed client-
+	// component pages until the dev server was restarted. Kept off as a dev-
+	// stability flag; it adds zero value here and production never includes it.
 	devIndicators: false,
 };
 

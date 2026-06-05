@@ -13,29 +13,32 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 Portfolio site for **Megha Seth**, traditional folk artist (family member of Sagar). Live at <https://kalchar.co.in/>.
 
-The full project knowledge (goal, confirmed decisions, vision, architecture, open questions, Phase 2 plan) lives in [MEMORY.md](MEMORY.md). Read it at session start.
+The full project knowledge (goal, confirmed decisions, vision, architecture) lives in [MEMORY.md](MEMORY.md); the full system picture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (entry point to the [docs suite](docs/README.md): DATABASE, AUTH, IMAGES, DEPLOYMENT, DEVELOPMENT). Read both at session start.
 
 ## Stack
 
-Next.js 15 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Static export to `out/` for GitHub Pages. Motion 12 + Lenis (lazy-loaded) for animation. shadcn-style components (cva + Radix-friendly). pnpm 10.
+Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Motion 12 + Lenis (lazy-loaded) for animation. shadcn-style components (cva + Radix-friendly). pnpm 10, Node 22.
+
+Dynamic Next app on **Vercel**: public pages static/SSG, `/admin` + `/api` server-rendered. **Neon Postgres** (Drizzle) for catalog, **Cloudflare R2** for images, **Auth.js v5 + Google** for admin login (allowlist in the `maintainers` table). The earlier static-export-to-GitHub-Pages setup is retired (the deploy.yml Pages workflow is manual-only break-glass).
 
 ## Branch + deploy
 
-Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) PR into `dev`. Live deploy is on `main`. Earlier wiped attempts live in old branch history; **do not reuse them as templates** without explicit confirmation. Push + PR only when Sagar says so.
+Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) PR into `dev`. `main` -> Vercel production -> kalchar.co.in; `dev` -> Vercel preview. Only `main` + `dev` deploy (Ignored Build Step on the Vercel project). Push + PR only when Sagar says so. `main` is branch-protected (PR + passing CI required).
 
-GitHub Pages OIDC deploy from `main`. `public/CNAME` ships the apex domain.
+DNS at GoDaddy: `@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`.
 
 ## Local dev
 
 ```sh
-pnpm dev          # http://localhost:3000
-pnpm build        # static export to out/
+pnpm dev          # http://localhost:3000  (needs .env.local for DB/R2/auth)
+pnpm build        # next build
 pnpm typecheck
 pnpm lint
 pnpm format
+# DB/images:  pnpm db:push | db:seed | db:images
 ```
 
-`devIndicators: false` is set in `next.config.mjs` (Next 15.5.x in-app DevTools panel was crashing HMR on Windows + pnpm).
+`devIndicators: false` is set in `next.config.mjs` (the in-app DevTools panel was crashing HMR on Windows + pnpm; kept off as a dev-stability flag). Secrets live in `.env.local` (gitignored); the contract is in `.env.example`.
 
 ## Project rules
 
@@ -56,11 +59,12 @@ pnpm format
 
 ### Architecture
 
-- **Data seam at `lib/data.ts`.** Everything reads catalog through it. Phase 2 swaps the implementation from JSON-file reads to DB queries; UI never knows. Don't import `data/*.json` directly outside this file.
-- **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `basePath` / `prodUrl`. `next.config.mjs` duplicates `basePath` as a literal (it can't import `.ts`); keep them in sync, comment cross-references.
+- **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file.
+- **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`. The gallery `<picture>` srcset, lightbox, and OG metadata all read it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
+- **Admin mutations in `app/admin/actions.ts`** (server actions), each re-checks `isMaintainer` before touching Neon/R2.
+- **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
-- **Data files at repo root** (`data/`). Not under `src/`. Survives stack swaps.
-- **Build output to `out/`** (Next static export), gitignored.
+- **Data files at repo root** (`data/`). Not under `src/`.
 
 ### Workflow
 
@@ -78,30 +82,38 @@ app/                      Next.js App Router
   layout.tsx              root layout, fonts, providers, lightbox provider
   page.tsx                home single-pager (composes components/home/*)
   about/, workshops/, custom-orders/, contact/
-  work/                   gallery + per-artwork detail (statically generated)
-  sitemap.ts              static sitemap (MetadataRoute), emitted to out/sitemap.xml
-  fonts.ts                next/font/google: Cormorant + Inter + Tiro Devanagari
-  globals.css             @theme tokens, drop-cap, base reset
-components/
-  home/                   hero + section-shell + per-section teasers
-  layout/                 site-header / site-footer / section
-  gallery/                art-image, artwork-card, chromacard, work-filter, lightbox (+ context)
-  forms/                  custom-order-form
-  motion/                 reveal, motion-provider, smooth-scroll, split-text
-  decor/                  marquee, scroll-progress, ink-splash, pigment-wash, brush-stroke, paper-grain, motifs
-  ui/                     button, theme-toggle, brand-icons
+  work/                   gallery + per-artwork detail (SSG from Neon)
+  admin/                  dashboard + maintainers (dynamic; actions.ts server actions)
+  api/auth/[...nextauth]/ Auth.js v5 Google handler
+  sitemap.ts, fonts.ts, globals.css
+auth.ts                   Auth.js config (Google, signIn gated to maintainers)
+proxy.ts                  gates /admin -> sign-in (Next 16 rename of middleware.ts)
+components/               home/ layout/ gallery/ forms/ motion/ decor/ ui/
 lib/
-  data.ts                 the data seam
+  data.ts                 the data seam (Neon via Drizzle; getSite reads site.json)
+  db/                     schema.ts (artworks/workshops/maintainers) + client.ts
+  storage/                r2.ts + process-artwork-image.ts (sharp variants -> R2)
+  maintainers.ts          admin allowlist (list/add/remove, root-protected)
+  image-base.ts           ARTWORK_IMAGE_BASE (R2 public URL)
   types.ts, utils.ts, whatsapp.ts, site-config.ts, hooks/
 data/
-  site.json, artworks.json
+  site.json               brand/nav/copy, read at runtime
+  artworks.json           original seed source (DB is live source of truth)
 public/
-  artworks/               21 master JPGs (~28 MB); _opt/ variants generated at build
-  logo.jpg, logo-180.png, CNAME, robots.txt
-.github/workflows/        ci.yml, deploy.yml (deploy.yml uploads out/)
+  artworks/               21 master JPGs -- R2 regenerate source, NOT served at runtime
+  logo.jpg, logo-180.png, robots.txt
+drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
-  optimize-images.mjs     sharp AVIF/WebP/JPG pipeline -> public/_opt/
-  prune-build.mjs         strips raw masters from out/ after build
+  migrate-json-to-db.ts   pnpm db:seed -- JSON -> Neon rows
+  migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
+.github/workflows/        ci.yml (lint+typecheck+build). deploy.yml = retired Pages fallback (manual-only)
+docs/                     engineering docs (index in docs/README.md):
+  ARCHITECTURE.md         full system diagram + flows (entry point)
+  DATABASE.md             Neon/Drizzle schema, seam, migrations
+  AUTH.md                 Auth.js + Google, maintainer roster
+  IMAGES.md               R2 + sharp variant pipeline + serving
+  DEPLOYMENT.md           Vercel, branches, CI, DNS, env matrix
+  DEVELOPMENT.md          local setup, scripts, conventions
 ```
 
 ## Operating mode

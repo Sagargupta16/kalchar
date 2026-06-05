@@ -1,14 +1,14 @@
 /**
  * One-shot migration: data/*.json -> Neon Postgres rows.
  *
- * Run ONCE, after `pnpm db:push` has created the tables and the env vars are
- * set (see docs/PHASE-2-SETUP.md):
+ * Run after `pnpm db:push` has created the tables and the env vars are set
+ * (see .env.example and docs/DATABASE.md):
  *   pnpm db:seed
  *
- * This seeds the catalog metadata. Uploading the existing image files to R2 is
- * a separate concern handled when the admin upload path lands -- the `image`
- * column keeps the current filename, which still resolves against the local
- * _opt/ variants until images move to R2.
+ * This seeds the catalog metadata only. Uploading the image variants to R2 is a
+ * separate step -- `pnpm db:images` (scripts/migrate-images-to-r2.ts). The
+ * `image` column keeps the `<slug>.jpg` filename, which resolves against the R2
+ * public base via lib/image-base.ts.
  *
  * Idempotent: uses onConflictDoUpdate keyed on slug, so re-running re-syncs
  * rather than duplicating.
