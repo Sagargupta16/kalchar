@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createArtwork } from "../actions";
+import { adminBtnPrimary, adminField } from "./controls";
 
 const STYLES = ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"];
 
@@ -21,7 +22,7 @@ export function UploadForm() {
 		startTransition(async () => {
 			try {
 				const { slug } = await createArtwork(data);
-				setOk(`Added "${slug}". Generating variants done.`);
+				setOk(`Added "${slug}". Image variants generated and uploaded.`);
 				form.reset();
 				router.refresh();
 			} catch (err) {
@@ -30,8 +31,7 @@ export function UploadForm() {
 		});
 	}
 
-	const field =
-		"rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-accent focus:outline-none";
+	const field = adminField;
 
 	return (
 		<form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -75,12 +75,8 @@ export function UploadForm() {
 				className="text-sm text-muted file:mr-3 file:rounded-md file:border file:border-line file:bg-bg-soft file:px-3 file:py-1.5 file:text-sm sm:col-span-2"
 			/>
 			<div className="flex items-center gap-3 sm:col-span-2">
-				<button
-					type="submit"
-					disabled={pending}
-					className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg transition-opacity disabled:opacity-50"
-				>
-					{pending ? "Uploading + processing…" : "Add piece"}
+				<button type="submit" disabled={pending} className={adminBtnPrimary}>
+					{pending ? "Uploading and processing…" : "Add piece"}
 				</button>
 				{error ? <span className="text-sm text-ruby">{error}</span> : null}
 				{ok ? <span className="text-sm text-pichwai">{ok}</span> : null}

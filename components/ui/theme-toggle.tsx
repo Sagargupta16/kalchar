@@ -1,109 +1,80 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Theme toggle -- 3-state (light / dark / system).
+ * Theme toggle -- light / dark only.
  *
- * The pre-paint script in app/layout.tsx already reads localStorage.theme
- * and adds `class="dark"` to <html> before first paint. This component
- * lets the user change that preference. We keep three modes so users can
- * defer to OS without locking in a choice.
+ * The pre-paint script in app/layout.tsx reads localStorage.theme and adds
+ * `class="dark"` to <html> before first paint, so dark-mode users never see a
+ * flash of light styles. This component lets the user flip that preference.
+ *
+ * Default (nothing stored) is light: the site is a gallery, warm cream is the
+ * resting register, and most visitors arrive from a WhatsApp / Instagram tap
+ * expecting the bright canvas. We do not follow the OS theme -- the choice is
+ * explicit and persisted, so the gallery looks the same each visit.
  *
  * Persistence:
- *   - light  -> localStorage.theme = "light",  remove .dark
- *   - dark   -> localStorage.theme = "dark",   add    .dark
- *   - system -> localStorage.theme removed,    apply matchMedia result
+ *   - light -> localStorage.theme = "light", remove .dark
+ *   - dark  -> localStorage.theme = "dark",  add    .dark
  *
- * `system` deliberately clears the storage key (rather than writing
- * "system") so the pre-paint script in app/layout.tsx falls back to
- * `matchMedia` and tracks live OS theme changes. A stored "system" string
- * would force a manual override branch; absence is the cleanest signal.
- *
- * The component is rendered as a tiny segmented row of three buttons --
- * tappable, no dropdown trapping mobile users behind a label.
- *
- * Mounted state: useEffect-after-mount avoids hydration mismatches
- * (server has no localStorage, so the rendered icons would differ).
- * Until mounted, we render a placeholder of the same width.
+ * Mounted state: useEffect-after-mount avoids hydration mismatches (the server
+ * has no localStorage, so the rendered icon state would differ). Until mounted,
+ * we render a same-size placeholder.
  */
 
-type Mode = "light" | "dark" | "system";
+type Mode = "light" | "dark";
 
 const STORAGE_KEY = "theme";
 
 function applyMode(mode: Mode) {
-	const root = document.documentElement;
-	const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-	const wantDark = mode === "dark" || (mode === "system" && prefersDark);
-	root.classList.toggle("dark", wantDark);
-
-	if (mode === "system") {
-		try {
-			localStorage.removeItem(STORAGE_KEY);
-		} catch {
-			/* localStorage unavailable -- ignore */
-		}
-	} else {
-		try {
-			localStorage.setItem(STORAGE_KEY, mode);
-		} catch {
-			/* localStorage unavailable -- ignore */
-		}
+	document.documentElement.classList.toggle("dark", mode === "dark");
+	try {
+		localStorage.setItem(STORAGE_KEY, mode);
+	} catch {
+		/* localStorage unavailable -- ignore */
 	}
 }
 
 function readInitialMode(): Mode {
 	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored === "light" || stored === "dark") return stored;
+		if (localStorage.getItem(STORAGE_KEY) === "dark") return "dark";
 	} catch {
 		/* ignore */
 	}
-	return "system";
+	return "light";
 }
 
 const MODES: { value: Mode; label: string; Icon: typeof Sun }[] = [
 	{ value: "light", label: "Light", Icon: Sun },
 	{ value: "dark", label: "Dark", Icon: Moon },
-	{ value: "system", label: "System", Icon: Monitor },
 ];
 
 export function ThemeToggle({ className }: { className?: string }) {
-	const [mode, setMode] = useState<Mode>("system");
+	const [mode, setMode] = useState<Mode>("light");
 	const [mounted, setMounted] = useState(false);
 
-	// Read stored preference once, on mount.
 	useEffect(() => {
 		setMode(readInitialMode());
 		setMounted(true);
 	}, []);
-
-	// React to OS theme changes when in `system` mode.
-	useEffect(() => {
-		if (!mounted) return;
-		if (mode !== "system") return;
-		const mq = window.matchMedia("(prefers-color-scheme: dark)");
-		const onChange = () => applyMode("system");
-		mq.addEventListener("change", onChange);
-		return () => mq.removeEventListener("change", onChange);
-	}, [mounted, mode]);
 
 	function setTheme(next: Mode) {
 		setMode(next);
 		applyMode(next);
 	}
 
-	// Pre-mount placeholder keeps layout width stable. The container's
-	// width comes from the rendered buttons once we know which mode is
-	// active; before that we render an opaque placeholder of the same size.
+	// Pre-mount placeholder keeps layout width stable until we know the mode.
 	if (!mounted) {
 		return (
 			<div
 				aria-hidden="true"
-				className={cn("inline-flex h-9 w-30 rounded-full border border-line bg-bg-soft", className)}
+				className={cn(
+					"inline-flex h-9 w-[4.5rem] rounded-full border border-line bg-bg-soft",
+					className,
+				)}
 			/>
 		);
 	}

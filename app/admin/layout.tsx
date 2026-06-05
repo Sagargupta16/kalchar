@@ -9,13 +9,14 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth, signOut } from "@/auth";
 import { isMaintainer } from "@/lib/maintainers";
+import { adminBtn } from "./_components/controls";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
 	const session = await auth();
 	const email = session?.user?.email;
-	if (!email || !(await isMaintainer(email))) redirect("/api/auth/signin?callbackUrl=/admin");
+	if (!email || !(await isMaintainer(email))) redirect("/login?callbackUrl=/admin");
 
 	return (
 		<div className="mx-auto min-h-dvh max-w-6xl px-(--container-px) py-8">
@@ -42,10 +43,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 							await signOut({ redirectTo: "/" });
 						}}
 					>
-						<button
-							type="submit"
-							className="rounded-md border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-accent"
-						>
+						<button type="submit" className={`${adminBtn} px-3 py-1.5`}>
 							Sign out
 						</button>
 					</form>

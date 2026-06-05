@@ -86,7 +86,12 @@ export function SiteFooter() {
 					<p>
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
-					<p className="text-[0.65rem] opacity-50">Site by Sagar Gupta</p>
+					<div className="flex items-center gap-4">
+						<Link href="/admin" className="transition-colors hover:text-accent">
+							Maintainer login
+						</Link>
+						<span className="text-[0.65rem] opacity-50">Site by Sagar Gupta</span>
+					</div>
 				</div>
 			</div>
 		</footer>

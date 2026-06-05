@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { inviteMaintainer, revokeMaintainer } from "../actions";
+import { adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 
 interface MaintainerView {
 	email: string;
@@ -31,8 +32,7 @@ export function MaintainerManager({ roster, me }: { roster: MaintainerView[]; me
 		});
 	}
 
-	const field =
-		"rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-accent focus:outline-none";
+	const field = adminField;
 
 	return (
 		<div className="space-y-6">
@@ -69,11 +69,7 @@ export function MaintainerManager({ roster, me }: { roster: MaintainerView[]; me
 						className={`${field} w-40`}
 					/>
 				</label>
-				<button
-					type="submit"
-					disabled={pending}
-					className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg disabled:opacity-50"
-				>
+				<button type="submit" disabled={pending} className={adminBtnPrimary}>
 					Add maintainer
 				</button>
 			</form>
@@ -106,7 +102,7 @@ export function MaintainerManager({ roster, me }: { roster: MaintainerView[]; me
 										run(() => revokeMaintainer(m.email));
 									}
 								}}
-								className="rounded-md border border-ruby/40 px-3 py-1 text-sm text-ruby transition-colors hover:bg-ruby hover:text-bg"
+								className={`${adminBtnDestructive} px-3 py-1`}
 							>
 								Remove
 							</button>

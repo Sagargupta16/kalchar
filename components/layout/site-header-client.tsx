@@ -122,7 +122,15 @@ export function SiteHeaderClient({
 		};
 	}, []);
 
-	const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+	// Active = exact match or a true sub-path (segment boundary), so /workshops
+	// does not light up /work. Normalize the trailing slash (trailingSlash:true
+	// means the live pathname is "/work/") before comparing.
+	const isActive = (href: string) => {
+		if (href === "/") return pathname === "/";
+		const path = pathname.replace(/\/$/, "");
+		const base = href.replace(/\/$/, "");
+		return path === base || path.startsWith(`${base}/`);
+	};
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75 [contain:layout]">

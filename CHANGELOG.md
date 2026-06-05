@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.20.0 (2026-06-05)
+
+Theme, auth-entry, and admin UI/UX consistency pass.
+
+### Added
+
+- **Branded `/login` page** ([app/login/page.tsx](app/login/page.tsx)) -- replaces NextAuth's unstyled default sign-in. On-brand gallery register: wordmark, "Continue with Google" (a server-action `signIn` form, no client JS), allowlist note, and a friendly not-a-maintainer error. Lives outside the `/admin` matcher so it never redirect-loops. The proxy and the admin layout both redirect unauthenticated visitors here ([proxy.ts](proxy.ts), [app/admin/layout.tsx](app/admin/layout.tsx)).
+- **Maintainer login entry point** in the footer ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- a discreet "Maintainer login" link in the bottom bar, so admin is reachable without a bookmarked URL while the public nav stays clean.
+- **Shared admin control tokens** ([app/admin/_components/controls.ts](app/admin/_components/controls.ts)) -- one field style and one button per intent (secondary / primary / destructive), applied across the upload form, artwork rows, maintainer manager, and the sign-out button so the panel is visually consistent.
+
+### Changed
+
+- **Theme toggle is light/dark only** ([components/ui/theme-toggle.tsx](components/ui/theme-toggle.tsx)) -- the third "system" mode is gone. Default (nothing stored) is light, the gallery's resting register; the pre-paint script in [app/layout.tsx](app/layout.tsx) now only honors a stored `dark` rather than following the OS.
+
+### Fixed
+
+- **Active-nav prefix bug** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- `/workshops` lit both "Work" and "Workshops" because the active check used `startsWith("/work")`. Now matches on a segment boundary (exact or `href + "/"`), normalizing the trailing slash, so each route highlights only itself (`/work/<slug>` still lights "Work").
+- **Brand-icon set** ([components/ui/brand-icons.tsx](components/ui/brand-icons.tsx)) -- added the Google glyph for the login button.
+
 ## 1.19.0 (2026-06-05)
 
 Engineering docs suite, cleanup of the retired static-export pipeline, and a full dependency refresh to latest (including framework majors) with zero security advisories remaining. Everything verified green (typecheck, lint, build); the production stack (data seam reads Neon, R2 image serving, 21 prerendered artwork pages, the auth proxy) is intact.
