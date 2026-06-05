@@ -27,7 +27,7 @@ interface LoginPageProps {
 	searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({ searchParams }: Readonly<LoginPageProps>) {
 	const { callbackUrl, error } = await searchParams;
 	const { brand } = getSite();
 
