@@ -23,8 +23,8 @@ export const metadata: Metadata = {
  * Section accent: ruby. The catalog/archive register reads as a deeper
  * collection-room red, distinct from the global terracotta on the home page.
  */
-export default function WorkPage() {
-	const all = getAllArtworks();
+export default async function WorkPage() {
+	const all = await getAllArtworks();
 	const { styles, sections } = getSite();
 	const work = sections.work;
 	const sectionStyle = { "--section-accent": "var(--color-ruby)" } as CSSProperties;

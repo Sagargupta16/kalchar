@@ -3,6 +3,7 @@
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,7 +51,7 @@ function deriveSlug(src: string): string {
 }
 
 function buildSrcset(slug: string, ext: "avif" | "webp" | "jpg"): string {
-	return WIDTHS.map((w) => `/_opt/artworks/${slug}-${w}.${ext} ${w}w`).join(", ");
+	return WIDTHS.map((w) => `${ARTWORK_IMAGE_BASE}/${slug}-${w}.${ext} ${w}w`).join(", ");
 }
 
 // Bare-<img> JPG fallback under _opt/ -- mozjpeg-encoded at master width, used
@@ -58,7 +59,7 @@ function buildSrcset(slug: string, ext: "avif" | "webp" | "jpg"): string {
 // srcset support pick a per-width JPG from the image/jpeg <source> instead. The
 // master in /artworks/ stays in the repo as source of truth; only _opt ships.
 function jpegFallback(slug: string): string {
-	return `/_opt/artworks/${slug}.jpg`;
+	return `${ARTWORK_IMAGE_BASE}/${slug}.jpg`;
 }
 
 export function ArtImage({ src, alt, className, priority = false, sizes }: ArtImageProps) {

@@ -7,6 +7,7 @@ import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
+import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
@@ -14,19 +15,19 @@ interface PageProps {
 	params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-	return getAllArtworkSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+	return (await getAllArtworkSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { slug } = await params;
-	const art = getArtworkBySlug(slug);
+	const art = await getArtworkBySlug(slug);
 	if (!art) return { title: "Artwork not found" };
 	return {
 		title: art.title,
 		description: art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`,
 		openGraph: {
-			images: [{ url: `/_opt/artworks/${art.slug}-1200.webp`, width: 1200 }],
+			images: [{ url: `${ARTWORK_IMAGE_BASE}/${art.slug}-1200.webp`, width: 1200 }],
 		},
 	};
 }
@@ -43,10 +44,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  */
 export default async function ArtworkDetailPage({ params }: PageProps) {
 	const { slug } = await params;
-	const art = getArtworkBySlug(slug);
+	const art = await getArtworkBySlug(slug);
 	if (!art) notFound();
 
-	const all = getAllArtworks();
+	const all = await getAllArtworks();
 	const idx = all.findIndex((a) => a.slug === art.slug);
 	const prev = idx > 0 ? all[idx - 1] : undefined;
 	const next = idx < all.length - 1 ? all[idx + 1] : undefined;

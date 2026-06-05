@@ -63,17 +63,42 @@ export function SiteHeaderClient({
 	}, [pathname]);
 
 	// Close drawer on Escape; lock body scroll while open.
+	//
+	// iOS Safari ignores `overflow: hidden` on <body>, so a plain overflow
+	// lock lets the page scroll behind the drawer and the collapsing address
+	// bar thrashes the viewport. Instead we pin the body with `position: fixed`
+	// at a negative top offset equal to the current scroll, then restore the
+	// scroll position on close. This holds on every mobile browser.
 	useEffect(() => {
 		if (!open) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") setOpen(false);
 		};
 		document.addEventListener("keydown", onKey);
-		const prevOverflow = document.body.style.overflow;
-		document.body.style.overflow = "hidden";
+
+		const { body } = document;
+		const scrollY = window.scrollY;
+		const prev = {
+			position: body.style.position,
+			top: body.style.top,
+			left: body.style.left,
+			right: body.style.right,
+			width: body.style.width,
+		};
+		body.style.position = "fixed";
+		body.style.top = `-${scrollY}px`;
+		body.style.left = "0";
+		body.style.right = "0";
+		body.style.width = "100%";
+
 		return () => {
 			document.removeEventListener("keydown", onKey);
-			document.body.style.overflow = prevOverflow;
+			body.style.position = prev.position;
+			body.style.top = prev.top;
+			body.style.left = prev.left;
+			body.style.right = prev.right;
+			body.style.width = prev.width;
+			window.scrollTo(0, scrollY);
 		};
 	}, [open]);
 
@@ -100,7 +125,7 @@ export function SiteHeaderClient({
 	const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 	return (
-		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75">
+		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75 [contain:layout]">
 			<div
 				className={cn(
 					"mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) transition-[padding] duration-(--duration-base) ease-out-soft",

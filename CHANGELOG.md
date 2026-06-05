@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.17.0 (2026-06-04)
+
+Mobile smoothness pass. The site felt janky/"hangy" on phones; the cause was the JS/animation layer (not image bytes, which already ship as optimized `_opt/` AVIF/WebP variants). Pointer-only flourishes are now gated to fine pointers so touch devices get clean native behaviour, and the iOS drawer scroll-lock is fixed. Captured in [ROADMAP.md](ROADMAP.md).
+
+### Added
+
+- **`useFinePointer` hook** ([lib/hooks/use-fine-pointer.ts](lib/hooks/use-fine-pointer.ts)) -- reports `(hover: hover) and (pointer: fine)`, SSR-safe (starts `false`, reads in an effect). Pairs with `usePrefersReducedMotion` to gate pointer-only animation at the source.
+
+### Changed
+
+- **Smooth-scroll is desktop-only now** ([components/motion/smooth-scroll.tsx](components/motion/smooth-scroll.tsx)) -- Lenis bails out on touch devices. Intercepting touch scroll with JS easing fought iOS Safari's native momentum/rubber-band, the main cause of the janky feel. Phones get native scroll; mouse/trackpad keep the glide.
+- **3D card tilt + glare gated to fine pointers** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- the `/work` grid ran four springs per card across ~21 cards; reacting to touch-move stuttered scroll. Touch devices get the static card (plus `touch-action: manipulation`). Desktop tilt unchanged.
+- **InkSplash wash freezes on touch** ([components/decor/ink-splash.tsx](components/decor/ink-splash.tsx)) -- animating `rx/ry/cx/cy` under `feGaussianBlur` re-rasterizes the blur every frame, expensive on mobile GPUs. The static wash still reads as watercolor; the breathing loop is now fine-pointer + motion-allowed only.
+- **Hero character entrance is quicker** ([components/motion/split-text.tsx](components/motion/split-text.tsx)) -- per-character stagger 12ms -> 8ms, so a typical lead lands inside ~1s instead of ~1.5s.
+
+### Fixed
+
+- **iOS drawer scroll-lock** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- iOS Safari ignores `overflow: hidden` on `<body>`, so the page scrolled behind the open menu and the collapsing address bar thrashed the viewport. Replaced with the `position: fixed` + negative-top-offset pattern that restores scroll position on close; added `contain: layout` to the sticky header so its per-scroll padding change no longer triggers document-wide reflow.
+- **Horizontal-overflow guard** ([app/globals.css](app/globals.css)) -- `overflow-x: clip` on `html`/`body` prevents accidental sideways scroll from wide rails / the marquee at 320px width, using `clip` (not `hidden`) so the sticky header keeps working.
+
 ## 1.16.0 (2026-05-29)
 
 UI/UX enhancement pass across the conversion path, forms, and finish details. On-system throughout (gallery register, `@theme` tokens, mobile-first), every animation reduced-motion safe.

@@ -12,7 +12,7 @@ export const dynamic = "force-static";
  * and per-artwork routes come through the data seam (getAllArtworkSlugs), so
  * new pieces appear automatically. robots.txt advertises this file.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const base = siteConfig.prodUrl.replace(/\/$/, "");
 
 	const routes = ["", "/work", "/about", "/workshops", "/custom-orders", "/contact"];
@@ -20,7 +20,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		url: `${base}${path}/`,
 	}));
 
-	const artworkEntries: MetadataRoute.Sitemap = getAllArtworkSlugs().map((slug) => ({
+	const slugs = await getAllArtworkSlugs();
+	const artworkEntries: MetadataRoute.Sitemap = slugs.map((slug) => ({
 		url: `${base}/work/${slug}/`,
 	}));
 

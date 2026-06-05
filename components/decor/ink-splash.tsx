@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useFinePointer } from "@/lib/hooks/use-fine-pointer";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 
 /**
@@ -59,12 +60,19 @@ export function InkSplash({
 	// global reducedMotion="user" only neutralizes transform/layout props, NOT
 	// SVG presentation attributes, so we drop the animation here at the source
 	// for reduced-motion users -- otherwise the backdrop loops forever for them.
+	//
+	// We also freeze it on touch: animating rx/ry/cx/cy under feGaussianBlur
+	// re-rasterizes the blur every frame, which is expensive on mobile GPUs
+	// (iOS Safari especially). The static wash still reads as watercolor, so
+	// phones get the painted look without the per-frame blur cost.
 	const reduceMotion = usePrefersReducedMotion();
+	const finePointer = useFinePointer();
+	const animateWash = !reduceMotion && finePointer;
 	const breathe = (
 		keyframes: Record<string, number[]>,
 		duration: number,
 	): Record<string, unknown> =>
-		reduceMotion
+		!animateWash
 			? {}
 			: {
 					animate: keyframes,

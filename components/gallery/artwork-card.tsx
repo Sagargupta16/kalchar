@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { useFinePointer } from "@/lib/hooks/use-fine-pointer";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,8 +41,12 @@ export function ArtworkCard({ artwork, priority = false, className, siblings }: 
 	// The 3D tilt + glare is a pointer-only flourish. Reduced-motion users get
 	// the static card -- Motion's reducedMotion="user" does NOT neutralize raw
 	// useSpring/useMotionValue transforms, so we gate them here at the source.
+	// We also gate on a fine pointer: on touch the grid renders ~21 cards, and
+	// each enabled card runs four springs -- ~84 spring solvers reacting to
+	// touch-move would stutter scroll. Touch devices get the static card.
 	const reduceMotion = usePrefersReducedMotion();
-	const tiltEnabled = !reduceMotion;
+	const finePointer = useFinePointer();
+	const tiltEnabled = !reduceMotion && finePointer;
 
 	// Setup client-side motion tracking for 3D tilt
 	const x = useMotionValue(0);
@@ -109,8 +114,9 @@ export function ArtworkCard({ artwork, priority = false, className, siblings }: 
 									rotateX,
 									rotateY,
 									transformStyle: "preserve-3d",
+									touchAction: "manipulation",
 								}
-							: undefined
+							: { touchAction: "manipulation" }
 					}
 					className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
 				>

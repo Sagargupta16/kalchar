@@ -29,10 +29,10 @@ interface WorkshopsSection {
  *
  * Section accent: pichwai (matches v1).
  */
-export default function WorkshopsPage() {
+export default async function WorkshopsPage() {
 	const { contact, sections } = getSite();
 	const w = (sections.workshops ?? {}) as WorkshopsSection;
-	const workshops = getAllWorkshops();
+	const workshops = await getAllWorkshops();
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
 	const sectionStyle = {
 		"--section-accent": "var(--color-pichwai)",

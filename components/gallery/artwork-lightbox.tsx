@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight, Calendar, ImageIcon, MessageCircle, Ruler, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
@@ -283,12 +284,12 @@ function LightboxView({
 						<picture>
 							{srcFailed ? null : (
 								<>
-									<source type="image/avif" srcSet={`/_opt/artworks/${slug}-1600.avif`} />
-									<source type="image/webp" srcSet={`/_opt/artworks/${slug}-1600.webp`} />
+									<source type="image/avif" srcSet={`${ARTWORK_IMAGE_BASE}/${slug}-1600.avif`} />
+									<source type="image/webp" srcSet={`${ARTWORK_IMAGE_BASE}/${slug}-1600.webp`} />
 								</>
 							)}
 							<motion.img
-								src={`/_opt/artworks/${slug}.jpg`}
+								src={`${ARTWORK_IMAGE_BASE}/${slug}.jpg`}
 								alt={artwork.description ?? artwork.title}
 								onError={markFailed}
 								className="h-full w-full object-cover select-none"
