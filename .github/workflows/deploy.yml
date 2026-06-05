@@ -1,11 +1,12 @@
 name: Deploy to GitHub Pages
 
-# Single-env deploy. On push to main, build and ship to kalchar.co.in.
-# `dev` is local-only (no public URL) per the GH Pages one-custom-domain-per-repo
-# constraint -- staging happens via local `pnpm preview` before promoting dev -> main.
+# DORMANT FALLBACK (Phase 2). The site moved to Vercel (kalchar.co.in serves
+# the dynamic Next app: DB + admin + auth, which Pages can't host). This Pages
+# workflow no longer runs on push -- `main` is now the dynamic app and would
+# fail a static export. Kept as a manual-only escape hatch: if Vercel ever
+# needs to be rolled back, re-add `output: "export"` and run this by hand to
+# republish the last static build to Pages.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
