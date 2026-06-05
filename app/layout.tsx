@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
@@ -95,6 +97,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 						<ArtworkLightbox />
 					</LightboxProvider>
 				</MotionProvider>
+				<Analytics />
+				<SpeedInsights />
 			</body>
 		</html>
 	);

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.20.2 (2026-06-05)
+
+### Added
+
+- **Vercel Web Analytics + Speed Insights** ([app/layout.tsx](app/layout.tsx)) -- `<Analytics />` (`@vercel/analytics/next`) and `<SpeedInsights />` (`@vercel/speed-insights/next`) mounted once in the root layout. Both are free on the Hobby tier, no-op off Vercel, and need no env keys; Web Analytics must be toggled on in the Vercel project's Analytics tab to begin collecting.
+
 ## 1.20.1 (2026-06-05)
 
 SonarCloud cleanup. Cleared the code-quality findings on the project (`Sagargupta16_folk-art-portfolio`); no behavior or visual change. Verified with typecheck, lint, build, and an in-browser check of the converted components.
