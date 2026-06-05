@@ -24,9 +24,9 @@ interface AboutSection {
  * /about -- editorial article register.
  *
  * Layout: 8 / 4 split on desktop. Body column gets the paragraphs (first
- * with a drop-cap), then a pull-quote with section-accent border, then a
- * Devanagari "इति" mark for the article-end punctuation. Aside column has
- * "Based in" + "Open to" panels stacked.
+ * with a drop-cap), then a pull-quote with a hanging section-accent quote
+ * mark, then a Devanagari "इति" mark for the article-end punctuation. Aside
+ * column has "Based in" + "Open to" panels stacked.
  *
  * Section accent: marigold (matches v1).
  */
@@ -63,7 +63,13 @@ export default function AboutPage() {
 
 					{a.pullQuote ? (
 						<Reveal delayMs={300}>
-							<blockquote className="mt-10 rounded-md border-l-4 border-(--section-accent) bg-bg-soft py-6 pl-6 pr-5">
+							<blockquote className="relative mt-14 mb-6 pl-8 sm:pl-12">
+								<span
+									aria-hidden="true"
+									className="t-display pointer-events-none absolute -top-6 left-0 select-none text-6xl leading-none text-(--section-accent) opacity-30 sm:-top-8 sm:text-7xl"
+								>
+									&ldquo;
+								</span>
 								<p className="t-display text-2xl text-(--section-accent) sm:text-3xl">
 									{a.pullQuote}
 								</p>

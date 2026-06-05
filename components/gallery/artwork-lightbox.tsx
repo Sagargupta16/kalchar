@@ -275,11 +275,9 @@ function LightboxView({
 						aria-label="Interactive artwork detail zoom viewer"
 						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-md ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in"
 					>
-						{/* Optimized variants only -- the raw master is pruned from the
-						    deploy, so pointing at /artworks/ would 404. AVIF/WebP at
-						    1600w (capped at master width by the optimizer) with the
-						    master-width mozjpeg as the <img> base. On error we drop the
-						    AVIF/WebP <source>s and load the master JPG directly. */}
+						{/* R2-served variants: AVIF/WebP at 1600w (capped at master
+						    width) with the master-width mozjpeg as the <img> base. On
+						    error we drop the AVIF/WebP <source>s and load the JPG directly. */}
 						<picture>
 							{srcFailed ? null : (
 								<>
