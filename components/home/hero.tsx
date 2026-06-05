@@ -17,12 +17,12 @@ export function Hero({
 	featured,
 	featuredIndex,
 	totalCount,
-}: {
+}: Readonly<{
 	site: Site;
 	featured: Artwork | undefined;
 	featuredIndex: number;
 	totalCount: number;
-}) {
+}>) {
 	return (
 		<section className="relative overflow-hidden border-b border-line">
 			<PigmentWash />

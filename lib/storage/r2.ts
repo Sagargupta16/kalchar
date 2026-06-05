@@ -23,7 +23,7 @@ const BUCKET = process.env.R2_BUCKET ?? "kalchar-artworks";
 const PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL ?? "";
 
 if (!accountId || !accessKeyId || !secretAccessKey) {
-	throw new Error("R2 credentials are not set. See docs/PHASE-2-SETUP.md Part 1.");
+	throw new Error("R2 credentials are not set. See .env.example and docs/IMAGES.md.");
 }
 
 const r2 = new S3Client({

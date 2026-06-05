@@ -20,17 +20,17 @@ export function ScrollProgress() {
 			if (ticking) return;
 			ticking = true;
 			requestAnimationFrame(() => {
-				const max = document.documentElement.scrollHeight - window.innerHeight;
-				setProgress(max > 0 ? window.scrollY / max : 0);
+				const max = document.documentElement.scrollHeight - globalThis.innerHeight;
+				setProgress(max > 0 ? globalThis.scrollY / max : 0);
 				ticking = false;
 			});
 		}
 		onScroll();
-		window.addEventListener("scroll", onScroll, { passive: true });
-		window.addEventListener("resize", onScroll);
+		globalThis.addEventListener("scroll", onScroll, { passive: true });
+		globalThis.addEventListener("resize", onScroll);
 		return () => {
-			window.removeEventListener("scroll", onScroll);
-			window.removeEventListener("resize", onScroll);
+			globalThis.removeEventListener("scroll", onScroll);
+			globalThis.removeEventListener("resize", onScroll);
 		};
 	}, []);
 

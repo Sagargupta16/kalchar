@@ -22,7 +22,7 @@ export function useFinePointer(): boolean {
 	const [finePointer, setFinePointer] = useState(false);
 
 	useEffect(() => {
-		const mq = window.matchMedia(FINE_POINTER_QUERY);
+		const mq = globalThis.matchMedia(FINE_POINTER_QUERY);
 		setFinePointer(mq.matches);
 		const onChange = (e: MediaQueryListEvent) => setFinePointer(e.matches);
 		mq.addEventListener("change", onChange);

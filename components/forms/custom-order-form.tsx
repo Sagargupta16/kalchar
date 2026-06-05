@@ -40,7 +40,7 @@ export function CustomOrderForm({
 	timelines,
 	submitLabel,
 	fallbackEmailLabel,
-}: CustomOrderFormProps) {
+}: Readonly<CustomOrderFormProps>) {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
@@ -75,16 +75,25 @@ export function CustomOrderForm({
 		// `window.open` returns null when blocked (popup blocker, in-app
 		// browser like Instagram). Surface the email fallback explicitly so
 		// the user has a recovery path; the mailto link below also renders.
-		const opened = window.open(url, "_blank", "noopener,noreferrer");
-		if (!opened) {
-			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
-		} else {
+		const opened = globalThis.open(url, "_blank", "noopener,noreferrer");
+		if (opened) {
 			setSent(true);
+		} else {
+			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
 		}
 		setTimeout(() => setSubmitting(false), 1500);
 	}
 
 	const mailtoHref = draft ? customOrderMailto(emailUrl, draft) : null;
+
+	let submitText: string;
+	if (submitting) {
+		submitText = "Opening WhatsApp...";
+	} else if (sent) {
+		submitText = "Reopen in WhatsApp";
+	} else {
+		submitText = submitLabel;
+	}
 
 	return (
 		<form onSubmit={onSubmit} className="space-y-6" noValidate>
@@ -178,7 +187,7 @@ export function CustomOrderForm({
 
 			<div className="flex flex-col items-start gap-3">
 				<Button type="submit" variant="primary" size="lg" disabled={submitting}>
-					{submitting ? "Opening WhatsApp..." : sent ? "Reopen in WhatsApp" : submitLabel}
+					{submitText}
 					<ArrowRight size={16} aria-hidden="true" />
 				</Button>
 				<p className="text-xs text-muted">
@@ -211,11 +220,11 @@ function SelectField({
 	id,
 	label,
 	children,
-}: {
+}: Readonly<{
 	id: string;
 	label: string;
 	children: React.ReactNode;
-}) {
+}>) {
 	return (
 		<Field id={id} label={label} optional>
 			<div className="relative">
@@ -236,13 +245,19 @@ function Field({
 	optional,
 	required,
 	children,
-}: {
+}: Readonly<{
 	id: string;
 	label: string;
 	optional?: boolean;
 	required?: boolean;
 	children: React.ReactNode;
-}) {
+}>) {
+	let hint: React.ReactNode = null;
+	if (required) {
+		hint = <span className="text-xs text-muted">required</span>;
+	} else if (optional) {
+		hint = <span className="text-xs text-muted">optional</span>;
+	}
 	return (
 		<div>
 			<label
@@ -250,11 +265,7 @@ function Field({
 				className="flex items-baseline justify-between text-sm font-medium text-ink"
 			>
 				<span>{label}</span>
-				{required ? (
-					<span className="text-xs text-muted">required</span>
-				) : optional ? (
-					<span className="text-xs text-muted">optional</span>
-				) : null}
+				{hint}
 			</label>
 			<div className="mt-2">{children}</div>
 		</div>

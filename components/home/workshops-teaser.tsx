@@ -14,13 +14,13 @@ export function WorkshopsTeaser({
 	eyebrow,
 	title,
 	lead,
-}: {
+}: Readonly<{
 	workshops: readonly Workshop[];
 	totalCount: number;
 	eyebrow: string;
 	title: string;
 	lead?: string;
-}) {
+}>) {
 	const moreCount = Math.max(0, totalCount - workshops.length);
 	return (
 		<section

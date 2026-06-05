@@ -29,8 +29,8 @@ import { useEffect } from "react";
 export function SmoothScroll() {
 	useEffect(() => {
 		if (typeof window === "undefined") return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (!globalThis.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
 		let cancelled = false;
 		let destroy: (() => void) | null = null;
@@ -48,11 +48,11 @@ export function SmoothScroll() {
 				let raf = 0;
 				const tick = (time: number) => {
 					lenis.raf(time);
-					raf = requestAnimationFrame(tick);
+					raf = globalThis.requestAnimationFrame(tick);
 				};
-				raf = requestAnimationFrame(tick);
+				raf = globalThis.requestAnimationFrame(tick);
 				destroy = () => {
-					cancelAnimationFrame(raf);
+					globalThis.cancelAnimationFrame(raf);
 					lenis.destroy();
 				};
 			} catch (err) {
@@ -63,16 +63,19 @@ export function SmoothScroll() {
 			}
 		}
 
-		const hasIdle = typeof window.requestIdleCallback === "function";
-		const idleHandle = hasIdle
-			? window.requestIdleCallback(() => start())
-			: window.setTimeout(start, 200);
+		let cancelSchedule: () => void;
+		if (typeof globalThis.requestIdleCallback === "function") {
+			const idleHandle = globalThis.requestIdleCallback(() => start());
+			cancelSchedule = () => globalThis.cancelIdleCallback(idleHandle);
+		} else {
+			const timeoutHandle = globalThis.setTimeout(start, 200);
+			cancelSchedule = () => globalThis.clearTimeout(timeoutHandle);
+		}
 
 		return () => {
 			cancelled = true;
 			if (destroy) destroy();
-			if (hasIdle) window.cancelIdleCallback(idleHandle as number);
-			else window.clearTimeout(idleHandle as number);
+			cancelSchedule();
 		};
 	}, []);
 

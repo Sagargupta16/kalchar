@@ -25,7 +25,7 @@ function buildItems(titles: readonly string[]): MarqueeItem[] {
 	return items;
 }
 
-function Track({ items }: { items: readonly MarqueeItem[] }) {
+function Track({ items }: Readonly<{ items: readonly MarqueeItem[] }>) {
 	return (
 		<>
 			{items.map((item) => (

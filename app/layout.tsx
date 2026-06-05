@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
@@ -51,11 +53,12 @@ export const viewport: Viewport = {
 };
 
 /**
- * Root layout. The pre-paint script below resolves the user's theme preference
- * and adds `class="dark"` to <html> before first paint, so dark-mode users
- * never see a flash of light styles.
+ * Root layout. The pre-paint script below applies the user's stored theme
+ * (adds `class="dark"` to <html>) before first paint, so dark-mode users never
+ * see a flash of light styles. Default is light when nothing is stored -- the
+ * gallery's resting register, not the OS preference (see ThemeToggle).
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
@@ -63,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint script must be inline
 					dangerouslySetInnerHTML={{
-						__html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var v=t||(d?'dark':'light');if(v==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
+						__html: `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
 					}}
 				/>
 				{/* No-JS fallback: Motion's <Reveal> ships SSR markup with inline
@@ -94,6 +97,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						<ArtworkLightbox />
 					</LightboxProvider>
 				</MotionProvider>
+				<Analytics />
+				<SpeedInsights />
 			</body>
 		</html>
 	);

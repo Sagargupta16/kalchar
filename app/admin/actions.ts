@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 /**
  * Admin server actions. Every action re-checks the session (defense in depth --
- * middleware already gates /admin, but actions can be invoked directly) and
+ * the proxy already gates /admin, but actions can be invoked directly) and
  * confirms the caller is a maintainer before mutating.
  *
  * Artwork mutations touch both the DB row and the R2 image variants; maintainer
@@ -88,9 +88,14 @@ export async function updateArtworkMeta(
 export async function createArtwork(formData: FormData): Promise<{ slug: string }> {
 	await requireMaintainer();
 
-	const title = String(formData.get("title") ?? "").trim();
-	const style = String(formData.get("style") ?? "").trim();
-	const medium = String(formData.get("medium") ?? "").trim();
+	const str = (k: string) => {
+		const v = formData.get(k);
+		return typeof v === "string" ? v : "";
+	};
+
+	const title = str("title").trim();
+	const style = str("style").trim();
+	const medium = str("medium").trim();
 	const file = formData.get("image");
 
 	if (!title || !style || !medium) throw new Error("Title, style, and medium are required.");
@@ -122,8 +127,8 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 		aspectRatio,
 		order: nextOrder,
 		featured: false,
-		description: String(formData.get("description") ?? "").trim() || null,
-		dimensions: String(formData.get("dimensions") ?? "").trim() || null,
+		description: str("description").trim() || null,
+		dimensions: str("dimensions").trim() || null,
 		priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
 		status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
 	});

@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Artwork } from "@/lib/types";
 import { deleteArtwork, setFeatured, setPrice, setStatus } from "../actions";
+import { adminBtn, adminBtnDestructive, adminField } from "./controls";
 
-export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
+export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: string }>) {
 	const router = useRouter();
 	const [pending, startTransition] = useTransition();
 	const [price, setPriceInput] = useState(art.priceInr?.toString() ?? "");
@@ -23,8 +24,10 @@ export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
 		});
 	}
 
-	const ctrl =
-		"rounded-md border border-line bg-bg px-2 py-1 text-sm focus:border-accent focus:outline-none";
+	// Dense variants of the shared admin controls -- a multi-control row needs a
+	// tighter footprint than the upload form's full-size fields.
+	const ctrl = `${adminField} px-2 py-1`;
+	const btn = `${adminBtn} px-2 py-1`;
 
 	return (
 		<div className="flex flex-wrap items-center gap-3 rounded-md border border-line p-3">
@@ -50,7 +53,7 @@ export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
 				type="button"
 				disabled={pending}
 				onClick={() => run(() => setPrice(art.slug, price === "" ? null : Number(price)))}
-				className={`${ctrl} hover:border-accent hover:text-accent`}
+				className={btn}
 			>
 				Save price
 			</button>
@@ -72,7 +75,7 @@ export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
 				type="button"
 				disabled={pending}
 				onClick={() => run(() => setFeatured(art.slug, !art.featured))}
-				className={`${ctrl} hover:border-accent hover:text-accent`}
+				className={btn}
 			>
 				{art.featured ? "Unfeature" : "Feature"}
 			</button>
@@ -85,7 +88,7 @@ export function ArtworkRow({ art, thumb }: { art: Artwork; thumb: string }) {
 						run(() => deleteArtwork(art.slug));
 					}
 				}}
-				className="rounded-md border border-ruby/40 px-2 py-1 text-sm text-ruby transition-colors hover:bg-ruby hover:text-bg"
+				className={`${adminBtnDestructive} px-2 py-1`}
 			>
 				Delete
 			</button>

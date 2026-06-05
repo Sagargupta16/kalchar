@@ -118,7 +118,11 @@ export default function CustomOrdersPage() {
 	);
 }
 
-function Step({ icon: Icon, title, body }: { icon: typeof Brush; title: string; body: string }) {
+function Step({
+	icon: Icon,
+	title,
+	body,
+}: Readonly<{ icon: typeof Brush; title: string; body: string }>) {
 	return (
 		<div className="flex gap-4">
 			<span

@@ -30,7 +30,12 @@ interface MotifEyebrowProps {
 	centered?: boolean;
 }
 
-export function MotifEyebrow({ motif, label, number, centered = false }: MotifEyebrowProps) {
+export function MotifEyebrow({
+	motif,
+	label,
+	number,
+	centered = false,
+}: Readonly<MotifEyebrowProps>) {
 	return (
 		<p className={cn("t-eyebrow flex items-center gap-3", centered && "justify-center")}>
 			<motion.span

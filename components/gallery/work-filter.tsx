@@ -39,7 +39,7 @@ interface WorkFilterProps {
 
 const ALL = "All" as const;
 
-export function WorkFilter({ styles, items }: WorkFilterProps) {
+export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const [active, setActive] = useState<typeof ALL | ArtStyle>(ALL);
 
 	const visible = useMemo(
@@ -49,9 +49,16 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 
 	const filters: (typeof ALL | ArtStyle)[] = [ALL, ...styles];
 
+	const pieceWord = visible.length === 1 ? "piece" : "pieces";
+	const statusMessage =
+		active === ALL
+			? `Showing all ${visible.length} pieces`
+			: `Showing ${visible.length} ${active} ${pieceWord}`;
+
 	return (
 		<>
-			<div role="group" aria-label="Filter by style" className="flex flex-wrap gap-2">
+			<fieldset className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0">
+				<legend className="sr-only">Filter by style</legend>
 				{filters.map((f) => {
 					const isActive = f === active;
 					return (
@@ -71,12 +78,10 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 						</button>
 					);
 				})}
-			</div>
+			</fieldset>
 
 			<p className="sr-only" aria-live="polite">
-				{active === ALL
-					? `Showing all ${visible.length} pieces`
-					: `Showing ${visible.length} ${active} ${visible.length === 1 ? "piece" : "pieces"}`}
+				{statusMessage}
 			</p>
 
 			{visible.length > 0 ? (

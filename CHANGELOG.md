@@ -2,6 +2,74 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.20.2 (2026-06-05)
+
+### Added
+
+- **Vercel Web Analytics + Speed Insights** ([app/layout.tsx](app/layout.tsx)) -- `<Analytics />` (`@vercel/analytics/next`) and `<SpeedInsights />` (`@vercel/speed-insights/next`) mounted once in the root layout. Both are free on the Hobby tier, no-op off Vercel, and need no env keys; Web Analytics must be toggled on in the Vercel project's Analytics tab to begin collecting.
+
+## 1.20.1 (2026-06-05)
+
+SonarCloud cleanup. Cleared the code-quality findings on the project (`Sagargupta16_folk-art-portfolio`); no behavior or visual change. Verified with typecheck, lint, build, and an in-browser check of the converted components.
+
+### Fixed
+
+- **Read-only props (S6759)** -- every React component's props parameter is now `Readonly<...>` across the home, gallery, decor, motion, layout, admin, and forms components.
+- **`globalThis` over `window` (S7764)** -- browser-global access (`matchMedia`, `scrollY`, `requestAnimationFrame`, listeners) uses `globalThis.*` in smooth-scroll, the hooks, header, lightbox, theme toggle, scroll-progress, and the order form.
+- **Native a11y elements (S6819)** -- `role="figure"` to a real `<figure>` (lightbox), `role="group"` to a `<fieldset>` with an `sr-only` `<legend>` (theme toggle, work filter), and a decorative `role="presentation"` swapped for `aria-hidden` (paper grain). Visuals preserved (UA chrome reset).
+- **Nested ternaries extracted (S3358)** -- pulled into named locals in `/work/[slug]`, the order form, work filter, maintainer roster, and `lib/maintainers`.
+- **FormData typing (S6551)** -- `createArtwork` reads fields through a typed string helper instead of `formData.get(...) ?? ""`.
+- **Cognitive complexity (S3776)** -- `/work/[slug]` page extracted `getSiblings` + `getCtaCopy` helpers (21 to under 15).
+- **Context value memoized (S6481)** -- the lightbox provider value is wrapped in `useMemo`.
+- **Re-exports (S7763)** -- `brand-icons` uses one `export ... from` statement.
+- **Misc** -- `RegExp.exec` over `String.match` and a single `Array.push` in `whatsapp.ts`; removed needless type assertions (S4325); inverted negated conditionals (S7735); JSX spacing (S6772).
+- **GitHub Actions hardening** -- moved workflow-level `permissions` to job level in `deploy.yml` (S8264/S8233) and SHA-pinned `pnpm/action-setup` in both workflows (S7637).
+
+## 1.20.0 (2026-06-05)
+
+Theme, auth-entry, and admin UI/UX consistency pass.
+
+### Added
+
+- **Branded `/login` page** ([app/login/page.tsx](app/login/page.tsx)) -- replaces NextAuth's unstyled default sign-in. On-brand gallery register: wordmark, "Continue with Google" (a server-action `signIn` form, no client JS), allowlist note, and a friendly not-a-maintainer error. Lives outside the `/admin` matcher so it never redirect-loops. The proxy and the admin layout both redirect unauthenticated visitors here ([proxy.ts](proxy.ts), [app/admin/layout.tsx](app/admin/layout.tsx)).
+- **Maintainer login entry point** in the footer ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- a discreet "Maintainer login" link in the bottom bar, so admin is reachable without a bookmarked URL while the public nav stays clean.
+- **Shared admin control tokens** ([app/admin/_components/controls.ts](app/admin/_components/controls.ts)) -- one field style and one button per intent (secondary / primary / destructive), applied across the upload form, artwork rows, maintainer manager, and the sign-out button so the panel is visually consistent.
+
+### Changed
+
+- **Theme toggle is light/dark only** ([components/ui/theme-toggle.tsx](components/ui/theme-toggle.tsx)) -- the third "system" mode is gone. Default (nothing stored) is light, the gallery's resting register; the pre-paint script in [app/layout.tsx](app/layout.tsx) now only honors a stored `dark` rather than following the OS.
+
+### Fixed
+
+- **Active-nav prefix bug** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- `/workshops` lit both "Work" and "Workshops" because the active check used `startsWith("/work")`. Now matches on a segment boundary (exact or `href + "/"`), normalizing the trailing slash, so each route highlights only itself (`/work/<slug>` still lights "Work").
+- **Brand-icon set** ([components/ui/brand-icons.tsx](components/ui/brand-icons.tsx)) -- added the Google glyph for the login button.
+
+## 1.19.0 (2026-06-05)
+
+Engineering docs suite, cleanup of the retired static-export pipeline, and a full dependency refresh to latest (including framework majors) with zero security advisories remaining. Everything verified green (typecheck, lint, build); the production stack (data seam reads Neon, R2 image serving, 21 prerendered artwork pages, the auth proxy) is intact.
+
+### Added
+
+- **`docs/` engineering suite** -- [ARCHITECTURE.md](docs/ARCHITECTURE.md) (system, layers, data seam, rendering, request lifecycles), [DATABASE.md](docs/DATABASE.md), [AUTH.md](docs/AUTH.md), [IMAGES.md](docs/IMAGES.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md), [DEVELOPMENT.md](docs/DEVELOPMENT.md), indexed by [docs/README.md](docs/README.md). Each carries dark-theme Mermaid diagrams (flowcharts, sequence diagrams, an ERD) grounded in the actual source.
+
+### Changed
+
+- **Next.js 15.5 -> 16** ([package.json](package.json)). The required migration: `middleware.ts` renamed to [proxy.ts](proxy.ts) (Next 16's network-boundary rename; the Auth.js `auth()` wrapper still supplies the default export Next runs as the proxy, `config.matcher` unchanged). The app was already compliant on the larger breaking changes (async `params` in `/work/[slug]`, no `next lint`, no AMP, no runtime config). Turbopack is now the default build.
+- **TypeScript 5.9 -> 6.0** ([package.json](package.json)). TS6 errors on side-effect imports of untyped modules (TS2882), which hit `import "./globals.css"`; added an ambient [css.d.ts](css.d.ts) (`declare module "*.css"`) and wired it into [tsconfig.json](tsconfig.json) `include`. Next 16 also set `jsx: "react-jsx"` in tsconfig.
+- **lucide-react 0.473 -> 1.17** and **tailwind-merge 2.6 -> 3.6** ([package.json](package.json)). lucide's named-import API is unchanged; tailwind-merge v3 is the line that targets Tailwind 4 (which this app already uses), and the vanilla `cn()` helper ([lib/utils.ts](lib/utils.ts)) needs no config change.
+- **Patch bumps**: react / react-dom 19.2.7, @aws-sdk/client-s3 3.1062, @biomejs/biome 2.4.16, @types/react 19.2.16. `@types/node` held at 22.x on purpose (it must track the Node 22 runtime, not chase 25). Biome `$schema` pinned to the installed 2.4.16.
+- **`pnpm db:images` rewired** ([scripts/migrate-images-to-r2.ts](scripts/migrate-images-to-r2.ts)) -- now reads the master JPGs in `public/artworks/` and runs the same `sharp` pipeline the admin upload uses ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts)), instead of the deleted `public/_opt/` directory. One variant-generation path for both upload and bulk migration.
+- **Build is plain `next build`** -- the static-export prebuild (`optimize:images` + `prune-build`) is gone; the gallery serves variants from R2, so generating them at build time was dead work (it was the cause of the 8-minute Vercel builds). [lib/image-base.ts](lib/image-base.ts) is R2-only; [next.config.mjs](next.config.mjs) drops the `output: "export"` era leftovers.
+
+### Removed
+
+- **`scripts/optimize-images.mjs`, `scripts/prune-build.mjs`** -- the build-time AVIF/WebP variant generator and the post-build master-pruner, both obsolete now that images live in R2.
+- **`docs/PHASE-2-SETUP.md`** -- the backend bring-up runbook; Phase 2 is live, and the setup steps now live in the docs suite ([DATABASE.md](docs/DATABASE.md), [IMAGES.md](docs/IMAGES.md), [AUTH.md](docs/AUTH.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+
+### Security
+
+- **Zero advisories** (was 2 moderate). Added a [package.json](package.json) `pnpm.overrides` block forcing `postcss >=8.5.10` (XSS in CSS stringify, transitive via Next) and `esbuild >=0.25.0` (dev-server request advisory, transitive via `drizzle-kit > @esbuild-kit/*`). Both were build/dev-time only and never shipped to the browser; the overrides clear them tree-wide.
+
 ## 1.17.0 (2026-06-04)
 
 Mobile smoothness pass. The site felt janky/"hangy" on phones; the cause was the JS/animation layer (not image bytes, which already ship as optimized `_opt/` AVIF/WebP variants). Pointer-only flourishes are now gated to fine pointers so touch devices get clean native behaviour, and the iOS drawer scroll-lock is fixed. Captured in [ROADMAP.md](ROADMAP.md).
@@ -101,7 +169,7 @@ Build-time image pipeline. Originals stay pristine in the repo as the single sou
 - **`<ArtImage>` rewritten as native `<picture>`** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- AVIF + WebP `<source>` srcsets at all four widths, `<img>` fallback to the mozjpeg JPG. The browser picks the smallest variant whose width covers `rendered CSS width x DPR`, so a 180px-wide phone cell pulls the 400px AVIF (~30-50 KB) instead of the 2 MB master. Drops the `next/image` dependency for catalog images -- on `output: "export"` with `images.unoptimized: true`, `next/image` was just emitting a plain `<img>` to the master anyway. `priority` now controls `loading` / `decoding` / `fetchPriority` directly. Reduced motion, hover, error fallback all unchanged.
 - **`/work/[slug]` Open Graph image** points at `/_opt/artworks/<slug>-1200.webp` instead of the master JPG, so social-card crawlers fetch ~150 KB instead of ~2 MB.
 - **`pnpm build`** chain now runs `optimize:images` -> `next build` -> `prune-build`. The deployed `out/` shrinks from ~32 MB to ~14-16 MB; the visible bandwidth saving is far larger because most browsers pull AVIF (smallest of the three).
-- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalcher by Megha` etc. via the layout's title template.
+- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalchar by Megha` etc. via the layout's title template.
 - **Logo in header** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- the brand-mark Link now leads with a 32-36 px circular `logo.jpg` ring before the wordmark. Mobile-first: 32 px at base, 36 px at md:. Eager + priority decode so it never lags the wordmark next to it. Hover lights the ring with the section accent in step with the wordmark colour change.
 
 ## 1.12.0 (2026-05-25)
