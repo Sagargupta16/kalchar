@@ -46,12 +46,12 @@ export default async function WorkPage() {
 						<Reveal>
 							<MotifEyebrow motif="fish" label={work?.eyebrow ?? "Work"} />
 						</Reveal>
-						<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+						<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 							{work?.title ?? "Selected work"}
 						</Reveal>
 						<BrushStroke className="mt-5" width={220} />
 						{work?.lead ? (
-							<Reveal delayMs={160}>
+							<Reveal eager delayMs={160}>
 								<p className="t-lead mt-4">{work.lead}</p>
 							</Reveal>
 						) : null}

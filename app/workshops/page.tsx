@@ -47,17 +47,18 @@ export default async function WorkshopsPage() {
 				<Reveal>
 					<MotifEyebrow motif="lotus" label={w.eyebrow ?? "Workshops"} />
 				</Reveal>
-				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+				<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{w.title ?? "Hands-on sessions"}
 				</Reveal>
 				<BrushStroke className="mt-5" width={220} />
 				{w.lead ? (
-					<Reveal delayMs={160}>
+					<Reveal eager delayMs={160}>
 						<p className="t-lead mt-4">{w.lead}</p>
 					</Reveal>
 				) : null}
 			</header>
 
+			<h2 className="sr-only">Workshop sessions</h2>
 			<ul className="mt-12 grid gap-6 sm:grid-cols-2 sm:mt-16 lg:grid-cols-3">
 				{workshops.map((item, i) => {
 					const enquireMessage = `Hi, I'd like to enquire about the "${item.title}" workshop.`;

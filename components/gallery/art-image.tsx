@@ -40,6 +40,16 @@ interface ArtImageProps {
 	 * grid widths of the consumer (e.g. "(min-width: 1024px) 33vw, 50vw").
 	 */
 	sizes: string;
+	/**
+	 * Cap the largest variant offered in the srcset (px width). The LCP images
+	 * (home hero, detail plate) render in a ~370-460px slot, so on a high-DPR
+	 * phone the picker would otherwise fetch the 1200w variant (~470KB of dense
+	 * folk-art linework) -- 2.3s of transfer on simulated 4G, which dominates
+	 * LCP. Capping at 800w keeps ~2x sharpness for that slot while roughly
+	 * halving the bytes. Omit (full range) for grid thumbnails, which are not
+	 * the LCP and benefit from the crispest variant on retina.
+	 */
+	maxWidth?: 400 | 800 | 1200 | 1600;
 }
 
 const WIDTHS = [400, 800, 1200, 1600] as const;
@@ -50,8 +60,10 @@ function deriveSlug(src: string): string {
 	return file.replace(/\.[^.]+$/, "");
 }
 
-function buildSrcset(slug: string, ext: "avif" | "webp" | "jpg"): string {
-	return WIDTHS.map((w) => `${ARTWORK_IMAGE_BASE}/${slug}-${w}.${ext} ${w}w`).join(", ");
+function buildSrcset(slug: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
+	return WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
+		.map((w) => `${ARTWORK_IMAGE_BASE}/${slug}-${w}.${ext} ${w}w`)
+		.join(", ");
 }
 
 // Bare-<img> JPG fallback (R2 `<slug>.jpg`) -- mozjpeg-encoded at master width,
@@ -68,6 +80,7 @@ export function ArtImage({
 	className,
 	priority = false,
 	sizes,
+	maxWidth,
 }: Readonly<ArtImageProps>) {
 	const [failed, setFailed] = useState(false);
 	const [loaded, setLoaded] = useState(false);
@@ -109,9 +122,9 @@ export function ArtImage({
 
 	return (
 		<picture>
-			<source type="image/avif" srcSet={buildSrcset(slug, "avif")} sizes={sizes} />
-			<source type="image/webp" srcSet={buildSrcset(slug, "webp")} sizes={sizes} />
-			<source type="image/jpeg" srcSet={buildSrcset(slug, "jpg")} sizes={sizes} />
+			<source type="image/avif" srcSet={buildSrcset(slug, "avif", maxWidth)} sizes={sizes} />
+			<source type="image/webp" srcSet={buildSrcset(slug, "webp", maxWidth)} sizes={sizes} />
+			<source type="image/jpeg" srcSet={buildSrcset(slug, "jpg", maxWidth)} sizes={sizes} />
 			<img
 				ref={settle}
 				src={jpegFallback(slug)}

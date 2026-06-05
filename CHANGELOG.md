@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.20.3 (2026-06-05)
+
+Production audit pass: Playwright mobile matrix (iPhone 15 / iPhone SE / Android Pixel 7) plus Lighthouse + axe-core on every route. Result: Accessibility and SEO to 100 on every content page, zero axe violations across both themes, CLS 0 and no horizontal overflow on all 27 viewport/route combinations. Validated with lint, typecheck, build.
+
+### Performance
+
+- **Above-the-fold renders without JS** ([components/motion/reveal.tsx](components/motion/reveal.tsx), [app/globals.css](app/globals.css)) -- `Reveal` gained an `eager` mode that animates via a CSS keyframe (`.reveal-eager`) instead of Motion's scroll-triggered `whileInView`. Scroll reveals ship SSR markup with `opacity:0` and stay invisible until the Motion bundle hydrates, which delayed the LCP element by seconds on a throttled mobile connection. Applied to every page's hero/header (h1, lead, hero image) so the LCP paints at first paint. Render delay on the LCP element dropped to about 75ms.
+- **LCP image preload + connection warmup** ([app/layout.tsx](app/layout.tsx), [components/home/hero.tsx](components/home/hero.tsx), lib/image-base.ts) -- `<link rel="preconnect">` to the R2 image origin, plus a per-page `<link rel="preload" as="image">` (with `imageSrcSet`/`imageSizes`/`fetchPriority="high"`) for the featured and detail artwork so the LCP image fetch starts at HTML parse.
+- **Capped LCP image variant** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- `ArtImage` gained `maxWidth`; the hero and detail plates cap at the 800w variant (about 220KB) instead of fetching 1200w (about 470KB of dense folk-art linework) on high-DPR phones, roughly halving LCP-image transfer while staying sharp for the ~370px slot. Grid thumbnails keep the full range.
+
+### Accessibility
+
+- **Contrast to WCAG AA** ([app/globals.css](app/globals.css), [components/layout/site-footer.tsx](components/layout/site-footer.tsx), [app/contact/page.tsx](app/contact/page.tsx)) -- darkened `--color-muted` (light) from L=0.5 to L=0.46 (3.62:1 to 6.5:1); removed the `text-muted/80` and `opacity-50` modifiers that dropped fine print below 4.5:1; the contact "Fastest reply" chip switched from low-contrast tinted text to a solid accent fill with `text-bg` (5.2:1 light, 6.2:1 dark).
+- **One main landmark** ([app/page.tsx](app/page.tsx)) -- the home page now wraps its sections in `<main>`.
+- **Heading order** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx), [app/workshops/page.tsx](app/workshops/page.tsx), [app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- added section headings so card and step `<h3>`s no longer follow the page `<h1>` with no `<h2>` between.
+- **Form error announce** ([components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- the validation message uses `role="alert"` and the `text-ruby` token.
+
+### SEO
+
+- **Descriptive link text** ([components/home/about-teaser.tsx](components/home/about-teaser.tsx)) -- the home About "Read more" link carries an `sr-only` suffix so its crawled and accessible name is specific.
+
+### Fixed
+
+- **QR aspect ratio** ([app/contact/page.tsx](app/contact/page.tsx)) -- the Instagram QR declared 224x224 on a 2350x2700 source (distorted, and a Best-Practices flag); it now declares true intrinsic dimensions and scales with `w-44 h-auto`.
+
 ## 1.20.2 (2026-06-05)
 
 ### Added

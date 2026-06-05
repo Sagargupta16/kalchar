@@ -5,7 +5,11 @@ import { ArtImage } from "@/components/gallery/art-image";
 import { Reveal } from "@/components/motion/reveal";
 import { SplitText } from "@/components/motion/split-text";
 import { buttonVariants } from "@/components/ui/button";
+import { artworkPreloadSrcset } from "@/lib/image-base";
 import type { Artwork, Site } from "@/lib/types";
+
+/** sizes hint shared by the featured <img> and its preload link -- must match. */
+const FEATURED_SIZES = "(min-width: 768px) 40vw, 90vw";
 
 /**
  * Home hero: artist brand, animated headline, capability chip rail, primary
@@ -25,6 +29,20 @@ export function Hero({
 }>) {
 	return (
 		<section className="relative overflow-hidden border-b border-line">
+			{/* Preload the featured artwork (the LCP element) so the browser's
+			    preload scanner starts the fetch during HTML parse, not after it
+			    discovers the <picture>. Next hoists this <link> into <head>.
+			    imageSrcSet/imageSizes mirror the <img> so no extra variant loads. */}
+			{featured ? (
+				<link
+					rel="preload"
+					as="image"
+					type="image/avif"
+					imageSrcSet={artworkPreloadSrcset(featured.image, 800)}
+					imageSizes={FEATURED_SIZES}
+					fetchPriority="high"
+				/>
+			) : null}
 			<PigmentWash />
 			<InkSplash
 				density="rich"
@@ -39,10 +57,15 @@ export function Hero({
 			/>
 			<div className="relative mx-auto grid max-w-6xl gap-10 px-(--container-px) py-(--section-py) md:grid-cols-12 md:items-center md:gap-12">
 				<div className="md:col-span-7">
-					<Reveal>
+					<Reveal eager>
 						<p className="t-eyebrow">{site.brand.tagline}</p>
 					</Reveal>
-					<Reveal delayMs={80} as="h1" className="t-display mt-4 text-5xl sm:text-6xl md:text-7xl">
+					<Reveal
+						eager
+						delayMs={80}
+						as="h1"
+						className="t-display mt-4 text-5xl sm:text-6xl md:text-7xl"
+					>
 						<span className="block">
 							<span className="not-italic">{site.brand.headline.latinPrefix}</span>
 							<span
@@ -68,7 +91,7 @@ export function Hero({
 					 * navigation -- the same data drives the /work filter,
 					 * which is the actual click target.
 					 */}
-					<Reveal delayMs={180}>
+					<Reveal eager delayMs={180}>
 						<ul className="mt-7 flex flex-wrap gap-x-2 gap-y-2 sm:gap-x-3" aria-label="Styles">
 							{site.styles.map((style) => (
 								<li
@@ -80,7 +103,7 @@ export function Hero({
 							))}
 						</ul>
 					</Reveal>
-					<Reveal delayMs={260}>
+					<Reveal eager delayMs={260}>
 						<div className="mt-8 flex flex-wrap gap-3">
 							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
 								See the work
@@ -93,7 +116,7 @@ export function Hero({
 				</div>
 
 				{featured ? (
-					<Reveal delayMs={120} className="md:col-span-5">
+					<Reveal eager delayMs={120} className="md:col-span-5">
 						<Link
 							href={`/work/${featured.slug}`}
 							className="group block focus-visible:outline-none"
@@ -103,7 +126,8 @@ export function Hero({
 								<ArtImage
 									src={`/artworks/${featured.image}`}
 									alt={featured.description ?? featured.title}
-									sizes="(min-width: 768px) 40vw, 90vw"
+									sizes={FEATURED_SIZES}
+									maxWidth={800}
 									priority
 									className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
 								/>

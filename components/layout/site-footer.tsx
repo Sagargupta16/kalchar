@@ -39,7 +39,7 @@ export function SiteFooter() {
 						</span>
 					</Link>
 					<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
-					<p className="mt-1 text-xs uppercase tracking-meta text-muted/80">{brand.location}</p>
+					<p className="mt-1 text-xs uppercase tracking-meta text-muted">{brand.location}</p>
 				</div>
 
 				<nav aria-label="Footer">
@@ -90,7 +90,7 @@ export function SiteFooter() {
 						<Link href="/admin" className="transition-colors hover:text-accent">
 							Maintainer login
 						</Link>
-						<span className="text-[0.65rem] opacity-50">Site by Sagar Gupta</span>
+						<span className="text-[0.65rem]">Site by Sagar Gupta</span>
 					</div>
 				</div>
 			</div>

@@ -46,7 +46,12 @@ export default function AboutPage() {
 				<Reveal>
 					<MotifEyebrow motif="peacock-feather" label={a.eyebrow ?? "About"} />
 				</Reveal>
-				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl md:text-6xl">
+				<Reveal
+					eager
+					delayMs={80}
+					as="h1"
+					className="t-display mt-3 text-4xl sm:text-5xl md:text-6xl"
+				>
 					{a.title ?? "On preserving folk traditions through practice"}
 				</Reveal>
 				<BrushStroke className="mt-5" width={240} />
@@ -56,7 +61,7 @@ export default function AboutPage() {
 				{/* Body */}
 				<div className="space-y-6 md:col-span-8">
 					{(a.paragraphs ?? []).map((p, i) => (
-						<Reveal key={p.slice(0, 24)} delayMs={i * 80}>
+						<Reveal key={p.slice(0, 24)} eager={i === 0} delayMs={i * 80}>
 							<p className={`t-lead text-ink ${i === 0 ? "drop-cap" : ""}`}>{p}</p>
 						</Reveal>
 					))}

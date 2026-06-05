@@ -44,12 +44,12 @@ export default function ContactPage() {
 				<Reveal>
 					<MotifEyebrow motif="rangoli-star" label={c?.eyebrow ?? "Contact"} />
 				</Reveal>
-				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+				<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{c?.title ?? "Get in touch"}
 				</Reveal>
 				<BrushStroke className="mt-5" width={220} />
 				{c?.lead ? (
-					<Reveal delayMs={160}>
+					<Reveal eager delayMs={160}>
 						<p className="t-lead mt-4">{c.lead}</p>
 					</Reveal>
 				) : null}
@@ -73,7 +73,7 @@ export default function ContactPage() {
 						<div className="flex-1">
 							<div className="flex flex-wrap items-center gap-2">
 								<p className="t-eyebrow">{contact.whatsapp.label}</p>
-								<span className="rounded-full bg-(--section-accent)/10 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-meta text-(--section-accent)">
+								<span className="rounded-full bg-(--section-accent) px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-meta text-bg">
 									Fastest reply
 								</span>
 							</div>
@@ -106,10 +106,10 @@ export default function ContactPage() {
 						<Image
 							src="/instagram-qr.png"
 							alt=""
-							width={224}
-							height={224}
+							width={2350}
+							height={2700}
 							loading="lazy"
-							className="block h-44 w-44 rounded-md border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:h-56 sm:w-56"
+							className="block h-auto w-44 rounded-md border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:w-56"
 						/>
 					</a>
 					<div>

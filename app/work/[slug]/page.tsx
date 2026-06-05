@@ -7,10 +7,13 @@ import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
+
+/** sizes hint shared by the detail <img> and its preload link -- must match. */
+const DETAIL_SIZES = "(min-width: 768px) 60vw, 100vw";
 
 interface PageProps {
 	params: Promise<{ slug: string }>;
@@ -93,7 +96,17 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 
 	return (
 		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-			<Reveal>
+			{/* Preload the artwork plate (the LCP element) so its fetch starts at
+			    HTML parse. imageSrcSet/imageSizes mirror the <img> exactly. */}
+			<link
+				rel="preload"
+				as="image"
+				type="image/avif"
+				imageSrcSet={artworkPreloadSrcset(art.image, 800)}
+				imageSizes={DETAIL_SIZES}
+				fetchPriority="high"
+			/>
+			<Reveal eager>
 				<Link
 					href="/work"
 					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
@@ -105,12 +118,13 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
-				<Reveal className="md:col-span-7">
+				<Reveal eager className="md:col-span-7">
 					<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
-							sizes="(min-width: 768px) 60vw, 100vw"
+							sizes={DETAIL_SIZES}
+							maxWidth={800}
 							priority
 							className="absolute inset-0 h-full w-full object-cover"
 						/>
@@ -129,10 +143,10 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 
 				{/* Info column */}
 				<div className="md:col-span-5">
-					<Reveal>
+					<Reveal eager>
 						<p className="t-eyebrow">{art.style}</p>
 					</Reveal>
-					<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+					<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 						{art.title}
 					</Reveal>
 

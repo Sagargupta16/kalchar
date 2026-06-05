@@ -49,7 +49,7 @@ export function AboutTeaser({
 				<Reveal delayMs={280}>
 					<div className="mt-8">
 						<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
-							Read more
+							Read more<span className="sr-only"> about Megha</span>
 						</Link>
 					</div>
 				</Reveal>

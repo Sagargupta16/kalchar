@@ -55,7 +55,7 @@ export default async function HomePage() {
 	const featuredIndex = featured ? all.findIndex((a) => a.slug === featured.slug) : -1;
 
 	return (
-		<>
+		<main>
 			<Hero site={site} featured={featured} featuredIndex={featuredIndex} totalCount={all.length} />
 			<Marquee />
 
@@ -129,6 +129,6 @@ export default async function HomePage() {
 				title={site.sections.contact?.title ?? "Get in touch"}
 				lead={site.sections.contact?.lead}
 			/>
-		</>
+		</main>
 	);
 }
