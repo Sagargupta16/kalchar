@@ -1,26 +1,12 @@
-import {
-	ExternalLink,
-	GraduationCap,
-	ListChecks,
-	LogOut,
-	Palette,
-	Settings,
-	Users,
-} from "lucide-react";
+import { ExternalLink, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth, signOut } from "@/auth";
 import { isMaintainer } from "@/lib/maintainers";
+import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
-
-const NAV = [
-	{ label: "Artworks", href: "/admin", icon: Palette },
-	{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
-	{ label: "Presets", href: "/admin/presets", icon: ListChecks },
-	{ label: "Maintainers", href: "/admin/maintainers", icon: Users },
-];
 
 export default async function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
 	const session = await auth();
@@ -39,18 +25,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 							</div>
 							<span className="text-sm font-semibold">Admin</span>
 						</Link>
-						<nav className="hidden items-center gap-1 md:flex">
-							{NAV.map((item) => (
-								<Link
-									key={item.href}
-									href={item.href}
-									className="inline-flex items-center gap-1.5 rounded-(--radius-sm) px-3 py-1.5 text-sm text-muted transition-colors hover:bg-bg-muted hover:text-ink"
-								>
-									<item.icon size={14} />
-									{item.label}
-								</Link>
-							))}
-						</nav>
+						<AdminNavDesktop />
 					</div>
 					<div className="flex items-center gap-3">
 						<Link
@@ -79,8 +54,12 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 				</div>
 			</header>
 
-			{/* Content */}
-			<main className="mx-auto max-w-6xl px-(--container-px) py-8">{children}</main>
+			{/* Content. Extra bottom padding on mobile so the fixed tab bar
+			    never covers the last row of content. */}
+			<main className="mx-auto max-w-6xl px-(--container-px) pt-8 pb-24 md:pb-8">{children}</main>
+
+			{/* Mobile bottom tab bar */}
+			<AdminNavMobile />
 		</div>
 	);
 }
