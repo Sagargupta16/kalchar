@@ -204,9 +204,15 @@ export function CustomOrderForm({
 			</div>
 
 			<div className="flex flex-col items-start gap-3">
-				<Button type="submit" variant="primary" size="lg" disabled={submitting}>
+				<Button
+					type="submit"
+					variant="primary"
+					size="lg"
+					disabled={submitting}
+					className="w-full whitespace-normal text-center sm:w-auto"
+				>
 					{submitText}
-					<ArrowRight size={16} aria-hidden="true" />
+					<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
 				</Button>
 				<p className="text-xs text-muted">
 					You&rsquo;ll review the message in WhatsApp before it sends.

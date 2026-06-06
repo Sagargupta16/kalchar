@@ -56,7 +56,7 @@ export default async function CustomOrdersPage() {
 					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
 						{/* How it works -- sticky on desktop so it stays beside the
 						    taller form as the visitor scrolls/fills it in. */}
-						<aside className="md:col-span-5">
+						<aside className="min-w-0 md:col-span-5">
 							<div className="md:sticky md:top-24">
 								<Reveal>
 									<h2 className="t-eyebrow">How it works</h2>
@@ -95,7 +95,7 @@ export default async function CustomOrdersPage() {
 						</aside>
 
 						{/* Form */}
-						<section aria-label="Custom order form" className="md:col-span-7">
+						<section aria-label="Custom order form" className="min-w-0 md:col-span-7">
 							<h2 className="sr-only">Order details</h2>
 							<Reveal delayMs={120}>
 								<Card padding="lg">
