@@ -62,7 +62,7 @@ export default function ContactPage() {
 					href={contact.whatsapp.url}
 					target={isExternal(contact.whatsapp.url) ? "_blank" : undefined}
 					rel={isExternal(contact.whatsapp.url) ? "noopener noreferrer" : undefined}
-					className="group mt-12 block rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-8"
+					className="group mt-12 block rounded-(--radius-card) border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-8"
 				>
 					<div className="flex items-start gap-5 sm:gap-6">
 						<span
@@ -96,7 +96,7 @@ export default function ContactPage() {
 
 			{/* Instagram QR -- scan from a phone, point a camera on desktop */}
 			<Reveal delayMs={240}>
-				<div className="mt-6 grid gap-6 rounded-md border border-line bg-bg-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8 sm:p-8">
+				<div className="mt-6 grid gap-6 rounded-(--radius-card) border border-line bg-bg-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8 sm:p-8">
 					<a
 						href={contact.instagram.url}
 						target="_blank"
@@ -110,7 +110,7 @@ export default function ContactPage() {
 							width={2350}
 							height={2700}
 							loading="lazy"
-							className="block h-auto w-44 rounded-md border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:w-56"
+							className="block h-auto w-44 rounded-(--radius-card) border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:w-56"
 						/>
 					</a>
 					<div>
@@ -141,7 +141,7 @@ export default function ContactPage() {
 						href={contact.instagram.url}
 						target={isExternal(contact.instagram.url) ? "_blank" : undefined}
 						rel={isExternal(contact.instagram.url) ? "noopener noreferrer" : undefined}
-						className="group flex h-full items-start gap-4 rounded-md border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
+						className="group flex h-full items-start gap-4 rounded-(--radius-card) border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
 					>
 						<span
 							className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"
@@ -170,7 +170,7 @@ export default function ContactPage() {
 						href={contact.email.url}
 						target={isExternal(contact.email.url) ? "_blank" : undefined}
 						rel={isExternal(contact.email.url) ? "noopener noreferrer" : undefined}
-						className="group flex h-full items-start gap-4 rounded-md border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
+						className="group flex h-full items-start gap-4 rounded-(--radius-card) border border-line bg-bg p-5 transition-[transform,border-color] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent)"
 					>
 						<span
 							className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"
@@ -195,7 +195,7 @@ export default function ContactPage() {
 			</div>
 
 			<Reveal delayMs={320}>
-				<div className="mt-16 flex flex-col items-start gap-4 rounded-md border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+				<div className="mt-16 flex flex-col items-start gap-4 rounded-(--radius-card) border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
 					<div>
 						<p className="t-eyebrow">Custom orders</p>
 						<p className="t-display mt-2 text-2xl">Order a custom piece</p>

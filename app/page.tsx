@@ -49,6 +49,11 @@ export default async function HomePage() {
 	// piece excluded (it already had its moment above the fold).
 	const selected = all.filter((a) => a.featured && a.slug !== featured?.slug).slice(0, 6);
 
+	// Back plate for the layered hero -- the first sibling featured piece. Loads
+	// lazily (it is decorative, not the LCP), so it never competes with the
+	// front plate's preload.
+	const heroSecondary = selected[0];
+
 	// Top 3 workshops by `order` for the teaser strip.
 	const workshopsPreview = allWorkshops.slice(0, 3);
 
@@ -56,7 +61,13 @@ export default async function HomePage() {
 
 	return (
 		<main>
-			<Hero site={site} featured={featured} featuredIndex={featuredIndex} totalCount={all.length} />
+			<Hero
+				site={site}
+				featured={featured}
+				secondary={heroSecondary}
+				featuredIndex={featuredIndex}
+				totalCount={all.length}
+			/>
 			<Marquee />
 
 			{selected.length > 0 ? (

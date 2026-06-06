@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.21.0 (2026-06-06)
+
+"The Atelier" design direction, selected from a 5-direction design-lab exploration. A warmer, more tactile evolution of the gallery register, applied to the shell + home first. Verified with lint, typecheck, build, an 8-agent code review, Lighthouse (home Performance 79 -> 87, A11y 100, SEO 100, CLS 0), and axe-core (0 violations, light + dark).
+
+### Added
+
+- **Two-tier radius scale** ([app/globals.css](app/globals.css)) -- new `--radius-card` (~16px) token for content surfaces (cards, panels, image plates, lightbox); `--radius` (`rounded-md`, ~6px) stays for pressable surfaces (buttons, fields, badges); pills + theme toggle stay `rounded-full`. Applied across home teasers, gallery card, standalone pages, and the lightbox.
+- **Layered hero plates** ([components/home/hero.tsx](components/home/hero.tsx), [app/page.tsx](app/page.tsx)) -- the single featured plate became two overlapping tilted plates: a lazily-loaded back plate (+4deg) behind the featured plate (-5deg), each with a soft shadow + ring. The front plate stays the preloaded LCP (priority + `maxWidth={800}` + preload intact); the back plate loads lazily so it never competes. Reduced-motion users get a flat, un-tilted stack.
+- **Gold-leaf accent mark** ([components/home/hero.tsx](components/home/hero.tsx), [app/globals.css](app/globals.css)) -- a single `✦` in `--color-gold-leaf` on the hero eyebrow + featured line (decorative, `aria-hidden`). Added a dark-mode remap for `--color-gold-leaf` so the foil reads on near-black.
+- **Contact pill CTA** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- on desktop, Contact graduates from a text nav link to an accent-bordered `rounded-full` pill (fills on hover/active), a standing conversion path. The other four routes stay text links; the mobile drawer still lists all five.
+
 ## 1.20.4 (2026-06-05)
 
 Icon and affordance pass. A multi-region survey (icon inventory + opportunities) drove a set of conservative additions that improve scannability and tap-affordance without touching the restrained gallery register. Verified with lint, typecheck, build, and an in-browser check.

@@ -113,7 +113,7 @@ function TeaserStep({
 	body: string;
 }>) {
 	return (
-		<div className="flex h-full flex-col rounded-md border border-line bg-bg p-6">
+		<div className="flex h-full flex-col rounded-(--radius-card) border border-line bg-bg p-6">
 			<span
 				className="grid h-10 w-10 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line"
 				aria-hidden="true"

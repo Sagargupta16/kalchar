@@ -124,7 +124,7 @@ export function ArtworkCard({
 								}
 							: { touchAction: "manipulation" }
 					}
-					className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
+					className="relative aspect-3/4 overflow-hidden rounded-(--radius-card) bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
 				>
 					{/* Reflective light glare effect. Skipped under reduced-motion. */}
 					{tiltEnabled ? (
@@ -140,8 +140,8 @@ export function ArtworkCard({
 					) : null}
 
 					{/* Tanjore Gold double-border highlight that animates on hover */}
-					<div className="absolute inset-1 z-20 rounded-md border border-(--color-gold-leaf)/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
-					<div className="absolute inset-2 z-20 rounded-md border border-dashed border-(--color-gold-leaf)/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-1 z-20 rounded-[calc(var(--radius-card)-0.25rem)] border border-(--color-gold-leaf)/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-2 z-20 rounded-[calc(var(--radius-card)-0.5rem)] border border-dashed border-(--color-gold-leaf)/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
 
 					<ArtImage
 						src={imgSrc}

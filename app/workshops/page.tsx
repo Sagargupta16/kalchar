@@ -68,7 +68,7 @@ export default async function WorkshopsPage() {
 					});
 					return (
 						<Reveal key={item.slug} as="li" delayMs={Math.min(i, 5) * 60}>
-							<article className="group flex h-full flex-col rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
+							<article className="group flex h-full flex-col rounded-(--radius-card) border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
 								<h3 className="t-display text-2xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
 									{item.title}
 								</h3>
@@ -97,7 +97,7 @@ export default async function WorkshopsPage() {
 			</ul>
 
 			<Reveal delayMs={300}>
-				<div className="mt-16 flex flex-col items-start gap-4 rounded-md border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+				<div className="mt-16 flex flex-col items-start gap-4 rounded-(--radius-card) border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
 					<div>
 						<p className="t-eyebrow">Group / school enquiries</p>
 						<p className="t-display mt-2 text-2xl">Bring a workshop to your space</p>

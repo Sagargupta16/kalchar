@@ -287,7 +287,7 @@ function LightboxView({
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.95, y: 15 }}
 				transition={{ type: "spring", damping: 30, stiffness: 350 }}
-				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-md border border-line bg-bg shadow-2xl md:grid-cols-12"
+				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-card) border border-line bg-bg shadow-2xl md:grid-cols-12"
 			>
 				{/* Image frame view */}
 				<div
@@ -313,7 +313,7 @@ function LightboxView({
 						onMouseEnter={onZoomEnter}
 						onMouseLeave={onZoomLeave}
 						aria-label="Interactive artwork detail zoom viewer"
-						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-md ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in m-0"
+						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-(--radius-card) ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in m-0"
 					>
 						{/* R2-served variants: AVIF/WebP at 1600w (capped at master
 						    width) with the master-width mozjpeg as the <img> base. On
