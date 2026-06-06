@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/lib/db/client";
-import { artworks, workshops } from "@/lib/db/schema";
+import { artworks, orderPresets, workshops } from "@/lib/db/schema";
 import { addMaintainer, isMaintainer, removeMaintainer } from "@/lib/maintainers";
 import {
 	deleteArtworkImages,
@@ -258,6 +258,61 @@ export async function deleteWorkshop(slug: string): Promise<void> {
 	await requireMaintainer();
 	await db.delete(workshops).where(eq(workshops.slug, slug));
 	revalidateWorkshops();
+}
+
+// --- Custom-order preset actions ---
+
+type PresetKind = "size" | "budget" | "timeline";
+
+function revalidateOrderPresets() {
+	revalidatePath("/custom-orders");
+	revalidatePath("/admin/presets");
+}
+
+/** Add a preset option of a given kind (size / budget / timeline). */
+export async function createOrderPreset(kind: PresetKind, label: string): Promise<void> {
+	await requireMaintainer();
+	const trimmed = label.trim();
+	if (!trimmed) throw new Error("Label is required.");
+	const existing = await db.select({ order: orderPresets.order }).from(orderPresets);
+	const nextOrder = existing.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	// id must be stable + unique; derive from kind + a monotonic suffix.
+	const id = `${kind}-${nextOrder}-${trimmed
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.slice(0, 24)}`;
+	await db.insert(orderPresets).values({ id, kind, label: trimmed, order: nextOrder });
+	revalidateOrderPresets();
+}
+
+/** Rename a preset. */
+export async function updateOrderPreset(id: string, label: string): Promise<void> {
+	await requireMaintainer();
+	const trimmed = label.trim();
+	if (!trimmed) throw new Error("Label is required.");
+	await db.update(orderPresets).set({ label: trimmed }).where(eq(orderPresets.id, id));
+	revalidateOrderPresets();
+}
+
+/** Reorder presets within a kind by providing the new id sequence. */
+export async function reorderOrderPresets(ids: string[]): Promise<void> {
+	await requireMaintainer();
+	await Promise.all(
+		ids.map((id, i) =>
+			db
+				.update(orderPresets)
+				.set({ order: i + 1 })
+				.where(eq(orderPresets.id, id)),
+		),
+	);
+	revalidateOrderPresets();
+}
+
+/** Delete a preset. */
+export async function deleteOrderPreset(id: string): Promise<void> {
+	await requireMaintainer();
+	await db.delete(orderPresets).where(eq(orderPresets.id, id));
+	revalidateOrderPresets();
 }
 
 // --- Maintainer roster actions ---
