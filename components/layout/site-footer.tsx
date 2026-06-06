@@ -12,11 +12,6 @@ const ICON_FOR_KEY: Record<string, BrandIcon> = {
 	email: GmailIcon,
 };
 
-/**
- * Footer -- gallery register, calm. Three blocks on desktop (brand,
- * navigate, contact), stacked on mobile. Pulls everything from site data
- * so the artist can edit copy / channels without touching the component.
- */
 export function SiteFooter() {
 	const { brand, contact, nav } = getSite();
 	const year = new Date().getFullYear();
@@ -28,24 +23,28 @@ export function SiteFooter() {
 
 	return (
 		<footer className="mt-24 border-t border-line">
-			<div className="mx-auto grid max-w-6xl gap-10 px-(--container-px) py-12 sm:grid-cols-3 sm:gap-8 sm:py-14">
+			<div className="mx-auto grid max-w-6xl gap-10 px-(--container-px) py-14 sm:grid-cols-3 sm:gap-8">
+				{/* Brand column */}
 				<div>
 					<Link
 						href="/"
-						className="t-display inline-block text-3xl leading-none transition-colors hover:text-accent sm:text-[2rem]"
+						className="t-display inline-block text-2xl leading-none transition-colors hover:text-accent"
 					>
 						<span className="not-italic">{brand.headline.latinPrefix}</span>
 						<span lang="hi" className="font-devanagari not-italic text-accent">
 							{brand.headline.devanagariCore}
 						</span>
 					</Link>
-					<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
-					<p className="mt-1 text-xs uppercase tracking-meta text-muted">{brand.location}</p>
+					<p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
+					<p className="mt-1.5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted">
+						{brand.location}
+					</p>
 				</div>
 
+				{/* Navigate column */}
 				<nav aria-label="Footer">
 					<p className="t-eyebrow">Navigate</p>
-					<ul className="mt-4 space-y-2 text-sm">
+					<ul className="mt-4 space-y-2.5 text-sm">
 						{nav.map((item) => (
 							<li key={item.href}>
 								<Link
@@ -59,9 +58,10 @@ export function SiteFooter() {
 					</ul>
 				</nav>
 
+				{/* Contact column */}
 				<div>
 					<p className="t-eyebrow">Reach out</p>
-					<ul className="mt-4 space-y-2 text-sm">
+					<ul className="mt-4 space-y-2.5 text-sm">
 						{channels.map((c) => {
 							const Icon = ICON_FOR_KEY[c.key];
 							return (
@@ -82,8 +82,9 @@ export function SiteFooter() {
 				</div>
 			</div>
 
+			{/* Bottom bar */}
 			<div className="border-t border-line">
-				<div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-2 px-(--container-px) py-5 text-xs uppercase tracking-meta text-muted sm:flex-row sm:items-center">
+				<div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-2 px-(--container-px) py-5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted sm:flex-row sm:items-center">
 					<p>
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
@@ -93,7 +94,7 @@ export function SiteFooter() {
 							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
 						>
 							<Lock size={11} aria-hidden="true" />
-							Maintainer login
+							Admin
 						</Link>
 						<span className="text-[0.65rem]">Site by Sagar Gupta</span>
 					</div>

@@ -69,7 +69,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 							onClick={() => setActive(f)}
 							aria-pressed={isActive}
 							className={cn(
-								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-colors",
+								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
 								isActive
 									? "border-ink bg-ink text-bg"
 									: "border-line text-muted hover:border-accent hover:text-accent",
@@ -86,7 +86,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			</p>
 
 			{visible.length > 0 ? (
-				<ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:gap-y-14 lg:grid-cols-3">
+				<ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
 					{visible.map((art, i) => (
 						<Reveal key={art.slug} as="li" delayMs={Math.min(i, 5) * 60}>
 							<ArtworkCard

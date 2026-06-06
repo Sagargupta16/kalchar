@@ -1,10 +1,21 @@
 "use client";
 
 import { ImageOff } from "lucide-react";
-import { useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { useEffect, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
+
+function usePrefersReducedMotion(): boolean {
+	const [reduce, setReduce] = useState(false);
+	useEffect(() => {
+		const mql = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
+		setReduce(mql.matches);
+		const handler = (e: MediaQueryListEvent) => setReduce(e.matches);
+		mql.addEventListener("change", handler);
+		return () => mql.removeEventListener("change", handler);
+	}, []);
+	return reduce;
+}
 
 /**
  * Image component for catalog artwork.
@@ -138,7 +149,7 @@ export function ArtImage({
 				className={cn(
 					imgClass,
 					animate &&
-						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-out-soft motion-reduce:transition-none",
+						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
 				)}
 			/>
 		</picture>

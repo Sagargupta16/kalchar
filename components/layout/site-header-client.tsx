@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Menu, X } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,32 +9,9 @@ import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
-/**
- * Client island for the top bar.
- *
- * Mobile-first: brand mark on the left, hamburger toggle on the right. The
- * menu is a full-width drawer panel that opens under the header. Body
- * scroll locks while it's open. ESC closes.
- *
- * Desktop (>= 768px): the hamburger is hidden and the 5 nav links lay out
- * horizontally to the right of the brand mark with an accent underline on
- * the active route.
- *
- * Brand pieces are passed as props so the parent (Server Component) reads
- * them from `data/site.json` once and the Client island stays focused on
- * interactivity.
- */
-
 interface NavItem {
 	label: string;
 	href: string;
-}
-
-interface SiteHeaderClientProps {
-	brandLatinPrefix: string;
-	brandDevanagariCore: string;
-	brandConnector: string;
-	brandSuffix: string;
 }
 
 const NAV: NavItem[] = [
@@ -42,79 +19,58 @@ const NAV: NavItem[] = [
 	{ label: "About", href: "/about" },
 	{ label: "Workshops", href: "/workshops" },
 	{ label: "Custom Orders", href: "/custom-orders" },
-	{ label: "Contact", href: "/contact" },
 ];
 
-// Contact is rendered as a standing accent pill CTA on desktop, separate from
-// the text nav. The mobile drawer still lists all five (incl. Contact).
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
 
-export function SiteHeaderClient({
-	brandLatinPrefix,
-	brandDevanagariCore,
-	brandConnector,
-	brandSuffix,
-}: Readonly<SiteHeaderClientProps>) {
+interface Props {
+	latinPrefix: string;
+	devanagariCore: string;
+}
+
+export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 
-	// Close drawer on route change. The effect intentionally depends on
-	// `pathname` -- it's the trigger -- even though the body doesn't read it.
+	// Close on route change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
 	useEffect(() => {
 		setOpen(false);
 	}, [pathname]);
 
-	// Close drawer on Escape; lock body scroll while open.
-	//
-	// iOS Safari ignores `overflow: hidden` on <body>, so a plain overflow
-	// lock lets the page scroll behind the drawer and the collapsing address
-	// bar thrashes the viewport. Instead we pin the body with `position: fixed`
-	// at a negative top offset equal to the current scroll, then restore the
-	// scroll position on close. This holds on every mobile browser.
+	// Body scroll lock (iOS-safe)
 	useEffect(() => {
 		if (!open) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") setOpen(false);
 		};
 		document.addEventListener("keydown", onKey);
-
 		const { body } = document;
 		const scrollY = globalThis.scrollY;
-		const prev = {
-			position: body.style.position,
-			top: body.style.top,
-			left: body.style.left,
-			right: body.style.right,
-			width: body.style.width,
-		};
 		body.style.position = "fixed";
 		body.style.top = `-${scrollY}px`;
 		body.style.left = "0";
 		body.style.right = "0";
 		body.style.width = "100%";
-
 		return () => {
 			document.removeEventListener("keydown", onKey);
-			body.style.position = prev.position;
-			body.style.top = prev.top;
-			body.style.left = prev.left;
-			body.style.right = prev.right;
-			body.style.width = prev.width;
+			body.style.position = "";
+			body.style.top = "";
+			body.style.left = "";
+			body.style.right = "";
+			body.style.width = "";
 			globalThis.scrollTo(0, scrollY);
 		};
 	}, [open]);
 
-	// Compress header padding once the user has scrolled past 80px. We only
-	// need a threshold crossing, not the scroll value itself, so we read
-	// `scrollY` directly inside an rAF-throttled listener.
+	// Scroll detection
 	useEffect(() => {
 		let raf = 0;
 		const onScroll = () => {
 			if (raf) return;
 			raf = requestAnimationFrame(() => {
-				setScrolled(globalThis.scrollY > 80);
+				setScrolled(globalThis.scrollY > 48);
 				raf = 0;
 			});
 		};
@@ -126,9 +82,6 @@ export function SiteHeaderClient({
 		};
 	}, []);
 
-	// Active = exact match or a true sub-path (segment boundary), so /workshops
-	// does not light up /work. Normalize the trailing slash (trailingSlash:true
-	// means the live pathname is "/work/") before comparing.
 	const isActive = (href: string) => {
 		if (href === "/") return pathname === "/";
 		const path = pathname.replace(/\/$/, "");
@@ -137,16 +90,22 @@ export function SiteHeaderClient({
 	};
 
 	return (
-		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75 [contain:layout]">
+		<header
+			className={cn(
+				"sticky top-0 z-40 border-b bg-bg/90 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out)",
+				scrolled ? "border-line shadow-sm" : "border-transparent",
+			)}
+		>
 			<div
 				className={cn(
-					"mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) transition-[padding] duration-(--duration-base) ease-out-soft",
-					scrolled ? "py-2 md:py-2.5" : "py-3 md:py-4",
+					"mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) transition-[padding] duration-(--duration-base) ease-(--ease-out)",
+					scrolled ? "py-2.5" : "py-3.5 md:py-4",
 				)}
 			>
+				{/* Brand mark */}
 				<Link
 					href="/"
-					className="group flex items-center gap-2.5 transition-colors hover:text-accent md:gap-3"
+					className="group flex items-center gap-2.5 transition-colors hover:text-accent"
 					aria-label="Home"
 				>
 					<Image
@@ -155,26 +114,21 @@ export function SiteHeaderClient({
 						width={36}
 						height={36}
 						priority
-						className="h-8 w-8 rounded-full ring-1 ring-line transition-shadow group-hover:ring-accent md:h-9 md:w-9"
+						className="h-8 w-8 rounded-full ring-1 ring-line transition-all duration-(--duration-base) ease-(--ease-out) group-hover:ring-accent md:h-9 md:w-9"
 					/>
-					<span className="t-display text-xl tracking-tight md:text-2xl">
-						<span className="not-italic">{brandLatinPrefix}</span>
+					<span className="t-display text-xl tracking-tight md:text-[1.4rem]">
+						<span className="not-italic">{latinPrefix}</span>
 						<span lang="hi" className="font-devanagari not-italic text-accent">
-							{brandDevanagariCore}
-						</span>
-						<span className="ml-2 text-base text-muted md:text-lg">
-							<span className="not-italic">{brandConnector}</span> <span>{brandSuffix}</span>
+							{devanagariCore}
 						</span>
 					</span>
 				</Link>
 
-				{/* Desktop nav + theme toggle. Contact graduates from a text link to
-				    an accent pill CTA -- a standing conversion path -- so the text
-				    nav carries the other four routes. */}
+				{/* Desktop nav */}
 				<div className="hidden items-center gap-6 md:flex">
 					<nav aria-label="Primary">
 						<ul className="flex items-center gap-7">
-							{NAV.filter((item) => item.href !== CONTACT.href).map((item) => {
+							{NAV.map((item) => {
 								const active = isActive(item.href);
 								return (
 									<li key={item.href} className="relative">
@@ -182,7 +136,7 @@ export function SiteHeaderClient({
 											href={item.href}
 											aria-current={active ? "page" : undefined}
 											className={cn(
-												"relative text-xs uppercase tracking-meta transition-colors",
+												"relative py-1 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors",
 												active ? "text-accent" : "text-muted hover:text-ink",
 											)}
 										>
@@ -191,13 +145,9 @@ export function SiteHeaderClient({
 										{active ? (
 											<motion.span
 												aria-hidden="true"
-												layoutId="header-nav-indicator"
-												className="pointer-events-none absolute -bottom-1.5 left-0 right-0 h-px bg-accent"
-												transition={{
-													type: "spring",
-													stiffness: 380,
-													damping: 32,
-												}}
+												layoutId="nav-indicator"
+												className="pointer-events-none absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-accent"
+												transition={{ type: "spring", stiffness: 400, damping: 30 }}
 											/>
 										) : null}
 									</li>
@@ -207,12 +157,11 @@ export function SiteHeaderClient({
 					</nav>
 					<Link
 						href={CONTACT.href}
-						aria-current={isActive(CONTACT.href) ? "page" : undefined}
 						className={cn(
-							"inline-flex min-h-11 items-center rounded-full px-4 text-xs uppercase tracking-meta transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+							"inline-flex h-9 items-center rounded-full px-4 text-xs uppercase tracking-[var(--tracking-meta)] font-medium transition-all duration-(--duration-base) ease-(--ease-out) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
 							isActive(CONTACT.href)
 								? "bg-accent text-bg"
-								: "border border-accent text-accent hover:bg-accent hover:text-bg",
+								: "border border-accent/60 text-accent hover:bg-accent hover:text-bg",
 						)}
 					>
 						{CONTACT.label}
@@ -220,8 +169,8 @@ export function SiteHeaderClient({
 					<ThemeToggle />
 				</div>
 
-				{/* Mobile theme toggle + menu trigger */}
-				<div className="flex items-center gap-2 md:hidden">
+				{/* Mobile controls */}
+				<div className="flex items-center gap-1.5 md:hidden">
 					<ThemeToggle />
 					<button
 						type="button"
@@ -229,38 +178,52 @@ export function SiteHeaderClient({
 						aria-expanded={open}
 						aria-controls="mobile-menu"
 						aria-label={open ? "Close menu" : "Open menu"}
-						className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded text-ink transition-colors hover:text-accent"
+						className="inline-flex h-10 w-10 items-center justify-center rounded-(--radius-sm) text-ink transition-colors hover:bg-bg-soft hover:text-accent"
 					>
-						{open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+						{open ? <X size={20} /> : <Menu size={20} />}
 					</button>
 				</div>
 			</div>
 
 			{/* Mobile drawer */}
-			<div id="mobile-menu" hidden={!open} className="md:hidden">
-				<nav aria-label="Primary mobile" className="border-t border-line bg-bg">
-					<ul className="flex flex-col px-(--container-px) py-2">
-						{NAV.map((item) => {
-							const active = isActive(item.href);
-							return (
-								<li key={item.href}>
-									<Link
-										href={item.href}
-										aria-current={active ? "page" : undefined}
-										className={cn(
-											"flex min-h-12 items-center justify-between border-b border-line py-3 text-sm transition-colors last:border-b-0",
-											active ? "text-accent" : "text-ink hover:text-accent",
-										)}
-									>
-										<span>{item.label}</span>
-										<ArrowRight size={16} aria-hidden="true" className="text-muted" />
-									</Link>
-								</li>
-							);
-						})}
-					</ul>
-				</nav>
-			</div>
+			<AnimatePresence>
+				{open ? (
+					<motion.div
+						id="mobile-menu"
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+						className="overflow-hidden md:hidden"
+					>
+						<nav
+							aria-label="Primary mobile"
+							className="border-t border-line bg-bg px-(--container-px) py-2"
+						>
+							<ul className="flex flex-col">
+								{[...NAV, CONTACT].map((item) => {
+									const active = isActive(item.href);
+									return (
+										<li key={item.href}>
+											<Link
+												href={item.href}
+												aria-current={active ? "page" : undefined}
+												className={cn(
+													"flex min-h-12 items-center justify-between border-b border-line-soft py-3 text-sm transition-colors last:border-b-0",
+													active ? "text-accent font-medium" : "text-ink hover:text-accent",
+												)}
+											>
+												<span>{item.label}</span>
+												<ArrowRight size={14} className="text-muted" />
+											</Link>
+										</li>
+									);
+								})}
+							</ul>
+						</nav>
+					</motion.div>
+				) : null}
+			</AnimatePresence>
 		</header>
 	);
 }

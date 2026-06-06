@@ -1,59 +1,46 @@
 import Link from "next/link";
-import { BrushStroke } from "@/components/decor/brush-stroke";
-import { InkSplash } from "@/components/decor/ink-splash";
-import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
-import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
+import { Section } from "@/components/ui/section";
 
-/** Home "03 About" teaser. Marigold accent, centered editorial register. */
-export function AboutTeaser({
-	eyebrow,
-	title,
-	lead,
-	location,
-}: Readonly<{
+interface AboutTeaserProps {
 	eyebrow: string;
 	title: string;
 	lead?: string;
 	location: string;
-}>) {
+}
+
+export function AboutTeaser({ eyebrow, title, lead, location }: Readonly<AboutTeaserProps>) {
 	return (
-		<section
-			className="relative overflow-hidden border-b border-line bg-bg-soft"
-			style={{ "--section-accent": "var(--color-marigold)" } as React.CSSProperties}
-		>
-			<PigmentWash intensity="soft" />
-			<InkSplash
-				align="left"
-				density="subtle"
-				tone2="var(--color-pichwai)"
-				className="left-[-20%] top-[-10%] h-[120%] w-[80%] sm:w-[55%]"
-			/>
-			<div className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py) text-center">
+		<Section accent="marigold" background="soft" borderBottom>
+			<Container size="narrow" className="py-(--section-py) text-center">
 				<Reveal>
-					<MotifEyebrow motif="peacock-feather" number="03" label={eyebrow} centered />
+					<p className="t-eyebrow flex items-center justify-center gap-2">
+						<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+						{eyebrow}
+						<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+					</p>
 				</Reveal>
-				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
 					{title}
 				</Reveal>
-				<BrushStroke className="mt-4 mx-auto" width={200} />
 				{lead ? (
 					<Reveal delayMs={160}>
-						<p className="t-lead mt-5">{lead}</p>
+						<p className="t-lead mt-5 mx-auto max-w-lg">{lead}</p>
 					</Reveal>
 				) : null}
-				<Reveal delayMs={220}>
-					<p className="mt-6 text-sm text-muted">Working from {location}</p>
+				<Reveal delayMs={200}>
+					<p className="mt-5 text-sm text-muted">Working from {location}</p>
 				</Reveal>
-				<Reveal delayMs={280}>
-					<div className="mt-8">
+				<Reveal delayMs={260}>
+					<div className="mt-7">
 						<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
 							Read more<span className="sr-only"> about Megha</span>
 						</Link>
 					</div>
 				</Reveal>
-			</div>
-		</section>
+			</Container>
+		</Section>
 	);
 }
