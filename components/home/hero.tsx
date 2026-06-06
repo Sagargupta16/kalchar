@@ -19,6 +19,8 @@ interface HeroProps {
 	/** slug -> catalog position, for the hero caption. */
 	catalogIndex: Record<string, number>;
 	totalCount: number;
+	/** Category names for the chip rail (DB-backed, falls back to site.json). */
+	styles: readonly string[];
 }
 
 export function Hero({
@@ -28,6 +30,7 @@ export function Hero({
 	pool,
 	catalogIndex,
 	totalCount,
+	styles,
 }: Readonly<HeroProps>) {
 	return (
 		<section className="relative overflow-hidden border-b border-line">
@@ -83,7 +86,7 @@ export function Hero({
 						{/* Style chips */}
 						<Reveal eager delayMs={180}>
 							<ul className="mt-7 flex flex-wrap gap-2" aria-label="Art styles">
-								{site.styles.map((style) => (
+								{styles.map((style) => (
 									<li key={style}>
 										<Badge>{style}</Badge>
 									</li>

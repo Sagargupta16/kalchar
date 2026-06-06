@@ -4,7 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { getAllArtworks, getSite } from "@/lib/data";
+import { getAllArtworks, getCategoryNames, getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
 	title: "Work",
@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function WorkPage() {
-	const all = await getAllArtworks();
-	const { styles, sections } = getSite();
+	const [all, styles] = await Promise.all([getAllArtworks(), getCategoryNames()]);
+	const { sections } = getSite();
 	const work = sections.work;
 
 	return (

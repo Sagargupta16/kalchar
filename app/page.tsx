@@ -10,6 +10,7 @@ import {
 	getAllArtworks,
 	getAllWorkshops,
 	getAvailableArtworks,
+	getCategoryNames,
 	getFeaturedArtwork,
 	getSite,
 } from "@/lib/data";
@@ -17,11 +18,12 @@ import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export default async function HomePage() {
 	const site = getSite();
-	const [featured, all, available, allWorkshops] = await Promise.all([
+	const [featured, all, available, allWorkshops, categoryNames] = await Promise.all([
 		getFeaturedArtwork(),
 		getAllArtworks(),
 		getAvailableArtworks(),
 		getAllWorkshops(),
+		getCategoryNames(),
 	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
@@ -49,6 +51,7 @@ export default async function HomePage() {
 				pool={heroPool}
 				catalogIndex={catalogIndex}
 				totalCount={all.length}
+				styles={categoryNames}
 			/>
 
 			{selected.length > 0 ? (

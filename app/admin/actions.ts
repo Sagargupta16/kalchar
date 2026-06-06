@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/lib/db/client";
-import { artworks, orderPresets, workshops } from "@/lib/db/schema";
+import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
 import { addMaintainer, isMaintainer, removeMaintainer } from "@/lib/maintainers";
 import {
 	deleteArtworkImages,
@@ -78,19 +78,38 @@ export async function setFeatured(slug: string, featured: boolean): Promise<void
 	revalidateCatalog(slug);
 }
 
-/** Update free-text metadata fields. */
+/** Update editable artwork fields (everything except slug, image, order). */
 export async function updateArtworkMeta(
 	slug: string,
 	fields: {
 		title?: string;
-		description?: string;
+		style?: string;
+		description?: string | null;
 		medium?: string;
-		dimensions?: string;
+		dimensions?: string | null;
 		year?: number | null;
 	},
 ): Promise<void> {
 	await requireMaintainer();
 	await db.update(artworks).set(fields).where(eq(artworks.slug, slug));
+	revalidateCatalog(slug);
+}
+
+/**
+ * Replace an artwork's image: re-run the sharp/R2 pipeline for the SAME slug
+ * (overwrites the existing variants), refresh the stored aspectRatio + palette.
+ * The slug and DB row are unchanged, so URLs and metadata survive.
+ */
+export async function replaceArtworkImage(slug: string, formData: FormData): Promise<void> {
+	await requireMaintainer();
+	const file = formData.get("image");
+	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
+	const buffer = Buffer.from(await file.arrayBuffer());
+	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
+	await db
+		.update(artworks)
+		.set({ aspectRatio, palette: palette.length > 0 ? palette : null })
+		.where(eq(artworks.slug, slug));
 	revalidateCatalog(slug);
 }
 
@@ -313,6 +332,86 @@ export async function deleteOrderPreset(id: string): Promise<void> {
 	await requireMaintainer();
 	await db.delete(orderPresets).where(eq(orderPresets.id, id));
 	revalidateOrderPresets();
+}
+
+// --- Category actions ---
+
+function revalidateCategories() {
+	revalidatePath("/");
+	revalidatePath("/work");
+	revalidatePath("/custom-orders");
+	revalidatePath("/admin");
+	revalidatePath("/admin/categories");
+}
+
+/** Add a new art category. */
+export async function createCategory(name: string): Promise<void> {
+	await requireMaintainer();
+	const trimmed = name.trim();
+	if (!trimmed) throw new Error("Category name is required.");
+	const id = slugify(trimmed);
+	if (!id) throw new Error("Name must contain letters or numbers.");
+	const existing = await db
+		.select({ id: categories.id })
+		.from(categories)
+		.where(eq(categories.id, id));
+	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
+	const rows = await db.select({ order: categories.order }).from(categories);
+	const nextOrder = rows.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	await db.insert(categories).values({ id, name: trimmed, order: nextOrder });
+	revalidateCategories();
+}
+
+/**
+ * Rename a category. Also updates every artwork whose `style` matches the old
+ * name, so renaming never orphans rows (artworks store the name, not the id).
+ */
+export async function renameCategory(id: string, name: string): Promise<void> {
+	await requireMaintainer();
+	const trimmed = name.trim();
+	if (!trimmed) throw new Error("Category name is required.");
+	const [row] = await db.select().from(categories).where(eq(categories.id, id));
+	if (!row) throw new Error("Category not found.");
+	if (row.name === trimmed) return;
+	await db.update(categories).set({ name: trimmed }).where(eq(categories.id, id));
+	await db.update(artworks).set({ style: trimmed }).where(eq(artworks.style, row.name));
+	revalidateCategories();
+}
+
+/** Reorder categories by providing the new id sequence. */
+export async function reorderCategories(ids: string[]): Promise<void> {
+	await requireMaintainer();
+	await Promise.all(
+		ids.map((id, i) =>
+			db
+				.update(categories)
+				.set({ order: i + 1 })
+				.where(eq(categories.id, id)),
+		),
+	);
+	revalidateCategories();
+}
+
+/**
+ * Delete a category. Blocked if any artwork still uses it -- the maintainer
+ * must reassign those pieces first, so we never leave artworks pointing at a
+ * category that no longer exists in the picker.
+ */
+export async function deleteCategory(id: string): Promise<void> {
+	await requireMaintainer();
+	const [row] = await db.select().from(categories).where(eq(categories.id, id));
+	if (!row) return;
+	const inUse = await db
+		.select({ slug: artworks.slug })
+		.from(artworks)
+		.where(eq(artworks.style, row.name));
+	if (inUse.length > 0) {
+		throw new Error(
+			`"${row.name}" is used by ${inUse.length} piece${inUse.length === 1 ? "" : "s"}. Reassign them first.`,
+		);
+	}
+	await db.delete(categories).where(eq(categories.id, id));
+	revalidateCategories();
 }
 
 // --- Maintainer roster actions ---

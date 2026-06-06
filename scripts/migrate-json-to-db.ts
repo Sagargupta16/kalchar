@@ -17,7 +17,7 @@
 import artworksJson from "../data/artworks.json";
 import siteJson from "../data/site.json";
 import { db } from "../lib/db/client";
-import { artworks, orderPresets, workshops } from "../lib/db/schema";
+import { artworks, categories, orderPresets, workshops } from "../lib/db/schema";
 import type { Artwork, Workshop } from "../lib/types";
 
 function deriveStatus(a: Artwork): "archive" | "available" | "sold" {
@@ -114,6 +114,22 @@ async function main() {
 					set: { kind, label, order: i + 1 },
 				});
 		}
+	}
+
+	// Categories from site.json styles array.
+	const styleList = (siteJson as { styles?: string[] }).styles ?? [];
+	console.log(`Seeding ${styleList.length} categories...`);
+	for (let i = 0; i < styleList.length; i++) {
+		const name = styleList[i];
+		if (!name) continue;
+		const id = name
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "");
+		await db
+			.insert(categories)
+			.values({ id, name, order: i + 1 })
+			.onConflictDoUpdate({ target: categories.id, set: { name, order: i + 1 } });
 	}
 
 	console.log("Seed complete.");

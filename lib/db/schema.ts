@@ -64,6 +64,19 @@ export const orderPresets = pgTable("order_presets", {
 });
 
 /**
+ * Art categories (formerly the fixed "styles" enum in site.json). Editable
+ * from /admin so new traditions can be added without a code change. The
+ * artwork `style` column stores the category `name` (free text), so renaming
+ * a category does not orphan rows -- the admin rename action updates matching
+ * artworks too (see app/admin/actions.ts).
+ */
+export const categories = pgTable("categories", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	order: integer("order").notNull(),
+});
+
+/**
  * Admin allowlist. Replaces a static ADMIN_EMAILS env var so a logged-in
  * maintainer can add/remove others from the panel without a redeploy. The
  * Auth.js signIn callback checks an email against this table.
@@ -87,5 +100,7 @@ export type WorkshopRow = typeof workshops.$inferSelect;
 export type WorkshopInsert = typeof workshops.$inferInsert;
 export type OrderPresetRow = typeof orderPresets.$inferSelect;
 export type OrderPresetInsert = typeof orderPresets.$inferInsert;
+export type CategoryRow = typeof categories.$inferSelect;
+export type CategoryInsert = typeof categories.$inferInsert;
 export type MaintainerRow = typeof maintainers.$inferSelect;
 export type MaintainerInsert = typeof maintainers.$inferInsert;
