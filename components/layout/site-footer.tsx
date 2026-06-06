@@ -41,18 +41,6 @@ export function SiteFooter() {
 					<p className="mt-1.5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted">
 						{brand.location}
 					</p>
-					{/* Artist personal IG */}
-					{contact.instagramPersonal ? (
-						<a
-							href={contact.instagramPersonal.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-accent"
-						>
-							<InstagramIcon className="h-3.5 w-3.5" aria-hidden="true" />
-							{contact.instagramPersonal.display}
-						</a>
-					) : null}
 				</div>
 
 				{/* Navigate column */}
@@ -110,19 +98,21 @@ export function SiteFooter() {
 							<Lock size={11} aria-hidden="true" />
 							Admin
 						</Link>
-						{developer ? (
-							<a
-								href={developer.instagram}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
-							>
-								<span>Developed by {developer.name}</span>
-								<InstagramIcon className="h-3 w-3" aria-hidden="true" />
-							</a>
-						) : (
-							<span>Site by Sagar Gupta</span>
-						)}
+						<span>
+							Developed by{" "}
+							{developer ? (
+								<a
+									href={developer.instagram}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
+								>
+									{developer.name}
+								</a>
+							) : (
+								"Sagar Gupta"
+							)}
+						</span>
 					</div>
 				</div>
 			</div>
