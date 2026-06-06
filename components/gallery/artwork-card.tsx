@@ -70,11 +70,11 @@ export function ArtworkCard({
 			</div>
 
 			{/* Meta */}
-			<div className="mt-3 flex items-baseline justify-between gap-3">
-				<h3 className="t-display text-lg leading-tight transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-(--section-accent) sm:text-xl">
+			<div className="mt-3 flex items-baseline justify-between gap-2">
+				<h3 className="t-display min-w-0 truncate text-lg leading-tight transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-(--section-accent) sm:text-xl">
 					{artwork.title}
 				</h3>
-				<span className="t-meta whitespace-nowrap">{artwork.style}</span>
+				<span className="t-meta shrink-0 whitespace-nowrap">{artwork.style}</span>
 			</div>
 
 			<Chromacard
