@@ -13,8 +13,9 @@ const ICON_FOR_KEY: Record<string, BrandIcon> = {
 };
 
 export function SiteFooter() {
-	const { brand, contact, nav } = getSite();
+	const { brand, contact, developer, nav } = getSite();
 	const year = new Date().getFullYear();
+
 	const channels = [
 		{ key: "instagram", ...contact.instagram },
 		...(contact.instagramCommunity ? [{ key: "instagram", ...contact.instagramCommunity }] : []),
@@ -40,6 +41,18 @@ export function SiteFooter() {
 					<p className="mt-1.5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted">
 						{brand.location}
 					</p>
+					{/* Artist personal IG */}
+					{contact.instagramPersonal ? (
+						<a
+							href={contact.instagramPersonal.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-accent"
+						>
+							<InstagramIcon className="h-3.5 w-3.5" aria-hidden="true" />
+							{contact.instagramPersonal.display}
+						</a>
+					) : null}
 				</div>
 
 				{/* Navigate column */}
@@ -97,7 +110,19 @@ export function SiteFooter() {
 							<Lock size={11} aria-hidden="true" />
 							Admin
 						</Link>
-						<span className="text-[0.65rem]">Site by Sagar Gupta</span>
+						{developer ? (
+							<a
+								href={developer.instagram}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
+							>
+								<span>Developed by {developer.name}</span>
+								<InstagramIcon className="h-3 w-3" aria-hidden="true" />
+							</a>
+						) : (
+							<span>Site by Sagar Gupta</span>
+						)}
 					</div>
 				</div>
 			</div>

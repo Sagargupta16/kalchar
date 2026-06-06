@@ -41,6 +41,12 @@
 			"url": "https://www.instagram.com/listentoyourart111/",
 			"note": "Workshops, activities, community events"
 		},
+		"instagramPersonal": {
+			"label": "Megha Seth",
+			"display": "@withmeghaseth",
+			"url": "https://www.instagram.com/withmeghaseth/",
+			"note": "Personal"
+		},
 		"whatsapp": {
 			"label": "WhatsApp",
 			"display": "+91 84356 52636",
@@ -51,6 +57,11 @@
 			"display": "megha10gupta@gmail.com",
 			"url": "mailto:megha10gupta@gmail.com"
 		}
+	},
+	"developer": {
+		"name": "Sagar Gupta",
+		"instagram": "https://www.instagram.com/sagar_sethh/",
+		"display": "@sagar_sethh"
 	},
 	"sections": {
 		"work": {
