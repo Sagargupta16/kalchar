@@ -24,6 +24,59 @@ export interface ProcessedImage {
 	keys: string[];
 	/** Natural width/height of the source. */
 	aspectRatio: number;
+	/** Sampled dominant colors (hex), 3-5 entries, for the chromacard. */
+	palette: string[];
+}
+
+const toHex = (n: number) => n.toString(16).padStart(2, "0");
+
+/**
+ * Sample a small palette of dominant colors from an image buffer.
+ *
+ * Resizes to a tiny grid so sharp averages each region, reads the raw RGB
+ * pixels, then greedily picks the most visually distinct swatches (skipping
+ * near-duplicates and near-white/near-black noise). No k-means dependency --
+ * the downscale does the clustering for us. Returns 3-5 hex strings.
+ */
+export async function extractPalette(master: Buffer, count = 5): Promise<string[]> {
+	const SIZE = 8;
+	const { data } = await sharp(master, { failOn: "none" })
+		.rotate()
+		.resize(SIZE, SIZE, { fit: "fill" })
+		.removeAlpha()
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+
+	const pixels: Array<[number, number, number]> = [];
+	for (let i = 0; i + 2 < data.length; i += 3) {
+		pixels.push([data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0]);
+	}
+
+	const dist = (a: [number, number, number], b: [number, number, number]) =>
+		Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+
+	// Sort by saturation*brightness so vivid colors win over muddy averages.
+	const score = ([r, g, b]: [number, number, number]) => {
+		const max = Math.max(r, g, b);
+		const min = Math.min(r, g, b);
+		return max - min + max * 0.3;
+	};
+	const ranked = [...pixels].sort((a, b) => score(b) - score(a));
+
+	const chosen: Array<[number, number, number]> = [];
+	for (const px of ranked) {
+		if (chosen.every((c) => dist(c, px) > 60)) chosen.push(px);
+		if (chosen.length >= count) break;
+	}
+	// Fallback if the image is very flat: take whatever distinct pixels exist.
+	if (chosen.length < 3) {
+		for (const px of pixels) {
+			if (chosen.every((c) => dist(c, px) > 20)) chosen.push(px);
+			if (chosen.length >= 3) break;
+		}
+	}
+
+	return chosen.map(([r, g, b]) => `#${toHex(r)}${toHex(g)}${toHex(b)}`);
 }
 
 /** Generate + upload all variants for one master image buffer. */
@@ -62,7 +115,9 @@ export async function processArtworkImage(slug: string, master: Buffer): Promise
 		.toBuffer();
 	await put(`${slug}.jpg`, masterJpg, "image/jpeg");
 
-	return { keys, aspectRatio };
+	const palette = await extractPalette(master);
+
+	return { keys, aspectRatio, palette };
 }
 
 /** Remove every variant for a slug from R2 (used when deleting an artwork). */

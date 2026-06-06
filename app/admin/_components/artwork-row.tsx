@@ -1,10 +1,10 @@
 "use client";
 
-import { Star, Trash2 } from "lucide-react";
+import { Palette, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Artwork } from "@/lib/types";
-import { deleteArtwork, setFeatured, setPrice, setStatus } from "../actions";
+import { deleteArtwork, regeneratePalette, setFeatured, setPrice, setStatus } from "../actions";
 import { adminBtn, adminBtnDestructive, adminField } from "./controls";
 
 export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: string }>) {
@@ -35,6 +35,19 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 					{art.style} · {art.status}
 					{art.featured ? " · featured" : ""}
 				</p>
+				{art.palette && art.palette.length > 0 ? (
+					<div className="mt-1 flex gap-0.5" aria-hidden="true">
+						{art.palette.slice(0, 5).map((hex) => (
+							<span
+								key={hex}
+								className="h-3 w-3 rounded-full ring-1 ring-black/10 dark:ring-white/10"
+								style={{ backgroundColor: hex }}
+							/>
+						))}
+					</div>
+				) : (
+					<p className="mt-1 text-[0.65rem] text-ruby">no palette</p>
+				)}
 			</div>
 
 			<input
@@ -72,8 +85,19 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 				disabled={pending}
 				onClick={() => run(() => setFeatured(art.slug, !art.featured))}
 				className={`${adminBtn} px-2 py-1 ${art.featured ? "border-accent text-accent" : ""}`}
+				title={art.featured ? "Unfeature" : "Feature"}
 			>
 				<Star size={12} className={art.featured ? "fill-accent" : ""} />
+			</button>
+
+			<button
+				type="button"
+				disabled={pending}
+				onClick={() => run(() => regeneratePalette(art.slug))}
+				className={`${adminBtn} px-2 py-1`}
+				title="Regenerate palette from image"
+			>
+				<Palette size={12} />
 			</button>
 
 			<button
