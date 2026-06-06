@@ -63,10 +63,12 @@ export interface ContactChannel {
 	label: string;
 	url: string;
 	display?: string;
+	note?: string;
 }
 
 export interface Contact {
 	instagram: ContactChannel;
+	instagramCommunity?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
 }

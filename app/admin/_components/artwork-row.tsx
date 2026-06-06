@@ -30,7 +30,7 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 	const btn = `${adminBtn} px-2 py-1`;
 
 	return (
-		<div className="flex flex-wrap items-center gap-3 rounded-md border border-line p-3">
+		<div className="flex flex-wrap items-center gap-3 rounded-(--radius-sm) border border-line p-3">
 			{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL, next/image not used in this project */}
 			<img src={thumb} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
 			<div className="min-w-40 flex-1">

@@ -30,9 +30,16 @@
 	"styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
 	"contact": {
 		"instagram": {
-			"label": "Instagram",
+			"label": "Instagram (Art)",
+			"display": "@kalchar_by_meghaseth",
+			"url": "https://www.instagram.com/kalchar_by_meghaseth/",
+			"note": "Original paintings, process reels, available work"
+		},
+		"instagramCommunity": {
+			"label": "Instagram (Workshops)",
 			"display": "@listentoyourart111",
-			"url": "https://instagram.com/listentoyourart111"
+			"url": "https://www.instagram.com/listentoyourart111/",
+			"note": "Workshops, activities, community events"
 		},
 		"whatsapp": {
 			"label": "WhatsApp",
