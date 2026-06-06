@@ -137,6 +137,20 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	return { slug };
 }
 
+/** Reorder artworks by providing the new slug sequence. */
+export async function reorderArtworks(slugs: string[]): Promise<void> {
+	await requireMaintainer();
+	await Promise.all(
+		slugs.map((slug, i) =>
+			db
+				.update(artworks)
+				.set({ order: i + 1 })
+				.where(eq(artworks.slug, slug)),
+		),
+	);
+	revalidateCatalog();
+}
+
 /** Delete an artwork row + all its R2 image variants. */
 export async function deleteArtwork(slug: string): Promise<void> {
 	await requireMaintainer();

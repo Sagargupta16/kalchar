@@ -108,7 +108,7 @@ export default function ContactPage() {
 						</Card>
 					</Reveal>
 
-					{/* Secondary channels */}
+					{/* Instagram accounts */}
 					<div className="mt-5 grid gap-5 sm:grid-cols-2">
 						<Reveal delayMs={260}>
 							<ChannelLink
@@ -116,19 +116,34 @@ export default function ContactPage() {
 								icon={<InstagramIcon className="h-[18px] w-[18px]" />}
 								label={contact.instagram.label}
 								display={contact.instagram.display ?? contact.instagram.label}
-								note="DMs welcome. Recent work and process snippets."
+								note={contact.instagram.note ?? "Original paintings and process"}
 							/>
 						</Reveal>
-						<Reveal delayMs={300}>
+						{contact.instagramCommunity ? (
+							<Reveal delayMs={300}>
+								<ChannelLink
+									href={contact.instagramCommunity.url}
+									icon={<InstagramIcon className="h-[18px] w-[18px]" />}
+									label={contact.instagramCommunity.label}
+									display={contact.instagramCommunity.display ?? contact.instagramCommunity.label}
+									note={contact.instagramCommunity.note ?? "Workshops and community"}
+								/>
+							</Reveal>
+						) : null}
+					</div>
+
+					{/* Email */}
+					<Reveal delayMs={340}>
+						<div className="mt-5">
 							<ChannelLink
 								href={contact.email.url}
 								icon={<GmailIcon className="h-[18px] w-[18px]" />}
 								label={contact.email.label}
 								display={contact.email.display ?? contact.email.label}
-								note="Best for longer briefs or formal enquiries."
+								note={contact.email.note ?? "Best for longer briefs or formal enquiries."}
 							/>
-						</Reveal>
-					</div>
+						</div>
+					</Reveal>
 
 					{/* Custom orders CTA */}
 					<Reveal delayMs={320}>

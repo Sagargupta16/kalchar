@@ -17,6 +17,7 @@ export function SiteFooter() {
 	const year = new Date().getFullYear();
 	const channels = [
 		{ key: "instagram", ...contact.instagram },
+		...(contact.instagramCommunity ? [{ key: "instagram", ...contact.instagramCommunity }] : []),
 		{ key: "whatsapp", ...contact.whatsapp },
 		{ key: "email", ...contact.email },
 	];
@@ -65,7 +66,7 @@ export function SiteFooter() {
 						{channels.map((c) => {
 							const Icon = ICON_FOR_KEY[c.key];
 							return (
-								<li key={c.key}>
+								<li key={c.url}>
 									<a
 										className="inline-flex items-center gap-2 text-ink transition-colors hover:text-accent"
 										href={c.url}

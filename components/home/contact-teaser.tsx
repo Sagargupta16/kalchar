@@ -52,7 +52,7 @@ export function ContactTeaser({ contact, eyebrow, title, lead }: Readonly<Contac
 							icon={<InstagramIcon className="h-[18px] w-[18px]" />}
 							label={contact.instagram.label}
 							display={contact.instagram.display ?? contact.instagram.label}
-							note="DMs welcome"
+							note={contact.instagram.note ?? "DMs welcome"}
 						/>
 					</Reveal>
 					<Reveal delayMs={200}>
