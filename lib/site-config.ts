@@ -2,12 +2,7 @@
  * Single source of truth for site URLs and base paths.
  *
  * To swap domains, edit only this file. Nothing else hardcodes the host.
- *
- * `next.config.mjs` cannot import this .ts file at config-load time (that
- * config is a plain ESM module evaluated by Node before TS is set up), so
- * `basePath` is duplicated there as a literal. If you change `basePath`
- * here, change it in `next.config.mjs` too -- there's a comment in that
- * file pointing back here.
+ * Consumed by sitemap.ts, OG metadata, and anywhere an absolute URL is needed.
  */
 
 export const siteConfig = {

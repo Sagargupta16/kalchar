@@ -54,7 +54,10 @@ Live URL: <https://kalchar.co.in/>.
 | Visual mood | Gallery / museum register. Restrained, whitespace-forward, the work is the hero. Warm cream + ink + single accent. Fine type. Pieces stand on their own merit. | 2026-05-24 |
 | Motion intensity | Refined. Fade-up on scroll, subtle hover lifts on cards, tasteful page transitions. Motion 12 + Lenis (lazy-loaded). All respect `prefers-reduced-motion`. | 2026-05-24 |
 | Motion exclusions | **No busy techy/mesh particles or game-like ornaments. No custom cursor** (use the user's native pointer). Elegant bespoke animations on the work itself are allowed: 3D card tilt, organic morphing watercolor backdrops, gold leaf shimmers. | 2026-05-27 |
-| Corner radius | Subtle and consistent. Use a single `--radius` token (~6px) across cards, panels, fields, buttons. Pills (filter, badges) keep their full-rounded shape. | 2026-05-24 |
+| Corner radius | Two-tier (updated 2026-06-06, "Atelier" direction). `--radius-card` (~16px) for content surfaces (cards, panels, image plates, lightbox); `--radius` (`rounded-md`, ~6px) for pressable surfaces (buttons, fields, badges, alert boxes). Pills + theme toggle stay `rounded-full`. | 2026-05-24, 2026-06-06 |
+| Gold-leaf mark | A single `✦` in `--color-gold-leaf` is an approved hero/eyebrow accent (decorative, `aria-hidden`). One restrained artist's-mark, NOT a repeating ornament. `--color-gold-leaf` has a dark-mode remap. | 2026-06-06 |
+| Hero composition | Home hero uses two layered tilted artwork plates (front = featured LCP plate at -5deg + priority/preload; back = lazily-loaded second featured piece at +4deg). Reduced-motion flattens the stack. | 2026-06-06 |
+| Header Contact CTA | On desktop, Contact is an accent-bordered `rounded-full` pill (fills on hover/active), separate from the 4 text nav links. Mobile drawer keeps all 5 links. | 2026-06-06 |
 | Section accents | Each section sets its own pigment via the Section wrapper: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + selected-work use the global accent. | 2026-05-24 |
 | Copy rule: no double-dash | The literal `--` glyph is banned in user-facing copy. Replace with comma / period / colon / parentheses, or restructure. Applies to page metadata, JSX strings, dropdown options, and `data/*.json`. Internal code comments and JSDoc are exempt. | 2026-05-24 |
 
@@ -64,11 +67,13 @@ Things that are facts in the repo today but haven't been re-confirmed by Sagar i
 
 | Field | Repo state |
 | --- | --- |
-| Domain | `kalchar.co.in` (apex, configured via [public/CNAME](public/CNAME)) |
-| Hosting | GitHub Pages, OIDC deploy from `main` ([deploy.yml](.github/workflows/deploy.yml)) |
-| Default branch | `main` |
-| Catalog count | ~23 artworks listed in [data/artworks.json](data/artworks.json) |
-| Artwork images | 23 source JPGs in [public/artworks/](public/artworks/) (~28 MB) |
+| Domain | `kalchar.co.in` (apex, GoDaddy DNS A -> Vercel) |
+| Hosting | **Vercel** (Phase 2). `main` -> production, `dev` -> preview. `deploy.yml` GitHub-Pages workflow is a retired manual-only break-glass fallback. |
+| Default branch | `main` (active work on `dev`, ahead of `main`) |
+| Catalog source | **Neon Postgres** (Drizzle), read via `lib/data.ts`. `data/artworks.json` is the one-shot seed source for `pnpm db:seed`, NOT read at runtime. |
+| Workshops source | **Neon Postgres** (`workshops` table), admin-editable at `/admin/workshops`. `site.json` `workshops[]` is seed-only. |
+| Palette | Auto-extracted from the image via sharp on admin upload (`extractPalette` in `lib/storage/process-artwork-image.ts`); re-derivable per-piece from the admin panel. Seed pieces use hand-picked swatches in `artworks.json`. |
+| Artwork images | **Cloudflare R2** (sharp variants: 400/800/1200/1600 in avif/webp/jpg). `public/artworks/` JPGs are the regenerate source, not served. |
 | Logo | [public/logo.jpg](public/logo.jpg), [public/logo-180.png](public/logo-180.png) |
 
 ## Open questions
@@ -206,6 +211,16 @@ Verified: pnpm typecheck / lint / build all clean. 30 static pages generated.
 
 Likely candidates (Sagar drives the order):
 
-1. Backfill metadata in `data/artworks.json`: `priceInr`, `dimensions`, `year` for the pieces that should be for sale.
-2. Re-shoot or crop the artwork photos that have hands / clothespins / pots / wood floors visible (~8 of 21).
-3. Optional: Open PR to `main` and ship to production. CI will run lint + typecheck + build, deploy.yml will OIDC-deploy to GitHub Pages on merge.
+1. Backfill metadata (`priceInr`, `dimensions`, `year`) for the pieces that should be for sale, via the admin panel (`/admin`).
+2. Re-shoot or crop the artwork photos that have hands / clothespins / pots / wood floors visible.
+3. Open PR `dev` -> `main` and ship to production. CI runs lint + typecheck + build; Vercel deploys `main` to kalchar.co.in on merge.
+
+## Design direction note (2026-06-06)
+
+A full "premium 2026 SaaS" redesign (PRs #31-36) rebuilt the UI on a 3-tier
+design-token system with 7 reusable primitives (Section, Container,
+PageHeader, Card, Badge, IconCircle, ChannelLink) and **removed the folk-art
+decor layer** (ink-splash, pigment-wash, motifs, marquee, brush-strokes). The
+look is now cleaner / more gallery-minimal than the watercolor-backdrop +
+motif identity described in the "Confirmed decisions" table above. If the
+folk-art mood is wanted back, that's a deliberate re-add, not a regression.

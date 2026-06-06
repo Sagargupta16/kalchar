@@ -1,8 +1,12 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
 import { ArtworkLightbox } from "@/components/gallery/artwork-lightbox";
 import { LightboxProvider } from "@/components/gallery/lightbox-context";
+import { BackToTop } from "@/components/layout/back-to-top";
+import { HideOnAdmin } from "@/components/layout/hide-on-admin";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
@@ -15,6 +19,15 @@ import "./globals.css";
 
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
+
+const imageOrigin = (() => {
+	const base = process.env.NEXT_PUBLIC_IMAGE_BASE_URL ?? process.env.R2_PUBLIC_BASE_URL ?? "";
+	try {
+		return base ? new URL(base).origin : "";
+	} catch {
+		return "";
+	}
+})();
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
@@ -46,38 +59,49 @@ export const viewport: Viewport = {
 	colorScheme: "light dark",
 	themeColor: [
 		{ media: "(prefers-color-scheme: light)", color: "#faf8f3" },
-		{ media: "(prefers-color-scheme: dark)", color: "#15110d" },
+		{ media: "(prefers-color-scheme: dark)", color: "#1a1510" },
 	],
+	viewportFit: "cover",
 };
 
-/**
- * Root layout. The pre-paint script below resolves the user's theme preference
- * and adds `class="dark"` to <html> before first paint, so dark-mode users
- * never see a flash of light styles.
- */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "Person",
+	name: site.brand.publicName,
+	url: siteConfig.prodUrl,
+	jobTitle: "Folk Artist & Workshop Facilitator",
+	description: site.brand.description,
+	image: `${siteConfig.url}/logo.jpg`,
+	sameAs: [site.contact.instagram.url],
+	knowsAbout: ["Madhubani painting", "Pichwai painting", "Lippan art", "Gond art"],
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
+
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
+				{imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
 				<script
-					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint script must be inline
+					type="application/ld+json"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+				/>
+				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint theme
 					dangerouslySetInnerHTML={{
-						__html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var v=t||(d?'dark':'light');if(v==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
+						__html: `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
 					}}
 				/>
-				{/* No-JS fallback: Motion's <Reveal> ships SSR markup with inline
-				    `opacity:0`. Without JS the fade-up never runs, leaving content
-				    invisible. This rule wins via the `<noscript>` cascade and snaps
-				    content back to visible for crawlers / no-JS visitors. */}
 				<noscript>
-					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;filter:none!important;}`}</style>
+					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}`}</style>
 				</noscript>
 			</head>
 			<body className="font-sans">
 				<a
 					href="#main"
-					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-bg"
+					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-(--radius-sm) focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-bg"
 				>
 					Skip to content
 				</a>
@@ -90,10 +114,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						<div id="main" className="relative z-10">
 							{children}
 						</div>
-						<SiteFooter />
+						<HideOnAdmin>
+							<SiteFooter />
+						</HideOnAdmin>
+						<BackToTop />
 						<ArtworkLightbox />
 					</LightboxProvider>
 				</MotionProvider>
+				<Analytics />
+				<SpeedInsights />
 			</body>
 		</html>
 	);

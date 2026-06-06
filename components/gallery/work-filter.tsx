@@ -39,7 +39,7 @@ interface WorkFilterProps {
 
 const ALL = "All" as const;
 
-export function WorkFilter({ styles, items }: WorkFilterProps) {
+export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const [active, setActive] = useState<typeof ALL | ArtStyle>(ALL);
 
 	const visible = useMemo(
@@ -49,9 +49,17 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 
 	const filters: (typeof ALL | ArtStyle)[] = [ALL, ...styles];
 
+	const pieceWord = visible.length === 1 ? "piece" : "pieces";
+	const statusMessage =
+		active === ALL
+			? `Showing all ${visible.length} pieces`
+			: `Showing ${visible.length} ${active} ${pieceWord}`;
+
 	return (
 		<>
-			<div role="group" aria-label="Filter by style" className="flex flex-wrap gap-2">
+			<h2 className="sr-only">Gallery</h2>
+			<fieldset className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0">
+				<legend className="sr-only">Filter by style</legend>
 				{filters.map((f) => {
 					const isActive = f === active;
 					return (
@@ -61,7 +69,7 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 							onClick={() => setActive(f)}
 							aria-pressed={isActive}
 							className={cn(
-								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-colors",
+								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
 								isActive
 									? "border-ink bg-ink text-bg"
 									: "border-line text-muted hover:border-accent hover:text-accent",
@@ -71,16 +79,14 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 						</button>
 					);
 				})}
-			</div>
+			</fieldset>
 
 			<p className="sr-only" aria-live="polite">
-				{active === ALL
-					? `Showing all ${visible.length} pieces`
-					: `Showing ${visible.length} ${active} ${visible.length === 1 ? "piece" : "pieces"}`}
+				{statusMessage}
 			</p>
 
 			{visible.length > 0 ? (
-				<ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:gap-y-14 lg:grid-cols-3">
+				<ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
 					{visible.map((art, i) => (
 						<Reveal key={art.slug} as="li" delayMs={Math.min(i, 5) * 60}>
 							<ArtworkCard

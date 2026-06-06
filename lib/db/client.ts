@@ -16,7 +16,7 @@ import * as schema from "./schema";
 const url = process.env.DATABASE_URL;
 
 if (!url) {
-	throw new Error("DATABASE_URL is not set. See docs/PHASE-2-SETUP.md Part 1.");
+	throw new Error("DATABASE_URL is not set. See .env.example and docs/DATABASE.md.");
 }
 
 const sql = neon(url);

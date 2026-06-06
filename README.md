@@ -6,37 +6,46 @@ Portfolio site for Megha Seth, traditional folk artist working in Madhubani, Pic
 
 ## Stack
 
-Next.js 15 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 12 + Lenis for animation. Static export to `out/` for GitHub Pages. pnpm 10, Node 22.
+Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 12 + Lenis for animation. pnpm 10, Node 22.
 
-Phase 1 is a static, file-backed site: the catalog lives in `data/*.json` and is read through a single seam (`lib/data.ts`) so a future Phase 2 can swap to a database and admin panel without touching the UI. See [MEMORY.md](MEMORY.md) for the full project knowledge.
+Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/admin` panel + auth are server-rendered. Catalog data lives in **Neon Postgres** (read through one seam, `lib/data.ts`); artwork images live in **Cloudflare R2**; admin login is **Auth.js + Google**, gated to a maintainer allowlist in the DB. Full picture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Local dev
 
 ```sh
 pnpm install
-pnpm dev          # http://localhost:3000
-pnpm build        # optimize images -> static export to out/ -> prune masters
-pnpm preview      # build, then serve out/ locally
+pnpm dev          # http://localhost:3000  (needs .env.local -- see .env.example)
+pnpm build        # next build
 pnpm typecheck
 pnpm lint
 pnpm format
+```
+
+Database + image helpers:
+
+```sh
+pnpm db:push      # apply Drizzle schema to Neon
+pnpm db:seed      # seed catalog rows from data/artworks.json
+pnpm db:images    # upload public/artworks/ image variants to R2
 ```
 
 ## What's on disk
 
 | Path | Purpose |
 | --- | --- |
-| [`app/`](app/) | App Router routes: home single-pager, `/work` gallery + `/work/[slug]` details, about / workshops / custom-orders / contact, sitemap. |
-| [`components/`](components/) | `home/` section teasers, `gallery/`, `layout/`, `motion/`, `decor/`, `ui/`, `forms/`. |
-| [`lib/`](lib/) | `data.ts` (the data seam), `types.ts`, `whatsapp.ts`, `site-config.ts`, hooks. |
-| [`data/`](data/) | The catalog. `site.json` (copy) and `artworks.json` (21 pieces). |
-| [`public/`](public/) | Master artwork JPGs (`_opt/` variants generated at build), logo, `CNAME`, `robots.txt`. |
-| [`scripts/`](scripts/) | `optimize-images.mjs` (sharp AVIF/WebP/JPG pipeline), `prune-build.mjs` (strip masters from `out/`). |
-| [`.github/workflows/`](.github/workflows/) | `ci.yml` (lint + typecheck + build), `deploy.yml` (OIDC GitHub Pages deploy from `main`). |
+| [`app/`](app/) | Routes: home single-pager, `/work` + `/work/[slug]`, about / workshops / custom-orders / contact, `/admin` (+ maintainers), `/api/auth`, sitemap. |
+| [`components/`](components/) | `home/` teasers, `gallery/`, `layout/`, `motion/`, `decor/`, `ui/`, `forms/`. |
+| [`lib/`](lib/) | `data.ts` (the seam), `db/` (Drizzle schema + client), `storage/` (R2 + image processing), `maintainers.ts`, `image-base.ts`, `types.ts`, `whatsapp.ts`, `site-config.ts`, hooks. |
+| [`auth.ts`](auth.ts), [`proxy.ts`](proxy.ts) | Auth.js config + `/admin` route protection (`proxy.ts` is the Next 16 rename of `middleware.ts`). |
+| [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
+| [`public/`](public/) | Master artwork JPGs (R2 regenerate source, not served at runtime), logo, `robots.txt`. |
+| [`scripts/`](scripts/) | `migrate-json-to-db.ts` (seed), `migrate-images-to-r2.ts` (upload variants). |
+| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md). Index: [docs/README.md](docs/README.md). |
+| [`.github/workflows/`](.github/workflows/) | `ci.yml` (lint + typecheck + build). `deploy.yml` is a retired GitHub Pages fallback (manual-only). |
 
 ## Deploy
 
-`main` -> <https://kalchar.co.in/> via GitHub Pages (OIDC), apex domain configured by [`public/CNAME`](public/CNAME). Active work lands on `dev`; feature branches PR into `dev`.
+`main` -> Vercel production -> <https://kalchar.co.in/>. `dev` -> Vercel preview. Full details (branches, CI, env matrix, DNS): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## License
 

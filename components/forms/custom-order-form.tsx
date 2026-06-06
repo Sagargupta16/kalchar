@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowRight, Check, ChevronDown, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,8 @@ interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
 	emailUrl: string;
 	availableStyles: readonly ArtStyle[];
+	/** style -> representative artwork thumbnail for the visual picker. */
+	styleSamples: Record<string, StyleSample>;
 	sizes: readonly string[];
 	budgets: readonly string[];
 	timelines: readonly string[];
@@ -35,12 +38,13 @@ export function CustomOrderForm({
 	phoneE164NoPlus,
 	emailUrl,
 	availableStyles,
+	styleSamples,
 	sizes,
 	budgets,
 	timelines,
 	submitLabel,
 	fallbackEmailLabel,
-}: CustomOrderFormProps) {
+}: Readonly<CustomOrderFormProps>) {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
@@ -75,40 +79,42 @@ export function CustomOrderForm({
 		// `window.open` returns null when blocked (popup blocker, in-app
 		// browser like Instagram). Surface the email fallback explicitly so
 		// the user has a recovery path; the mailto link below also renders.
-		const opened = window.open(url, "_blank", "noopener,noreferrer");
-		if (!opened) {
-			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
-		} else {
+		const opened = globalThis.open(url, "_blank", "noopener,noreferrer");
+		if (opened) {
 			setSent(true);
+		} else {
+			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
 		}
 		setTimeout(() => setSubmitting(false), 1500);
 	}
 
 	const mailtoHref = draft ? customOrderMailto(emailUrl, draft) : null;
 
+	let submitText: string;
+	if (submitting) {
+		submitText = "Opening WhatsApp...";
+	} else if (sent) {
+		submitText = "Reopen in WhatsApp";
+	} else {
+		submitText = submitLabel;
+	}
+
 	return (
 		<form onSubmit={onSubmit} className="space-y-6" noValidate>
-			<Field id="name" label="Your name" optional>
-				<input
-					id="name"
-					name="name"
-					type="text"
-					autoComplete="name"
-					placeholder="What should we call you?"
-					className={inputClass}
+			{/* Brief -- the one required field, given hero weight up top. */}
+			<Field id="brief" label="What would you like painted?" required>
+				<textarea
+					id="brief"
+					name="brief"
+					rows={5}
+					required
+					placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
+					className={cn(inputClass, "resize-y")}
 				/>
 			</Field>
 
-			<SelectField id="style" label="Preferred style">
-				<select id="style" name="style" defaultValue="" className={selectClass}>
-					<option value="">Open to suggestion</option>
-					{availableStyles.map((s) => (
-						<option key={s} value={s}>
-							{s}
-						</option>
-					))}
-				</select>
-			</SelectField>
+			{/* Visual style picker (replaces the old dropdown). */}
+			<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
 
 			<div className="grid gap-6 sm:grid-cols-2">
 				<SelectField id="size" label="Approx size">
@@ -134,30 +140,51 @@ export function CustomOrderForm({
 				</SelectField>
 			</div>
 
-			<SelectField id="timeline" label="Timeline">
-				<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
-					<option value="">No specific timeline</option>
-					{timelines.map((t) => (
-						<option key={t} value={t}>
-							{t}
-						</option>
-					))}
-				</select>
-			</SelectField>
+			<div className="grid gap-6 sm:grid-cols-2">
+				<SelectField id="timeline" label="Timeline">
+					<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
+						<option value="">No specific timeline</option>
+						{timelines.map((t) => (
+							<option key={t} value={t}>
+								{t}
+							</option>
+						))}
+					</select>
+				</SelectField>
 
-			<Field id="brief" label="Brief" required>
-				<textarea
-					id="brief"
-					name="brief"
-					rows={5}
-					required
-					placeholder="What should the piece show? Any colors, references, occasion?"
-					className={cn(inputClass, "resize-y")}
-				/>
-			</Field>
+				<Field id="name" label="Your name" optional>
+					<input
+						id="name"
+						name="name"
+						type="text"
+						autoComplete="name"
+						placeholder="What should we call you?"
+						className={inputClass}
+					/>
+				</Field>
+			</div>
+
+			{/* Reference-image expectation, made explicit (Phase 1 has no upload). */}
+			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft p-3.5">
+				<span
+					className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line"
+					aria-hidden="true"
+				>
+					<ImageUp size={14} />
+				</span>
+				<p className="text-xs leading-relaxed text-muted">
+					<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
+					can share photos directly on WhatsApp right after you send this brief.
+				</p>
+			</div>
 
 			<div aria-live="polite" aria-atomic="true">
-				{error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
+				{error ? (
+					<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
+						<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+						<span>{error}</span>
+					</p>
+				) : null}
 				{sent && !error ? (
 					<div className="flex items-start gap-3 rounded-md border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
 						<span
@@ -177,9 +204,15 @@ export function CustomOrderForm({
 			</div>
 
 			<div className="flex flex-col items-start gap-3">
-				<Button type="submit" variant="primary" size="lg" disabled={submitting}>
-					{submitting ? "Opening WhatsApp..." : sent ? "Reopen in WhatsApp" : submitLabel}
-					<ArrowRight size={16} aria-hidden="true" />
+				<Button
+					type="submit"
+					variant="primary"
+					size="lg"
+					disabled={submitting}
+					className="w-full whitespace-normal text-center sm:w-auto"
+				>
+					{submitText}
+					<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
 				</Button>
 				<p className="text-xs text-muted">
 					You&rsquo;ll review the message in WhatsApp before it sends.
@@ -211,11 +244,11 @@ function SelectField({
 	id,
 	label,
 	children,
-}: {
+}: Readonly<{
 	id: string;
 	label: string;
 	children: React.ReactNode;
-}) {
+}>) {
 	return (
 		<Field id={id} label={label} optional>
 			<div className="relative">
@@ -236,13 +269,19 @@ function Field({
 	optional,
 	required,
 	children,
-}: {
+}: Readonly<{
 	id: string;
 	label: string;
 	optional?: boolean;
 	required?: boolean;
 	children: React.ReactNode;
-}) {
+}>) {
+	let hint: React.ReactNode = null;
+	if (required) {
+		hint = <span className="text-xs text-muted">required</span>;
+	} else if (optional) {
+		hint = <span className="text-xs text-muted">optional</span>;
+	}
 	return (
 		<div>
 			<label
@@ -250,11 +289,7 @@ function Field({
 				className="flex items-baseline justify-between text-sm font-medium text-ink"
 			>
 				<span>{label}</span>
-				{required ? (
-					<span className="text-xs text-muted">required</span>
-				) : optional ? (
-					<span className="text-xs text-muted">optional</span>
-				) : null}
+				{hint}
 			</label>
 			<div className="mt-2">{children}</div>
 		</div>

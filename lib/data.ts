@@ -19,8 +19,27 @@
 import { asc } from "drizzle-orm";
 import siteJson from "@/data/site.json";
 import { db } from "./db/client";
-import { type ArtworkRow, artworks, type WorkshopRow, workshops } from "./db/schema";
-import type { ArtStyle, Artwork, ArtworkStatus, Site, Workshop } from "./types";
+import {
+	type ArtworkRow,
+	artworks,
+	type CategoryRow,
+	categories,
+	type OrderPresetRow,
+	orderPresets,
+	type WorkshopRow,
+	workshops,
+} from "./db/schema";
+import type {
+	ArtStyle,
+	Artwork,
+	ArtworkStatus,
+	Category,
+	OrderPreset,
+	OrderPresetKind,
+	OrderPresets,
+	Site,
+	Workshop,
+} from "./types";
 
 /**
  * Phase 1 derived status from `priceInr`. The DB stores it explicitly now, but
@@ -87,15 +106,99 @@ export async function getArtworkBySlug(slug: string): Promise<Artwork | undefine
 	return (await getAllArtworks()).find((a) => a.slug === slug);
 }
 
+/**
+ * One representative artwork per art style, for the custom-order style picker.
+ * Prefers a featured piece of that style, else the lowest-order one. Styles
+ * with no artwork are omitted (the picker falls back to a text chip for them).
+ * Returns a `style -> { slug, image }` map.
+ */
+export async function getStyleSamples(): Promise<Record<string, { slug: string; image: string }>> {
+	const all = await getAllArtworks();
+	const map: Record<string, { slug: string; image: string }> = {};
+	for (const a of all) {
+		const existing = map[a.style];
+		// First match wins, but a featured piece upgrades a non-featured one.
+		if (!existing) {
+			map[a.style] = { slug: a.slug, image: a.image };
+		} else if (a.featured) {
+			const current = all.find((x) => x.slug === existing.slug);
+			if (!current?.featured) map[a.style] = { slug: a.slug, image: a.image };
+		}
+	}
+	return map;
+}
+
 /** Slugs of every artwork -- used by `generateStaticParams` for `/work/[slug]`. */
 export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);
+}
+
+function toCategory(row: CategoryRow): Category {
+	return { id: row.id, name: row.name, order: row.order };
+}
+
+/** All categories as full rows (admin list), sorted by `order`. */
+export async function getAllCategories(): Promise<readonly Category[]> {
+	const rows = await db.select().from(categories).orderBy(asc(categories.order));
+	return rows.map(toCategory);
+}
+
+/**
+ * Category names for public UI (work filter, style picker, hero chips).
+ * Falls back to the `site.json` styles array when the DB has none yet
+ * (pre-seed), so the site is never empty.
+ */
+export async function getCategoryNames(): Promise<ArtStyle[]> {
+	const rows = await getAllCategories();
+	if (rows.length > 0) return rows.map((c) => c.name);
+	return [...((siteJson as Site).styles ?? [])];
 }
 
 /** All workshops, sorted by `order` ascending. */
 export async function getAllWorkshops(): Promise<readonly Workshop[]> {
 	const rows = await db.select().from(workshops).orderBy(asc(workshops.order));
 	return rows.map(toWorkshop);
+}
+
+function toOrderPreset(row: OrderPresetRow): OrderPreset {
+	return {
+		id: row.id,
+		kind: row.kind as OrderPresetKind,
+		label: row.label,
+		order: row.order,
+	};
+}
+
+/** All custom-order presets, flat, sorted by kind then order (admin list). */
+export async function getAllOrderPresets(): Promise<readonly OrderPreset[]> {
+	const rows = await db
+		.select()
+		.from(orderPresets)
+		.orderBy(asc(orderPresets.kind), asc(orderPresets.order));
+	return rows.map(toOrderPreset);
+}
+
+/**
+ * Preset labels grouped for the custom-order form. Falls back to the
+ * `site.json` arrays when the DB has no presets of a kind yet (pre-seed), so
+ * the form is never empty.
+ */
+export async function getOrderPresets(): Promise<OrderPresets> {
+	const rows = await getAllOrderPresets();
+	const pick = (kind: OrderPresetKind, fallback: string[]) => {
+		const labels = rows.filter((r) => r.kind === kind).map((r) => r.label);
+		return labels.length > 0 ? labels : fallback;
+	};
+	const co = (siteJson as Site).sections.customOrders as {
+		sizes?: string[];
+		budgets?: string[];
+		timelines?: string[];
+	};
+	return {
+		sizes: pick("size", co?.sizes ?? []),
+		budgets: pick("budget", co?.budgets ?? []),
+		timelines: pick("timeline", co?.timelines ?? []),
+	};
 }
 
 /** Site-wide copy: brand, nav, contact, section text, etc. Stays JSON (sync). */

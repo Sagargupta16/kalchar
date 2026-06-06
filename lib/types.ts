@@ -6,7 +6,19 @@
  * these types stay -- only the loader implementation changes.
  */
 
-export type ArtStyle = "Madhubani" | "Pichwai" | "Lippan" | "Gond" | "Texture" | "Mixed Media";
+/**
+ * An art category name. Was a fixed union; now a free string because
+ * categories are DB-managed and editable from /admin. The historical names
+ * (Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media) are still the seed
+ * defaults, but new ones can be added without a code change.
+ */
+export type ArtStyle = string;
+
+export interface Category {
+	id: string;
+	name: string;
+	order: number;
+}
 
 /** Lifecycle of a piece in the catalog. */
 export type ArtworkStatus = "archive" | "available" | "sold";
@@ -42,6 +54,22 @@ export interface Workshop {
 	order: number;
 }
 
+export type OrderPresetKind = "size" | "budget" | "timeline";
+
+export interface OrderPreset {
+	id: string;
+	kind: OrderPresetKind;
+	label: string;
+	order: number;
+}
+
+/** Grouped preset labels for the custom-order form dropdowns. */
+export interface OrderPresets {
+	sizes: string[];
+	budgets: string[];
+	timelines: string[];
+}
+
 export interface Brand {
 	title: string;
 	publicName: string;
@@ -63,12 +91,25 @@ export interface ContactChannel {
 	label: string;
 	url: string;
 	display?: string;
+	note?: string;
+	/** Filename in public/ for a scan-to-follow QR code (Instagram). */
+	qr?: string;
+	/** WhatsApp Business catalogue deep link (wa.me/c/...), when the channel has one. */
+	catalog?: string;
 }
 
 export interface Contact {
 	instagram: ContactChannel;
+	instagramCommunity?: ContactChannel;
+	instagramPersonal?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
+}
+
+export interface Developer {
+	name: string;
+	instagram: string;
+	display: string;
 }
 
 export interface NavItem {
@@ -86,6 +127,7 @@ export interface SectionCopy {
 export interface Site {
 	brand: Brand;
 	contact: Contact;
+	developer?: Developer;
 	nav: NavItem[];
 	styles: readonly ArtStyle[];
 	sections: Record<string, SectionCopy>;

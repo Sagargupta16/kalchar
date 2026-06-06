@@ -1,32 +1,26 @@
-/**
- * Minimal Button -- shadcn-style API. Uses class-variance-authority for the
- * variant matrix so consumers write `<Button variant="ghost" size="sm">`
- * instead of remembering the class string.
- *
- * For button-styled links (next/link or anchor), apply `buttonVariants(...)`
- * directly to the `<Link>` / `<a>` rather than wrapping a `<Button>` inside
- * one. Wrapping creates a nested interactive (`<a><button>`) which is an
- * a11y anti-pattern -- two tab stops, ambiguous screen-reader role.
- */
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-[background-color,color,border-color,box-shadow,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:pointer-events-none disabled:opacity-50",
+	"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-(--duration-base) ease-(--ease-out) active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50",
 	{
 		variants: {
 			variant: {
 				primary:
-					"bg-[var(--color-accent)] text-[var(--color-bg)] hover:-translate-y-px hover:shadow-md",
+					"rounded-(--radius-sm) bg-accent text-bg shadow-sm hover:bg-accent-hover hover:-translate-y-px hover:shadow-md",
+				secondary:
+					"rounded-(--radius-sm) bg-bg-soft text-ink border border-line hover:border-accent hover:text-accent",
 				ghost:
-					"bg-transparent text-[var(--color-ink)] border border-[var(--color-line)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]",
-				link: "bg-transparent text-[var(--color-accent)] underline-offset-4 hover:underline",
+					"rounded-(--radius-sm) border border-line bg-transparent text-ink hover:border-accent hover:bg-bg-soft hover:text-accent",
+				outline:
+					"rounded-(--radius-sm) bg-transparent text-accent border border-accent hover:bg-accent hover:text-bg",
+				link: "bg-transparent text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent p-0 h-auto",
 			},
 			size: {
-				sm: "h-9 px-3 text-xs uppercase tracking-[0.18em]",
-				md: "h-11 px-5 text-sm uppercase tracking-[0.16em]",
-				lg: "h-12 px-7 text-sm uppercase tracking-[0.18em]",
+				sm: "h-9 px-3.5 text-xs uppercase tracking-[var(--tracking-eyebrow)]",
+				md: "h-11 px-5 text-sm uppercase tracking-[var(--tracking-meta)]",
+				lg: "h-12 px-7 text-sm uppercase tracking-[var(--tracking-meta)]",
 			},
 		},
 		defaultVariants: {

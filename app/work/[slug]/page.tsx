@@ -7,9 +7,13 @@ import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
+import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
+
+/** sizes hint shared by the detail <img> and its preload link -- must match. */
+const DETAIL_SIZES = "(min-width: 768px) 60vw, 100vw";
 
 interface PageProps {
 	params: Promise<{ slug: string }>;
@@ -32,6 +36,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	};
 }
 
+/** Prev/next neighbours in catalog sort order, for sweeping through the archive. */
+function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; next?: Artwork } {
+	const idx = all.findIndex((a) => a.slug === slug);
+	return {
+		prev: idx > 0 ? all[idx - 1] : undefined,
+		next: idx < all.length - 1 ? all[idx + 1] : undefined,
+	};
+}
+
+/** CTA label + supporting note, derived from the piece's availability state. */
+function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: string; note: string } {
+	if (isSold) {
+		return {
+			label: "Ask about a similar piece",
+			note: "This piece has found a home. Reach out for a commission in the same style.",
+		};
+	}
+	if (isAvailable) {
+		return {
+			label: "Enquire on WhatsApp",
+			note: "Tap to open a pre-filled WhatsApp message. Ships from India.",
+		};
+	}
+	return {
+		label: "Ask about this piece",
+		note: "Listed in the archive. Reach out if you'd like a similar piece commissioned.",
+	};
+}
+
 /**
  * Artwork detail page.
  *
@@ -42,15 +75,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Prev/next links derive from sort order so the visitor can sweep through
  * the archive without bouncing back to /work.
  */
-export default async function ArtworkDetailPage({ params }: PageProps) {
+export default async function ArtworkDetailPage({ params }: Readonly<PageProps>) {
 	const { slug } = await params;
 	const art = await getArtworkBySlug(slug);
 	if (!art) notFound();
 
 	const all = await getAllArtworks();
-	const idx = all.findIndex((a) => a.slug === art.slug);
-	const prev = idx > 0 ? all[idx - 1] : undefined;
-	const next = idx < all.length - 1 ? all[idx + 1] : undefined;
+	const { prev, next } = getSiblings(all, art.slug);
 
 	const { contact } = getSite();
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
@@ -61,10 +92,21 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 
 	const isAvailable = typeof art.priceInr === "number";
 	const isSold = art.status === "sold";
+	const cta = getCtaCopy(isAvailable, isSold);
 
 	return (
 		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-			<Reveal>
+			{/* Preload the artwork plate (the LCP element) so its fetch starts at
+			    HTML parse. imageSrcSet/imageSizes mirror the <img> exactly. */}
+			<link
+				rel="preload"
+				as="image"
+				type="image/avif"
+				imageSrcSet={artworkPreloadSrcset(art.image, 800)}
+				imageSizes={DETAIL_SIZES}
+				fetchPriority="high"
+			/>
+			<Reveal eager>
 				<Link
 					href="/work"
 					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
@@ -76,12 +118,13 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
-				<Reveal className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
+				<Reveal eager className="md:col-span-7">
+					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-card) bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
-							sizes="(min-width: 768px) 60vw, 100vw"
+							sizes={DETAIL_SIZES}
+							maxWidth={800}
 							priority
 							className="absolute inset-0 h-full w-full object-cover"
 						/>
@@ -100,10 +143,10 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 
 				{/* Info column */}
 				<div className="md:col-span-5">
-					<Reveal>
+					<Reveal eager>
 						<p className="t-eyebrow">{art.style}</p>
 					</Reveal>
-					<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+					<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 						{art.title}
 					</Reveal>
 
@@ -156,7 +199,7 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 					) : null}
 
 					<Reveal delayMs={260}>
-						<div className="mt-10 rounded-md border border-line bg-bg-soft p-5 sm:p-6">
+						<div className="mt-10 rounded-(--radius-card) border border-line bg-bg-soft p-5 sm:p-6">
 							{isAvailable ? (
 								<div className="mb-4 flex items-baseline justify-between gap-3">
 									<span className="t-meta normal-case tracking-normal text-muted">Price</span>
@@ -172,19 +215,9 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 								className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}
 							>
 								<MessageCircle size={16} aria-hidden="true" />
-								{isSold
-									? "Ask about a similar piece"
-									: isAvailable
-										? "Enquire on WhatsApp"
-										: "Ask about this piece"}
+								{cta.label}
 							</a>
-							<p className="mt-3 text-xs text-muted">
-								{isSold
-									? "This piece has found a home. Reach out for a commission in the same style."
-									: isAvailable
-										? "Tap to open a pre-filled WhatsApp message. Ships from India."
-										: "Listed in the archive. Reach out if you'd like a similar piece commissioned."}
-							</p>
+							<p className="mt-3 text-xs text-muted">{cta.note}</p>
 						</div>
 					</Reveal>
 				</div>

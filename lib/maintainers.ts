@@ -27,14 +27,23 @@ export async function isMaintainer(email: string | null | undefined): Promise<bo
 	return rows.length > 0;
 }
 
+/** The root maintainer's email, for "request access" contact links. */
+export async function getRootMaintainerEmail(): Promise<string | null> {
+	const rows = await db
+		.select({ email: maintainers.email })
+		.from(maintainers)
+		.where(eq(maintainers.isRoot, true))
+		.limit(1);
+	return rows[0]?.email ?? null;
+}
+
 /** Full roster, root first then by date added. */
 export async function listMaintainers(): Promise<readonly MaintainerRow[]> {
 	const rows = await db.select().from(maintainers);
-	return rows
-		.slice()
-		.sort((a, b) =>
-			a.isRoot === b.isRoot ? a.createdAt.getTime() - b.createdAt.getTime() : a.isRoot ? -1 : 1,
-		);
+	return rows.slice().sort((a, b) => {
+		if (a.isRoot !== b.isRoot) return a.isRoot ? -1 : 1;
+		return a.createdAt.getTime() - b.createdAt.getTime();
+	});
 }
 
 /** Add a maintainer. Idempotent on email. `addedBy` records who invited them. */

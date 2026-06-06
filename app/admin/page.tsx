@@ -1,42 +1,88 @@
-/**
- * Admin dashboard. Lists every artwork with inline controls (price,
- * availability, featured, delete) and an upload form for new pieces. Server
- * component fetches the catalog through the same seam the public site uses, so
- * the admin always sees live DB state.
- */
-import { getAllArtworks } from "@/lib/data";
+import { Image, Package, ShoppingBag, Star } from "lucide-react";
+import { getAllArtworks, getCategoryNames } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { ArtworkGrid } from "./_components/artwork-grid";
 import { ArtworkRow } from "./_components/artwork-row";
 import { UploadForm } from "./_components/upload-form";
 
 export default async function AdminDashboard() {
-	const artworks = await getAllArtworks();
+	const [artworks, categoryNames] = await Promise.all([getAllArtworks(), getCategoryNames()]);
 	const available = artworks.filter((a) => a.status === "available").length;
 	const sold = artworks.filter((a) => a.status === "sold").length;
+	const featured = artworks.filter((a) => a.featured).length;
 
 	return (
-		<div className="space-y-10">
-			<section>
-				<h1 className="t-display text-2xl">Catalog</h1>
-				<p className="mt-1 text-sm text-muted">
-					{artworks.length} pieces · {available} available · {sold} sold
-				</p>
+		<div className="space-y-8">
+			{/* Stats */}
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+				<StatCard icon={Image} label="Total pieces" value={artworks.length} />
+				<StatCard icon={ShoppingBag} label="Available" value={available} />
+				<StatCard icon={Package} label="Sold" value={sold} />
+				<StatCard icon={Star} label="Featured" value={featured} />
+			</div>
+
+			{/* Upload section */}
+			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
+				<h2 className="text-sm font-semibold">Add a new piece</h2>
+				<UploadForm categories={categoryNames} />
 			</section>
 
-			<section className="rounded-md border border-line p-5">
-				<h2 className="t-display text-lg">Add a new piece</h2>
-				<UploadForm />
+			{/* Reorder section */}
+			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
+				<div className="mb-4">
+					<h2 className="text-sm font-semibold">Gallery order</h2>
+					<p className="mt-1 text-xs text-muted">
+						Drag pieces to reorder. This controls display order on the public site.
+					</p>
+				</div>
+				<ArtworkGrid
+					artworks={artworks.map((a) => ({
+						slug: a.slug,
+						title: a.title,
+						style: a.style,
+						status: a.status ?? "archive",
+						featured: a.featured,
+						priceInr: a.priceInr,
+						thumb: `${ARTWORK_IMAGE_BASE}/${a.slug}-400.webp`,
+					}))}
+				/>
 			</section>
 
-			<section className="space-y-3">
-				{artworks.map((art) => (
-					<ArtworkRow
-						key={art.slug}
-						art={art}
-						thumb={`${ARTWORK_IMAGE_BASE}/${art.slug}-400.webp`}
-					/>
-				))}
+			{/* Detailed management */}
+			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
+				<div className="mb-4">
+					<h2 className="text-sm font-semibold">Manage pieces</h2>
+					<p className="mt-1 text-xs text-muted">
+						Tap Edit to change any detail, price, status, image, or to delete a piece.
+					</p>
+				</div>
+				<div className="space-y-2">
+					{artworks.map((art) => (
+						<ArtworkRow
+							key={art.slug}
+							art={art}
+							thumb={`${ARTWORK_IMAGE_BASE}/${art.slug}-400.webp`}
+							categories={categoryNames}
+						/>
+					))}
+				</div>
 			</section>
+		</div>
+	);
+}
+
+function StatCard({
+	icon: Icon,
+	label,
+	value,
+}: Readonly<{ icon: typeof Image; label: string; value: number }>) {
+	return (
+		<div className="rounded-(--radius-md) border border-line bg-bg p-4">
+			<div className="flex items-center gap-2">
+				<Icon size={14} className="text-muted" />
+				<span className="text-xs text-muted">{label}</span>
+			</div>
+			<p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
 		</div>
 	);
 }

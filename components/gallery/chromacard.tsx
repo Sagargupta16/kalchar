@@ -31,7 +31,7 @@ export function Chromacard({
 	ariaLabel,
 	className,
 	groupHoverBloom = false,
-}: ChromacardProps) {
+}: Readonly<ChromacardProps>) {
 	if (!palette || palette.length === 0) return null;
 	return (
 		<div

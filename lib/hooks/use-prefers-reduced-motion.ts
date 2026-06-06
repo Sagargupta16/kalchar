@@ -1,32 +1,23 @@
-/**
- * Reads the user's `prefers-reduced-motion` system setting and updates if it
- * changes mid-session. Returns true when motion should be suppressed.
- *
- * Use this in client components whose animation Motion's library-level
- * <MotionConfig reducedMotion="user"> can NOT reach -- specifically raw
- * useSpring/useMotionValue transforms (the gallery card tilt) and animated SVG
- * presentation attributes like rx/ry (the ink-splash wash). MotionConfig only
- * neutralizes transform/layout transitions on `animate` props, so those two
- * cases must gate motion at the source. Components that animate via plain
- * `animate`/`whileInView` (Reveal, SplitText, BrushStroke) do NOT need this.
- *
- * Starts `false` (the SSR/first-paint value), then reads the real preference in
- * an effect -- keep it out of markup that would cause a hydration mismatch.
- */
 "use client";
 
 import { useEffect, useState } from "react";
 
+/**
+ * Reactive `prefers-reduced-motion` reader.
+ *
+ * Returns `false` on first render (server + pre-hydration) so SSR markup is
+ * stable, then syncs to the live media query on mount and updates if the user
+ * flips the OS setting. Shared by any component that gates a raw transform or
+ * programmatic scroll Motion's `MotionConfig` can't reach.
+ */
 export function usePrefersReducedMotion(): boolean {
-	const [prefersReduced, setPrefersReduced] = useState(false);
-
+	const [reduce, setReduce] = useState(false);
 	useEffect(() => {
-		const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-		setPrefersReduced(mq.matches);
-		const onChange = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
-		mq.addEventListener("change", onChange);
-		return () => mq.removeEventListener("change", onChange);
+		const mql = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
+		setReduce(mql.matches);
+		const handler = (e: MediaQueryListEvent) => setReduce(e.matches);
+		mql.addEventListener("change", handler);
+		return () => mql.removeEventListener("change", handler);
 	}, []);
-
-	return prefersReduced;
+	return reduce;
 }

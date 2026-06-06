@@ -6,13 +6,13 @@
 	],
 	"brand": {
 		"title": "Kalचर by Megha",
-		"publicName": "Kalcher by Megha",
+		"publicName": "Kalchar by Megha",
 		"tagline": "Folk Artist & Workshop Facilitator",
 		"description": "Madhubani, Pichwai, Lippan, Gond and texture art by Megha Seth. Original works and workshops rooted in Indian folk traditions.",
 		"devanagariMark": "म",
 		"location": "India",
 		"logo": "logo.jpg",
-		"logoAlt": "Kalcher by Megha. Art elevated by belief",
+		"logoAlt": "Kalchar by Megha. Art elevated by belief",
 		"headline": {
 			"latinPrefix": "Kal",
 			"devanagariCore": "चर",
@@ -30,20 +30,41 @@
 	"styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
 	"contact": {
 		"instagram": {
-			"label": "Instagram",
+			"label": "Instagram (Art)",
+			"display": "@kalchar_by_meghaseth",
+			"url": "https://www.instagram.com/kalchar_by_meghaseth/",
+			"note": "Art & Process",
+			"qr": "kalchar_by_meghaseth_qr.png"
+		},
+		"instagramCommunity": {
+			"label": "Instagram (Workshops)",
 			"display": "@listentoyourart111",
-			"url": "https://instagram.com/listentoyourart111"
+			"url": "https://www.instagram.com/listentoyourart111/",
+			"note": "Workshops & Community",
+			"qr": "instagram-qr.png"
+		},
+		"instagramPersonal": {
+			"label": "Megha Seth",
+			"display": "@withmeghaseth",
+			"url": "https://www.instagram.com/withmeghaseth/",
+			"note": "Personal"
 		},
 		"whatsapp": {
 			"label": "WhatsApp",
-			"display": "+91 84356 52636",
-			"url": "https://wa.me/918435652636"
+			"display": "+91 87963 16773",
+			"url": "https://wa.me/918796316773",
+			"catalog": "https://wa.me/c/918796316773"
 		},
 		"email": {
 			"label": "Email",
 			"display": "megha10gupta@gmail.com",
 			"url": "mailto:megha10gupta@gmail.com"
 		}
+	},
+	"developer": {
+		"name": "Sagar Gupta",
+		"instagram": "https://www.instagram.com/sagar_sethh/",
+		"display": "@sagar_sethh"
 	},
 	"sections": {
 		"work": {

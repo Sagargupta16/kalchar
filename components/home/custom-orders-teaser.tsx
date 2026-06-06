@@ -1,82 +1,78 @@
 import { ArrowRight, Brush, Clock, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { BrushStroke } from "@/components/decor/brush-stroke";
-import { InkSplash } from "@/components/decor/ink-splash";
-import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
-import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Container } from "@/components/ui/container";
+import { IconCircle } from "@/components/ui/icon-circle";
+import { Section } from "@/components/ui/section";
+import { cn } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
-/** Home "05 Custom orders" teaser. Vermillion accent, 3-step strip + CTAs. */
+interface CustomOrdersTeaserProps {
+	phone: string;
+	eyebrow: string;
+	title: string;
+	lead?: string;
+}
+
 export function CustomOrdersTeaser({
 	phone,
 	eyebrow,
 	title,
 	lead,
-}: {
-	phone: string;
-	eyebrow: string;
-	title: string;
-	lead?: string;
-}) {
+}: Readonly<CustomOrdersTeaserProps>) {
 	const quickWa = buildWhatsAppLink({
 		phoneE164NoPlus: phone,
 		message: "Hi, I'd like to discuss a custom piece.",
 	});
+
 	return (
-		<section
-			className="relative overflow-hidden border-b border-line bg-bg-soft"
-			style={{ "--section-accent": "var(--color-vermillion)" } as React.CSSProperties}
-		>
-			<PigmentWash />
-			<InkSplash
-				align="left"
-				density="subtle"
-				className="left-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
-			/>
-			<div className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<Section accent="vermillion" background="soft" borderBottom>
+			<Container className="py-(--section-py)">
 				<header className="max-w-2xl">
 					<Reveal>
-						<MotifEyebrow motif="mirror-diamond" number="05" label={eyebrow} />
+						<p className="t-eyebrow flex items-center gap-2">
+							<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+							{eyebrow}
+						</p>
 					</Reveal>
-					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
 						{title}
 					</Reveal>
-					<BrushStroke className="mt-4" width={220} />
 					{lead ? (
-						<Reveal delayMs={160}>
+						<Reveal delayMs={140}>
 							<p className="t-lead mt-4">{lead}</p>
 						</Reveal>
 					) : null}
 				</header>
 
-				<ol className="mt-12 grid gap-6 sm:grid-cols-3 sm:mt-16">
+				<ol className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-3">
 					<Reveal as="li" delayMs={60}>
-						<TeaserStep
-							icon={Brush}
+						<StepCard
+							icon={<Brush size={18} />}
 							title="Send a brief"
 							body="Style, size, occasion. References welcome on WhatsApp."
 						/>
 					</Reveal>
 					<Reveal as="li" delayMs={120}>
-						<TeaserStep
-							icon={MessageCircle}
+						<StepCard
+							icon={<MessageCircle size={18} />}
 							title="We talk it through"
 							body="Quote and timeline come back over WhatsApp."
 						/>
 					</Reveal>
 					<Reveal as="li" delayMs={180}>
-						<TeaserStep
-							icon={Clock}
+						<StepCard
+							icon={<Clock size={18} />}
 							title="Painted, approved, shipped"
-							body="Progress shots along the way. Ships from India after sign-off."
+							body="Progress shots along the way. Ships from India."
 						/>
 					</Reveal>
 				</ol>
 
-				<Reveal delayMs={260}>
-					<div className="mt-12 flex flex-wrap items-center gap-3 sm:mt-14">
+				<Reveal delayMs={240}>
+					<div className="mt-10 flex flex-wrap items-center gap-3 sm:mt-14">
 						<a
 							href={quickWa}
 							target="_blank"
@@ -87,36 +83,32 @@ export function CustomOrdersTeaser({
 						</a>
 						<Link
 							href="/custom-orders"
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							className={cn(buttonVariants({ variant: "secondary" }), "group")}
 						>
-							Open the brief form <ArrowRight size={14} aria-hidden="true" />
+							Open the brief form
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>
-			</div>
-		</section>
+			</Container>
+		</Section>
 	);
 }
 
-function TeaserStep({
-	icon: Icon,
+function StepCard({
+	icon,
 	title,
 	body,
-}: {
-	icon: typeof Brush;
-	title: string;
-	body: string;
-}) {
+}: Readonly<{ icon: React.ReactNode; title: string; body: string }>) {
 	return (
-		<div className="flex h-full flex-col rounded-md border border-line bg-bg p-6">
-			<span
-				className="grid h-10 w-10 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line"
-				aria-hidden="true"
-			>
-				<Icon size={18} />
-			</span>
+		<Card className="flex h-full flex-col">
+			<IconCircle>{icon}</IconCircle>
 			<h3 className="t-display mt-4 text-xl">{title}</h3>
 			<p className="mt-2 text-sm text-muted">{body}</p>
-		</div>
+		</Card>
 	);
 }

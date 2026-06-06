@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
-import { BrushStroke } from "@/components/decor/brush-stroke";
-import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { Reveal } from "@/components/motion/reveal";
+import { Card } from "@/components/ui/card";
+import { Container } from "@/components/ui/container";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -20,87 +21,76 @@ interface AboutSection {
 	asideBody?: string;
 }
 
-/**
- * /about -- editorial article register.
- *
- * Layout: 8 / 4 split on desktop. Body column gets the paragraphs (first
- * with a drop-cap), then a pull-quote with section-accent border, then a
- * Devanagari "इति" mark for the article-end punctuation. Aside column has
- * "Based in" + "Open to" panels stacked.
- *
- * Section accent: marigold (matches v1).
- */
 export default function AboutPage() {
 	const { brand, sections } = getSite();
 	const a = (sections.about ?? {}) as AboutSection;
-	const sectionStyle = {
-		"--section-accent": "var(--color-marigold)",
-	} as CSSProperties;
 
 	return (
-		<main
-			style={sectionStyle}
-			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
-		>
-			<header className="relative max-w-3xl">
-				<Reveal>
-					<MotifEyebrow motif="peacock-feather" label={a.eyebrow ?? "About"} />
-				</Reveal>
-				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl md:text-6xl">
-					{a.title ?? "On preserving folk traditions through practice"}
-				</Reveal>
-				<BrushStroke className="mt-5" width={240} />
-			</header>
+		<main>
+			<Section accent="marigold">
+				<Container className="py-(--section-py)">
+					<PageHeader
+						eyebrow={a.eyebrow ?? "About"}
+						title={a.title ?? "On preserving folk traditions through practice"}
+					/>
 
-			<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
-				{/* Body */}
-				<div className="space-y-6 md:col-span-8">
-					{(a.paragraphs ?? []).map((p, i) => (
-						<Reveal key={p.slice(0, 24)} delayMs={i * 80}>
-							<p className={`t-lead text-ink ${i === 0 ? "drop-cap" : ""}`}>{p}</p>
-						</Reveal>
-					))}
+					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
+						{/* Body */}
+						<div className="space-y-6 md:col-span-8">
+							{(a.paragraphs ?? []).map((p, i) => (
+								<Reveal key={p.slice(0, 24)} eager={i === 0} delayMs={i * 80}>
+									<p className={`t-body text-ink ${i === 0 ? "drop-cap" : ""}`}>{p}</p>
+								</Reveal>
+							))}
 
-					{a.pullQuote ? (
-						<Reveal delayMs={300}>
-							<blockquote className="mt-10 rounded-md border-l-4 border-(--section-accent) bg-bg-soft py-6 pl-6 pr-5">
-								<p className="t-display text-2xl text-(--section-accent) sm:text-3xl">
-									{a.pullQuote}
+							{a.pullQuote ? (
+								<Reveal delayMs={280}>
+									<blockquote className="relative mt-12 mb-6 pl-8 sm:pl-12">
+										<span
+											aria-hidden="true"
+											className="t-display pointer-events-none absolute -top-5 left-0 select-none text-6xl leading-none text-(--section-accent) opacity-25"
+										>
+											&ldquo;
+										</span>
+										<p className="t-display text-2xl text-(--section-accent) sm:text-3xl">
+											{a.pullQuote}
+										</p>
+									</blockquote>
+								</Reveal>
+							) : null}
+
+							<Reveal delayMs={360}>
+								<p className="mt-2 text-right" aria-hidden="true">
+									<span
+										lang="hi"
+										className="font-devanagari text-3xl text-(--section-accent) opacity-60"
+									>
+										इति
+									</span>
 								</p>
-							</blockquote>
-						</Reveal>
-					) : null}
-
-					<Reveal delayMs={380}>
-						<p className="mt-2 text-right" aria-hidden="true">
-							<span
-								lang="hi"
-								className="font-devanagari text-3xl text-(--section-accent) opacity-70"
-							>
-								इति
-							</span>
-						</p>
-					</Reveal>
-				</div>
-
-				{/* Aside */}
-				<aside className="md:col-span-4">
-					<Reveal>
-						<div className="rounded-md border border-line bg-bg-soft p-6">
-							<p className="t-eyebrow">Based in</p>
-							<p className="t-display mt-2 text-2xl">{brand.location}</p>
+							</Reveal>
 						</div>
-					</Reveal>
-					{a.asideHeading || a.asideBody ? (
-						<Reveal delayMs={120}>
-							<div className="mt-4 rounded-md border border-line bg-bg-soft p-6">
-								<p className="t-eyebrow">{a.asideHeading ?? "Open to"}</p>
-								<p className="mt-2 text-sm text-muted">{a.asideBody}</p>
-							</div>
-						</Reveal>
-					) : null}
-				</aside>
-			</div>
+
+						{/* Aside */}
+						<aside className="md:col-span-4">
+							<Reveal>
+								<Card padding="md">
+									<p className="t-eyebrow">Based in</p>
+									<p className="t-display mt-2 text-2xl">{brand.location}</p>
+								</Card>
+							</Reveal>
+							{a.asideHeading || a.asideBody ? (
+								<Reveal delayMs={100}>
+									<Card padding="md" className="mt-4">
+										<p className="t-eyebrow">{a.asideHeading ?? "Open to"}</p>
+										<p className="mt-2 text-sm text-muted">{a.asideBody}</p>
+									</Card>
+								</Reveal>
+							) : null}
+						</aside>
+					</div>
+				</Container>
+			</Section>
 		</main>
 	);
 }

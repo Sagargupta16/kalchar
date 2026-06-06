@@ -19,6 +19,7 @@ export interface WhatsAppLinkOptions {
 }
 
 const PHONE_RE = /^\d{10,15}$/;
+const WA_URL_RE = /wa\.me\/(\d+)/;
 
 function assertValidPhone(phone: string): void {
 	if (!PHONE_RE.test(phone)) {
@@ -40,7 +41,7 @@ export function buildWhatsAppLink({ phoneE164NoPlus, message }: WhatsAppLinkOpti
  * rather than producing every-CTA-broken silent failures.
  */
 export function extractPhoneFromWaUrl(waUrl: string): string {
-	const match = waUrl.match(/wa\.me\/(\d+)/);
+	const match = WA_URL_RE.exec(waUrl);
 	if (!match?.[1]) {
 		throw new Error(`Could not extract phone from WhatsApp URL: "${waUrl}"`);
 	}
@@ -64,8 +65,7 @@ export function customOrderMessage(draft: CustomOrderDraft): string {
 	if (draft.size) lines.push(`Size: ${draft.size}`);
 	if (draft.budget) lines.push(`Budget: ${draft.budget}`);
 	if (draft.timeline) lines.push(`Timeline: ${draft.timeline}`);
-	lines.push("");
-	lines.push(draft.briefMessage);
+	lines.push("", draft.briefMessage);
 	return lines.join("\n");
 }
 

@@ -1,221 +1,339 @@
 @import "tailwindcss";
 
-/**
- * Design tokens for a gallery / museum register: warm cream, deep ink, single
- * terracotta accent. Saturation lives inside the artwork itself, not the chrome.
+/*
+ * Design System: Kalchar by Megha
+ * ================================
+ * Gallery / atelier register. Warm cream ground, deep ink type, terracotta
+ * accent. The artwork is the hero; the chrome stays quiet.
  *
- * Tier 1 -- raw primitive families (kept here so palette pivots are one edit).
- * Tier 2 -- semantic tokens consumed by components via `bg-bg`, `text-ink`,
- *   `border-line`, etc. Tailwind 4 derives utilities from `@theme` automatically
- *   so `--color-bg` -> `bg-bg`, `--color-accent` -> `bg-accent`.
+ * Token tiers:
+ *   1. Primitives (raw families, raw palette values)
+ *   2. Semantic (consumed by components: bg, ink, accent, line, muted)
+ *   3. Component (radius, elevation, motion)
  *
- * Light/dark via `class="dark"` on <html>. Dark-mode block remaps Tier 2 only.
+ * Dark mode: class="dark" on <html>, remaps tier-2 only.
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── TIER 1: PRIMITIVES ─── */
+
 @theme {
-	/* Type families -- next/font/google injects --font-* vars in app/fonts.ts. */
-	--font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
-	--font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-	--font-devanagari: var(--font-devanagari), ui-serif, serif;
+  /* Typography families (next/font injects --font-* CSS vars) */
+  --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  --font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-devanagari: var(--font-devanagari), ui-serif, serif;
 
-	/* Light palette -- warm cream + deep ink + terracotta accent */
-	--color-bg: oklch(0.97 0.014 80);
-	--color-bg-soft: oklch(0.94 0.02 75);
-	--color-ink: oklch(0.18 0.022 60);
-	--color-muted: oklch(0.5 0.018 60);
-	--color-line: oklch(0.87 0.022 75);
-	--color-accent: oklch(0.55 0.165 40);
-	--color-accent-soft: oklch(0.74 0.12 50);
+  /* ─── TIER 2: SEMANTIC COLORS (light) ─── */
+  --color-bg: oklch(0.97 0.014 80);
+  --color-bg-soft: oklch(0.94 0.02 75);
+  --color-bg-muted: oklch(0.91 0.018 78);
+  --color-ink: oklch(0.18 0.022 60);
+  --color-ink-soft: oklch(0.32 0.02 60);
+  --color-muted: oklch(0.46 0.018 60);
+  --color-line: oklch(0.87 0.022 75);
+  --color-line-soft: oklch(0.92 0.015 78);
+  --color-accent: oklch(0.55 0.165 40);
+  --color-accent-hover: oklch(0.48 0.165 40);
+  --color-accent-soft: oklch(0.74 0.12 50);
 
-	/* Section pigment palette -- one per section, sampled from Madhubani
-	   tradition. Components use these via the Section wrapper which sets
-	   --section-accent. */
-	--color-marigold: oklch(0.72 0.16 75);
-	--color-pichwai: oklch(0.45 0.1 165);
-	--color-vermillion: oklch(0.55 0.18 35);
-	--color-peacock: oklch(0.5 0.1 220);
-	--color-ruby: oklch(0.55 0.2 25);
+  /* Section pigments (Madhubani tradition) */
+  --color-marigold: oklch(0.72 0.16 75);
+  --color-pichwai: oklch(0.45 0.1 165);
+  --color-vermillion: oklch(0.55 0.18 35);
+  --color-peacock: oklch(0.5 0.1 220);
+  --color-ruby: oklch(0.55 0.2 25);
 
-	/* Tanjore gold leaf -- the foil highlight on gallery card borders and the
-	   .gold-shimmer sweep. A fixed metallic, not a section pigment, so it lives
-	   here once instead of being re-typed at each use site. */
-	--color-gold-leaf: oklch(0.76 0.12 85);
+  /* Metallic accents */
+  --color-gold-leaf: oklch(0.76 0.12 85);
 
-	/* Tracking + rhythm */
-	--tracking-display: -0.015em;
-	--tracking-eyebrow: 0.22em;
-	--tracking-meta: 0.16em;
+  /* ─── TYPOGRAPHY TOKENS ─── */
+  --tracking-tight: -0.02em;
+  --tracking-display: -0.015em;
+  --tracking-eyebrow: 0.18em;
+  --tracking-meta: 0.14em;
 
-	/* Motion -- role-named timings + eases. Components reference these, not
-	   raw `400ms`. Reduces drift; lets one edit retune the whole site. */
-	--duration-fast: 200ms;
-	--duration-base: 400ms;
-	--duration-slow: 700ms;
+  /* ─── SPACING SCALE (4px base) ─── */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-24: 6rem;    /* 96px */
 
-	--ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
-	--ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
-	--ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+  /* ─── MOTION TOKENS ─── */
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+  --duration-enter: 400ms;
 
-	/* Layout */
-	--container-px: clamp(1.25rem, 4vw, 2rem);
-	--section-py: clamp(4rem, 8vw, 7rem);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── LAYOUT TOKENS ─── */
+  --container-px: clamp(1.25rem, 4vw, 2rem);
+  --section-py: clamp(4rem, 8vw, 6.5rem);
+  --content-max: 72rem;  /* 1152px */
+  --prose-max: 42rem;    /* 672px */
+
+  /* ─── RADIUS ─── */
+  --radius-sm: 0.375rem;   /* 6px - buttons, fields, badges */
+  --radius-md: 0.75rem;    /* 12px - cards, panels */
+  --radius-lg: 1rem;       /* 16px - image plates, lightbox */
+  --radius-full: 9999px;   /* pills, avatars */
 }
 
-/* Site-wide corner-radius rule: every surface (card, panel, frame, field,
-   button) uses `rounded-md` (Tailwind 4 default = 0.375rem) for a subtle,
-   consistent shape. Pills (filter pills, badges, theme toggle, brand mark
-   ring) keep `rounded-full`. Sharp corners are reserved for full-bleed
-   image plates inside cards. */
+/* ─── DARK MODE REMAPS ─── */
 
 :root {
-	/* Default section accent -- inherited by sections that don't set their own.
-	   Sections override via inline style={{ "--section-accent": "var(--color-X)" }}. */
-	--section-accent: var(--color-accent);
+  --section-accent: var(--color-accent);
 }
 
 :root.dark {
-	--color-bg: oklch(0.16 0.018 60);
-	--color-bg-soft: oklch(0.21 0.02 55);
-	--color-ink: oklch(0.92 0.015 80);
-	--color-muted: oklch(0.65 0.018 65);
-	--color-line: oklch(0.28 0.022 60);
-	--color-accent: oklch(0.7 0.14 45);
-	--color-accent-soft: oklch(0.6 0.13 45);
+  --color-bg: oklch(0.14 0.015 60);
+  --color-bg-soft: oklch(0.19 0.018 55);
+  --color-bg-muted: oklch(0.23 0.016 58);
+  --color-ink: oklch(0.93 0.012 80);
+  --color-ink-soft: oklch(0.82 0.014 75);
+  --color-muted: oklch(0.62 0.016 65);
+  --color-line: oklch(0.26 0.02 60);
+  --color-line-soft: oklch(0.22 0.016 62);
+  --color-accent: oklch(0.68 0.14 45);
+  --color-accent-hover: oklch(0.74 0.14 45);
+  --color-accent-soft: oklch(0.58 0.12 45);
 
-	/* Slightly desaturated + lifted in dark mode so pigments don't bloom on
-	   near-black ground. */
-	--color-marigold: oklch(0.78 0.14 80);
-	--color-pichwai: oklch(0.6 0.09 165);
-	--color-vermillion: oklch(0.65 0.16 40);
-	--color-peacock: oklch(0.65 0.09 220);
-	--color-ruby: oklch(0.65 0.18 28);
+  --color-marigold: oklch(0.78 0.14 80);
+  --color-pichwai: oklch(0.6 0.09 165);
+  --color-vermillion: oklch(0.65 0.16 40);
+  --color-peacock: oklch(0.65 0.09 220);
+  --color-ruby: oklch(0.65 0.18 28);
+  --color-gold-leaf: oklch(0.82 0.13 88);
 }
 
+/* ─── BASE RESETS ─── */
+
 html {
-	background: var(--color-bg);
-	color: var(--color-ink);
-	font-family: var(--font-body);
-	-webkit-font-smoothing: antialiased;
-	text-rendering: optimizeLegibility;
-	/* Guard against accidental horizontal scroll on narrow phones (wide rails,
-	   the marquee band). `clip` rather than `hidden` so it doesn't create a
-	   scroll container that would break the sticky header. */
-	overflow-x: clip;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-	min-height: 100dvh;
-	overflow-x: clip;
+  min-height: 100dvh;
+  overflow-x: clip;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 ::selection {
-	background: var(--color-accent);
-	color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-bg);
 }
 
-/* Typographic roles -- consumed via class, not Tailwind utility, so the
-   shape (line-height, letter-spacing) lives in one place. */
+/* ─── TYPOGRAPHY CLASSES ─── */
+
 .t-display {
-	font-family: var(--font-display);
-	font-style: italic;
-	font-weight: 500;
-	letter-spacing: var(--tracking-display);
-	line-height: 1.05;
-	text-wrap: balance;
-}
-.t-eyebrow {
-	font-family: var(--font-body);
-	font-size: 0.6875rem;
-	letter-spacing: var(--tracking-eyebrow);
-	text-transform: uppercase;
-	color: var(--color-muted);
-	font-weight: 500;
-}
-.t-meta {
-	font-family: var(--font-body);
-	font-size: 0.75rem;
-	letter-spacing: var(--tracking-meta);
-	text-transform: uppercase;
-	color: var(--color-muted);
-}
-.t-lead {
-	font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-	line-height: 1.65;
-	color: var(--color-muted);
-	text-wrap: pretty;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
+  text-wrap: balance;
 }
 
-/* Hero Devanagari accent flare -- a 1px rule under the Devanagari core that
-   grows in after the headline reveals. Width animates from 0 to target via
-   a `--flare-w` custom property on a pseudo-element, so layout doesn't
-   thrash. Disabled under reduced-motion (it lands at full width instantly). */
+.t-heading {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.t-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.t-meta {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.t-body {
+  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+
+.t-lead {
+  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+
+/* ─── ANIMATION CLASSES ─── */
+
+/* Home hero artwork plates -- smooth ease when the random shuffle changes
+   the tilt angle on reload. Reduced motion flattens to the resting tilt. */
+.hero-plate {
+  transition: transform var(--duration-slow) var(--ease-out);
+  will-change: transform;
+}
+
+/* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
+   route's server data resolves (route loading.tsx files). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-soft);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-line) 55%, transparent),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Page enter -- a soft fade-up on client-side navigation, applied by
+   app/template.tsx. The first paint is NOT animated (would delay LCP); the
+   template only adds this class after the initial mount. */
+.page-enter {
+  animation: page-enter-in var(--duration-base) var(--ease-out) both;
+}
+
+/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
+   any keyframe, the browser holds it as a computed matrix (even identity,
+   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
+   this wrapper makes it the containing block for every `position: fixed`
+   descendant -- which un-pins the admin mobile tab bar and the reorder bar
+   from the viewport after a client navigation and sends taps to the wrong
+   place. A plain fade has no such side effect. */
+@keyframes page-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes reveal-up-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.split-char {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: split-char-in var(--duration-base) var(--ease-out) forwards;
+}
+
+@keyframes split-char-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .flare-after::after {
-	content: "";
-	display: block;
-	height: 1px;
-	width: 0;
-	background: var(--color-accent);
-	animation: flare-grow var(--duration-slow) var(--ease-out-soft) 0.65s forwards;
+  content: "";
+  display: block;
+  height: 1px;
+  width: 0;
+  background: var(--color-accent);
+  animation: flare-grow var(--duration-slow) var(--ease-out) 0.6s forwards;
 }
 
 @keyframes flare-grow {
-	to {
-		width: var(--flare-w, 100%);
-	}
+  to {
+    width: var(--flare-w, 100%);
+  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.flare-after::after {
-		animation: none;
-		width: var(--flare-w, 100%);
-	}
-}
+/* ─── EDITORIAL TYPOGRAPHY ─── */
 
-/* Drop-cap for editorial paragraphs (used in the About page first paragraph). */
 .drop-cap::first-letter {
-	font-family: var(--font-display);
-	font-style: italic;
-	float: left;
-	font-size: 3.4rem;
-	line-height: 0.9;
-	padding: 0.35rem 0.6rem 0 0;
-	color: var(--section-accent);
+  font-family: var(--font-display);
+  font-style: italic;
+  float: left;
+  font-size: 3.2rem;
+  line-height: 0.85;
+  padding: 0.3rem 0.5rem 0 0;
+  color: var(--section-accent, var(--color-accent));
 }
+
+/* ─── REDUCED MOTION ─── */
 
 @media (prefers-reduced-motion: reduce) {
-	html {
-		scroll-behavior: auto;
-	}
-}
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
 
-/* Tanjore Gold Leaf / Foil Shimmer Accents */
-@keyframes gold-shimmer-anim {
-	0% {
-		background-position: 200% 0;
-	}
-	100% {
-		background-position: -200% 0;
-	}
-}
+  .split-char {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
 
-.gold-shimmer {
-	background: linear-gradient(
-		90deg,
-		var(--color-accent) 0%,
-		var(--color-gold-leaf) 30%,
-		oklch(0.85 0.08 90) 50%,
-		var(--color-gold-leaf) 70%,
-		var(--color-accent) 100%
-	);
-	background-size: 200% 100%;
-	animation: gold-shimmer-anim 6s ease-in-out infinite;
-}
+  .flare-after::after {
+    animation: none;
+    width: var(--flare-w, 100%);
+  }
 
-@media (prefers-reduced-motion: reduce) {
-	.gold-shimmer {
-		animation: none;
-	}
-}
+  /* No tilt transition; the hero stays at its server-rendered resting angle
+     and the JS shuffle is skipped entirely (gated in hero-plates.tsx). */
+  .hero-plate {
+    transition: none;
+  }
 
+  /* Skeletons stay a static tint (no sweep); page-enter is instant. */
+  .skeleton::after {
+    animation: none;
+  }
+  .page-enter {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

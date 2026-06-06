@@ -2,6 +2,151 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.22.0 (2026-06-06)
+
+Footer + CTA affordance pass, WhatsApp contact update, and two layout bug fixes. Verified with lint (0 warnings), typecheck, build, and an in-browser pass (mobile + desktop, light + dark, admin routes).
+
+### Added
+
+- **WhatsApp Business number + catalogue** ([data/site.json](data/site.json), [lib/types.ts](lib/types.ts)) -- the contact number moved to Megha's WhatsApp Business line (`+91 87963 16773`); single-sourced in `site.json`, so every deep link (hero, teasers, artwork "buy", workshops enquiry, footer) updated through the data seam. Added an optional `catalog` field on `ContactChannel` carrying the `wa.me/c/...` catalogue link, surfaced as a "Shop on WhatsApp" CTA on the work page header and a "Browse the WhatsApp catalogue" CTA on the contact page.
+- **Floating back-to-top** ([components/layout/back-to-top.tsx](components/layout/back-to-top.tsx), [app/layout.tsx](app/layout.tsx)) -- the footer "back to top" link became a bottom-right floating affordance that reveals after about one viewport of scroll, reachable from anywhere on a long page. Self-hides on `/admin`; reduced-motion gets an instant jump.
+- **Shared `usePrefersReducedMotion` hook** ([lib/hooks/use-prefers-reduced-motion.ts](lib/hooks/use-prefers-reduced-motion.ts)) -- extracted from two copies (art-image, back-to-top) into one reactive hook, removing a code duplication.
+- **`HideOnAdmin` chrome gate** ([components/layout/hide-on-admin.tsx](components/layout/hide-on-admin.tsx)) -- the marketing footer no longer renders on `/admin` (it was stacking on top of the admin bottom tab bar). The top navbar still renders everywhere.
+
+### Changed
+
+- **Footer rework** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- Explore became an icon-led menu (relevant glyphs: frame, palette, users, brush, mail) so a single trailing item no longer reads as sparse. Reach out became pigment pellets with always-visible captions (Art / Workshops / WhatsApp / Email), which distinguishes the two Instagram channels without a hover (phones have none). Bottom bar centred + stacked on mobile.
+- **CTA affordance ladder** ([components/ui/button.tsx](components/ui/button.tsx), section-shell, contact/workshops/custom-orders teasers, work + workshops pages) -- secondary navigational CTAs that were bare accent text (no resting affordance) now route through `buttonVariants({ variant: "secondary" })` for a visible border at rest; the `ghost` variant gained a resting border and `link` a persistent underline.
+
+### Fixed
+
+- **Admin mobile nav taps after navigation** ([app/globals.css](app/globals.css)) -- the page-transition wrapper (`.page-enter`) animated `transform`, and a lingering transform makes the wrapper the containing block for `position: fixed` descendants, un-pinning the admin bottom tab bar from the viewport after a client navigation and sending taps to the wrong place. Made the transition opacity-only.
+- **Footer bottom bar invisible at page end** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- the bottom bar's scroll-triggered reveal could fail to fire at the very bottom of a tall page, leaving copyright / Admin / developer credit stuck at `opacity:0`. Switched it to the eager CSS reveal so it renders on mount.
+
+### Removed
+
+- **Stale lint suppressions** (artwork-grid, category/preset/workshop-manager) -- four `biome-ignore noStaticElementInteractions` comments that no longer matched a firing rule after the shared `useReorder` refactor. Lint is now warning-free.
+
+## 1.21.0 (2026-06-06)
+
+"The Atelier" design direction, selected from a 5-direction design-lab exploration. A warmer, more tactile evolution of the gallery register, applied to the shell + home first. Verified with lint, typecheck, build, an 8-agent code review, Lighthouse (home Performance 79 -> 87, A11y 100, SEO 100, CLS 0), and axe-core (0 violations, light + dark).
+
+### Added
+
+- **Two-tier radius scale** ([app/globals.css](app/globals.css)) -- new `--radius-card` (~16px) token for content surfaces (cards, panels, image plates, lightbox); `--radius` (`rounded-md`, ~6px) stays for pressable surfaces (buttons, fields, badges); pills + theme toggle stay `rounded-full`. Applied across home teasers, gallery card, standalone pages, and the lightbox.
+- **Layered hero plates** ([components/home/hero.tsx](components/home/hero.tsx), [app/page.tsx](app/page.tsx)) -- the single featured plate became two overlapping tilted plates: a lazily-loaded back plate (+4deg) behind the featured plate (-5deg), each with a soft shadow + ring. The front plate stays the preloaded LCP (priority + `maxWidth={800}` + preload intact); the back plate loads lazily so it never competes. Reduced-motion users get a flat, un-tilted stack.
+- **Gold-leaf accent mark** ([components/home/hero.tsx](components/home/hero.tsx), [app/globals.css](app/globals.css)) -- a single `✦` in `--color-gold-leaf` on the hero eyebrow + featured line (decorative, `aria-hidden`). Added a dark-mode remap for `--color-gold-leaf` so the foil reads on near-black.
+- **Contact pill CTA** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- on desktop, Contact graduates from a text nav link to an accent-bordered `rounded-full` pill (fills on hover/active), a standing conversion path. The other four routes stay text links; the mobile drawer still lists all five.
+
+## 1.20.4 (2026-06-05)
+
+Icon and affordance pass. A multi-region survey (icon inventory + opportunities) drove a set of conservative additions that improve scannability and tap-affordance without touching the restrained gallery register. Verified with lint, typecheck, build, and an in-browser check.
+
+### Added
+
+- **Maintainer login icon** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- a 11px lucide `Lock` glyph leads the footer "Maintainer login" link, signalling the admin/restricted intent of an otherwise quiet utility link.
+- **Available badge check** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- a small accent `Check` precedes "Available" on for-sale cards (a purchase-intent signal that scans fast on mobile).
+- **Form + page error icons** ([components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx), [app/error.tsx](app/error.tsx)) -- a lucide `AlertCircle` accompanies the order-form validation message (dual-channel cue for colour-blind users) and sits above the error-boundary heading.
+- **Lightbox palette + zoom icons** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx)) -- the "Color Palette" label gains a `Palette` glyph (matching the detail page), and the zoom hint gains a `ZoomIn` glyph with touch-honest copy ("Zoom" on mobile, where hover-pan does not apply).
+
+### Changed
+
+- **Consistent arrow hover-slide** ([components/home/section-shell.tsx](components/home/section-shell.tsx), [workshops-teaser.tsx](components/home/workshops-teaser.tsx), [custom-orders-teaser.tsx](components/home/custom-orders-teaser.tsx), [contact-teaser.tsx](components/home/contact-teaser.tsx)) -- every "see all"/"open the brief" link's trailing arrow now slides on hover (named `--duration-base` + `ease-out-soft`), propagating the pattern already used on the contact channel cards.
+- **Directional icons on wayfinding buttons** ([app/not-found.tsx](app/not-found.tsx), [app/login/page.tsx](app/login/page.tsx), [app/contact/page.tsx](app/contact/page.tsx)) -- 404 "Browse the work"/"Back to home", login "Back to site", and the contact "Start a brief" CTA gain leading/trailing arrows with the house hover-slide.
+
+## 1.20.3 (2026-06-05)
+
+Production audit pass: Playwright mobile matrix (iPhone 15 / iPhone SE / Android Pixel 7) plus Lighthouse + axe-core on every route. Result: Accessibility and SEO to 100 on every content page, zero axe violations across both themes, CLS 0 and no horizontal overflow on all 27 viewport/route combinations. Validated with lint, typecheck, build.
+
+### Performance
+
+- **Above-the-fold renders without JS** ([components/motion/reveal.tsx](components/motion/reveal.tsx), [app/globals.css](app/globals.css)) -- `Reveal` gained an `eager` mode that animates via a CSS keyframe (`.reveal-eager`) instead of Motion's scroll-triggered `whileInView`. Scroll reveals ship SSR markup with `opacity:0` and stay invisible until the Motion bundle hydrates, which delayed the LCP element by seconds on a throttled mobile connection. Applied to every page's hero/header (h1, lead, hero image) so the LCP paints at first paint. Render delay on the LCP element dropped to about 75ms.
+- **LCP image preload + connection warmup** ([app/layout.tsx](app/layout.tsx), [components/home/hero.tsx](components/home/hero.tsx), lib/image-base.ts) -- `<link rel="preconnect">` to the R2 image origin, plus a per-page `<link rel="preload" as="image">` (with `imageSrcSet`/`imageSizes`/`fetchPriority="high"`) for the featured and detail artwork so the LCP image fetch starts at HTML parse.
+- **Capped LCP image variant** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- `ArtImage` gained `maxWidth`; the hero and detail plates cap at the 800w variant (about 220KB) instead of fetching 1200w (about 470KB of dense folk-art linework) on high-DPR phones, roughly halving LCP-image transfer while staying sharp for the ~370px slot. Grid thumbnails keep the full range.
+
+### Accessibility
+
+- **Contrast to WCAG AA** ([app/globals.css](app/globals.css), [components/layout/site-footer.tsx](components/layout/site-footer.tsx), [app/contact/page.tsx](app/contact/page.tsx)) -- darkened `--color-muted` (light) from L=0.5 to L=0.46 (3.62:1 to 6.5:1); removed the `text-muted/80` and `opacity-50` modifiers that dropped fine print below 4.5:1; the contact "Fastest reply" chip switched from low-contrast tinted text to a solid accent fill with `text-bg` (5.2:1 light, 6.2:1 dark).
+- **One main landmark** ([app/page.tsx](app/page.tsx)) -- the home page now wraps its sections in `<main>`.
+- **Heading order** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx), [app/workshops/page.tsx](app/workshops/page.tsx), [app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- added section headings so card and step `<h3>`s no longer follow the page `<h1>` with no `<h2>` between.
+- **Form error announce** ([components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- the validation message uses `role="alert"` and the `text-ruby` token.
+
+### SEO
+
+- **Descriptive link text** ([components/home/about-teaser.tsx](components/home/about-teaser.tsx)) -- the home About "Read more" link carries an `sr-only` suffix so its crawled and accessible name is specific.
+
+### Fixed
+
+- **QR aspect ratio** ([app/contact/page.tsx](app/contact/page.tsx)) -- the Instagram QR declared 224x224 on a 2350x2700 source (distorted, and a Best-Practices flag); it now declares true intrinsic dimensions and scales with `w-44 h-auto`.
+
+## 1.20.2 (2026-06-05)
+
+### Added
+
+- **Vercel Web Analytics + Speed Insights** ([app/layout.tsx](app/layout.tsx)) -- `<Analytics />` (`@vercel/analytics/next`) and `<SpeedInsights />` (`@vercel/speed-insights/next`) mounted once in the root layout. Both are free on the Hobby tier, no-op off Vercel, and need no env keys; Web Analytics must be toggled on in the Vercel project's Analytics tab to begin collecting.
+
+## 1.20.1 (2026-06-05)
+
+SonarCloud cleanup. Cleared the code-quality findings on the project (`Sagargupta16_folk-art-portfolio`); no behavior or visual change. Verified with typecheck, lint, build, and an in-browser check of the converted components.
+
+### Fixed
+
+- **Read-only props (S6759)** -- every React component's props parameter is now `Readonly<...>` across the home, gallery, decor, motion, layout, admin, and forms components.
+- **`globalThis` over `window` (S7764)** -- browser-global access (`matchMedia`, `scrollY`, `requestAnimationFrame`, listeners) uses `globalThis.*` in smooth-scroll, the hooks, header, lightbox, theme toggle, scroll-progress, and the order form.
+- **Native a11y elements (S6819)** -- `role="figure"` to a real `<figure>` (lightbox), `role="group"` to a `<fieldset>` with an `sr-only` `<legend>` (theme toggle, work filter), and a decorative `role="presentation"` swapped for `aria-hidden` (paper grain). Visuals preserved (UA chrome reset).
+- **Nested ternaries extracted (S3358)** -- pulled into named locals in `/work/[slug]`, the order form, work filter, maintainer roster, and `lib/maintainers`.
+- **FormData typing (S6551)** -- `createArtwork` reads fields through a typed string helper instead of `formData.get(...) ?? ""`.
+- **Cognitive complexity (S3776)** -- `/work/[slug]` page extracted `getSiblings` + `getCtaCopy` helpers (21 to under 15).
+- **Context value memoized (S6481)** -- the lightbox provider value is wrapped in `useMemo`.
+- **Re-exports (S7763)** -- `brand-icons` uses one `export ... from` statement.
+- **Misc** -- `RegExp.exec` over `String.match` and a single `Array.push` in `whatsapp.ts`; removed needless type assertions (S4325); inverted negated conditionals (S7735); JSX spacing (S6772).
+- **GitHub Actions hardening** -- moved workflow-level `permissions` to job level in `deploy.yml` (S8264/S8233) and SHA-pinned `pnpm/action-setup` in both workflows (S7637).
+
+## 1.20.0 (2026-06-05)
+
+Theme, auth-entry, and admin UI/UX consistency pass.
+
+### Added
+
+- **Branded `/login` page** ([app/login/page.tsx](app/login/page.tsx)) -- replaces NextAuth's unstyled default sign-in. On-brand gallery register: wordmark, "Continue with Google" (a server-action `signIn` form, no client JS), allowlist note, and a friendly not-a-maintainer error. Lives outside the `/admin` matcher so it never redirect-loops. The proxy and the admin layout both redirect unauthenticated visitors here ([proxy.ts](proxy.ts), [app/admin/layout.tsx](app/admin/layout.tsx)).
+- **Maintainer login entry point** in the footer ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- a discreet "Maintainer login" link in the bottom bar, so admin is reachable without a bookmarked URL while the public nav stays clean.
+- **Shared admin control tokens** ([app/admin/_components/controls.ts](app/admin/_components/controls.ts)) -- one field style and one button per intent (secondary / primary / destructive), applied across the upload form, artwork rows, maintainer manager, and the sign-out button so the panel is visually consistent.
+
+### Changed
+
+- **Theme toggle is light/dark only** ([components/ui/theme-toggle.tsx](components/ui/theme-toggle.tsx)) -- the third "system" mode is gone. Default (nothing stored) is light, the gallery's resting register; the pre-paint script in [app/layout.tsx](app/layout.tsx) now only honors a stored `dark` rather than following the OS.
+
+### Fixed
+
+- **Active-nav prefix bug** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- `/workshops` lit both "Work" and "Workshops" because the active check used `startsWith("/work")`. Now matches on a segment boundary (exact or `href + "/"`), normalizing the trailing slash, so each route highlights only itself (`/work/<slug>` still lights "Work").
+- **Brand-icon set** ([components/ui/brand-icons.tsx](components/ui/brand-icons.tsx)) -- added the Google glyph for the login button.
+
+## 1.19.0 (2026-06-05)
+
+Engineering docs suite, cleanup of the retired static-export pipeline, and a full dependency refresh to latest (including framework majors) with zero security advisories remaining. Everything verified green (typecheck, lint, build); the production stack (data seam reads Neon, R2 image serving, 21 prerendered artwork pages, the auth proxy) is intact.
+
+### Added
+
+- **`docs/` engineering suite** -- [ARCHITECTURE.md](docs/ARCHITECTURE.md) (system, layers, data seam, rendering, request lifecycles), [DATABASE.md](docs/DATABASE.md), [AUTH.md](docs/AUTH.md), [IMAGES.md](docs/IMAGES.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md), [DEVELOPMENT.md](docs/DEVELOPMENT.md), indexed by [docs/README.md](docs/README.md). Each carries dark-theme Mermaid diagrams (flowcharts, sequence diagrams, an ERD) grounded in the actual source.
+
+### Changed
+
+- **Next.js 15.5 -> 16** ([package.json](package.json)). The required migration: `middleware.ts` renamed to [proxy.ts](proxy.ts) (Next 16's network-boundary rename; the Auth.js `auth()` wrapper still supplies the default export Next runs as the proxy, `config.matcher` unchanged). The app was already compliant on the larger breaking changes (async `params` in `/work/[slug]`, no `next lint`, no AMP, no runtime config). Turbopack is now the default build.
+- **TypeScript 5.9 -> 6.0** ([package.json](package.json)). TS6 errors on side-effect imports of untyped modules (TS2882), which hit `import "./globals.css"`; added an ambient [css.d.ts](css.d.ts) (`declare module "*.css"`) and wired it into [tsconfig.json](tsconfig.json) `include`. Next 16 also set `jsx: "react-jsx"` in tsconfig.
+- **lucide-react 0.473 -> 1.17** and **tailwind-merge 2.6 -> 3.6** ([package.json](package.json)). lucide's named-import API is unchanged; tailwind-merge v3 is the line that targets Tailwind 4 (which this app already uses), and the vanilla `cn()` helper ([lib/utils.ts](lib/utils.ts)) needs no config change.
+- **Patch bumps**: react / react-dom 19.2.7, @aws-sdk/client-s3 3.1062, @biomejs/biome 2.4.16, @types/react 19.2.16. `@types/node` held at 22.x on purpose (it must track the Node 22 runtime, not chase 25). Biome `$schema` pinned to the installed 2.4.16.
+- **`pnpm db:images` rewired** ([scripts/migrate-images-to-r2.ts](scripts/migrate-images-to-r2.ts)) -- now reads the master JPGs in `public/artworks/` and runs the same `sharp` pipeline the admin upload uses ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts)), instead of the deleted `public/_opt/` directory. One variant-generation path for both upload and bulk migration.
+- **Build is plain `next build`** -- the static-export prebuild (`optimize:images` + `prune-build`) is gone; the gallery serves variants from R2, so generating them at build time was dead work (it was the cause of the 8-minute Vercel builds). [lib/image-base.ts](lib/image-base.ts) is R2-only; [next.config.mjs](next.config.mjs) drops the `output: "export"` era leftovers.
+
+### Removed
+
+- **`scripts/optimize-images.mjs`, `scripts/prune-build.mjs`** -- the build-time AVIF/WebP variant generator and the post-build master-pruner, both obsolete now that images live in R2.
+- **`docs/PHASE-2-SETUP.md`** -- the backend bring-up runbook; Phase 2 is live, and the setup steps now live in the docs suite ([DATABASE.md](docs/DATABASE.md), [IMAGES.md](docs/IMAGES.md), [AUTH.md](docs/AUTH.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+
+### Security
+
+- **Zero advisories** (was 2 moderate). Added a [package.json](package.json) `pnpm.overrides` block forcing `postcss >=8.5.10` (XSS in CSS stringify, transitive via Next) and `esbuild >=0.25.0` (dev-server request advisory, transitive via `drizzle-kit > @esbuild-kit/*`). Both were build/dev-time only and never shipped to the browser; the overrides clear them tree-wide.
+
 ## 1.17.0 (2026-06-04)
 
 Mobile smoothness pass. The site felt janky/"hangy" on phones; the cause was the JS/animation layer (not image bytes, which already ship as optimized `_opt/` AVIF/WebP variants). Pointer-only flourishes are now gated to fine pointers so touch devices get clean native behaviour, and the iOS drawer scroll-lock is fixed. Captured in [ROADMAP.md](ROADMAP.md).
@@ -101,7 +246,7 @@ Build-time image pipeline. Originals stay pristine in the repo as the single sou
 - **`<ArtImage>` rewritten as native `<picture>`** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- AVIF + WebP `<source>` srcsets at all four widths, `<img>` fallback to the mozjpeg JPG. The browser picks the smallest variant whose width covers `rendered CSS width x DPR`, so a 180px-wide phone cell pulls the 400px AVIF (~30-50 KB) instead of the 2 MB master. Drops the `next/image` dependency for catalog images -- on `output: "export"` with `images.unoptimized: true`, `next/image` was just emitting a plain `<img>` to the master anyway. `priority` now controls `loading` / `decoding` / `fetchPriority` directly. Reduced motion, hover, error fallback all unchanged.
 - **`/work/[slug]` Open Graph image** points at `/_opt/artworks/<slug>-1200.webp` instead of the master JPG, so social-card crawlers fetch ~150 KB instead of ~2 MB.
 - **`pnpm build`** chain now runs `optimize:images` -> `next build` -> `prune-build`. The deployed `out/` shrinks from ~32 MB to ~14-16 MB; the visible bandwidth saving is far larger because most browsers pull AVIF (smallest of the three).
-- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalcher by Megha` etc. via the layout's title template.
+- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalchar by Megha` etc. via the layout's title template.
 - **Logo in header** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- the brand-mark Link now leads with a 32-36 px circular `logo.jpg` ring before the wordmark. Mobile-first: 32 px at base, 36 px at md:. Eager + priority decode so it never lags the wordmark next to it. Hover lights the ring with the section accent in step with the wordmark colour change.
 
 ## 1.12.0 (2026-05-25)

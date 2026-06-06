@@ -1,10 +1,13 @@
+import { ArrowRight, BookOpen } from "lucide-react";
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
-import { BrushStroke } from "@/components/decor/brush-stroke";
-import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { WorkFilter } from "@/components/gallery/work-filter";
 import { Reveal } from "@/components/motion/reveal";
-import { getAllArtworks, getSite } from "@/lib/data";
+import { buttonVariants } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { getAllArtworks, getCategoryNames, getSite } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
 	title: "Work",
@@ -12,60 +15,49 @@ export const metadata: Metadata = {
 		"Selected paintings across Madhubani, Pichwai, Lippan, Gond, Texture, and Mixed Media.",
 };
 
-/**
- * /work -- the full gallery.
- *
- * Renders all artworks as uniform 3:4 cards in a 2-column (mobile) / 3-column
- * (desktop) grid. The style filter is a Client island that filters the
- * rendered subset locally (no re-fetch, no network round-trip). No-JS
- * visitors see the unfiltered grid -- the filter pills require JS to toggle.
- *
- * Section accent: ruby. The catalog/archive register reads as a deeper
- * collection-room red, distinct from the global terracotta on the home page.
- */
 export default async function WorkPage() {
-	const all = await getAllArtworks();
-	const { styles, sections } = getSite();
+	const [all, styles] = await Promise.all([getAllArtworks(), getCategoryNames()]);
+	const { sections, contact } = getSite();
 	const work = sections.work;
-	const sectionStyle = { "--section-accent": "var(--color-ruby)" } as CSSProperties;
 
 	return (
-		<main style={sectionStyle} className="relative">
-			{/*
-			 * Color-block header band. Inspired by trippin-on-hue's alternating
-			 * cream / deep-ground sections -- a single deep band at the top
-			 * gives /work a museum-room register without fragmenting the
-			 * gallery rows. `bg-bg-soft` sits ~3% darker than `bg-bg`, the
-			 * ruby accent rule + small caps "the archive" caption ride the
-			 * deeper ground. Mobile-first: full-bleed band, the inner column
-			 * stays at `max-w-6xl` so copy widths track the gallery beneath.
-			 */}
-			<section className="border-b border-line bg-bg-soft">
-				<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-					<header className="relative max-w-2xl">
-						<Reveal>
-							<MotifEyebrow motif="fish" label={work?.eyebrow ?? "Work"} />
-						</Reveal>
-						<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
-							{work?.title ?? "Selected work"}
-						</Reveal>
-						<BrushStroke className="mt-5" width={220} />
-						{work?.lead ? (
-							<Reveal delayMs={160}>
-								<p className="t-lead mt-4">{work.lead}</p>
-							</Reveal>
-						) : null}
-						<Reveal delayMs={220}>
-							<p className="t-meta mt-6">
+		<main>
+			<Section accent="ruby" background="soft" borderBottom>
+				<Container className="py-(--section-py)">
+					<PageHeader
+						eyebrow={work?.eyebrow ?? "Work"}
+						title={work?.title ?? "Selected work"}
+						lead={work?.lead}
+					>
+						<Reveal delayMs={200}>
+							<p className="t-meta mt-5">
 								{all.length} {all.length === 1 ? "piece" : "pieces"}
 							</p>
 						</Reveal>
-					</header>
-				</div>
-			</section>
+						{contact.whatsapp.catalog ? (
+							<Reveal delayMs={260}>
+								<a
+									href={contact.whatsapp.catalog}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={cn(buttonVariants({ variant: "secondary" }), "group mt-6")}
+								>
+									<BookOpen size={16} aria-hidden="true" />
+									Shop on WhatsApp
+									<ArrowRight
+										size={14}
+										aria-hidden="true"
+										className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+									/>
+								</a>
+							</Reveal>
+						) : null}
+					</PageHeader>
+				</Container>
+			</Section>
 
-			<section className="bg-bg">
-				<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+			<Section accent="ruby">
+				<Container className="py-(--section-py)">
 					<WorkFilter
 						styles={styles}
 						items={all.map((a) => ({
@@ -83,8 +75,8 @@ export default async function WorkPage() {
 							palette: a.palette,
 						}))}
 					/>
-				</div>
-			</section>
+				</Container>
+			</Section>
 		</main>
 	);
 }
