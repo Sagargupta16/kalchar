@@ -66,7 +66,6 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 		<>
 			<div role="list" className="space-y-2">
 				{items.map((art, i) => (
-					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop reorder
 					<div
 						role="listitem"
 						key={art.slug}

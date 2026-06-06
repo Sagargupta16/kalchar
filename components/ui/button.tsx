@@ -11,10 +11,11 @@ const buttonVariants = cva(
 					"rounded-(--radius-sm) bg-accent text-bg shadow-sm hover:bg-accent-hover hover:-translate-y-px hover:shadow-md",
 				secondary:
 					"rounded-(--radius-sm) bg-bg-soft text-ink border border-line hover:border-accent hover:text-accent",
-				ghost: "rounded-(--radius-sm) bg-transparent text-ink hover:bg-bg-soft hover:text-accent",
+				ghost:
+					"rounded-(--radius-sm) border border-line bg-transparent text-ink hover:border-accent hover:bg-bg-soft hover:text-accent",
 				outline:
 					"rounded-(--radius-sm) bg-transparent text-accent border border-accent hover:bg-accent hover:text-bg",
-				link: "bg-transparent text-accent underline-offset-4 hover:underline p-0 h-auto",
+				link: "bg-transparent text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent p-0 h-auto",
 			},
 			size: {
 				sm: "h-9 px-3.5 text-xs uppercase tracking-[var(--tracking-eyebrow)]",

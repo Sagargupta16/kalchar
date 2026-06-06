@@ -60,7 +60,7 @@ export default async function WorkshopsPage() {
 												href={enquireUrl}
 												target="_blank"
 												rel="noopener noreferrer"
-												className="inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-(--section-accent) underline-offset-4 hover:underline"
+												className={buttonVariants({ variant: "secondary", size: "sm" })}
 											>
 												<MessageCircle size={14} aria-hidden="true" />
 												Enquire

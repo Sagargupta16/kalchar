@@ -51,8 +51,9 @@
 		},
 		"whatsapp": {
 			"label": "WhatsApp",
-			"display": "+91 84356 52636",
-			"url": "https://wa.me/918435652636"
+			"display": "+91 87963 16773",
+			"url": "https://wa.me/918796316773",
+			"catalog": "https://wa.me/c/918796316773"
 		},
 		"email": {
 			"label": "Email",

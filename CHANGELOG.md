@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.22.0 (2026-06-06)
+
+Footer + CTA affordance pass, WhatsApp contact update, and two layout bug fixes. Verified with lint (0 warnings), typecheck, build, and an in-browser pass (mobile + desktop, light + dark, admin routes).
+
+### Added
+
+- **WhatsApp Business number + catalogue** ([data/site.json](data/site.json), [lib/types.ts](lib/types.ts)) -- the contact number moved to Megha's WhatsApp Business line (`+91 87963 16773`); single-sourced in `site.json`, so every deep link (hero, teasers, artwork "buy", workshops enquiry, footer) updated through the data seam. Added an optional `catalog` field on `ContactChannel` carrying the `wa.me/c/...` catalogue link, surfaced as a "Shop on WhatsApp" CTA on the work page header and a "Browse the WhatsApp catalogue" CTA on the contact page.
+- **Floating back-to-top** ([components/layout/back-to-top.tsx](components/layout/back-to-top.tsx), [app/layout.tsx](app/layout.tsx)) -- the footer "back to top" link became a bottom-right floating affordance that reveals after about one viewport of scroll, reachable from anywhere on a long page. Self-hides on `/admin`; reduced-motion gets an instant jump.
+- **Shared `usePrefersReducedMotion` hook** ([lib/hooks/use-prefers-reduced-motion.ts](lib/hooks/use-prefers-reduced-motion.ts)) -- extracted from two copies (art-image, back-to-top) into one reactive hook, removing a code duplication.
+- **`HideOnAdmin` chrome gate** ([components/layout/hide-on-admin.tsx](components/layout/hide-on-admin.tsx)) -- the marketing footer no longer renders on `/admin` (it was stacking on top of the admin bottom tab bar). The top navbar still renders everywhere.
+
+### Changed
+
+- **Footer rework** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- Explore became an icon-led menu (relevant glyphs: frame, palette, users, brush, mail) so a single trailing item no longer reads as sparse. Reach out became pigment pellets with always-visible captions (Art / Workshops / WhatsApp / Email), which distinguishes the two Instagram channels without a hover (phones have none). Bottom bar centred + stacked on mobile.
+- **CTA affordance ladder** ([components/ui/button.tsx](components/ui/button.tsx), section-shell, contact/workshops/custom-orders teasers, work + workshops pages) -- secondary navigational CTAs that were bare accent text (no resting affordance) now route through `buttonVariants({ variant: "secondary" })` for a visible border at rest; the `ghost` variant gained a resting border and `link` a persistent underline.
+
+### Fixed
+
+- **Admin mobile nav taps after navigation** ([app/globals.css](app/globals.css)) -- the page-transition wrapper (`.page-enter`) animated `transform`, and a lingering transform makes the wrapper the containing block for `position: fixed` descendants, un-pinning the admin bottom tab bar from the viewport after a client navigation and sending taps to the wrong place. Made the transition opacity-only.
+- **Footer bottom bar invisible at page end** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- the bottom bar's scroll-triggered reveal could fail to fire at the very bottom of a tall page, leaving copyright / Admin / developer credit stuck at `opacity:0`. Switched it to the eager CSS reveal so it renders on mount.
+
+### Removed
+
+- **Stale lint suppressions** (artwork-grid, category/preset/workshop-manager) -- four `biome-ignore noStaticElementInteractions` comments that no longer matched a firing rule after the shared `useReorder` refactor. Lint is now warning-free.
+
 ## 1.21.0 (2026-06-06)
 
 "The Atelier" design direction, selected from a 5-direction design-lab exploration. A warmer, more tactile evolution of the gallery register, applied to the shell + home first. Verified with lint, typecheck, build, an 8-agent code review, Lighthouse (home Performance 79 -> 87, A11y 100, SEO 100, CLS 0), and axe-core (0 violations, light + dark).

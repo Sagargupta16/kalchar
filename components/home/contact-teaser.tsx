@@ -2,10 +2,12 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
+import { buttonVariants } from "@/components/ui/button";
 import { ChannelLink } from "@/components/ui/channel-link";
 import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
 import type { Contact } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface ContactTeaserProps {
 	contact: Contact;
@@ -68,10 +70,7 @@ export function ContactTeaser({ contact, eyebrow, title, lead }: Readonly<Contac
 
 				<Reveal delayMs={260}>
 					<div className="mt-10 sm:mt-14">
-						<Link
-							href="/contact"
-							className="group inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-(--section-accent) transition-colors hover:opacity-80"
-						>
+						<Link href="/contact" className={cn(buttonVariants({ variant: "secondary" }), "group")}>
 							Full contact page
 							<ArrowRight
 								size={14}

@@ -59,6 +59,8 @@ CLAUDE.local.md
 
 # Temp screenshots from dev / Playwright runs
 /*.png
+/*.jpeg
+/*.jpg
 !public/**/*.png
 tmp/
 
