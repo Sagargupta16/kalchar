@@ -196,6 +196,51 @@ body {
   will-change: transform;
 }
 
+/* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
+   route's server data resolves (route loading.tsx files). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-soft);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-line) 55%, transparent),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Page enter -- a soft fade-up on client-side navigation, applied by
+   app/template.tsx. The first paint is NOT animated (would delay LCP); the
+   template only adds this class after the initial mount. */
+.page-enter {
+  animation: page-enter-in var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes page-enter-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .reveal-up {
   opacity: 0;
   transform: translateY(20px);
@@ -273,6 +318,14 @@ body {
      and the JS shuffle is skipped entirely (gated in hero-plates.tsx). */
   .hero-plate {
     transition: none;
+  }
+
+  /* Skeletons stay a static tint (no sweep); page-enter is instant. */
+  .skeleton::after {
+    animation: none;
+  }
+  .page-enter {
+    animation: none;
   }
 
   html {
