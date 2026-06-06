@@ -42,6 +42,22 @@ export interface Workshop {
 	order: number;
 }
 
+export type OrderPresetKind = "size" | "budget" | "timeline";
+
+export interface OrderPreset {
+	id: string;
+	kind: OrderPresetKind;
+	label: string;
+	order: number;
+}
+
+/** Grouped preset labels for the custom-order form dropdowns. */
+export interface OrderPresets {
+	sizes: string[];
+	budgets: string[];
+	timelines: string[];
+}
+
 export interface Brand {
 	title: string;
 	publicName: string;

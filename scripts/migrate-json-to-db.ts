@@ -17,7 +17,7 @@
 import artworksJson from "../data/artworks.json";
 import siteJson from "../data/site.json";
 import { db } from "../lib/db/client";
-import { artworks, workshops } from "../lib/db/schema";
+import { artworks, orderPresets, workshops } from "../lib/db/schema";
 import type { Artwork, Workshop } from "../lib/types";
 
 function deriveStatus(a: Artwork): "archive" | "available" | "sold" {
@@ -89,6 +89,31 @@ async function main() {
 					order: w.order,
 				},
 			});
+	}
+
+	// Custom-order presets: sizes / budgets / timelines from site.json.
+	const co = (siteJson as { sections?: { customOrders?: Record<string, string[]> } }).sections
+		?.customOrders;
+	const presetKinds: Array<["size" | "budget" | "timeline", string[]]> = [
+		["size", co?.sizes ?? []],
+		["budget", co?.budgets ?? []],
+		["timeline", co?.timelines ?? []],
+	];
+	const presetCount = presetKinds.reduce((n, [, labels]) => n + labels.length, 0);
+	console.log(`Seeding ${presetCount} order presets...`);
+	for (const [kind, labels] of presetKinds) {
+		for (let i = 0; i < labels.length; i++) {
+			const label = labels[i];
+			if (!label) continue;
+			const id = `${kind}-${i + 1}`;
+			await db
+				.insert(orderPresets)
+				.values({ id, kind, label, order: i + 1 })
+				.onConflictDoUpdate({
+					target: orderPresets.id,
+					set: { kind, label, order: i + 1 },
+				});
+		}
 	}
 
 	console.log("Seed complete.");

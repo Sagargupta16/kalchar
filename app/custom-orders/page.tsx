@@ -7,7 +7,7 @@ import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { getSite } from "@/lib/data";
+import { getOrderPresets, getSite } from "@/lib/data";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -27,10 +27,11 @@ interface CustomOrdersSection {
 	fallbackEmailLabel?: string;
 }
 
-export default function CustomOrdersPage() {
+export default async function CustomOrdersPage() {
 	const { contact, sections, styles } = getSite();
 	const co = (sections.customOrders ?? {}) as CustomOrdersSection;
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
+	const presets = await getOrderPresets();
 
 	return (
 		<main>
@@ -82,9 +83,9 @@ export default function CustomOrdersPage() {
 										phoneE164NoPlus={phone}
 										emailUrl={contact.email.url}
 										availableStyles={styles}
-										sizes={co.sizes ?? []}
-										budgets={co.budgets ?? []}
-										timelines={co.timelines ?? []}
+										sizes={presets.sizes}
+										budgets={presets.budgets}
+										timelines={presets.timelines}
 										submitLabel={co.submitLabel ?? "Send via WhatsApp"}
 										fallbackEmailLabel={co.fallbackEmailLabel ?? "Or email instead"}
 									/>

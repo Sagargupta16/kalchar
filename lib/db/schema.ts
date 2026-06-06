@@ -51,6 +51,19 @@ export const workshops = pgTable("workshops", {
 });
 
 /**
+ * Custom-order form dropdown options. One row per option, discriminated by
+ * `kind` ("size" | "budget" | "timeline"), so all three dropdowns are one
+ * table and a new kind needs no schema change. Editable from /admin so the
+ * artist can adjust the choices without a code deploy.
+ */
+export const orderPresets = pgTable("order_presets", {
+	id: text("id").primaryKey(),
+	kind: text("kind").notNull(),
+	label: text("label").notNull(),
+	order: integer("order").notNull(),
+});
+
+/**
  * Admin allowlist. Replaces a static ADMIN_EMAILS env var so a logged-in
  * maintainer can add/remove others from the panel without a redeploy. The
  * Auth.js signIn callback checks an email against this table.
@@ -72,5 +85,7 @@ export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;
 export type WorkshopRow = typeof workshops.$inferSelect;
 export type WorkshopInsert = typeof workshops.$inferInsert;
+export type OrderPresetRow = typeof orderPresets.$inferSelect;
+export type OrderPresetInsert = typeof orderPresets.$inferInsert;
 export type MaintainerRow = typeof maintainers.$inferSelect;
 export type MaintainerInsert = typeof maintainers.$inferInsert;
