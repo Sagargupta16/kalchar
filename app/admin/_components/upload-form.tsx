@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createArtwork } from "../actions";
@@ -22,7 +23,7 @@ export function UploadForm() {
 		startTransition(async () => {
 			try {
 				const { slug } = await createArtwork(data);
-				setOk(`Added "${slug}". Image variants generated and uploaded.`);
+				setOk(`Added "${slug}". Variants generated.`);
 				form.reset();
 				router.refresh();
 			} catch (err) {
@@ -31,12 +32,10 @@ export function UploadForm() {
 		});
 	}
 
-	const field = adminField;
-
 	return (
 		<form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
-			<input name="title" placeholder="Title *" required className={field} />
-			<select name="style" required className={field} defaultValue="">
+			<input name="title" placeholder="Title *" required className={adminField} />
+			<select name="style" required className={adminField} defaultValue="">
 				<option value="" disabled>
 					Style *
 				</option>
@@ -50,36 +49,42 @@ export function UploadForm() {
 				name="medium"
 				placeholder="Medium * (e.g. Natural pigment on handmade paper)"
 				required
-				className={field}
+				className={adminField}
 			/>
-			<input name="dimensions" placeholder="Dimensions (e.g. 30 x 40 cm)" className={field} />
+			<input name="dimensions" placeholder="Dimensions (e.g. 30 x 40 cm)" className={adminField} />
 			<input
 				name="priceInr"
 				type="number"
 				min="0"
-				placeholder="Price INR (blank = archive only)"
-				className={field}
+				placeholder="Price INR (blank = archive)"
+				className={adminField}
 			/>
-			<input name="year" type="number" placeholder="Year" className={field} />
+			<input name="year" type="number" placeholder="Year" className={adminField} />
 			<textarea
 				name="description"
 				placeholder="Description"
 				rows={2}
-				className={`${field} sm:col-span-2`}
+				className={`${adminField} sm:col-span-2`}
 			/>
-			<input
-				name="image"
-				type="file"
-				accept="image/jpeg,image/png,image/webp"
-				required
-				className="text-sm text-muted file:mr-3 file:rounded-md file:border file:border-line file:bg-bg-soft file:px-3 file:py-1.5 file:text-sm sm:col-span-2"
-			/>
+			<div className="sm:col-span-2">
+				<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+					<ImagePlus size={18} />
+					<span>Choose image (JPG, PNG, or WebP)</span>
+					<input
+						name="image"
+						type="file"
+						accept="image/jpeg,image/png,image/webp"
+						required
+						className="sr-only"
+					/>
+				</label>
+			</div>
 			<div className="flex items-center gap-3 sm:col-span-2">
 				<button type="submit" disabled={pending} className={adminBtnPrimary}>
-					{pending ? "Uploading and processing…" : "Add piece"}
+					{pending ? "Processing..." : "Add piece"}
 				</button>
 				{error ? <span className="text-sm text-ruby">{error}</span> : null}
-				{ok ? <span className="text-sm text-pichwai">{ok}</span> : null}
+				{ok ? <span className="text-sm text-accent">{ok}</span> : null}
 			</div>
 		</form>
 	);

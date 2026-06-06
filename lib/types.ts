@@ -69,8 +69,15 @@ export interface ContactChannel {
 export interface Contact {
 	instagram: ContactChannel;
 	instagramCommunity?: ContactChannel;
+	instagramPersonal?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
+}
+
+export interface Developer {
+	name: string;
+	instagram: string;
+	display: string;
 }
 
 export interface NavItem {
@@ -88,6 +95,7 @@ export interface SectionCopy {
 export interface Site {
 	brand: Brand;
 	contact: Contact;
+	developer?: Developer;
 	nav: NavItem[];
 	styles: readonly ArtStyle[];
 	sections: Record<string, SectionCopy>;

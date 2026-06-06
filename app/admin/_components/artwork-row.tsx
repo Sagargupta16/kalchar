@@ -1,5 +1,6 @@
 "use client";
 
+import { Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Artwork } from "@/lib/types";
@@ -24,17 +25,12 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 		});
 	}
 
-	// Dense variants of the shared admin controls -- a multi-control row needs a
-	// tighter footprint than the upload form's full-size fields.
-	const ctrl = `${adminField} px-2 py-1`;
-	const btn = `${adminBtn} px-2 py-1`;
-
 	return (
-		<div className="flex flex-wrap items-center gap-3 rounded-(--radius-sm) border border-line p-3">
-			{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL, next/image not used in this project */}
-			<img src={thumb} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
-			<div className="min-w-40 flex-1">
-				<p className="font-medium">{art.title}</p>
+		<div className="flex flex-wrap items-center gap-3 rounded-(--radius-sm) border border-line bg-bg p-3 transition-colors hover:border-line-soft">
+			{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
+			<img src={thumb} alt="" className="h-12 w-12 shrink-0 rounded-(--radius-sm) object-cover" />
+			<div className="min-w-36 flex-1">
+				<p className="text-sm font-medium">{art.title}</p>
 				<p className="text-xs text-muted">
 					{art.style} · {art.status}
 					{art.featured ? " · featured" : ""}
@@ -46,16 +42,16 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 				min="0"
 				value={price}
 				onChange={(e) => setPriceInput(e.target.value)}
-				placeholder="Price INR"
-				className={`${ctrl} w-28`}
+				placeholder="Price"
+				className={`${adminField} w-24 px-2 py-1`}
 			/>
 			<button
 				type="button"
 				disabled={pending}
 				onClick={() => run(() => setPrice(art.slug, price === "" ? null : Number(price)))}
-				className={btn}
+				className={`${adminBtn} px-2 py-1`}
 			>
-				Save price
+				Save
 			</button>
 
 			<select
@@ -64,7 +60,7 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 				onChange={(e) =>
 					run(() => setStatus(art.slug, e.target.value as "archive" | "available" | "sold"))
 				}
-				className={ctrl}
+				className={`${adminField} px-2 py-1`}
 			>
 				<option value="archive">archive</option>
 				<option value="available">available</option>
@@ -75,25 +71,25 @@ export function ArtworkRow({ art, thumb }: Readonly<{ art: Artwork; thumb: strin
 				type="button"
 				disabled={pending}
 				onClick={() => run(() => setFeatured(art.slug, !art.featured))}
-				className={btn}
+				className={`${adminBtn} px-2 py-1 ${art.featured ? "border-accent text-accent" : ""}`}
 			>
-				{art.featured ? "Unfeature" : "Feature"}
+				<Star size={12} className={art.featured ? "fill-accent" : ""} />
 			</button>
 
 			<button
 				type="button"
 				disabled={pending}
 				onClick={() => {
-					if (confirm(`Delete "${art.title}" and its images? This cannot be undone.`)) {
+					if (confirm(`Delete "${art.title}"? This cannot be undone.`)) {
 						run(() => deleteArtwork(art.slug));
 					}
 				}}
 				className={`${adminBtnDestructive} px-2 py-1`}
 			>
-				Delete
+				<Trash2 size={12} />
 			</button>
 
-			{err ? <span className="w-full text-sm text-ruby">{err}</span> : null}
+			{err ? <span className="w-full text-xs text-ruby">{err}</span> : null}
 		</div>
 	);
 }
