@@ -54,7 +54,10 @@ Live URL: <https://kalchar.co.in/>.
 | Visual mood | Gallery / museum register. Restrained, whitespace-forward, the work is the hero. Warm cream + ink + single accent. Fine type. Pieces stand on their own merit. | 2026-05-24 |
 | Motion intensity | Refined. Fade-up on scroll, subtle hover lifts on cards, tasteful page transitions. Motion 12 + Lenis (lazy-loaded). All respect `prefers-reduced-motion`. | 2026-05-24 |
 | Motion exclusions | **No busy techy/mesh particles or game-like ornaments. No custom cursor** (use the user's native pointer). Elegant bespoke animations on the work itself are allowed: 3D card tilt, organic morphing watercolor backdrops, gold leaf shimmers. | 2026-05-27 |
-| Corner radius | Subtle and consistent. Use a single `--radius` token (~6px) across cards, panels, fields, buttons. Pills (filter, badges) keep their full-rounded shape. | 2026-05-24 |
+| Corner radius | Two-tier (updated 2026-06-06, "Atelier" direction). `--radius-card` (~16px) for content surfaces (cards, panels, image plates, lightbox); `--radius` (`rounded-md`, ~6px) for pressable surfaces (buttons, fields, badges, alert boxes). Pills + theme toggle stay `rounded-full`. | 2026-05-24, 2026-06-06 |
+| Gold-leaf mark | A single `✦` in `--color-gold-leaf` is an approved hero/eyebrow accent (decorative, `aria-hidden`). One restrained artist's-mark, NOT a repeating ornament. `--color-gold-leaf` has a dark-mode remap. | 2026-06-06 |
+| Hero composition | Home hero uses two layered tilted artwork plates (front = featured LCP plate at -5deg + priority/preload; back = lazily-loaded second featured piece at +4deg). Reduced-motion flattens the stack. | 2026-06-06 |
+| Header Contact CTA | On desktop, Contact is an accent-bordered `rounded-full` pill (fills on hover/active), separate from the 4 text nav links. Mobile drawer keeps all 5 links. | 2026-06-06 |
 | Section accents | Each section sets its own pigment via the Section wrapper: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + selected-work use the global accent. | 2026-05-24 |
 | Copy rule: no double-dash | The literal `--` glyph is banned in user-facing copy. Replace with comma / period / colon / parentheses, or restructure. Applies to page metadata, JSX strings, dropdown options, and `data/*.json`. Internal code comments and JSDoc are exempt. | 2026-05-24 |
 

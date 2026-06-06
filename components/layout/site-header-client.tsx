@@ -45,6 +45,10 @@ const NAV: NavItem[] = [
 	{ label: "Contact", href: "/contact" },
 ];
 
+// Contact is rendered as a standing accent pill CTA on desktop, separate from
+// the text nav. The mobile drawer still lists all five (incl. Contact).
+const CONTACT: NavItem = { label: "Contact", href: "/contact" };
+
 export function SiteHeaderClient({
 	brandLatinPrefix,
 	brandDevanagariCore,
@@ -164,11 +168,13 @@ export function SiteHeaderClient({
 					</span>
 				</Link>
 
-				{/* Desktop nav + theme toggle */}
+				{/* Desktop nav + theme toggle. Contact graduates from a text link to
+				    an accent pill CTA -- a standing conversion path -- so the text
+				    nav carries the other four routes. */}
 				<div className="hidden items-center gap-6 md:flex">
 					<nav aria-label="Primary">
 						<ul className="flex items-center gap-7">
-							{NAV.map((item) => {
+							{NAV.filter((item) => item.href !== CONTACT.href).map((item) => {
 								const active = isActive(item.href);
 								return (
 									<li key={item.href} className="relative">
@@ -199,6 +205,18 @@ export function SiteHeaderClient({
 							})}
 						</ul>
 					</nav>
+					<Link
+						href={CONTACT.href}
+						aria-current={isActive(CONTACT.href) ? "page" : undefined}
+						className={cn(
+							"inline-flex min-h-11 items-center rounded-full px-4 text-xs uppercase tracking-meta transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+							isActive(CONTACT.href)
+								? "bg-accent text-bg"
+								: "border border-accent text-accent hover:bg-accent hover:text-bg",
+						)}
+					>
+						{CONTACT.label}
+					</Link>
 					<ThemeToggle />
 				</div>
 

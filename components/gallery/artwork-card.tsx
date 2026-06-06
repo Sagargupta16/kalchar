@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import Link from "next/link";
 import { useRef } from "react";
@@ -123,7 +124,7 @@ export function ArtworkCard({
 								}
 							: { touchAction: "manipulation" }
 					}
-					className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
+					className="relative aspect-3/4 overflow-hidden rounded-(--radius-card) bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
 				>
 					{/* Reflective light glare effect. Skipped under reduced-motion. */}
 					{tiltEnabled ? (
@@ -139,8 +140,8 @@ export function ArtworkCard({
 					) : null}
 
 					{/* Tanjore Gold double-border highlight that animates on hover */}
-					<div className="absolute inset-1 z-20 rounded-md border border-(--color-gold-leaf)/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
-					<div className="absolute inset-2 z-20 rounded-md border border-dashed border-(--color-gold-leaf)/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-1 z-20 rounded-[calc(var(--radius-card)-0.25rem)] border border-(--color-gold-leaf)/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-2 z-20 rounded-[calc(var(--radius-card)-0.5rem)] border border-dashed border-(--color-gold-leaf)/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
 
 					<ArtImage
 						src={imgSrc}
@@ -150,7 +151,8 @@ export function ArtworkCard({
 						priority={priority}
 					/>
 					{isAvailable && !isSold ? (
-						<span className="absolute left-3.5 top-3.5 z-25 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+						<span className="absolute left-3.5 top-3.5 z-25 inline-flex items-center gap-1 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+							<Check size={11} aria-hidden="true" className="text-(--section-accent)" />
 							Available
 						</span>
 					) : null}

@@ -53,9 +53,14 @@ export function SectionShell({
 					<div className="mt-12 sm:mt-16">
 						<Link
 							href={href}
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent transition-opacity hover:opacity-80"
 						>
-							{hrefLabel} <ArrowRight size={14} aria-hidden="true" />
+							{hrefLabel}
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>

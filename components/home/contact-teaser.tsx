@@ -87,9 +87,14 @@ export function ContactTeaser({
 					<div className="mt-12 sm:mt-16">
 						<Link
 							href="/contact"
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
 						>
-							Full contact page <ArrowRight size={14} aria-hidden="true" />
+							Full contact page
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>
@@ -120,7 +125,7 @@ function ChannelCard({
 			href={href}
 			target={external ? "_blank" : undefined}
 			rel={external ? "noopener noreferrer" : undefined}
-			className={`group flex h-full items-start gap-4 rounded-md border bg-bg p-5 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg ${highlight ? "border-(--section-accent)/40" : "border-line"}`}
+			className={`group flex h-full items-start gap-4 rounded-(--radius-card) border bg-bg p-5 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg ${highlight ? "border-(--section-accent)/40" : "border-line"}`}
 		>
 			<span
 				className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"

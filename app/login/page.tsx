@@ -10,6 +10,7 @@
  * auth.ts still decides WHO may complete login (the maintainers allowlist); a
  * non-maintainer Google account is bounced back here with `?error`.
  */
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -77,8 +78,13 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 
 				<Link
 					href="/"
-					className="mt-8 inline-block text-xs uppercase tracking-meta text-muted transition-colors hover:text-ink"
+					className="group mt-8 inline-flex items-center gap-1.5 text-xs uppercase tracking-meta text-muted transition-colors hover:text-ink"
 				>
+					<ArrowLeft
+						size={12}
+						aria-hidden="true"
+						className="transition-transform duration-(--duration-base) ease-out-soft group-hover:-translate-x-0.5"
+					/>
 					Back to site
 				</Link>
 			</div>

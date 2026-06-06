@@ -97,14 +97,14 @@ export default function AboutPage() {
 				{/* Aside */}
 				<aside className="md:col-span-4">
 					<Reveal>
-						<div className="rounded-md border border-line bg-bg-soft p-6">
+						<div className="rounded-(--radius-card) border border-line bg-bg-soft p-6">
 							<p className="t-eyebrow">Based in</p>
 							<p className="t-display mt-2 text-2xl">{brand.location}</p>
 						</div>
 					</Reveal>
 					{a.asideHeading || a.asideBody ? (
 						<Reveal delayMs={120}>
-							<div className="mt-4 rounded-md border border-line bg-bg-soft p-6">
+							<div className="mt-4 rounded-(--radius-card) border border-line bg-bg-soft p-6">
 								<p className="t-eyebrow">{a.asideHeading ?? "Open to"}</p>
 								<p className="mt-2 text-sm text-muted">{a.asideBody}</p>
 							</div>

@@ -119,7 +119,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
 				<Reveal eager className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
+					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-card) bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
@@ -199,7 +199,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					) : null}
 
 					<Reveal delayMs={260}>
-						<div className="mt-10 rounded-md border border-line bg-bg-soft p-5 sm:p-6">
+						<div className="mt-10 rounded-(--radius-card) border border-line bg-bg-soft p-5 sm:p-6">
 							{isAvailable ? (
 								<div className="mb-4 flex items-baseline justify-between gap-3">
 									<span className="t-meta normal-case tracking-normal text-muted">Price</span>

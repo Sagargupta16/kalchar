@@ -87,9 +87,14 @@ export function CustomOrdersTeaser({
 						</a>
 						<Link
 							href="/custom-orders"
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
 						>
-							Open the brief form <ArrowRight size={14} aria-hidden="true" />
+							Open the brief form
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>
@@ -108,7 +113,7 @@ function TeaserStep({
 	body: string;
 }>) {
 	return (
-		<div className="flex h-full flex-col rounded-md border border-line bg-bg p-6">
+		<div className="flex h-full flex-col rounded-(--radius-card) border border-line bg-bg p-6">
 			<span
 				className="grid h-10 w-10 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line"
 				aria-hidden="true"

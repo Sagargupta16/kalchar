@@ -52,7 +52,7 @@ export function WorkshopsTeaser({
 				<ul className="mt-12 grid gap-6 sm:grid-cols-2 sm:mt-16 lg:grid-cols-3">
 					{workshops.map((item, i) => (
 						<Reveal key={item.slug} as="li" delayMs={i * 60}>
-							<article className="group flex h-full flex-col rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
+							<article className="group flex h-full flex-col rounded-(--radius-card) border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
 								<h3 className="t-display text-2xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
 									{item.title}
 								</h3>
@@ -72,10 +72,14 @@ export function WorkshopsTeaser({
 					<div className="mt-12 sm:mt-16">
 						<Link
 							href="/workshops"
-							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
 						>
 							{moreCount > 0 ? `See all ${totalCount} sessions` : `See all sessions`}{" "}
-							<ArrowRight size={14} aria-hidden="true" />
+							<ArrowRight
+								size={14}
+								aria-hidden="true"
+								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+							/>
 						</Link>
 					</div>
 				</Reveal>

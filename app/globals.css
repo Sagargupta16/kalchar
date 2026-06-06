@@ -62,6 +62,13 @@
 	/* Layout */
 	--container-px: clamp(1.25rem, 4vw, 2rem);
 	--section-py: clamp(4rem, 8vw, 7rem);
+
+	/* Radius -- two tiers. `--radius` (Tailwind's rounded-md, ~6px) stays the
+	   default for pressable surfaces (buttons, fields, badges). `--radius-card`
+	   is the softer, more tactile corner for content surfaces (cards, panels,
+	   image plates) -- the "Atelier" warmth. Pills + the theme toggle keep
+	   rounded-full. Consumed as `rounded-(--radius-card)`. */
+	--radius-card: 1rem;
 }
 
 /* Site-wide corner-radius rule: every surface (card, panel, frame, field,
@@ -92,6 +99,10 @@
 	--color-vermillion: oklch(0.65 0.16 40);
 	--color-peacock: oklch(0.65 0.09 220);
 	--color-ruby: oklch(0.65 0.18 28);
+
+	/* Gold leaf, lifted on the near-black ground so the foil reads as a warm
+	   highlight rather than a muddy ochre. */
+	--color-gold-leaf: oklch(0.82 0.13 88);
 }
 
 html {

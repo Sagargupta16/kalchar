@@ -100,7 +100,7 @@ export default function CustomOrdersPage() {
 				<section aria-label="Custom order form" className="md:col-span-7">
 					<h2 className="sr-only">Order details</h2>
 					<Reveal delayMs={120}>
-						<div className="rounded-md border border-line bg-bg-soft p-6 sm:p-8">
+						<div className="rounded-(--radius-card) border border-line bg-bg-soft p-6 sm:p-8">
 							<CustomOrderForm
 								phoneE164NoPlus={phone}
 								emailUrl={contact.email.url}

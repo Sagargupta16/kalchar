@@ -1,8 +1,10 @@
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { BrushStroke } from "@/components/decor/brush-stroke";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * 404. Keeps the gallery register: motif eyebrow + brushstroke divider, a
@@ -23,10 +25,20 @@ export default function NotFound() {
 				The page you were looking for has moved or never existed. The work is still here.
 			</p>
 			<div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-				<Link href="/work" className={buttonVariants({ variant: "primary" })}>
+				<Link href="/work" className={cn(buttonVariants({ variant: "primary" }), "group")}>
 					Browse the work
+					<ArrowRight
+						size={16}
+						aria-hidden="true"
+						className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+					/>
 				</Link>
-				<Link href="/" className={buttonVariants({ variant: "ghost" })}>
+				<Link href="/" className={cn(buttonVariants({ variant: "ghost" }), "group")}>
+					<ArrowLeft
+						size={16}
+						aria-hidden="true"
+						className="transition-transform duration-(--duration-base) ease-out-soft group-hover:-translate-x-1"
+					/>
 					Back to home
 				</Link>
 			</div>

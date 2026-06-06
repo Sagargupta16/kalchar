@@ -19,11 +19,14 @@ const FEATURED_SIZES = "(min-width: 768px) 40vw, 90vw";
 export function Hero({
 	site,
 	featured,
+	secondary,
 	featuredIndex,
 	totalCount,
 }: Readonly<{
 	site: Site;
 	featured: Artwork | undefined;
+	/** Back plate of the layered hero -- a second featured piece, loaded lazily. */
+	secondary?: Artwork;
 	featuredIndex: number;
 	totalCount: number;
 }>) {
@@ -58,7 +61,12 @@ export function Hero({
 			<div className="relative mx-auto grid max-w-6xl gap-10 px-(--container-px) py-(--section-py) md:grid-cols-12 md:items-center md:gap-12">
 				<div className="md:col-span-7">
 					<Reveal eager>
-						<p className="t-eyebrow">{site.brand.tagline}</p>
+						<p className="t-eyebrow flex items-center gap-2">
+							<span aria-hidden="true" className="text-(--color-gold-leaf)">
+								✦
+							</span>
+							{site.brand.tagline}
+						</p>
 					</Reveal>
 					<Reveal
 						eager
@@ -117,36 +125,59 @@ export function Hero({
 
 				{featured ? (
 					<Reveal eager delayMs={120} className="md:col-span-5">
-						<Link
-							href={`/work/${featured.slug}`}
-							className="group block focus-visible:outline-none"
-							aria-label={`Featured work: ${featured.title}`}
-						>
-							<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 transition-shadow group-hover:ring-accent dark:ring-white/10">
-								<ArtImage
-									src={`/artworks/${featured.image}`}
-									alt={featured.description ?? featured.title}
-									sizes={FEATURED_SIZES}
-									maxWidth={800}
-									priority
-									className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
-								/>
-							</div>
+						{/* Layered plates: a lazily-loaded back plate (tilted +) sits
+						    behind the featured LCP plate (tilted -). The tilt is a
+						    static resting transform (no JS, server-rendered, so the
+						    front plate stays the preloaded LCP). Reduced-motion users
+						    get a flat, un-tilted stack via motion-reduce. */}
+						<div className="relative aspect-3/4">
+							{secondary ? (
+								<div
+									aria-hidden="true"
+									className="absolute inset-0 translate-x-[6%] translate-y-[4%] rotate-[4deg] overflow-hidden rounded-(--radius-card) bg-bg-soft shadow-lg ring-1 ring-black/5 motion-reduce:translate-x-0 motion-reduce:translate-y-0 motion-reduce:rotate-0 motion-reduce:opacity-60 dark:ring-white/5"
+								>
+									<ArtImage
+										src={`/artworks/${secondary.image}`}
+										alt=""
+										sizes={FEATURED_SIZES}
+										maxWidth={800}
+										className="absolute inset-0 h-full w-full object-cover"
+									/>
+								</div>
+							) : null}
+							<Link
+								href={`/work/${featured.slug}`}
+								className="group absolute inset-0 block -rotate-[5deg] focus-visible:outline-none motion-reduce:rotate-0"
+								aria-label={`Featured work: ${featured.title}`}
+							>
+								<div className="relative h-full overflow-hidden rounded-(--radius-card) bg-bg-soft shadow-xl ring-1 ring-black/10 transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
+									<ArtImage
+										src={`/artworks/${featured.image}`}
+										alt={featured.description ?? featured.title}
+										sizes={FEATURED_SIZES}
+										maxWidth={800}
+										priority
+										className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
+									/>
+								</div>
+							</Link>
+						</div>
+						<div className="mt-8">
 							{featuredIndex >= 0 ? (
-								<p className="mt-4 flex items-center gap-3 text-muted">
-									<span aria-hidden="true" className="h-px w-6 bg-accent" />
+								<p className="flex items-center gap-3 text-muted">
+									<span aria-hidden="true" className="text-(--color-gold-leaf)">
+										✦
+									</span>
 									<span className="t-meta">
 										Featured . {featuredIndex + 1} of {totalCount}
 									</span>
 								</p>
 							) : null}
 							<p className="mt-2 flex items-baseline justify-between gap-3">
-								<span className="t-display text-lg italic transition-colors group-hover:text-accent sm:text-xl">
-									{featured.title}
-								</span>
+								<span className="t-display text-lg italic sm:text-xl">{featured.title}</span>
 								<span className="t-meta whitespace-nowrap">{featured.style}</span>
 							</p>
-						</Link>
+						</div>
 					</Reveal>
 				) : null}
 			</div>
