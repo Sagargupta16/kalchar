@@ -65,7 +65,6 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			{/* List */}
 			<div role="list" className="space-y-2">
 				{items.map((w, i) => (
-					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop reorder
 					<div
 						role="listitem"
 						key={w.slug}

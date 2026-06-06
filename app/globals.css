@@ -230,14 +230,19 @@ body {
   animation: page-enter-in var(--duration-base) var(--ease-out) both;
 }
 
+/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
+   any keyframe, the browser holds it as a computed matrix (even identity,
+   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
+   this wrapper makes it the containing block for every `position: fixed`
+   descendant -- which un-pins the admin mobile tab bar and the reorder bar
+   from the viewport after a client navigation and sends taps to the wrong
+   place. A plain fade has no such side effect. */
 @keyframes page-enter-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 

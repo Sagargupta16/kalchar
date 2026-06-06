@@ -93,7 +93,6 @@ export function CategoryManager({
 			{/* List */}
 			<div role="list" className="space-y-2">
 				{items.map((c, i) => (
-					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop reorder
 					<div
 						role="listitem"
 						key={c.id}

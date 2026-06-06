@@ -5,6 +5,8 @@ import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
 import { ArtworkLightbox } from "@/components/gallery/artwork-lightbox";
 import { LightboxProvider } from "@/components/gallery/lightbox-context";
+import { BackToTop } from "@/components/layout/back-to-top";
+import { HideOnAdmin } from "@/components/layout/hide-on-admin";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
@@ -112,7 +114,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 						<div id="main" className="relative z-10">
 							{children}
 						</div>
-						<SiteFooter />
+						<HideOnAdmin>
+							<SiteFooter />
+						</HideOnAdmin>
+						<BackToTop />
 						<ArtworkLightbox />
 					</LightboxProvider>
 				</MotionProvider>

@@ -1,7 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { cn } from "@/lib/utils";
 
 interface SectionShellProps {
 	eyebrow: string;
@@ -44,10 +46,7 @@ export function SectionShell({
 
 				<Reveal>
 					<div className="mt-10 sm:mt-14">
-						<Link
-							href={href}
-							className="group inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-accent transition-colors hover:text-accent-hover"
-						>
+						<Link href={href} className={cn(buttonVariants({ variant: "secondary" }), "group")}>
 							{hrefLabel}
 							<ArrowRight
 								size={14}

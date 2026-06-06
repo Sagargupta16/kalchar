@@ -112,7 +112,6 @@ function PresetGroup({
 			{/* List */}
 			<div role="list" className="space-y-2">
 				{items.map((p, i) => (
-					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop reorder
 					<div
 						role="listitem"
 						key={p.id}

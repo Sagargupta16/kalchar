@@ -94,6 +94,8 @@ export interface ContactChannel {
 	note?: string;
 	/** Filename in public/ for a scan-to-follow QR code (Instagram). */
 	qr?: string;
+	/** WhatsApp Business catalogue deep link (wa.me/c/...), when the channel has one. */
+	catalog?: string;
 }
 
 export interface Contact {

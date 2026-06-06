@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle, QrCode } from "lucide-react";
+import { ArrowRight, BookOpen, MessageCircle, QrCode } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -62,6 +62,29 @@ export default function ContactPage() {
 							/>
 						</a>
 					</Reveal>
+
+					{/* WhatsApp catalogue (when set) -- browse pieces for sale in-app */}
+					{contact.whatsapp.catalog ? (
+						<Reveal delayMs={220}>
+							<a
+								href={contact.whatsapp.catalog}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={cn(
+									buttonVariants({ variant: "secondary" }),
+									"group mt-4 w-full sm:w-auto",
+								)}
+							>
+								<BookOpen size={16} aria-hidden="true" />
+								Browse the WhatsApp catalogue
+								<ArrowRight
+									size={14}
+									aria-hidden="true"
+									className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+								/>
+							</a>
+						</Reveal>
+					) : null}
 
 					{/* Instagram: dual QR centerpiece */}
 					<div className="mt-10">

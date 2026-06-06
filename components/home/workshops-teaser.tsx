@@ -1,11 +1,13 @@
 import { ArrowRight, Clock } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { Section } from "@/components/ui/section";
 import type { Workshop } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface WorkshopsTeaserProps {
 	workshops: readonly Workshop[];
@@ -69,7 +71,7 @@ export function WorkshopsTeaser({
 					<div className="mt-10 sm:mt-14">
 						<Link
 							href="/workshops"
-							className="group inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-(--section-accent) transition-colors hover:opacity-80"
+							className={cn(buttonVariants({ variant: "secondary" }), "group")}
 						>
 							See all {totalCount} sessions
 							<ArrowRight

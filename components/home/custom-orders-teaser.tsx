@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { Section } from "@/components/ui/section";
+import { cn } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 interface CustomOrdersTeaserProps {
@@ -82,7 +83,7 @@ export function CustomOrdersTeaser({
 						</a>
 						<Link
 							href="/custom-orders"
-							className="group inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-(--section-accent) transition-colors hover:opacity-80"
+							className={cn(buttonVariants({ variant: "secondary" }), "group")}
 						>
 							Open the brief form
 							<ArrowRight
