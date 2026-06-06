@@ -3,25 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
+import { useLightbox } from "@/components/gallery/lightbox-context";
+import type { Artwork } from "@/lib/types";
 
 const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 
-export interface HeroPiece {
-	slug: string;
-	title: string;
-	style: string;
-	image: string;
-	description?: string;
-	/** Position in the full catalog, for the "N of M" caption. */
-	catalogIndex: number;
-}
-
 interface HeroPlatesProps {
-	pool: readonly HeroPiece[];
-	defaultFront: HeroPiece;
-	defaultBack?: HeroPiece;
+	/** Featured pieces the hero can shuffle through (full Artwork objects). */
+	pool: readonly Artwork[];
+	defaultFront: Artwork;
+	defaultBack?: Artwork;
+	/** Map of slug -> catalog position, for the "N of M" caption. */
+	catalogIndex: Record<string, number>;
 	totalCount: number;
 }
 
@@ -49,19 +44,20 @@ function randIn(min: number, max: number): number {
  * featured pieces at random opposite-leaning angles, so the hero feels alive
  * and different on each reload.
  *
- * Tilt is driven by an inline transform + a `.hero-plate` CSS transition
- * (globals.css), so the rotation eases smoothly and a single reduced-motion
- * rule can flatten the whole stack. Images swap by remounting <ArtImage>
- * (keyed by slug), which replays its built-in settle fade.
+ * Clicking the front plate opens the shared lightbox (same behavior as the
+ * gallery cards), with the whole featured pool as the navigable set. Cmd/Ctrl
+ * click still routes to /work/[slug] for new-tab + SEO.
  */
 export function HeroPlates({
 	pool,
 	defaultFront,
 	defaultBack,
+	catalogIndex,
 	totalCount,
 }: Readonly<HeroPlatesProps>) {
-	const [front, setFront] = useState<HeroPiece>(defaultFront);
-	const [back, setBack] = useState<HeroPiece | undefined>(defaultBack);
+	const { openLightbox } = useLightbox();
+	const [front, setFront] = useState<Artwork>(defaultFront);
+	const [back, setBack] = useState<Artwork | undefined>(defaultBack);
 	const [frontTilt, setFrontTilt] = useState(DEFAULT_FRONT_TILT);
 	const [backTilt, setBackTilt] = useState(DEFAULT_BACK_TILT);
 	// The first front plate is the LCP, so it preloads with priority. Once we
@@ -81,7 +77,6 @@ export function HeroPlates({
 			while (pool.length > 1 && bi === fi && guard++ < 12) {
 				bi = Math.floor(rand() * pool.length);
 			}
-			// Opposite leans, random magnitude; flip which side leans which way.
 			const flip = rand() > 0.5;
 			setFront(pool[fi] ?? defaultFront);
 			setBack(bi >= 0 ? pool[bi] : undefined);
@@ -92,6 +87,15 @@ export function HeroPlates({
 
 		return () => globalThis.clearTimeout(timer);
 	}, [pool, defaultFront]);
+
+	const handleClick = (e: React.MouseEvent) => {
+		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
+			e.preventDefault();
+			openLightbox(front, [...pool]);
+		}
+	};
+
+	const index = catalogIndex[front.slug] ?? -1;
 
 	return (
 		<div>
@@ -121,8 +125,9 @@ export function HeroPlates({
 				>
 					<Link
 						href={`/work/${front.slug}`}
+						onClick={handleClick}
 						className="group absolute inset-0 block focus-visible:outline-none"
-						aria-label={`Featured work: ${front.title}`}
+						aria-label={`View ${front.title}`}
 					>
 						<div className="relative h-full overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-xl ring-1 ring-black/10 transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
 							<ArtImage
@@ -146,7 +151,7 @@ export function HeroPlates({
 						✦
 					</span>
 					<span className="t-meta">
-						Featured . {front.catalogIndex + 1} of {totalCount}
+						Featured . {index >= 0 ? index + 1 : 1} of {totalCount}
 					</span>
 				</p>
 				<p className="mt-2 flex items-baseline justify-between gap-3">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { type HeroPiece, HeroPlates } from "@/components/home/hero-plates";
+import { HeroPlates } from "@/components/home/hero-plates";
 import { Reveal } from "@/components/motion/reveal";
 import { SplitText } from "@/components/motion/split-text";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,9 @@ interface HeroProps {
 	featured: Artwork | undefined;
 	secondary?: Artwork;
 	/** Featured pieces the hero can shuffle through (includes `featured`). */
-	pool: readonly HeroPiece[];
-	featuredIndex: number;
+	pool: readonly Artwork[];
+	/** slug -> catalog position, for the hero caption. */
+	catalogIndex: Record<string, number>;
 	totalCount: number;
 }
 
@@ -25,7 +26,7 @@ export function Hero({
 	featured,
 	secondary,
 	pool,
-	featuredIndex,
+	catalogIndex,
 	totalCount,
 }: Readonly<HeroProps>) {
 	return (
@@ -108,26 +109,9 @@ export function Hero({
 						<Reveal eager delayMs={120} className="md:col-span-5">
 							<HeroPlates
 								pool={pool}
-								defaultFront={{
-									slug: featured.slug,
-									title: featured.title,
-									style: featured.style,
-									image: featured.image,
-									description: featured.description,
-									catalogIndex: featuredIndex,
-								}}
-								defaultBack={
-									secondary
-										? {
-												slug: secondary.slug,
-												title: secondary.title,
-												style: secondary.style,
-												image: secondary.image,
-												description: secondary.description,
-												catalogIndex: -1,
-											}
-										: undefined
-								}
+								defaultFront={featured}
+								defaultBack={secondary}
+								catalogIndex={catalogIndex}
 								totalCount={totalCount}
 							/>
 						</Reveal>

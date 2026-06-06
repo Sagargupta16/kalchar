@@ -1,4 +1,4 @@
-import { ExternalLink, Lock, LogOut, Palette, Settings, Upload, Users } from "lucide-react";
+import { ExternalLink, GraduationCap, LogOut, Palette, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -9,6 +9,7 @@ export const metadata = { title: "Admin", robots: { index: false, follow: false 
 
 const NAV = [
 	{ label: "Artworks", href: "/admin", icon: Palette },
+	{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
 	{ label: "Maintainers", href: "/admin/maintainers", icon: Users },
 ];
 

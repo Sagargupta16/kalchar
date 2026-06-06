@@ -28,20 +28,17 @@ export default async function HomePage() {
 	const selected = all.filter((a) => a.featured && a.slug !== featured?.slug).slice(0, 6);
 	const heroSecondary = selected[0];
 	const workshopsPreview = allWorkshops.slice(0, 3);
-	const featuredIndex = featured ? all.findIndex((a) => a.slug === featured.slug) : -1;
 
-	// Pool the hero can shuffle through on reload: every featured piece, each
-	// carrying its catalog index for the "N of M" caption. Falls back to the
-	// whole catalog if nothing is explicitly featured.
+	// Pool the hero can shuffle through on reload: every featured piece (full
+	// Artwork objects, so the lightbox has price/palette/dimensions). Falls back
+	// to the whole catalog if nothing is explicitly featured.
 	const heroSource = all.filter((a) => a.featured);
-	const heroPool = (heroSource.length > 0 ? heroSource : all).map((a) => ({
-		slug: a.slug,
-		title: a.title,
-		style: a.style,
-		image: a.image,
-		description: a.description,
-		catalogIndex: all.findIndex((x) => x.slug === a.slug),
-	}));
+	const heroPool = heroSource.length > 0 ? heroSource : all;
+	// slug -> catalog position, for the hero "N of M" caption.
+	const catalogIndex: Record<string, number> = {};
+	all.forEach((a, i) => {
+		catalogIndex[a.slug] = i;
+	});
 
 	return (
 		<main>
@@ -50,7 +47,7 @@ export default async function HomePage() {
 				featured={featured}
 				secondary={heroSecondary}
 				pool={heroPool}
-				featuredIndex={featuredIndex}
+				catalogIndex={catalogIndex}
 				totalCount={all.length}
 			/>
 
