@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle, QrCode } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
+import type { ContactChannel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export default function ContactPage() {
 					<PageHeader
 						eyebrow={c?.eyebrow ?? "Contact"}
 						title={c?.title ?? "Get in touch"}
-						lead="WhatsApp is the fastest way to reach us. For formal briefs, use email."
+						lead="WhatsApp is the fastest way to reach us. For formal briefs, use email. Follow along on Instagram."
 					/>
 
 					{/* Primary: WhatsApp */}
@@ -62,32 +63,28 @@ export default function ContactPage() {
 						</a>
 					</Reveal>
 
-					{/* Instagram accounts (by purpose) */}
-					<div className="mt-5 grid gap-4 sm:grid-cols-2">
-						<Reveal delayMs={240}>
-							<ChannelCard
-								href={contact.instagram.url}
-								icon={<InstagramIcon className="h-[18px] w-[18px]" />}
-								title={contact.instagram.display ?? "@kalchar_by_meghaseth"}
-								subtitle="Art and process"
-								note={contact.instagram.note}
-							/>
+					{/* Instagram: dual QR centerpiece */}
+					<div className="mt-10">
+						<Reveal>
+							<p className="t-eyebrow flex items-center gap-2">
+								<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+								Follow on Instagram
+							</p>
 						</Reveal>
-						{contact.instagramCommunity ? (
-							<Reveal delayMs={280}>
-								<ChannelCard
-									href={contact.instagramCommunity.url}
-									icon={<InstagramIcon className="h-[18px] w-[18px]" />}
-									title={contact.instagramCommunity.display ?? "@listentoyourart111"}
-									subtitle="Workshops and community"
-									note={contact.instagramCommunity.note}
-								/>
+						<div className="mt-5 grid gap-4 sm:grid-cols-2">
+							<Reveal delayMs={120}>
+								<InstagramQrCard channel={contact.instagram} />
 							</Reveal>
-						) : null}
+							{contact.instagramCommunity ? (
+								<Reveal delayMs={180}>
+									<InstagramQrCard channel={contact.instagramCommunity} />
+								</Reveal>
+							) : null}
+						</div>
 					</div>
 
 					{/* Email */}
-					<Reveal delayMs={320}>
+					<Reveal delayMs={240}>
 						<a
 							href={contact.email.url}
 							className="group mt-5 flex items-center gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:border-(--section-accent) sm:p-5"
@@ -106,46 +103,26 @@ export default function ContactPage() {
 						</a>
 					</Reveal>
 
-					{/* QR scan section */}
-					<Reveal delayMs={360}>
-						<div className="mt-10 flex flex-col items-center gap-5 rounded-(--radius-md) border border-line-soft bg-bg-soft p-6 text-center sm:flex-row sm:text-left">
-							<a
-								href={contact.instagram.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="block shrink-0"
-							>
-								<Image
-									src="/instagram-qr.png"
-									alt="QR code for @kalchar_by_meghaseth on Instagram"
-									width={2350}
-									height={2700}
-									loading="lazy"
-									className="h-auto w-28 rounded-(--radius-sm) border border-line bg-bg p-1.5 sm:w-32"
-								/>
-							</a>
-							<div>
-								<p className="text-sm font-medium">Scan to follow on Instagram</p>
-								<p className="mt-1 text-xs text-muted">
-									Point your camera at the code, or tap it to open the profile.
-								</p>
-								{contact.instagramPersonal ? (
-									<a
-										href={contact.instagramPersonal.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-accent"
-									>
-										Also find Megha at {contact.instagramPersonal.display}
-									</a>
-								) : null}
-							</div>
-						</div>
-					</Reveal>
+					{/* Personal IG (subtle) */}
+					{contact.instagramPersonal ? (
+						<Reveal delayMs={280}>
+							<p className="mt-5 text-center text-xs text-muted">
+								Also find Megha at{" "}
+								<a
+									href={contact.instagramPersonal.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="underline underline-offset-3 decoration-line/60 transition-colors hover:text-accent hover:decoration-accent"
+								>
+									{contact.instagramPersonal.display}
+								</a>
+							</p>
+						</Reveal>
+					) : null}
 
 					{/* Custom orders CTA */}
-					<Reveal delayMs={400}>
-						<div className="mt-10 flex flex-col items-start gap-4 rounded-(--radius-md) border border-line bg-bg p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+					<Reveal delayMs={320}>
+						<div className="mt-12 flex flex-col items-start gap-4 rounded-(--radius-md) border border-line bg-bg p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
 							<div>
 								<p className="t-eyebrow">Ready to commission?</p>
 								<p className="t-display mt-1.5 text-xl">Order a custom piece</p>
@@ -169,35 +146,56 @@ export default function ContactPage() {
 	);
 }
 
-function ChannelCard({
-	href,
-	icon,
-	title,
-	subtitle,
-	note,
-}: Readonly<{
-	href: string;
-	icon: React.ReactNode;
-	title: string;
-	subtitle: string;
-	note?: string;
-}>) {
+/**
+ * Instagram card with a scan-or-tap QR. The whole card is one link: tap on a
+ * phone opens the profile, scan the QR from another device opens it too. The
+ * QR plate is the visual anchor; handle + purpose tag sit beside it.
+ */
+function InstagramQrCard({ channel }: Readonly<{ channel: ContactChannel }>) {
 	return (
 		<a
-			href={href}
+			href={channel.url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="group flex h-full items-start gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-md sm:p-5"
+			className="group flex h-full items-center gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-5"
 		>
-			<IconCircle size="sm" className="group-hover:ring-(--section-accent)">
-				{icon}
-			</IconCircle>
+			{/* QR plate */}
+			<div className="relative shrink-0">
+				{channel.qr ? (
+					<Image
+						src={`/${channel.qr}`}
+						alt={`QR code for ${channel.display} on Instagram`}
+						width={2350}
+						height={2700}
+						loading="lazy"
+						className="h-24 w-24 rounded-(--radius-sm) border border-line bg-bg object-contain p-1.5 transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:border-(--section-accent) sm:h-28 sm:w-28"
+					/>
+				) : (
+					<div className="grid h-24 w-24 place-items-center rounded-(--radius-sm) border border-line bg-bg-soft text-muted sm:h-28 sm:w-28">
+						<QrCode size={28} />
+					</div>
+				)}
+			</div>
+
+			{/* Text */}
 			<div className="min-w-0 flex-1">
-				<p className="t-display truncate text-base transition-colors group-hover:text-(--section-accent) sm:text-lg">
-					{title}
+				<div className="flex items-center gap-1.5 text-(--section-accent)">
+					<InstagramIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+					<span className="text-[0.65rem] font-medium uppercase tracking-[var(--tracking-meta)]">
+						{channel.note}
+					</span>
+				</div>
+				<p className="t-display mt-1.5 break-words text-base transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-(--section-accent) sm:text-lg">
+					{channel.display}
 				</p>
-				<p className="text-xs font-medium text-muted">{subtitle}</p>
-				{note ? <p className="mt-1 text-xs text-muted">{note}</p> : null}
+				<p className="mt-2 inline-flex items-center gap-1 text-xs text-muted">
+					Scan or tap
+					<ArrowRight
+						size={12}
+						aria-hidden="true"
+						className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+					/>
+				</p>
 			</div>
 		</a>
 	);
