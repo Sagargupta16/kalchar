@@ -25,8 +25,19 @@ interface HeroPlatesProps {
 	totalCount: number;
 }
 
+/**
+ * A float in [0, 1) from the platform CSPRNG. Used over Math.random() purely
+ * so static analysis doesn't flag pseudo-randomness here -- this is decorative
+ * (which plate tilts which way), not security-sensitive.
+ */
+function rand(): number {
+	const buf = new Uint32Array(1);
+	globalThis.crypto.getRandomValues(buf);
+	return (buf[0] ?? 0) / 2 ** 32;
+}
+
 function randIn(min: number, max: number): number {
-	return min + Math.random() * (max - min);
+	return min + rand() * (max - min);
 }
 
 /**
@@ -64,14 +75,14 @@ export function HeroPlates({
 
 		// Delay the shuffle so the LCP front plate paints first.
 		const timer = globalThis.setTimeout(() => {
-			const fi = Math.floor(Math.random() * pool.length);
-			let bi = pool.length > 1 ? Math.floor(Math.random() * pool.length) : -1;
+			const fi = Math.floor(rand() * pool.length);
+			let bi = pool.length > 1 ? Math.floor(rand() * pool.length) : -1;
 			let guard = 0;
 			while (pool.length > 1 && bi === fi && guard++ < 12) {
-				bi = Math.floor(Math.random() * pool.length);
+				bi = Math.floor(rand() * pool.length);
 			}
 			// Opposite leans, random magnitude; flip which side leans which way.
-			const flip = Math.random() > 0.5;
+			const flip = rand() > 0.5;
 			setFront(pool[fi] ?? defaultFront);
 			setBack(bi >= 0 ? pool[bi] : undefined);
 			setFrontTilt(randIn(3, 7) * (flip ? 1 : -1));
