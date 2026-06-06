@@ -103,6 +103,28 @@ export async function getArtworkBySlug(slug: string): Promise<Artwork | undefine
 	return (await getAllArtworks()).find((a) => a.slug === slug);
 }
 
+/**
+ * One representative artwork per art style, for the custom-order style picker.
+ * Prefers a featured piece of that style, else the lowest-order one. Styles
+ * with no artwork are omitted (the picker falls back to a text chip for them).
+ * Returns a `style -> { slug, image }` map.
+ */
+export async function getStyleSamples(): Promise<Record<string, { slug: string; image: string }>> {
+	const all = await getAllArtworks();
+	const map: Record<string, { slug: string; image: string }> = {};
+	for (const a of all) {
+		const existing = map[a.style];
+		// First match wins, but a featured piece upgrades a non-featured one.
+		if (!existing) {
+			map[a.style] = { slug: a.slug, image: a.image };
+		} else if (a.featured) {
+			const current = all.find((x) => x.slug === existing.slug);
+			if (!current?.featured) map[a.style] = { slug: a.slug, image: a.image };
+		}
+	}
+	return map;
+}
+
 /** Slugs of every artwork -- used by `generateStaticParams` for `/work/[slug]`. */
 export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);

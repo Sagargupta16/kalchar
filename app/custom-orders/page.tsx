@@ -1,13 +1,14 @@
 import { Brush, Clock, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
+import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { getOrderPresets, getSite } from "@/lib/data";
+import { getAllArtworks, getOrderPresets, getSite, getStyleSamples } from "@/lib/data";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -31,7 +32,16 @@ export default async function CustomOrdersPage() {
 	const { contact, sections, styles } = getSite();
 	const co = (sections.customOrders ?? {}) as CustomOrdersSection;
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
-	const presets = await getOrderPresets();
+	const [presets, styleSamples, allArtworks] = await Promise.all([
+		getOrderPresets(),
+		getStyleSamples(),
+		getAllArtworks(),
+	]);
+
+	// A few finished pieces to show what a commission can look like. Prefer
+	// featured pieces; fall back to the first few in the catalog.
+	const examples = allArtworks.filter((a) => a.featured).slice(0, 4);
+	const examplePieces = examples.length >= 3 ? examples : allArtworks.slice(0, 4);
 
 	return (
 		<main>
@@ -44,34 +54,44 @@ export default async function CustomOrdersPage() {
 					/>
 
 					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
-						{/* How it works */}
+						{/* How it works -- sticky on desktop so it stays beside the
+						    taller form as the visitor scrolls/fills it in. */}
 						<aside className="md:col-span-5">
-							<Reveal>
-								<h2 className="t-eyebrow">How it works</h2>
-							</Reveal>
-							<ol className="mt-6 space-y-5">
-								<Reveal as="li" delayMs={60}>
-									<StepItem
-										icon={<Brush size={16} />}
-										title="Send a brief"
-										body="Style, size, occasion. References welcome on WhatsApp once we connect."
-									/>
+							<div className="md:sticky md:top-24">
+								<Reveal>
+									<h2 className="t-eyebrow">How it works</h2>
 								</Reveal>
-								<Reveal as="li" delayMs={120}>
-									<StepItem
-										icon={<MessageCircle size={16} />}
-										title="We talk it through"
-										body="We get back on WhatsApp, ask for missing details, and share a quote + timeline."
-									/>
+								<ol className="mt-6 space-y-5">
+									<Reveal as="li" delayMs={60}>
+										<StepItem
+											icon={<Brush size={16} />}
+											title="Send a brief"
+											body="Style, size, occasion. References welcome on WhatsApp once we connect."
+										/>
+									</Reveal>
+									<Reveal as="li" delayMs={120}>
+										<StepItem
+											icon={<MessageCircle size={16} />}
+											title="We talk it through"
+											body="We get back on WhatsApp, ask for missing details, and share a quote + timeline."
+										/>
+									</Reveal>
+									<Reveal as="li" delayMs={180}>
+										<StepItem
+											icon={<Clock size={16} />}
+											title="Painted, approved, shipped"
+											body="Progress shots along the way. Ships from India after your sign-off."
+										/>
+									</Reveal>
+								</ol>
+								{/* Reassurance -- no commitment until you've talked. */}
+								<Reveal delayMs={240}>
+									<p className="mt-8 border-t border-line pt-6 text-sm text-muted">
+										No payment until we&rsquo;ve agreed on the piece, a price, and a timeline.
+										Sending a brief is just the start of a conversation.
+									</p>
 								</Reveal>
-								<Reveal as="li" delayMs={180}>
-									<StepItem
-										icon={<Clock size={16} />}
-										title="Painted, approved, shipped"
-										body="Progress shots along the way. Ships from India after your sign-off."
-									/>
-								</Reveal>
-							</ol>
+							</div>
 						</aside>
 
 						{/* Form */}
@@ -83,6 +103,7 @@ export default async function CustomOrdersPage() {
 										phoneE164NoPlus={phone}
 										emailUrl={contact.email.url}
 										availableStyles={styles}
+										styleSamples={styleSamples}
 										sizes={presets.sizes}
 										budgets={presets.budgets}
 										timelines={presets.timelines}
@@ -93,6 +114,35 @@ export default async function CustomOrdersPage() {
 							</Reveal>
 						</section>
 					</div>
+
+					{/* Examples -- finished pieces, to spark ideas and build confidence. */}
+					{examplePieces.length > 0 ? (
+						<div className="mt-20 border-t border-line pt-14">
+							<Reveal>
+								<div className="flex items-baseline justify-between gap-4">
+									<div>
+										<p className="t-eyebrow flex items-center gap-2">
+											<span
+												aria-hidden="true"
+												className="inline-block h-px w-5 bg-(--section-accent)"
+											/>
+											For inspiration
+										</p>
+										<h2 className="t-display mt-2 text-2xl sm:text-3xl">
+											A few pieces from the studio
+										</h2>
+									</div>
+								</div>
+							</Reveal>
+							<ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-4">
+								{examplePieces.map((art, i) => (
+									<Reveal key={art.slug} as="li" delayMs={i * 60}>
+										<ArtworkCard artwork={art} siblings={examplePieces} priority={i < 2} />
+									</Reveal>
+								))}
+							</ul>
+						</div>
+					) : null}
 				</Container>
 			</Section>
 		</main>

@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowRight, Check, ChevronDown, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,8 @@ interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
 	emailUrl: string;
 	availableStyles: readonly ArtStyle[];
+	/** style -> representative artwork thumbnail for the visual picker. */
+	styleSamples: Record<string, StyleSample>;
 	sizes: readonly string[];
 	budgets: readonly string[];
 	timelines: readonly string[];
@@ -35,6 +38,7 @@ export function CustomOrderForm({
 	phoneE164NoPlus,
 	emailUrl,
 	availableStyles,
+	styleSamples,
 	sizes,
 	budgets,
 	timelines,
@@ -97,27 +101,20 @@ export function CustomOrderForm({
 
 	return (
 		<form onSubmit={onSubmit} className="space-y-6" noValidate>
-			<Field id="name" label="Your name" optional>
-				<input
-					id="name"
-					name="name"
-					type="text"
-					autoComplete="name"
-					placeholder="What should we call you?"
-					className={inputClass}
+			{/* Brief -- the one required field, given hero weight up top. */}
+			<Field id="brief" label="What would you like painted?" required>
+				<textarea
+					id="brief"
+					name="brief"
+					rows={5}
+					required
+					placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
+					className={cn(inputClass, "resize-y")}
 				/>
 			</Field>
 
-			<SelectField id="style" label="Preferred style">
-				<select id="style" name="style" defaultValue="" className={selectClass}>
-					<option value="">Open to suggestion</option>
-					{availableStyles.map((s) => (
-						<option key={s} value={s}>
-							{s}
-						</option>
-					))}
-				</select>
-			</SelectField>
+			{/* Visual style picker (replaces the old dropdown). */}
+			<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
 
 			<div className="grid gap-6 sm:grid-cols-2">
 				<SelectField id="size" label="Approx size">
@@ -143,27 +140,43 @@ export function CustomOrderForm({
 				</SelectField>
 			</div>
 
-			<SelectField id="timeline" label="Timeline">
-				<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
-					<option value="">No specific timeline</option>
-					{timelines.map((t) => (
-						<option key={t} value={t}>
-							{t}
-						</option>
-					))}
-				</select>
-			</SelectField>
+			<div className="grid gap-6 sm:grid-cols-2">
+				<SelectField id="timeline" label="Timeline">
+					<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
+						<option value="">No specific timeline</option>
+						{timelines.map((t) => (
+							<option key={t} value={t}>
+								{t}
+							</option>
+						))}
+					</select>
+				</SelectField>
 
-			<Field id="brief" label="Brief" required>
-				<textarea
-					id="brief"
-					name="brief"
-					rows={5}
-					required
-					placeholder="What should the piece show? Any colors, references, occasion?"
-					className={cn(inputClass, "resize-y")}
-				/>
-			</Field>
+				<Field id="name" label="Your name" optional>
+					<input
+						id="name"
+						name="name"
+						type="text"
+						autoComplete="name"
+						placeholder="What should we call you?"
+						className={inputClass}
+					/>
+				</Field>
+			</div>
+
+			{/* Reference-image expectation, made explicit (Phase 1 has no upload). */}
+			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft p-3.5">
+				<span
+					className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line"
+					aria-hidden="true"
+				>
+					<ImageUp size={14} />
+				</span>
+				<p className="text-xs leading-relaxed text-muted">
+					<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
+					can share photos directly on WhatsApp right after you send this brief.
+				</p>
+			</div>
 
 			<div aria-live="polite" aria-atomic="true">
 				{error ? (
