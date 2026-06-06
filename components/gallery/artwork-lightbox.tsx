@@ -6,7 +6,6 @@ import {
 	Calendar,
 	ImageIcon,
 	MessageCircle,
-	Palette,
 	Ruler,
 	X,
 	ZoomIn,
@@ -18,25 +17,6 @@ import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
 
-/**
- * ArtworkLightbox -- immersive fullscreen Zen gallery viewer.
- *
- * Design and features:
- *   - Creamy overlay that covers the viewport, with a focus trap so keyboard
- *     focus stays inside the dialog and is restored to the trigger on close.
- *   - Image zoom-panning: hovering over the artwork lets visitors move their
- *     mouse to pan across the detailed high-res strokes of the canvas.
- *   - Metadata sidebar showing Medium, Dimensions, swatches, and direct
- *     WhatsApp call to action.
- *   - Keyboard shortcuts: Arrow keys navigate between selected pieces, Escape
- *     exits.
- *
- * Image source: the viewer renders the R2-served variants (a <picture> with
- * AVIF/WebP at 1600w + a mozjpeg fallback) via ARTWORK_IMAGE_BASE, NOT the raw
- * repo master in public/artworks/ (which is the regenerate source, not served).
- */
-
-/** "radha-krishna.jpg" -> "radha-krishna" (mirrors art-image.tsx). */
 function deriveSlug(image: string): string {
 	const file = image.split("/").pop() ?? "";
 	return file.replace(/\.[^.]+$/, "");
@@ -57,13 +37,8 @@ export function ArtworkLightbox() {
 	const [panPos, setPanPos] = useState({ x: 50, y: 50 });
 	const imageRef = useRef<HTMLElement>(null);
 	const dialogRef = useRef<HTMLDivElement>(null);
-	// The element focused before the lightbox opened, so we can restore it.
 	const triggerRef = useRef<HTMLElement | null>(null);
 
-	// Open/close lifecycle ONLY (gated on isOpen, callbacks are stable): capture
-	// the trigger, move focus into the dialog, lock body scroll, and restore the
-	// trigger on close. Kept separate from the keydown listener so navigating
-	// between pieces does not tear this down and re-fire focus.
 	useEffect(() => {
 		if (!isOpen) return;
 		triggerRef.current = document.activeElement as HTMLElement | null;
@@ -75,24 +50,13 @@ export function ArtworkLightbox() {
 		};
 	}, [isOpen]);
 
-	// Keyboard: Escape closes, arrows navigate, Tab is trapped inside the dialog.
-	// Deps are all stable (memoized in the context), so this binds once per open.
 	useEffect(() => {
 		if (!isOpen) return;
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				closeLightbox();
-				return;
-			}
-			if (e.key === "ArrowRight") {
-				nextArtwork();
-				return;
-			}
-			if (e.key === "ArrowLeft") {
-				prevArtwork();
-				return;
-			}
-			if (e.key === "Tab" && dialogRef.current) {
+			if (e.key === "Escape") closeLightbox();
+			else if (e.key === "ArrowRight") nextArtwork();
+			else if (e.key === "ArrowLeft") prevArtwork();
+			else if (e.key === "Tab" && dialogRef.current) {
 				const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
 					'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
 				);
@@ -112,20 +76,18 @@ export function ArtworkLightbox() {
 		return () => globalThis.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
 
-	// Mouse pan math to map local coordinates to scale origins
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
 			if (!imageRef.current || !zoom) return;
 			const { left, top, width, height } = imageRef.current.getBoundingClientRect();
-			const x = ((e.clientX - left) / width) * 100;
-			const y = ((e.clientY - top) / height) * 100;
-			setPanPos({ x, y });
+			setPanPos({
+				x: ((e.clientX - left) / width) * 100,
+				y: ((e.clientY - top) / height) * 100,
+			});
 		},
 		[zoom],
 	);
 
-	// Touch swipe navigation for mobile. A horizontal swipe > 50px threshold
-	// triggers prev/next. Passive listeners keep scroll jank-free.
 	const touchStartX = useRef(0);
 	const handleTouchStart = useCallback((e: React.TouchEvent) => {
 		const touch = e.touches[0];
@@ -145,24 +107,10 @@ export function ArtworkLightbox() {
 		[nextArtwork, prevArtwork],
 	);
 
-	const handleNext = () => {
-		setZoom(false);
-		nextArtwork();
-	};
-
-	const handlePrev = () => {
-		setZoom(false);
-		prevArtwork();
-	};
-
 	return (
 		<AnimatePresence>
 			{isOpen && activeArtwork ? (
-				// Stable key: the dialog updates in place when navigating between
-				// pieces (image + metadata swap), so keyboard focus and the trap
-				// survive. AnimatePresence still handles the open/close fade since
-				// the child is conditionally rendered on isOpen.
-				<LightboxView
+				<LightboxContent
 					key="lightbox"
 					artwork={activeArtwork}
 					slug={deriveSlug(activeArtwork.image)}
@@ -173,8 +121,14 @@ export function ArtworkLightbox() {
 					dialogRef={dialogRef}
 					imageRef={imageRef}
 					onClose={closeLightbox}
-					onNext={handleNext}
-					onPrev={handlePrev}
+					onNext={() => {
+						setZoom(false);
+						nextArtwork();
+					}}
+					onPrev={() => {
+						setZoom(false);
+						prevArtwork();
+					}}
 					onZoomEnter={() => setZoom(true)}
 					onZoomLeave={() => {
 						setZoom(false);
@@ -189,7 +143,7 @@ export function ArtworkLightbox() {
 	);
 }
 
-interface LightboxViewProps {
+interface LightboxContentProps {
 	artwork: NonNullable<ReturnType<typeof useLightbox>["activeArtwork"]>;
 	slug: string;
 	hasSiblings: boolean;
@@ -208,7 +162,7 @@ interface LightboxViewProps {
 	onTouchEnd: (e: React.TouchEvent) => void;
 }
 
-function LightboxView({
+function LightboxContent({
 	artwork,
 	slug,
 	hasSiblings,
@@ -225,45 +179,32 @@ function LightboxView({
 	onMouseMove,
 	onTouchStart,
 	onTouchEnd,
-}: Readonly<LightboxViewProps>) {
+}: Readonly<LightboxContentProps>) {
 	const isAvailable = typeof artwork.priceInr === "number";
 	const whatsappLink = buildWhatsAppLink({
 		phoneE164NoPlus: whatsappPhone,
 		message: buyArtworkMessage(artwork),
 	});
 
-	// Defense in depth: if a negotiated <source> variant is missing, a <picture>
-	// 404s rather than falling back, so swap to the always-present master-width
-	// `<slug>.jpg` on error. The optimizer emits every width tier (capped at
-	// master width), so this should not normally fire -- it just guarantees the
-	// art still renders. The dialog mounts once (stable key) and swaps in place,
-	// so reset the failed flag when the piece changes, using React's
-	// adjust-state-during-render idiom (no effect, no Biome dep friction).
 	const [srcFailed, setSrcFailed] = useState(false);
 	const [failedSlug, setFailedSlug] = useState<string | null>(null);
 	if (srcFailed && failedSlug !== slug) {
 		setSrcFailed(false);
 	}
-	const markFailed = () => {
-		setSrcFailed(true);
-		setFailedSlug(slug);
-	};
-
-	const titleId = "lightbox-title";
 
 	return (
 		<motion.div
 			ref={dialogRef}
 			role="dialog"
 			aria-modal="true"
-			aria-labelledby={titleId}
+			aria-labelledby="lightbox-title"
 			tabIndex={-1}
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
-			className="fixed inset-0 z-100 flex items-center justify-center bg-bg/95 p-4 md:p-8 backdrop-blur-md focus:outline-none"
+			transition={{ duration: 0.2 }}
+			className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-md focus:outline-none md:p-8"
 		>
-			{/* Fullscreen Zen backdrop -- click to dismiss */}
 			<button
 				type="button"
 				aria-label="Close lightbox"
@@ -271,53 +212,44 @@ function LightboxView({
 				className="absolute inset-0 cursor-zoom-out"
 			/>
 
-			{/* Floating close button */}
+			{/* Close button */}
 			<button
 				type="button"
 				onClick={onClose}
-				aria-label="Close lightbox"
-				className="absolute right-4 top-4 z-110 flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line hover:text-accent transition-colors duration-(--duration-fast) shadow-sm focus:outline-none focus:ring-2 focus:ring-accent"
+				aria-label="Close"
+				className="absolute right-4 top-4 z-[110] flex h-10 w-10 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-sm transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
 			>
-				<X size={20} />
+				<X size={18} />
 			</button>
 
-			{/* Active Lightbox core container */}
+			{/* Main container */}
 			<motion.div
-				initial={{ opacity: 0, scale: 0.95, y: 15 }}
+				initial={{ opacity: 0, scale: 0.96, y: 12 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
-				exit={{ opacity: 0, scale: 0.95, y: 15 }}
-				transition={{ type: "spring", damping: 30, stiffness: 350 }}
-				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-card) border border-line bg-bg shadow-2xl md:grid-cols-12"
+				exit={{ opacity: 0, scale: 0.96, y: 12 }}
+				transition={{ type: "spring", damping: 28, stiffness: 340 }}
+				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-lg) border border-line bg-bg shadow-2xl md:grid-cols-12"
 			>
-				{/* Image frame view */}
+				{/* Image panel */}
 				<div
-					className="relative flex flex-1 items-center justify-center bg-bg-soft p-6 md:col-span-8"
+					className="relative flex flex-1 items-center justify-center bg-bg-soft p-4 md:col-span-8 md:p-6"
 					onTouchStart={onTouchStart}
 					onTouchEnd={onTouchEnd}
 				>
 					{hasSiblings ? (
-						<button
-							type="button"
-							onClick={onPrev}
-							aria-label="Previous artwork"
-							className="absolute left-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors duration-(--duration-fast) shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
-						>
-							<ArrowLeft size={20} />
-						</button>
+						<>
+							<NavButton direction="prev" onClick={onPrev} />
+							<NavButton direction="next" onClick={onNext} />
+						</>
 					) : null}
 
-					{/* Artwork Canvas Frame with Mouse Pan Zoom */}
 					<figure
 						ref={imageRef}
 						onMouseMove={onMouseMove}
 						onMouseEnter={onZoomEnter}
 						onMouseLeave={onZoomLeave}
-						aria-label="Interactive artwork detail zoom viewer"
-						className="relative aspect-3/4 max-h-[82vh] overflow-hidden rounded-(--radius-card) ring-1 ring-black/10 dark:ring-white/5 cursor-zoom-in m-0"
+						className="relative aspect-3/4 max-h-[80vh] overflow-hidden rounded-(--radius-md) ring-1 ring-black/8 dark:ring-white/5 cursor-zoom-in m-0"
 					>
-						{/* R2-served variants: AVIF/WebP at 1600w (capped at master
-						    width) with the master-width mozjpeg as the <img> base. On
-						    error we drop the AVIF/WebP <source>s and load the JPG directly. */}
 						<picture>
 							{srcFailed ? null : (
 								<>
@@ -328,112 +260,119 @@ function LightboxView({
 							<motion.img
 								src={`${ARTWORK_IMAGE_BASE}/${slug}.jpg`}
 								alt={artwork.description ?? artwork.title}
-								onError={markFailed}
+								onError={() => {
+									setSrcFailed(true);
+									setFailedSlug(slug);
+								}}
 								className="h-full w-full object-cover select-none"
-								style={{
-									transformOrigin: `${panPos.x}% ${panPos.y}%`,
-								}}
-								animate={{
-									scale: zoom ? 1.8 : 1,
-								}}
+								style={{ transformOrigin: `${panPos.x}% ${panPos.y}%` }}
+								animate={{ scale: zoom ? 1.8 : 1 }}
 								transition={{ type: "spring", stiffness: 200, damping: 25 }}
 							/>
 						</picture>
 
-						{/* Zoom affordance hint. Hover-pan is pointer-only, so the label
-						    is desktop-targeted; the icon carries the meaning on touch. */}
-						<div className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-meta text-white backdrop-blur-sm opacity-60">
+						<div className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white backdrop-blur-sm opacity-60">
 							<ZoomIn size={11} aria-hidden="true" />
 							<span className="hidden sm:inline">Hover to zoom</span>
-							<span className="sm:hidden">Zoom</span>
 						</div>
-					</figure>
 
-					{hasSiblings ? (
-						<button
-							type="button"
-							onClick={onNext}
-							aria-label="Next artwork"
-							className="absolute right-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink hover:text-accent border border-line/40 transition-colors duration-(--duration-fast) shadow-md backdrop-blur focus:outline-none focus:ring-2 focus:ring-accent"
-						>
-							<ArrowRight size={20} />
-						</button>
-					) : null}
+						{/* Mobile swipe hint */}
+						{hasSiblings ? (
+							<div className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white backdrop-blur-sm opacity-60 sm:hidden">
+								<ArrowLeft size={9} />
+								Swipe
+								<ArrowRight size={9} />
+							</div>
+						) : null}
+					</figure>
 				</div>
 
-				{/* Metadata Sidebar */}
-				<div className="flex flex-col justify-between border-t border-line bg-bg p-6 md:col-span-4 md:border-l md:border-t-0">
+				{/* Metadata sidebar */}
+				<div className="flex flex-col justify-between border-t border-line bg-bg p-5 md:col-span-4 md:border-l md:border-t-0 md:p-6">
 					<div>
 						<span className="t-eyebrow text-accent">{artwork.style}</span>
-						<h2 id={titleId} className="t-display mt-2 text-2xl md:text-3xl">
+						<h2 id="lightbox-title" className="t-display mt-2 text-2xl md:text-3xl">
 							{artwork.title}
 						</h2>
 
-						{artwork.description && (
-							<p className="mt-4 text-sm leading-relaxed text-muted">{artwork.description}</p>
-						)}
+						{artwork.description ? (
+							<p className="mt-3 text-sm leading-relaxed text-muted">{artwork.description}</p>
+						) : null}
 
-						<dl className="mt-6 space-y-3.5 border-t border-line pt-5 text-sm">
-							<div className="flex justify-between">
-								<dt className="t-meta normal-case tracking-normal flex items-center gap-1.5">
-									<ImageIcon size={13} className="text-muted" /> Medium
-								</dt>
-								<dd className="text-ink font-medium">{artwork.medium}</dd>
-							</div>
-							{artwork.year && (
-								<div className="flex justify-between">
-									<dt className="t-meta normal-case tracking-normal flex items-center gap-1.5">
-										<Calendar size={13} className="text-muted" /> Year
-									</dt>
-									<dd className="text-ink font-medium">{artwork.year}</dd>
-								</div>
-							)}
-							{artwork.dimensions && (
-								<div className="flex justify-between">
-									<dt className="t-meta normal-case tracking-normal flex items-center gap-1.5">
-										<Ruler size={13} className="text-muted" /> Dimensions
-									</dt>
-									<dd className="text-ink font-medium">{artwork.dimensions}</dd>
-								</div>
-							)}
-							{isAvailable && (
-								<div className="flex justify-between items-baseline border-t border-line/50 pt-3">
+						<dl className="mt-5 space-y-3 border-t border-line pt-4 text-sm">
+							<MetaRow icon={<ImageIcon size={13} />} label="Medium" value={artwork.medium} />
+							{artwork.year ? (
+								<MetaRow icon={<Calendar size={13} />} label="Year" value={String(artwork.year)} />
+							) : null}
+							{artwork.dimensions ? (
+								<MetaRow icon={<Ruler size={13} />} label="Size" value={artwork.dimensions} />
+							) : null}
+							{isAvailable ? (
+								<div className="flex items-baseline justify-between border-t border-line/50 pt-3">
 									<dt className="t-meta normal-case tracking-normal">Price</dt>
 									<dd className="text-lg font-semibold tabular-nums text-accent">
 										INR {artwork.priceInr?.toLocaleString("en-IN")}
 									</dd>
 								</div>
-							)}
+							) : null}
 						</dl>
 
-						{artwork.palette && artwork.palette.length > 0 && (
-							<div className="mt-6 border-t border-line/50 pt-5">
-								<h4 className="t-meta text-xs flex items-center gap-1.5">
-									<Palette size={13} className="text-muted" /> Color Palette
-								</h4>
+						{artwork.palette && artwork.palette.length > 0 ? (
+							<div className="mt-5 border-t border-line/50 pt-4">
+								<p className="t-meta text-xs">Color palette</p>
 								<Chromacard
 									palette={artwork.palette}
-									ariaLabel={`Palette swatches for ${artwork.title}`}
-									className="mt-2.5 h-3"
+									ariaLabel={`Palette for ${artwork.title}`}
+									className="mt-2 h-3"
 								/>
 							</div>
-						)}
+						) : null}
 					</div>
 
-					{/* Inquiry CTA */}
-					<div className="mt-8">
-						<a
-							href={whatsappLink}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-3 text-xs uppercase tracking-meta font-medium text-bg shadow-md hover:bg-accent/90 transition-colors duration-(--duration-fast) focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-						>
-							<MessageCircle size={16} />
-							Enquire on WhatsApp
-						</a>
-					</div>
+					{/* CTA */}
+					<a
+						href={whatsappLink}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="mt-6 flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-md transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+					>
+						<MessageCircle size={16} />
+						Enquire on WhatsApp
+					</a>
 				</div>
 			</motion.div>
 		</motion.div>
+	);
+}
+
+function MetaRow({
+	icon,
+	label,
+	value,
+}: Readonly<{ icon: React.ReactNode; label: string; value: string }>) {
+	return (
+		<div className="flex justify-between">
+			<dt className="t-meta normal-case tracking-normal flex items-center gap-1.5">
+				<span className="text-muted">{icon}</span> {label}
+			</dt>
+			<dd className="text-ink font-medium">{value}</dd>
+		</div>
+	);
+}
+
+function NavButton({
+	direction,
+	onClick,
+}: Readonly<{ direction: "prev" | "next"; onClick: () => void }>) {
+	const isPrev = direction === "prev";
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			aria-label={isPrev ? "Previous artwork" : "Next artwork"}
+			className={`absolute ${isPrev ? "left-3" : "right-3"} z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg/80 text-ink border border-line/40 shadow-md backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent`}
+		>
+			{isPrev ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
+		</button>
 	);
 }

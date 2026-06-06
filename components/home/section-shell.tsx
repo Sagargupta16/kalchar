@@ -1,70 +1,63 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { BrushStroke } from "@/components/decor/brush-stroke";
-import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
-import type { MotifKey } from "@/components/decor/motifs";
 import { Reveal } from "@/components/motion/reveal";
+import { Container } from "@/components/ui/container";
 
-/**
- * Reusable section header + footer-link wrapper for the gallery rails on the
- * home page (Selected work, Available now). Renders a numbered motif eyebrow,
- * a display title, brushstroke divider, optional lead, the children grid, and
- * a trailing "see all" link.
- */
-export function SectionShell({
-	number,
-	eyebrow,
-	motif,
-	title,
-	lead,
-	href,
-	hrefLabel,
-	children,
-}: Readonly<{
-	/** Two-digit gallery-register number, e.g. "01". Optional. */
-	number?: string;
+interface SectionShellProps {
 	eyebrow: string;
-	motif: MotifKey;
 	title: string;
 	lead?: string;
 	href: string;
 	hrefLabel: string;
 	children: React.ReactNode;
-}>) {
+}
+
+export function SectionShell({
+	eyebrow,
+	title,
+	lead,
+	href,
+	hrefLabel,
+	children,
+}: Readonly<SectionShellProps>) {
 	return (
-		<section className="border-b border-line">
-			<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<div className="border-b border-line py-(--section-py)">
+			<Container>
 				<header className="max-w-2xl">
 					<Reveal>
-						<MotifEyebrow motif={motif} number={number} label={eyebrow} />
+						<p className="t-eyebrow flex items-center gap-2">
+							<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+							{eyebrow}
+						</p>
 					</Reveal>
-					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
 						{title}
 					</Reveal>
-					<BrushStroke className="mt-4" width={200} />
 					{lead ? (
-						<Reveal delayMs={160}>
+						<Reveal delayMs={140}>
 							<p className="t-lead mt-4">{lead}</p>
 						</Reveal>
 					) : null}
 				</header>
-				<div className="mt-12 sm:mt-16">{children}</div>
+
+				<div className="mt-10 sm:mt-14">{children}</div>
+
 				<Reveal>
-					<div className="mt-12 sm:mt-16">
+					<div className="mt-10 sm:mt-14">
 						<Link
 							href={href}
-							className="group inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent transition-opacity hover:opacity-80"
+							className="group inline-flex items-center gap-2 text-sm uppercase tracking-[var(--tracking-meta)] text-accent transition-colors hover:text-accent-hover"
 						>
 							{hrefLabel}
 							<ArrowRight
 								size={14}
 								aria-hidden="true"
-								className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
+								className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
 							/>
 						</Link>
 					</div>
 				</Reveal>
-			</div>
-		</section>
+			</Container>
+		</div>
 	);
 }
