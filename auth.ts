@@ -17,6 +17,11 @@ import { isMaintainer } from "@/lib/maintainers";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
 	providers: [Google],
+	pages: {
+		// A non-maintainer Google account fails the signIn callback below;
+		// Auth.js sends them here instead of the default NextAuth error screen.
+		error: "/access-denied",
+	},
 	callbacks: {
 		async signIn({ profile }) {
 			return await isMaintainer(profile?.email);

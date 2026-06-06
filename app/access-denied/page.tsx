@@ -1,0 +1,71 @@
+/**
+ * Shown when a non-maintainer Google account completes Google sign-in but
+ * fails the maintainer allowlist check in auth.ts (configured as Auth.js's
+ * `pages.error`). Explains the situation and offers a way to request access
+ * from the root maintainer. No auto-redirect -- a manual "Back to site" link.
+ */
+import { Lock } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { GmailIcon } from "@/components/ui/brand-icons";
+import { buttonVariants } from "@/components/ui/button";
+import { getSite } from "@/lib/data";
+import { getRootMaintainerEmail } from "@/lib/maintainers";
+
+export const metadata: Metadata = {
+	title: "Access not granted",
+	robots: { index: false, follow: false },
+};
+
+export default async function AccessDeniedPage() {
+	const { brand } = getSite();
+	const rootEmail = await getRootMaintainerEmail();
+	const mailto = rootEmail
+		? `mailto:${rootEmail}?subject=${encodeURIComponent("Maintainer access request")}`
+		: null;
+
+	return (
+		<main className="grid min-h-dvh place-items-center px-(--container-px) py-16">
+			<div className="w-full max-w-md text-center">
+				<Link
+					href="/"
+					className="t-display inline-block text-3xl leading-none transition-colors hover:text-accent"
+				>
+					<span className="not-italic">{brand.headline.latinPrefix}</span>
+					<span lang="hi" className="font-devanagari not-italic text-accent">
+						{brand.headline.devanagariCore}
+					</span>
+				</Link>
+
+				<div className="mt-10 grid h-14 w-14 mx-auto place-items-center rounded-full bg-bg-soft text-accent ring-1 ring-line">
+					<Lock size={22} aria-hidden="true" />
+				</div>
+
+				<h1 className="t-display mt-6 text-2xl sm:text-3xl">Access not granted</h1>
+				<p className="t-lead mt-3 text-sm">
+					This Google account isn&rsquo;t on the maintainer list, so it can&rsquo;t open the admin
+					panel. If you should have access, ask the site owner to add you.
+				</p>
+
+				{mailto ? (
+					<a
+						href={mailto}
+						className="mt-6 inline-flex items-center gap-2 rounded-(--radius-sm) border border-line bg-bg px-4 py-2.5 text-sm text-ink transition-colors hover:border-accent hover:text-accent"
+					>
+						<GmailIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+						Request access from {rootEmail}
+					</a>
+				) : null}
+
+				<div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+					<Link href="/" className={buttonVariants({ variant: "primary" })}>
+						Back to site
+					</Link>
+					<Link href="/login" className={buttonVariants({ variant: "ghost" })}>
+						Try a different account
+					</Link>
+				</div>
+			</div>
+		</main>
+	);
+}
