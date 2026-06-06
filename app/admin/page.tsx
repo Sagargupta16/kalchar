@@ -53,7 +53,7 @@ export default async function AdminDashboard() {
 				<div className="mb-4">
 					<h2 className="text-sm font-semibold">Manage pieces</h2>
 					<p className="mt-1 text-xs text-muted">
-						Set price, status, featured. Price makes a piece available for sale.
+						Tap Edit to change any detail, price, status, image, or to delete a piece.
 					</p>
 				</div>
 				<div className="space-y-2">

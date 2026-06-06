@@ -11,6 +11,7 @@ import {
 	reorderOrderPresets,
 	updateOrderPreset,
 } from "../actions";
+import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { useReorder } from "./use-reorder";
 
@@ -48,7 +49,9 @@ function PresetGroup({
 	items: OrderPreset[];
 }>) {
 	const router = useRouter();
+	const confirm = useConfirm();
 	const [items, setItems] = useState(initial);
+	const [baseline, setBaseline] = useState(initial);
 	const [pending, startTransition] = useTransition();
 	const [err, setErr] = useState<string | null>(null);
 	const [newLabel, setNewLabel] = useState("");
@@ -67,21 +70,42 @@ function PresetGroup({
 		});
 	}
 
-	const hasOrderChanges = items.some((item, i) => item.id !== initial[i]?.id);
+	const handleDelete = (id: string) => {
+		setItems((prev) => prev.filter((i) => i.id !== id));
+		setBaseline((prev) => prev.filter((i) => i.id !== id));
+		run(() => deleteOrderPreset(id));
+	};
+
+	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
 
 	return (
 		<section className="rounded-(--radius-md) border border-line bg-bg p-4 sm:p-5">
 			<div className="mb-3 flex items-baseline justify-between gap-3">
 				<h3 className="text-sm font-semibold">{title}</h3>
 				{hasOrderChanges ? (
-					<button
-						type="button"
-						onClick={() => run(() => reorderOrderPresets(items.map((i) => i.id)))}
-						disabled={pending}
-						className={`${adminBtn} px-2.5 py-1 text-xs border-accent text-accent`}
-					>
-						Save order
-					</button>
+					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => setItems(baseline)}
+							disabled={pending}
+							className={`${adminBtn} px-2.5 py-1 text-xs`}
+						>
+							Reset
+						</button>
+						<button
+							type="button"
+							onClick={() =>
+								run(
+									() => reorderOrderPresets(items.map((i) => i.id)),
+									() => setBaseline(items),
+								)
+							}
+							disabled={pending}
+							className={`${adminBtn} px-2.5 py-1 text-xs border-accent text-accent`}
+						>
+							Save order
+						</button>
+					</div>
 				) : null}
 			</div>
 
@@ -103,7 +127,14 @@ function PresetGroup({
 							preset={p}
 							pending={pending}
 							onSave={(label) => run(() => updateOrderPreset(p.id, label))}
-							onDelete={() => run(() => deleteOrderPreset(p.id))}
+							onDelete={async () => {
+								const ok = await confirm({
+									title: `Remove "${p.label}"?`,
+									body: "This option will no longer appear on the custom-order form.",
+									confirmLabel: "Remove",
+								});
+								if (ok) handleDelete(p.id);
+							}}
 						/>
 					</div>
 				))}

@@ -4,6 +4,7 @@ import { Shield, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { inviteMaintainer, revokeMaintainer } from "../actions";
+import { useConfirm } from "./confirm-dialog";
 import { adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 
 interface MaintainerView {
@@ -18,6 +19,7 @@ export function MaintainerManager({
 	me,
 }: Readonly<{ roster: MaintainerView[]; me: string }>) {
 	const router = useRouter();
+	const confirm = useConfirm();
 	const [pending, startTransition] = useTransition();
 	const [email, setEmail] = useState("");
 	const [name, setName] = useState("");
@@ -106,10 +108,13 @@ export function MaintainerManager({
 							<button
 								type="button"
 								disabled={pending}
-								onClick={() => {
-									if (confirm(`Remove ${m.email} as a maintainer?`)) {
-										run(() => revokeMaintainer(m.email));
-									}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Remove ${m.email}?`,
+										body: "They will lose admin access on their next sign-in.",
+										confirmLabel: "Remove",
+									});
+									if (ok) run(() => revokeMaintainer(m.email));
 								}}
 								className={`${adminBtnDestructive} px-2.5 py-1`}
 							>

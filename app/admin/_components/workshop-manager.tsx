@@ -6,13 +6,18 @@ import { useState, useTransition } from "react";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createWorkshop, deleteWorkshop, reorderWorkshops, updateWorkshop } from "../actions";
+import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import { ReorderBar } from "./reorder-bar";
 import { useReorder } from "./use-reorder";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
 	const router = useRouter();
+	const confirm = useConfirm();
 	const [items, setItems] = useState(initial);
+	const [baseline, setBaseline] = useState(initial);
 	const [pending, startTransition] = useTransition();
+	const [saved, setSaved] = useState(false);
 	const [err, setErr] = useState<string | null>(null);
 	const { dragging, over, dragProps } = useReorder(items, setItems);
 
@@ -29,7 +34,23 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 		});
 	}
 
-	const hasOrderChanges = items.some((item, i) => item.slug !== initial[i]?.slug);
+	const handleSaveOrder = () =>
+		run(
+			() => reorderWorkshops(items.map((i) => i.slug)),
+			() => {
+				setBaseline(items);
+				setSaved(true);
+				setTimeout(() => setSaved(false), 2000);
+			},
+		);
+
+	const handleDelete = (slug: string) => {
+		setItems((prev) => prev.filter((i) => i.slug !== slug));
+		setBaseline((prev) => prev.filter((i) => i.slug !== slug));
+		run(() => deleteWorkshop(slug));
+	};
+
+	const hasOrderChanges = items.some((item, i) => item.slug !== baseline[i]?.slug);
 
 	return (
 		<div className="space-y-6">
@@ -40,20 +61,6 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			/>
 
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
-
-			{/* Reorder save bar */}
-			{hasOrderChanges ? (
-				<div className="flex items-center gap-3">
-					<button
-						type="button"
-						onClick={() => run(() => reorderWorkshops(items.map((i) => i.slug)))}
-						disabled={pending}
-						className={`${adminBtn} border-accent text-accent`}
-					>
-						Save new order
-					</button>
-				</div>
-			) : null}
 
 			{/* List */}
 			<div role="list" className="space-y-2">
@@ -73,8 +80,13 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 							workshop={w}
 							pending={pending}
 							onSave={(fields) => run(() => updateWorkshop(w.slug, fields))}
-							onDelete={() => {
-								if (confirm(`Delete "${w.title}"?`)) run(() => deleteWorkshop(w.slug));
+							onDelete={async () => {
+								const ok = await confirm({
+									title: `Delete "${w.title}"?`,
+									body: "This removes the workshop from the public site.",
+									confirmLabel: "Delete",
+								});
+								if (ok) handleDelete(w.slug);
 							}}
 						/>
 					</div>
@@ -85,6 +97,16 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					</p>
 				) : null}
 			</div>
+
+			{hasOrderChanges ? (
+				<ReorderBar
+					label="Workshop order changed"
+					pending={pending}
+					saved={saved}
+					onSave={handleSaveOrder}
+					onReset={() => setItems(baseline)}
+				/>
+			) : null}
 		</div>
 	);
 }
