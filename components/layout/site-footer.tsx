@@ -24,20 +24,28 @@ export function SiteFooter() {
 	];
 
 	return (
-		<footer className="mt-24 border-t border-line">
-			{/* ── Main: oversized wordmark + Explore + Reach out ── */}
-			<div className="mx-auto max-w-6xl px-(--container-px) py-14 sm:py-16">
-				<div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1.2fr] md:gap-12">
+		<footer className="relative mt-24 overflow-hidden border-t border-line bg-bg-soft">
+			{/* Soft pigment glow top-left, for warmth (decorative). */}
+			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-accent/8 blur-3xl"
+			/>
+
+			<div className="relative mx-auto max-w-6xl px-(--container-px)">
+				{/* ── Top: links + channels ── */}
+				<div className="grid gap-10 py-14 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto] md:gap-16 sm:py-16">
 					{/* Brand */}
 					<div className="sm:col-span-2 md:col-span-1">
-						<Link
-							href="/"
-							className="t-display inline-block text-4xl leading-none transition-colors hover:text-accent sm:text-5xl"
-						>
-							<span className="not-italic">{brand.headline.latinPrefix}</span>
-							<span lang="hi" className="font-devanagari not-italic text-accent">
-								{brand.headline.devanagariCore}
+						<Link href="/" aria-label="Home" className="group inline-flex items-baseline gap-2">
+							<span className="t-display text-3xl leading-none tracking-[var(--tracking-tight)] sm:text-[2rem]">
+								<span className="not-italic transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent">
+									{brand.headline.latinPrefix}
+								</span>
+								<span lang="hi" className="font-devanagari not-italic text-accent">
+									{brand.headline.devanagariCore}
+								</span>
 							</span>
+							<span className="text-sm text-muted">by {brand.headline.suffix}</span>
 						</Link>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
 						<p className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted">
@@ -49,16 +57,16 @@ export function SiteFooter() {
 					{/* Explore */}
 					<nav aria-label="Footer">
 						<p className="t-eyebrow">Explore</p>
-						<ul className="mt-4 space-y-3 text-sm">
+						<ul className="mt-5 space-y-3 text-sm">
 							{nav.map((item) => (
 								<li key={item.href}>
 									<Link
-										className="group inline-flex items-center gap-1.5 text-ink transition-colors hover:text-accent"
+										className="group inline-flex items-center gap-2 text-ink transition-colors hover:text-accent"
 										href={item.href.startsWith("#") ? `/${item.href.slice(1)}` : item.href}
 									>
 										<span
 											aria-hidden="true"
-											className="inline-block h-px w-0 bg-accent transition-all duration-(--duration-base) ease-(--ease-out) group-hover:w-3"
+											className="inline-block h-px w-0 bg-accent transition-all duration-(--duration-base) ease-(--ease-out) group-hover:w-4"
 										/>
 										{item.label}
 									</Link>
@@ -67,32 +75,32 @@ export function SiteFooter() {
 						</ul>
 					</nav>
 
-					{/* Reach out -- channels as compact tappable rows */}
-					<div>
+					{/* Reach out */}
+					<div className="min-w-0 md:min-w-56">
 						<p className="t-eyebrow">Reach out</p>
-						<ul className="mt-4 space-y-2">
+						<ul className="mt-5 space-y-2">
 							{channels.map((c) => {
 								const Icon = ICON_FOR_KEY[c.key];
 								return (
 									<li key={c.url}>
 										<a
-											className="group -mx-2 flex items-center gap-3 rounded-(--radius-sm) px-2 py-2 text-sm text-ink transition-colors hover:bg-bg-soft"
+											className="group -mx-2 flex items-center gap-3 rounded-(--radius-sm) px-2 py-2 text-sm text-ink transition-colors hover:bg-bg"
 											href={c.url}
 											target={c.url.startsWith("http") ? "_blank" : undefined}
 											rel={c.url.startsWith("http") ? "noopener noreferrer" : undefined}
 										>
 											{Icon ? (
-												<span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-bg-soft text-muted ring-1 ring-line transition-colors group-hover:text-accent group-hover:ring-accent">
-													<Icon className="h-3.5 w-3.5" aria-hidden="true" />
+												<span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg text-muted ring-1 ring-line transition-colors group-hover:text-accent group-hover:ring-accent">
+													<Icon className="h-4 w-4" aria-hidden="true" />
 												</span>
 											) : null}
 											<span className="min-w-0 flex-1 truncate transition-colors group-hover:text-accent">
 												{c.display ?? c.label}
 											</span>
 											<ArrowUpRight
-												size={13}
+												size={14}
 												aria-hidden="true"
-												className="shrink-0 text-muted opacity-0 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:opacity-100"
+												className="shrink-0 -translate-x-1 text-muted opacity-0 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-0 group-hover:opacity-100"
 											/>
 										</a>
 									</li>
@@ -101,11 +109,9 @@ export function SiteFooter() {
 						</ul>
 					</div>
 				</div>
-			</div>
 
-			{/* ── Bottom bar ── */}
-			<div className="border-t border-line">
-				<div className="mx-auto flex max-w-6xl flex-col gap-3 px-(--container-px) py-5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted sm:flex-row sm:items-center sm:justify-between">
+				{/* ── Bottom bar ── */}
+				<div className="flex flex-col gap-3 border-t border-line/70 py-6 text-xs uppercase tracking-[var(--tracking-meta)] text-muted sm:flex-row sm:items-center sm:justify-between">
 					<p>
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
