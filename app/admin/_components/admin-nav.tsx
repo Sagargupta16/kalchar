@@ -1,12 +1,13 @@
 "use client";
 
-import { GraduationCap, ListChecks, Palette, Users } from "lucide-react";
+import { GraduationCap, ListChecks, Palette, Tags, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV = [
 	{ label: "Artworks", href: "/admin", icon: Palette },
+	{ label: "Categories", href: "/admin/categories", icon: Tags },
 	{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
 	{ label: "Presets", href: "/admin/presets", icon: ListChecks },
 	{ label: "Maintainers", href: "/admin/maintainers", icon: Users },

@@ -8,7 +8,13 @@ import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { getAllArtworks, getOrderPresets, getSite, getStyleSamples } from "@/lib/data";
+import {
+	getAllArtworks,
+	getCategoryNames,
+	getOrderPresets,
+	getSite,
+	getStyleSamples,
+} from "@/lib/data";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -29,13 +35,14 @@ interface CustomOrdersSection {
 }
 
 export default async function CustomOrdersPage() {
-	const { contact, sections, styles } = getSite();
+	const { contact, sections } = getSite();
 	const co = (sections.customOrders ?? {}) as CustomOrdersSection;
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
-	const [presets, styleSamples, allArtworks] = await Promise.all([
+	const [presets, styleSamples, allArtworks, styles] = await Promise.all([
 		getOrderPresets(),
 		getStyleSamples(),
 		getAllArtworks(),
+		getCategoryNames(),
 	]);
 
 	// A few finished pieces to show what a commission can look like. Prefer

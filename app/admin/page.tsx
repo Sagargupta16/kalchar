@@ -1,12 +1,12 @@
 import { Image, Package, ShoppingBag, Star } from "lucide-react";
-import { getAllArtworks } from "@/lib/data";
+import { getAllArtworks, getCategoryNames } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { ArtworkGrid } from "./_components/artwork-grid";
 import { ArtworkRow } from "./_components/artwork-row";
 import { UploadForm } from "./_components/upload-form";
 
 export default async function AdminDashboard() {
-	const artworks = await getAllArtworks();
+	const [artworks, categoryNames] = await Promise.all([getAllArtworks(), getCategoryNames()]);
 	const available = artworks.filter((a) => a.status === "available").length;
 	const sold = artworks.filter((a) => a.status === "sold").length;
 	const featured = artworks.filter((a) => a.featured).length;
@@ -24,7 +24,7 @@ export default async function AdminDashboard() {
 			{/* Upload section */}
 			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
 				<h2 className="text-sm font-semibold">Add a new piece</h2>
-				<UploadForm />
+				<UploadForm categories={categoryNames} />
 			</section>
 
 			{/* Reorder section */}
@@ -62,6 +62,7 @@ export default async function AdminDashboard() {
 							key={art.slug}
 							art={art}
 							thumb={`${ARTWORK_IMAGE_BASE}/${art.slug}-400.webp`}
+							categories={categoryNames}
 						/>
 					))}
 				</div>

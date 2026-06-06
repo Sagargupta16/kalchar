@@ -6,7 +6,19 @@
  * these types stay -- only the loader implementation changes.
  */
 
-export type ArtStyle = "Madhubani" | "Pichwai" | "Lippan" | "Gond" | "Texture" | "Mixed Media";
+/**
+ * An art category name. Was a fixed union; now a free string because
+ * categories are DB-managed and editable from /admin. The historical names
+ * (Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media) are still the seed
+ * defaults, but new ones can be added without a code change.
+ */
+export type ArtStyle = string;
+
+export interface Category {
+	id: string;
+	name: string;
+	order: number;
+}
 
 /** Lifecycle of a piece in the catalog. */
 export type ArtworkStatus = "archive" | "available" | "sold";

@@ -22,6 +22,8 @@ import { db } from "./db/client";
 import {
 	type ArtworkRow,
 	artworks,
+	type CategoryRow,
+	categories,
 	type OrderPresetRow,
 	orderPresets,
 	type WorkshopRow,
@@ -31,6 +33,7 @@ import type {
 	ArtStyle,
 	Artwork,
 	ArtworkStatus,
+	Category,
 	OrderPreset,
 	OrderPresetKind,
 	OrderPresets,
@@ -128,6 +131,27 @@ export async function getStyleSamples(): Promise<Record<string, { slug: string; 
 /** Slugs of every artwork -- used by `generateStaticParams` for `/work/[slug]`. */
 export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);
+}
+
+function toCategory(row: CategoryRow): Category {
+	return { id: row.id, name: row.name, order: row.order };
+}
+
+/** All categories as full rows (admin list), sorted by `order`. */
+export async function getAllCategories(): Promise<readonly Category[]> {
+	const rows = await db.select().from(categories).orderBy(asc(categories.order));
+	return rows.map(toCategory);
+}
+
+/**
+ * Category names for public UI (work filter, style picker, hero chips).
+ * Falls back to the `site.json` styles array when the DB has none yet
+ * (pre-seed), so the site is never empty.
+ */
+export async function getCategoryNames(): Promise<ArtStyle[]> {
+	const rows = await getAllCategories();
+	if (rows.length > 0) return rows.map((c) => c.name);
+	return [...((siteJson as Site).styles ?? [])];
 }
 
 /** All workshops, sorted by `order` ascending. */

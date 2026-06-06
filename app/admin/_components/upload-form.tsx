@@ -6,9 +6,7 @@ import { useState, useTransition } from "react";
 import { createArtwork } from "../actions";
 import { adminBtnPrimary, adminField } from "./controls";
 
-const STYLES = ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"];
-
-export function UploadForm() {
+export function UploadForm({ categories }: Readonly<{ categories: readonly string[] }>) {
 	const router = useRouter();
 	const [pending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
@@ -37,9 +35,9 @@ export function UploadForm() {
 			<input name="title" placeholder="Title *" required className={adminField} />
 			<select name="style" required className={adminField} defaultValue="">
 				<option value="" disabled>
-					Style *
+					Category *
 				</option>
-				{STYLES.map((s) => (
+				{categories.map((s) => (
 					<option key={s} value={s}>
 						{s}
 					</option>
