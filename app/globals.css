@@ -189,6 +189,13 @@ body {
 
 /* ─── ANIMATION CLASSES ─── */
 
+/* Home hero artwork plates -- smooth ease when the random shuffle changes
+   the tilt angle on reload. Reduced motion flattens to the resting tilt. */
+.hero-plate {
+  transition: transform var(--duration-slow) var(--ease-out);
+  will-change: transform;
+}
+
 .reveal-up {
   opacity: 0;
   transform: translateY(20px);
@@ -260,6 +267,12 @@ body {
   .flare-after::after {
     animation: none;
     width: var(--flare-w, 100%);
+  }
+
+  /* No tilt transition; the hero stays at its server-rendered resting angle
+     and the JS shuffle is skipped entirely (gated in hero-plates.tsx). */
+  .hero-plate {
+    transition: none;
   }
 
   html {

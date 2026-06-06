@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArtImage } from "@/components/gallery/art-image";
+import { type HeroPiece, HeroPlates } from "@/components/home/hero-plates";
 import { Reveal } from "@/components/motion/reveal";
 import { SplitText } from "@/components/motion/split-text";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ interface HeroProps {
 	site: Site;
 	featured: Artwork | undefined;
 	secondary?: Artwork;
+	/** Featured pieces the hero can shuffle through (includes `featured`). */
+	pool: readonly HeroPiece[];
 	featuredIndex: number;
 	totalCount: number;
 }
@@ -22,6 +24,7 @@ export function Hero({
 	site,
 	featured,
 	secondary,
+	pool,
 	featuredIndex,
 	totalCount,
 }: Readonly<HeroProps>) {
@@ -100,58 +103,33 @@ export function Hero({
 						</Reveal>
 					</div>
 
-					{/* Featured artwork plates */}
+					{/* Featured artwork plates (shuffle on reload, client island) */}
 					{featured ? (
 						<Reveal eager delayMs={120} className="md:col-span-5">
-							<div className="relative aspect-3/4">
-								{secondary ? (
-									<div
-										aria-hidden="true"
-										className="absolute inset-0 translate-x-[6%] translate-y-[4%] rotate-[4deg] overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-lg ring-1 ring-black/5 motion-reduce:translate-x-0 motion-reduce:translate-y-0 motion-reduce:rotate-0 motion-reduce:opacity-60 dark:ring-white/5"
-									>
-										<ArtImage
-											src={`/artworks/${secondary.image}`}
-											alt=""
-											sizes={FEATURED_SIZES}
-											maxWidth={800}
-											className="absolute inset-0 h-full w-full object-cover"
-										/>
-									</div>
-								) : null}
-								<Link
-									href={`/work/${featured.slug}`}
-									className="group absolute inset-0 block -rotate-[5deg] focus-visible:outline-none motion-reduce:rotate-0"
-									aria-label={`Featured work: ${featured.title}`}
-								>
-									<div className="relative h-full overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-xl ring-1 ring-black/10 transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
-										<ArtImage
-											src={`/artworks/${featured.image}`}
-											alt={featured.description ?? featured.title}
-											sizes={FEATURED_SIZES}
-											maxWidth={800}
-											priority
-											className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.02]"
-										/>
-									</div>
-								</Link>
-							</div>
-							{/* Featured caption */}
-							<div className="mt-6">
-								{featuredIndex >= 0 ? (
-									<p className="flex items-center gap-2 text-muted">
-										<span aria-hidden="true" className="text-gold-leaf">
-											✦
-										</span>
-										<span className="t-meta">
-											Featured . {featuredIndex + 1} of {totalCount}
-										</span>
-									</p>
-								) : null}
-								<p className="mt-2 flex items-baseline justify-between gap-3">
-									<span className="t-display text-lg sm:text-xl">{featured.title}</span>
-									<span className="t-meta whitespace-nowrap">{featured.style}</span>
-								</p>
-							</div>
+							<HeroPlates
+								pool={pool}
+								defaultFront={{
+									slug: featured.slug,
+									title: featured.title,
+									style: featured.style,
+									image: featured.image,
+									description: featured.description,
+									catalogIndex: featuredIndex,
+								}}
+								defaultBack={
+									secondary
+										? {
+												slug: secondary.slug,
+												title: secondary.title,
+												style: secondary.style,
+												image: secondary.image,
+												description: secondary.description,
+												catalogIndex: -1,
+											}
+										: undefined
+								}
+								totalCount={totalCount}
+							/>
 						</Reveal>
 					) : null}
 				</div>

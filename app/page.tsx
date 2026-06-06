@@ -30,12 +30,26 @@ export default async function HomePage() {
 	const workshopsPreview = allWorkshops.slice(0, 3);
 	const featuredIndex = featured ? all.findIndex((a) => a.slug === featured.slug) : -1;
 
+	// Pool the hero can shuffle through on reload: every featured piece, each
+	// carrying its catalog index for the "N of M" caption. Falls back to the
+	// whole catalog if nothing is explicitly featured.
+	const heroSource = all.filter((a) => a.featured);
+	const heroPool = (heroSource.length > 0 ? heroSource : all).map((a) => ({
+		slug: a.slug,
+		title: a.title,
+		style: a.style,
+		image: a.image,
+		description: a.description,
+		catalogIndex: all.findIndex((x) => x.slug === a.slug),
+	}));
+
 	return (
 		<main>
 			<Hero
 				site={site}
 				featured={featured}
 				secondary={heroSecondary}
+				pool={heroPool}
 				featuredIndex={featuredIndex}
 				totalCount={all.length}
 			/>
