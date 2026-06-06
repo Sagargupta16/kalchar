@@ -122,10 +122,14 @@ async function main() {
 	for (let i = 0; i < styleList.length; i++) {
 		const name = styleList[i];
 		if (!name) continue;
+		// Slugify without an anchored-alternation regex (ReDoS-safe): collapse
+		// non-alphanumerics to dashes, then trim leading/trailing dashes via slice.
 		const id = name
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-+|-+$/g, "");
+			.replace(/-+/g, "-")
+			.replace(/^-/, "")
+			.replace(/-$/, "");
 		await db
 			.insert(categories)
 			.values({ id, name, order: i + 1 })
