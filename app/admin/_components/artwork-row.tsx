@@ -13,6 +13,7 @@ import {
 	setStatus,
 	updateArtworkMeta,
 } from "../actions";
+import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 
 export function ArtworkRow({
@@ -21,6 +22,7 @@ export function ArtworkRow({
 	categories,
 }: Readonly<{ art: Artwork; thumb: string; categories: readonly string[] }>) {
 	const router = useRouter();
+	const confirm = useConfirm();
 	const [pending, startTransition] = useTransition();
 	const [price, setPriceInput] = useState(art.priceInr?.toString() ?? "");
 	const [editing, setEditing] = useState(false);
@@ -128,10 +130,13 @@ export function ArtworkRow({
 				<button
 					type="button"
 					disabled={pending}
-					onClick={() => {
-						if (confirm(`Delete "${art.title}"? This cannot be undone.`)) {
-							run(() => deleteArtwork(art.slug));
-						}
+					onClick={async () => {
+						const ok = await confirm({
+							title: `Delete "${art.title}"?`,
+							body: "This removes the piece and its images. This can't be undone.",
+							confirmLabel: "Delete",
+						});
+						if (ok) run(() => deleteArtwork(art.slug));
 					}}
 					className={`${adminBtnDestructive} px-2 py-1`}
 				>

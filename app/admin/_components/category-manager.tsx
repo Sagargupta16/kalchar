@@ -6,7 +6,9 @@ import { useState, useTransition } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
+import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import { ReorderBar } from "./reorder-bar";
 import { useReorder } from "./use-reorder";
 
 /** Map of category name -> how many artworks use it (for the delete guard hint). */
@@ -17,8 +19,11 @@ export function CategoryManager({
 	usage,
 }: Readonly<{ categories: Category[]; usage: UsageMap }>) {
 	const router = useRouter();
+	const confirm = useConfirm();
 	const [items, setItems] = useState(initial);
+	const [baseline, setBaseline] = useState(initial);
 	const [pending, startTransition] = useTransition();
+	const [saved, setSaved] = useState(false);
 	const [err, setErr] = useState<string | null>(null);
 	const [newName, setNewName] = useState("");
 	const { dragging, over, dragProps } = useReorder(items, setItems);
@@ -36,7 +41,23 @@ export function CategoryManager({
 		});
 	}
 
-	const hasOrderChanges = items.some((item, i) => item.id !== initial[i]?.id);
+	const handleSaveOrder = () =>
+		run(
+			() => reorderCategories(items.map((i) => i.id)),
+			() => {
+				setBaseline(items);
+				setSaved(true);
+				setTimeout(() => setSaved(false), 2000);
+			},
+		);
+
+	const handleDelete = (id: string) => {
+		setItems((prev) => prev.filter((i) => i.id !== id));
+		setBaseline((prev) => prev.filter((i) => i.id !== id));
+		run(() => deleteCategory(id));
+	};
+
+	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
 
 	return (
 		<div className="space-y-6">
@@ -69,17 +90,6 @@ export function CategoryManager({
 
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
-			{hasOrderChanges ? (
-				<button
-					type="button"
-					onClick={() => run(() => reorderCategories(items.map((i) => i.id)))}
-					disabled={pending}
-					className={`${adminBtn} border-accent text-accent`}
-				>
-					Save new order
-				</button>
-			) : null}
-
 			{/* List */}
 			<div role="list" className="space-y-2">
 				{items.map((c, i) => (
@@ -99,7 +109,14 @@ export function CategoryManager({
 							usageCount={usage[c.name] ?? 0}
 							pending={pending}
 							onSave={(name) => run(() => renameCategory(c.id, name))}
-							onDelete={() => run(() => deleteCategory(c.id))}
+							onDelete={async () => {
+								const ok = await confirm({
+									title: `Delete category "${c.name}"?`,
+									body: "Pieces must be reassigned first; this only removes the empty category.",
+									confirmLabel: "Delete",
+								});
+								if (ok) handleDelete(c.id);
+							}}
 						/>
 					</div>
 				))}
@@ -109,6 +126,16 @@ export function CategoryManager({
 					</p>
 				) : null}
 			</div>
+
+			{hasOrderChanges ? (
+				<ReorderBar
+					label="Category order changed"
+					pending={pending}
+					saved={saved}
+					onSave={handleSaveOrder}
+					onReset={() => setItems(baseline)}
+				/>
+			) : null}
 		</div>
 	);
 }
