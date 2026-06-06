@@ -64,6 +64,8 @@ export interface ContactChannel {
 	url: string;
 	display?: string;
 	note?: string;
+	/** Filename in public/ for a scan-to-follow QR code (Instagram). */
+	qr?: string;
 }
 
 export interface Contact {

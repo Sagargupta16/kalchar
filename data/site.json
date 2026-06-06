@@ -33,13 +33,15 @@
 			"label": "Instagram (Art)",
 			"display": "@kalchar_by_meghaseth",
 			"url": "https://www.instagram.com/kalchar_by_meghaseth/",
-			"note": "Original paintings, process reels, available work"
+			"note": "Art & Process",
+			"qr": "kalchar_by_meghaseth_qr.png"
 		},
 		"instagramCommunity": {
 			"label": "Instagram (Workshops)",
 			"display": "@listentoyourart111",
 			"url": "https://www.instagram.com/listentoyourart111/",
-			"note": "Workshops, activities, community events"
+			"note": "Workshops & Community",
+			"qr": "instagram-qr.png"
 		},
 		"instagramPersonal": {
 			"label": "Megha Seth",
