@@ -2,10 +2,11 @@
 
 import { GripVertical, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { reorderArtworks } from "../actions";
 import { adminBtn } from "./controls";
+import { useReorder } from "./use-reorder";
 
 interface ArtworkItem {
 	slug: string;
@@ -17,47 +18,12 @@ interface ArtworkItem {
 	thumb: string;
 }
 
-interface Props {
-	artworks: ArtworkItem[];
-}
-
-export function ArtworkGrid({ artworks: initial }: Readonly<Props>) {
+export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkItem[] }>) {
 	const router = useRouter();
 	const [items, setItems] = useState(initial);
-	const [dragging, setDragging] = useState<number | null>(null);
-	const [over, setOver] = useState<number | null>(null);
 	const [pending, startTransition] = useTransition();
 	const [saved, setSaved] = useState(false);
-	const dragItem = useRef<number | null>(null);
-
-	const handleDragStart = useCallback((index: number) => {
-		dragItem.current = index;
-		setDragging(index);
-	}, []);
-
-	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-		e.preventDefault();
-		setOver(index);
-	}, []);
-
-	const handleDrop = useCallback(
-		(index: number) => {
-			const from = dragItem.current;
-			if (from === null || from === index) {
-				setDragging(null);
-				setOver(null);
-				return;
-			}
-			const updated = [...items];
-			const moved = updated.splice(from, 1)[0];
-			if (!moved) return;
-			updated.splice(index, 0, moved);
-			setItems(updated);
-			setDragging(null);
-			setOver(null);
-		},
-		[items],
-	);
+	const { dragging, over, dragProps } = useReorder(items, setItems);
 
 	const handleSave = () => {
 		startTransition(async () => {
@@ -92,14 +58,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<Props>) {
 					<div
 						role="listitem"
 						key={art.slug}
-						draggable
-						onDragStart={() => handleDragStart(i)}
-						onDragOver={(e) => handleDragOver(e, i)}
-						onDrop={() => handleDrop(i)}
-						onDragEnd={() => {
-							setDragging(null);
-							setOver(null);
-						}}
+						{...dragProps(i)}
 						className={cn(
 							"flex items-center gap-3 rounded-(--radius-sm) border border-line bg-bg p-3 transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50 scale-[0.98]",

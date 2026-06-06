@@ -2,22 +2,19 @@
 
 import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createWorkshop, deleteWorkshop, reorderWorkshops, updateWorkshop } from "../actions";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import { useReorder } from "./use-reorder";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
 	const router = useRouter();
 	const [items, setItems] = useState(initial);
 	const [pending, startTransition] = useTransition();
 	const [err, setErr] = useState<string | null>(null);
-
-	// Reorder state
-	const [dragging, setDragging] = useState<number | null>(null);
-	const [over, setOver] = useState<number | null>(null);
-	const dragItem = useRef<number | null>(null);
+	const { dragging, over, dragProps } = useReorder(items, setItems);
 
 	function run(fn: () => Promise<void>, after?: () => void) {
 		setErr(null);
@@ -31,25 +28,6 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			}
 		});
 	}
-
-	const handleDrop = useCallback(
-		(index: number) => {
-			const from = dragItem.current;
-			if (from === null || from === index) {
-				setDragging(null);
-				setOver(null);
-				return;
-			}
-			const updated = [...items];
-			const moved = updated.splice(from, 1)[0];
-			if (!moved) return;
-			updated.splice(index, 0, moved);
-			setItems(updated);
-			setDragging(null);
-			setOver(null);
-		},
-		[items],
-	);
 
 	const hasOrderChanges = items.some((item, i) => item.slug !== initial[i]?.slug);
 
@@ -84,20 +62,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					<div
 						role="listitem"
 						key={w.slug}
-						draggable
-						onDragStart={() => {
-							dragItem.current = i;
-							setDragging(i);
-						}}
-						onDragOver={(e) => {
-							e.preventDefault();
-							setOver(i);
-						}}
-						onDrop={() => handleDrop(i)}
-						onDragEnd={() => {
-							setDragging(null);
-							setOver(null);
-						}}
+						{...dragProps(i)}
 						className={cn(
 							"rounded-(--radius-sm) border border-line bg-bg transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50",
