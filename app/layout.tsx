@@ -55,11 +55,18 @@ export const metadata: Metadata = {
 	},
 };
 
+// Browser-chrome theme colors. These mirror --color-bg (light) and the dark
+// ground; keep them in sync with globals.css. They live as literals because
+// viewport metadata is emitted before any stylesheet loads, so CSS custom
+// properties can't resolve here.
+const THEME_COLOR_LIGHT = "#faf8f3";
+const THEME_COLOR_DARK = "#1a1510";
+
 export const viewport: Viewport = {
 	colorScheme: "light dark",
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#faf8f3" },
-		{ media: "(prefers-color-scheme: dark)", color: "#1a1510" },
+		{ media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
+		{ media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
 	],
 	viewportFit: "cover",
 };

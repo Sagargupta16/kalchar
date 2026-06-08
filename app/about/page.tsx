@@ -23,27 +23,27 @@ interface AboutSection {
 
 export default function AboutPage() {
 	const { brand, sections } = getSite();
-	const a = (sections.about ?? {}) as AboutSection;
+	const about = (sections.about ?? {}) as AboutSection;
 
 	return (
 		<main>
 			<Section accent="marigold">
 				<Container className="py-(--section-py)">
 					<PageHeader
-						eyebrow={a.eyebrow ?? "About"}
-						title={a.title ?? "On preserving folk traditions through practice"}
+						eyebrow={about.eyebrow ?? "About"}
+						title={about.title ?? "On preserving folk traditions through practice"}
 					/>
 
 					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
 						{/* Body */}
 						<div className="space-y-6 md:col-span-8">
-							{(a.paragraphs ?? []).map((p, i) => (
+							{(about.paragraphs ?? []).map((p, i) => (
 								<Reveal key={p.slice(0, 24)} eager={i === 0} delayMs={i * 80}>
 									<p className={`t-body text-ink ${i === 0 ? "drop-cap" : ""}`}>{p}</p>
 								</Reveal>
 							))}
 
-							{a.pullQuote ? (
+							{about.pullQuote ? (
 								<Reveal delayMs={280}>
 									<blockquote className="relative mt-12 mb-6 pl-8 sm:pl-12">
 										<span
@@ -53,7 +53,7 @@ export default function AboutPage() {
 											&ldquo;
 										</span>
 										<p className="t-display text-2xl text-(--section-accent) sm:text-3xl">
-											{a.pullQuote}
+											{about.pullQuote}
 										</p>
 									</blockquote>
 								</Reveal>
@@ -79,11 +79,11 @@ export default function AboutPage() {
 									<p className="t-display mt-2 text-2xl">{brand.location}</p>
 								</Card>
 							</Reveal>
-							{a.asideHeading || a.asideBody ? (
+							{about.asideHeading || about.asideBody ? (
 								<Reveal delayMs={100}>
 									<Card padding="md" className="mt-4">
-										<p className="t-eyebrow">{a.asideHeading ?? "Open to"}</p>
-										<p className="mt-2 text-sm text-muted">{a.asideBody}</p>
+										<p className="t-eyebrow">{about.asideHeading ?? "Open to"}</p>
+										<p className="mt-2 text-sm text-muted">{about.asideBody}</p>
 									</Card>
 								</Reveal>
 							) : null}

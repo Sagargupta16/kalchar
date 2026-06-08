@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default async function WorkshopsPage() {
 	const { contact, sections } = getSite();
-	const w = sections.workshops;
+	const workshopsCopy = sections.workshops;
 	const workshops = await getAllWorkshops();
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
 
@@ -27,9 +27,9 @@ export default async function WorkshopsPage() {
 			<Section accent="pichwai">
 				<Container className="py-(--section-py)">
 					<PageHeader
-						eyebrow={w?.eyebrow ?? "Workshops"}
-						title={w?.title ?? "Hands-on sessions"}
-						lead={w?.lead}
+						eyebrow={workshopsCopy?.eyebrow ?? "Workshops"}
+						title={workshopsCopy?.title ?? "Hands-on sessions"}
+						lead={workshopsCopy?.lead}
 					/>
 
 					<ul className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 lg:grid-cols-3">

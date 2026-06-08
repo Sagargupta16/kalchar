@@ -21,15 +21,15 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
 	const { contact, sections } = getSite();
-	const c = sections.contact;
+	const contactCopy = sections.contact;
 
 	return (
 		<main>
 			<Section accent="peacock">
 				<Container size="narrow" className="py-(--section-py)">
 					<PageHeader
-						eyebrow={c?.eyebrow ?? "Contact"}
-						title={c?.title ?? "Get in touch"}
+						eyebrow={contactCopy?.eyebrow ?? "Contact"}
+						title={contactCopy?.title ?? "Get in touch"}
 						lead="WhatsApp is the fastest way to reach us. For formal briefs, use email. Follow along on Instagram."
 					/>
 
