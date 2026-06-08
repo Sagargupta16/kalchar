@@ -17,6 +17,9 @@ import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
 
+/** Minimum horizontal travel (px) before a touch counts as a swipe. */
+const SWIPE_THRESHOLD_PX = 50;
+
 function deriveSlug(image: string): string {
 	const file = image.split("/").pop() ?? "";
 	return file.replace(/\.[^.]+$/, "");
@@ -98,7 +101,7 @@ export function ArtworkLightbox() {
 			const touch = e.changedTouches[0];
 			if (!touch) return;
 			const dx = touch.clientX - touchStartX.current;
-			if (Math.abs(dx) > 50) {
+			if (Math.abs(dx) > SWIPE_THRESHOLD_PX) {
 				if (dx > 0) prevArtwork();
 				else nextArtwork();
 				setZoom(false);

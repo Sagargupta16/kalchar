@@ -21,6 +21,9 @@ import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/
  * `data/site.json` customOrders arrays so the artist can edit options
  * without touching code.
  */
+/** Re-enable the submit button this long after opening the WhatsApp tab. */
+const SUBMIT_RESET_MS = 1500;
+
 interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
 	emailUrl: string;
@@ -85,7 +88,7 @@ export function CustomOrderForm({
 		} else {
 			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
 		}
-		setTimeout(() => setSubmitting(false), 1500);
+		setTimeout(() => setSubmitting(false), SUBMIT_RESET_MS);
 	}
 
 	const mailtoHref = draft ? customOrderMailto(emailUrl, draft) : null;

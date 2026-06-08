@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 
+/** Fallback delay before loading Lenis when requestIdleCallback is absent. */
+const IDLE_FALLBACK_DELAY_MS = 200;
+
 export function SmoothScroll() {
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -41,7 +44,7 @@ export function SmoothScroll() {
 			const idleHandle = globalThis.requestIdleCallback(() => start());
 			cancelSchedule = () => globalThis.cancelIdleCallback(idleHandle);
 		} else {
-			const timeoutHandle = globalThis.setTimeout(start, 200);
+			const timeoutHandle = globalThis.setTimeout(start, IDLE_FALLBACK_DELAY_MS);
 			cancelSchedule = () => globalThis.clearTimeout(timeoutHandle);
 		}
 
