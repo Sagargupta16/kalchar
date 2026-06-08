@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { ReorderBar } from "./reorder-bar";
+import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 
 interface ArtworkItem {
@@ -36,7 +37,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 			setBaseline(items);
 			setSaved(true);
 			router.refresh();
-			setTimeout(() => setSaved(false), 2000);
+			setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 		});
 	};
 
