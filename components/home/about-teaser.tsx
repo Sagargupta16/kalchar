@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
@@ -17,9 +18,9 @@ export function AboutTeaser({ eyebrow, title, lead, location }: Readonly<AboutTe
 			<Container size="narrow" className="py-(--section-py) text-center">
 				<Reveal>
 					<p className="t-eyebrow flex items-center justify-center gap-2">
-						<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+						<AccentRule />
 						{eyebrow}
-						<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+						<AccentRule />
 					</p>
 				</Reveal>
 				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">

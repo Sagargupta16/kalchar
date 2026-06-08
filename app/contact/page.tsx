@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -90,7 +91,7 @@ export default function ContactPage() {
 					<div className="mt-10">
 						<Reveal>
 							<p className="t-eyebrow flex items-center gap-2">
-								<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+								<AccentRule />
 								Follow on Instagram
 							</p>
 						</Reveal>

@@ -95,6 +95,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
+				{/* Pre-paint theme: runs before any module loads (can't import), so the
+				    "theme" key is inlined here -- keep it in sync with STORAGE_KEY in
+				    theme-toggle.tsx. */}
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint theme
 					dangerouslySetInnerHTML={{

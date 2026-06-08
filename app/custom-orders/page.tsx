@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
@@ -134,10 +135,7 @@ export default async function CustomOrdersPage() {
 								<div className="flex items-baseline justify-between gap-4">
 									<div>
 										<p className="t-eyebrow flex items-center gap-2">
-											<span
-												aria-hidden="true"
-												className="inline-block h-px w-5 bg-(--section-accent)"
-											/>
+											<AccentRule />
 											For inspiration
 										</p>
 										<h2 className="t-display mt-2 text-2xl sm:text-3xl">

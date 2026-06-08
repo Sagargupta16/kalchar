@@ -38,6 +38,9 @@ interface WorkFilterProps {
 }
 
 const ALL = "All" as const;
+/** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
+const STAGGER_STEP_MS = 60;
+const STAGGER_MAX_INDEX = 5;
 
 export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const [active, setActive] = useState<typeof ALL | ArtStyle>(ALL);
@@ -88,7 +91,11 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			{visible.length > 0 ? (
 				<ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
 					{visible.map((art, i) => (
-						<Reveal key={art.slug} as="li" delayMs={Math.min(i, 5) * 60}>
+						<Reveal
+							key={art.slug}
+							as="li"
+							delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
+						>
 							<ArtworkCard
 								artwork={art as Artwork}
 								siblings={visible as Artwork[]}

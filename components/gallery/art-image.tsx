@@ -53,6 +53,8 @@ interface ArtImageProps {
 }
 
 const WIDTHS = [400, 800, 1200, 1600] as const;
+/** Pre-decode "settle" state the plate animates out of as it loads. */
+const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
 
 function deriveSlug(src: string): string {
 	// "/artworks/radha-krishna.jpg" -> "radha-krishna"
@@ -115,10 +117,7 @@ export function ArtImage({
 		if (el?.complete) setLoaded(true);
 	};
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
-	const settleStyle =
-		animate && !loaded
-			? ({ opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const)
-			: undefined;
+	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
 
 	return (
 		<picture>

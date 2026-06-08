@@ -16,6 +16,10 @@ export const metadata: Metadata = {
 		"Hands-on folk-art sessions for individuals, schools, communities, and corporate groups.",
 };
 
+/** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
+const STAGGER_STEP_MS = 60;
+const STAGGER_MAX_INDEX = 5;
+
 export default async function WorkshopsPage() {
 	const { contact, sections } = getSite();
 	const workshopsCopy = sections.workshops;
@@ -39,7 +43,11 @@ export default async function WorkshopsPage() {
 								message: `Hi, I'd like to enquire about the "${item.title}" workshop.`,
 							});
 							return (
-								<Reveal key={item.slug} as="li" delayMs={Math.min(i, 5) * 60}>
+								<Reveal
+									key={item.slug}
+									as="li"
+									delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
+								>
 									<Card hover className="group flex h-full flex-col">
 										<h3 className="t-display text-xl transition-colors group-hover:text-(--section-accent)">
 											{item.title}
