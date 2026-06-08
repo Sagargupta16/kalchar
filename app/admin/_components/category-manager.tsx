@@ -76,10 +76,9 @@ export function CategoryManager({
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
 			{/* List */}
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((c, i) => (
-					<div
-						role="listitem"
+					<li
 						key={c.id}
 						{...dragProps(i)}
 						className={cn(
@@ -102,14 +101,14 @@ export function CategoryManager({
 								if (ok) handleDelete(c.id);
 							}}
 						/>
-					</div>
+					</li>
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No categories yet. Add one above.
 					</p>
 				) : null}
-			</div>
+			</ul>
 
 			{hasOrderChanges ? (
 				<ReorderBar

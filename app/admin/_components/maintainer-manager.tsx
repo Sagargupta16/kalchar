@@ -14,6 +14,12 @@ interface MaintainerView {
 	addedBy: string | null;
 }
 
+/** Sub-label describing how a maintainer got their access. */
+function roleLabel(m: MaintainerView): string {
+	if (m.isRoot) return "Root maintainer";
+	return m.addedBy ? `Added by ${m.addedBy}` : "Maintainer";
+}
+
 export function MaintainerManager({
 	roster,
 	me,
@@ -80,9 +86,7 @@ export function MaintainerManager({
 								{m.email}
 								{m.email === me ? <span className="ml-1.5 text-xs text-accent">(you)</span> : null}
 							</p>
-							<p className="text-xs text-muted">
-								{m.isRoot ? "Root maintainer" : m.addedBy ? `Added by ${m.addedBy}` : "Maintainer"}
-							</p>
+							<p className="text-xs text-muted">{roleLabel(m)}</p>
 						</div>
 						{m.isRoot ? (
 							<span className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[0.65rem] text-muted">

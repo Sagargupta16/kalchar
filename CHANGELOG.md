@@ -18,6 +18,7 @@ Clean-code pass across the codebase: no behavior change, no user-facing copy cha
 ### Fixed
 
 - **Stale comments** -- `paper-grain.tsx` opacity note (said 4%, renders 11%) and `lib/types.ts` `status` field (referenced a now-shipped Phase 1/2 split) corrected to match the code.
+- **SonarCloud findings** (13 of 25 open issues; the rest are intentional design and were left as-is) -- the four admin list managers now use native `<ul>`/`<li>` instead of `role="list"`/`role="listitem"` (`S6819`, better screen-reader support; drag-reorder is index-based so unaffected); two `typeof window` SSR guards switched to `globalThis.window` for consistency (`S7764`); a redundant `as Site` assertion dropped in `lib/data.ts` (`S4325`); the maintainer role label extracted out of a nested ternary (`S3358`).
 
 ## 1.22.0 (2026-06-06)
 

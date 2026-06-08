@@ -65,10 +65,9 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 
 	return (
 		<>
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((art, i) => (
-					<div
-						role="listitem"
+					<li
 						key={art.slug}
 						{...dragProps(i)}
 						className={cn(
@@ -105,9 +104,9 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 						>
 							<Trash2 size={13} />
 						</button>
-					</div>
+					</li>
 				))}
-			</div>
+			</ul>
 
 			{hasChanges ? (
 				<ReorderBar

@@ -95,10 +95,9 @@ function PresetGroup({
 			</div>
 
 			{/* List */}
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((p, i) => (
-					<div
-						role="listitem"
+					<li
 						key={p.id}
 						{...dragProps(i)}
 						className={cn(
@@ -120,14 +119,14 @@ function PresetGroup({
 								if (ok) handleDelete(p.id);
 							}}
 						/>
-					</div>
+					</li>
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
 						No options yet.
 					</p>
 				) : null}
-			</div>
+			</ul>
 
 			{/* Add */}
 			<form

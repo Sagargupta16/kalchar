@@ -67,7 +67,7 @@ export function HeroPlates({
 	const [shuffled, setShuffled] = useState(false);
 
 	useEffect(() => {
-		if (typeof window === "undefined") return;
+		if (typeof globalThis.window === "undefined") return;
 		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (pool.length < 1) return;
 

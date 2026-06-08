@@ -48,10 +48,9 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
 			{/* List */}
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((w, i) => (
-					<div
-						role="listitem"
+					<li
 						key={w.slug}
 						{...dragProps(i)}
 						className={cn(
@@ -73,14 +72,14 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 								if (ok) handleDelete(w.slug);
 							}}
 						/>
-					</div>
+					</li>
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No workshops yet. Add one above.
 					</p>
 				) : null}
-			</div>
+			</ul>
 
 			{hasOrderChanges ? (
 				<ReorderBar
