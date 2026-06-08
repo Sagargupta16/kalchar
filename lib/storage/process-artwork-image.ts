@@ -38,11 +38,18 @@ const toHex = (n: number) => n.toString(16).padStart(2, "0");
  * near-duplicates and near-white/near-black noise). No k-means dependency --
  * the downscale does the clustering for us. Returns 3-5 hex strings.
  */
+// Manhattan-distance thresholds (0-765) for treating two sampled colors as
+// distinct. The first pass demands clear separation; the fallback relaxes it
+// so very flat images still yield 3 swatches.
+const DISTINCT_COLOR_DISTANCE = 60;
+const FALLBACK_COLOR_DISTANCE = 20;
+const PALETTE_SAMPLE_GRID = 8;
+const MIN_PALETTE_SIZE = 3;
+
 export async function extractPalette(master: Buffer, count = 5): Promise<string[]> {
-	const SIZE = 8;
 	const { data } = await sharp(master, { failOn: "none" })
 		.rotate()
-		.resize(SIZE, SIZE, { fit: "fill" })
+		.resize(PALETTE_SAMPLE_GRID, PALETTE_SAMPLE_GRID, { fit: "fill" })
 		.removeAlpha()
 		.raw()
 		.toBuffer({ resolveWithObject: true });
@@ -65,14 +72,14 @@ export async function extractPalette(master: Buffer, count = 5): Promise<string[
 
 	const chosen: Array<[number, number, number]> = [];
 	for (const px of ranked) {
-		if (chosen.every((c) => dist(c, px) > 60)) chosen.push(px);
+		if (chosen.every((c) => dist(c, px) > DISTINCT_COLOR_DISTANCE)) chosen.push(px);
 		if (chosen.length >= count) break;
 	}
 	// Fallback if the image is very flat: take whatever distinct pixels exist.
-	if (chosen.length < 3) {
+	if (chosen.length < MIN_PALETTE_SIZE) {
 		for (const px of pixels) {
-			if (chosen.every((c) => dist(c, px) > 20)) chosen.push(px);
-			if (chosen.length >= 3) break;
+			if (chosen.every((c) => dist(c, px) > FALLBACK_COLOR_DISTANCE)) chosen.push(px);
+			if (chosen.length >= MIN_PALETTE_SIZE) break;
 		}
 	}
 
