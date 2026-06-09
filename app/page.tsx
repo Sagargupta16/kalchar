@@ -27,9 +27,13 @@ export default async function HomePage() {
 	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
-	const selected = all.filter((a) => a.featured && a.slug !== featured?.slug).slice(0, 6);
+	const SELECTED_WORK_COUNT = 6;
+	const WORKSHOPS_PREVIEW_COUNT = 3;
+	const selected = all
+		.filter((art) => art.featured && art.slug !== featured?.slug)
+		.slice(0, SELECTED_WORK_COUNT);
 	const heroSecondary = selected[0];
-	const workshopsPreview = allWorkshops.slice(0, 3);
+	const workshopsPreview = allWorkshops.slice(0, WORKSHOPS_PREVIEW_COUNT);
 
 	// Pool the hero can shuffle through on reload: every featured piece (full
 	// Artwork objects, so the lightbox has price/palette/dimensions). Falls back

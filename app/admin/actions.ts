@@ -31,11 +31,25 @@ async function requireMaintainer(): Promise<string> {
 }
 
 function slugify(input: string): string {
+	// The first replace collapses every non-alphanumeric run to a single "-",
+	// so a leading/trailing dash is always a lone character: matching one "-"
+	// is enough (no "+", so the regex stays strictly linear).
 	return input
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+		.replace(/^-|-$/g, "");
+}
+
+/** Next 1-based order value for appending a row after the current maximum. */
+function getNextOrder(rows: ReadonlyArray<{ order: number }>): number {
+	return rows.reduce((max, row) => Math.max(max, row.order), 0) + 1;
+}
+
+/** Read a FormData field as a string, defaulting to "" for missing/file values. */
+function formString(formData: FormData, key: string): string {
+	const value = formData.get(key);
+	return typeof value === "string" ? value : "";
 }
 
 function revalidateCatalog(slug?: string) {
@@ -117,14 +131,9 @@ export async function replaceArtworkImage(slug: string, formData: FormData): Pro
 export async function createArtwork(formData: FormData): Promise<{ slug: string }> {
 	await requireMaintainer();
 
-	const str = (k: string) => {
-		const v = formData.get(k);
-		return typeof v === "string" ? v : "";
-	};
-
-	const title = str("title").trim();
-	const style = str("style").trim();
-	const medium = str("medium").trim();
+	const title = formString(formData, "title").trim();
+	const style = formString(formData, "style").trim();
+	const medium = formString(formData, "medium").trim();
 	const file = formData.get("image");
 
 	if (!title || !style || !medium) throw new Error("Title, style, and medium are required.");
@@ -146,8 +155,7 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	const priceInr = priceRaw ? Number(priceRaw) : null;
 	const yearRaw = formData.get("year");
 	const year = yearRaw ? Number(yearRaw) : null;
-	const maxOrderRow = await db.select({ order: artworks.order }).from(artworks);
-	const nextOrder = maxOrderRow.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	const orderRows = await db.select({ order: artworks.order }).from(artworks);
 
 	await db.insert(artworks).values({
 		slug,
@@ -156,10 +164,10 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 		medium,
 		image: `${slug}.jpg`,
 		aspectRatio,
-		order: nextOrder,
+		order: getNextOrder(orderRows),
 		featured: false,
-		description: str("description").trim() || null,
-		dimensions: str("dimensions").trim() || null,
+		description: formString(formData, "description").trim() || null,
+		dimensions: formString(formData, "dimensions").trim() || null,
 		year: year && !Number.isNaN(year) ? year : null,
 		palette: palette.length > 0 ? palette : null,
 		priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
@@ -213,13 +221,9 @@ export async function deleteArtwork(slug: string): Promise<void> {
 /** Create a workshop from form fields. */
 export async function createWorkshop(formData: FormData): Promise<{ slug: string }> {
 	await requireMaintainer();
-	const str = (k: string) => {
-		const v = formData.get(k);
-		return typeof v === "string" ? v : "";
-	};
 
-	const title = str("title").trim();
-	const blurb = str("blurb").trim();
+	const title = formString(formData, "title").trim();
+	const blurb = formString(formData, "blurb").trim();
 	if (!title || !blurb) throw new Error("Title and blurb are required.");
 
 	const slug = slugify(title);
@@ -231,17 +235,16 @@ export async function createWorkshop(formData: FormData): Promise<{ slug: string
 		.where(eq(workshops.slug, slug));
 	if (existing.length > 0) throw new Error(`A workshop with slug "${slug}" already exists.`);
 
-	const durationRaw = str("durationHours");
+	const durationRaw = formString(formData, "durationHours");
 	const durationHours = durationRaw ? Number(durationRaw) : null;
-	const maxOrderRow = await db.select({ order: workshops.order }).from(workshops);
-	const nextOrder = maxOrderRow.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	const orderRows = await db.select({ order: workshops.order }).from(workshops);
 
 	await db.insert(workshops).values({
 		slug,
 		title,
 		blurb,
 		durationHours: durationHours && !Number.isNaN(durationHours) ? durationHours : null,
-		order: nextOrder,
+		order: getNextOrder(orderRows),
 	});
 
 	revalidateWorkshops();
@@ -293,8 +296,8 @@ export async function createOrderPreset(kind: PresetKind, label: string): Promis
 	await requireMaintainer();
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("Label is required.");
-	const existing = await db.select({ order: orderPresets.order }).from(orderPresets);
-	const nextOrder = existing.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	const orderRows = await db.select({ order: orderPresets.order }).from(orderPresets);
+	const nextOrder = getNextOrder(orderRows);
 	// id must be stable + unique; derive from kind + a monotonic suffix.
 	const id = `${kind}-${nextOrder}-${trimmed
 		.toLowerCase()
@@ -356,9 +359,8 @@ export async function createCategory(name: string): Promise<void> {
 		.from(categories)
 		.where(eq(categories.id, id));
 	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
-	const rows = await db.select({ order: categories.order }).from(categories);
-	const nextOrder = rows.reduce((m, r) => Math.max(m, r.order), 0) + 1;
-	await db.insert(categories).values({ id, name: trimmed, order: nextOrder });
+	const orderRows = await db.select({ order: categories.order }).from(categories);
+	await db.insert(categories).values({ id, name: trimmed, order: getNextOrder(orderRows) });
 	revalidateCategories();
 }
 

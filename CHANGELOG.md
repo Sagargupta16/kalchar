@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.23.0 (2026-06-09)
+
+Adds the YouTube channel as a follow-us destination, and clears the repo's open security findings. Verified with lint (0 warnings), typecheck, and a full `next build` (36 routes).
+
+### Added
+
+- **YouTube channel** ([data/site.json](data/site.json), [lib/types.ts](lib/types.ts)) -- `contact.youtube` (`@Kalchar_by_megha`) added to the data seam, surfaced as a pellet in the footer "Reach out" row and a link block on the contact page (next to Instagram, under a reworded "Follow along" heading), and added to the `sameAs` JSON-LD for SEO. Optional field, so the rest of the site is unaffected if it's ever removed.
+
+### Fixed
+
+- **GitHub Actions least-privilege** ([.github/workflows/ci.yml](.github/workflows/ci.yml), [deploy.yml](.github/workflows/deploy.yml)) -- added a top-level `permissions: contents: read` default to both workflows (and an explicit job-level grant on CI), clearing 3 open code-scanning alerts (`githubactions:S8264`/`S8233`). Each job keeps exactly the scope it needs.
+- **ReDoS hotspot** ([app/admin/actions.ts](app/admin/actions.ts)) -- `slugify`'s trailing-dash trim `/^-+|-+$/g` simplified to `/^-|-$/g`. The preceding collapse-to-single-dash means a leading/trailing dash is always one character, so the `+` was dead and the regex is now strictly linear (clears SonarCloud `S5852`).
+
+## 1.22.1 (2026-06-08)
+
+Clean-code pass across the codebase: no behavior change, no user-facing copy change. Every source file audited; surgical refactors only. Verified with lint (0 warnings), typecheck, and a full `next build` (36 routes, all artwork SSG pages intact).
+
+### Changed
+
+- **Admin action helpers** ([app/admin/actions.ts](app/admin/actions.ts)) -- extracted `getNextOrder()` (replaced four copies of the `reduce(max) + 1` order logic) and `formString()` (replaced two duplicated FormData-reading closures).
+- **`useAdminAction` hook** ([app/admin/_components/use-admin-action.ts](app/admin/_components/use-admin-action.ts)) -- four admin managers (category, workshop, preset, maintainer) shared an identical `run(fn, after?)` transition wrapper plus `pending`/`err`/`useRouter` wiring; lifted into one hook. The saved-badge timeout (`SAVED_BADGE_DURATION_MS`) is now a shared named constant across those four plus the artwork grid.
+- **`AccentRule` component** ([components/ui/accent-rule.tsx](components/ui/accent-rule.tsx)) -- the decorative eyebrow rule (`h-px w-5 bg-(--section-accent)`) was duplicated across nine call sites (teasers, page-header, section-shell, contact + custom-orders pages); collapsed into one always-`aria-hidden` primitive.
+- **Named magic numbers** -- bare timing/threshold literals given intent-revealing names: hero shuffle delay, Lenis idle fallback, lightbox swipe threshold, custom-order submit reset, reveal stagger step/cap, back-to-top reveal ratio, image settle style, palette distance thresholds, detail/OG image widths, browser theme colors, and page slice counts.
+- **Clearer page locals** ([app/about](app/about/page.tsx), [workshops](app/workshops/page.tsx), [contact](app/contact/page.tsx), [custom-orders](app/custom-orders/page.tsx)) -- cryptic section-copy variables (`a`/`w`/`c`/`co`) renamed to `about`/`workshopsCopy`/`contactCopy`/`customOrders`.
+- **Shared `artworkAlt()`** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- the fallback alt-text template was duplicated between metadata and the `<img>`; single-sourced.
+
+### Fixed
+
+- **Stale comments** -- `paper-grain.tsx` opacity note (said 4%, renders 11%) and `lib/types.ts` `status` field (referenced a now-shipped Phase 1/2 split) corrected to match the code.
+- **SonarCloud findings** (13 of 25 open issues; the rest are intentional design and were left as-is) -- the four admin list managers now use native `<ul>`/`<li>` instead of `role="list"`/`role="listitem"` (`S6819`, better screen-reader support; drag-reorder is index-based so unaffected); two `typeof window` SSR guards switched to `globalThis.window` for consistency (`S7764`); a redundant `as Site` assertion dropped in `lib/data.ts` (`S4325`); the maintainer role label extracted out of a nested ternary (`S3358`).
+
 ## 1.22.0 (2026-06-06)
 
 Footer + CTA affordance pass, WhatsApp contact update, and two layout bug fixes. Verified with lint (0 warnings), typecheck, build, and an in-browser pass (mobile + desktop, light + dark, admin routes).

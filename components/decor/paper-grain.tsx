@@ -11,7 +11,7 @@
  * Pure CSS / SVG -- no JS, no animation, no listener. Costs ~600 bytes
  * inline once at the body root.
  *
- * Opacity is intentionally low (4%) so it never competes with artwork
+ * Opacity is intentionally low (11%) so it never competes with artwork
  * photos or content typography. If you need to dial it, change the
  * single `opacity` attribute -- everything else is locked.
  */

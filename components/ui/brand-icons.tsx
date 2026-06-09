@@ -13,4 +13,5 @@ export {
 	SiGoogle as GoogleIcon,
 	SiInstagram as InstagramIcon,
 	SiWhatsapp as WhatsAppIcon,
+	SiYoutube as YouTubeIcon,
 } from "react-icons/si";

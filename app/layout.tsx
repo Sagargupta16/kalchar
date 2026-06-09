@@ -55,11 +55,18 @@ export const metadata: Metadata = {
 	},
 };
 
+// Browser-chrome theme colors. These mirror --color-bg (light) and the dark
+// ground; keep them in sync with globals.css. They live as literals because
+// viewport metadata is emitted before any stylesheet loads, so CSS custom
+// properties can't resolve here.
+const THEME_COLOR_LIGHT = "#faf8f3";
+const THEME_COLOR_DARK = "#1a1510";
+
 export const viewport: Viewport = {
 	colorScheme: "light dark",
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#faf8f3" },
-		{ media: "(prefers-color-scheme: dark)", color: "#1a1510" },
+		{ media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
+		{ media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
 	],
 	viewportFit: "cover",
 };
@@ -72,7 +79,7 @@ const jsonLd = {
 	jobTitle: "Folk Artist & Workshop Facilitator",
 	description: site.brand.description,
 	image: `${siteConfig.url}/logo.jpg`,
-	sameAs: [site.contact.instagram.url],
+	sameAs: [site.contact.instagram.url, site.contact.youtube?.url].filter(Boolean),
 	knowsAbout: ["Madhubani painting", "Pichwai painting", "Lippan art", "Gond art"],
 };
 
@@ -88,6 +95,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
+				{/* Pre-paint theme: runs before any module loads (can't import), so the
+				    "theme" key is inlined here -- keep it in sync with STORAGE_KEY in
+				    theme-toggle.tsx. */}
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint theme
 					dangerouslySetInnerHTML={{

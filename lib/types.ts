@@ -40,7 +40,7 @@ export interface Artwork {
 	image: string;
 	/** Optional sampled palette (3-5 hex values) for chromacard / accent UI. */
 	palette?: string[];
-	/** Phase 1 derives status from absence of price; Phase 2 will store this directly. */
+	/** Lifecycle state (archive / available / sold), stored directly on the row. */
 	status?: ArtworkStatus;
 	/** INR. When set, the piece is considered for-sale. */
 	priceInr?: number;
@@ -102,6 +102,7 @@ export interface Contact {
 	instagram: ContactChannel;
 	instagramCommunity?: ContactChannel;
 	instagramPersonal?: ContactChannel;
+	youtube?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
 }

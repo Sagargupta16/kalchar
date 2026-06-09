@@ -203,5 +203,5 @@ export async function getOrderPresets(): Promise<OrderPresets> {
 
 /** Site-wide copy: brand, nav, contact, section text, etc. Stays JSON (sync). */
 export function getSite(): Site {
-	return siteJson as Site;
+	return siteJson;
 }

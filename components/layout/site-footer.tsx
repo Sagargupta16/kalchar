@@ -2,13 +2,14 @@ import { Brush, Frame, Lock, type LucideIcon, Mail, Palette, Users } from "lucid
 import Link from "next/link";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 import { Reveal } from "@/components/motion/reveal";
-import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
+import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
 import { getSite } from "@/lib/data";
 
 type BrandIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 const ICON_FOR_KEY: Record<string, BrandIcon> = {
 	instagram: InstagramIcon,
+	youtube: YouTubeIcon,
 	whatsapp: WhatsAppIcon,
 	email: GmailIcon,
 };
@@ -45,6 +46,9 @@ export function SiteFooter() {
 						...contact.instagramCommunity,
 					},
 				]
+			: []),
+		...(contact.youtube
+			? [{ key: "youtube", tint: "var(--color-ruby)", caption: "YouTube", ...contact.youtube }]
 			: []),
 		{ key: "whatsapp", tint: "var(--color-pichwai)", caption: "WhatsApp", ...contact.whatsapp },
 		{ key: "email", tint: "var(--color-marigold)", caption: "Email", ...contact.email },

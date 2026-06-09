@@ -1,8 +1,7 @@
 "use client";
 
 import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { OrderPreset, OrderPresetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +12,7 @@ import {
 } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 
 const GROUPS: Array<{ kind: OrderPresetKind; title: string; hint: string }> = [
@@ -48,27 +48,12 @@ function PresetGroup({
 	hint: string;
 	items: OrderPreset[];
 }>) {
-	const router = useRouter();
 	const confirm = useConfirm();
+	const { pending, err, run } = useAdminAction();
 	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
-	const [pending, startTransition] = useTransition();
-	const [err, setErr] = useState<string | null>(null);
 	const [newLabel, setNewLabel] = useState("");
 	const { dragging, over, dragProps } = useReorder(items, setItems);
-
-	function run(fn: () => Promise<void>, after?: () => void) {
-		setErr(null);
-		startTransition(async () => {
-			try {
-				await fn();
-				after?.();
-				router.refresh();
-			} catch (e) {
-				setErr(e instanceof Error ? e.message : "Failed.");
-			}
-		});
-	}
 
 	const handleDelete = (id: string) => {
 		setItems((prev) => prev.filter((i) => i.id !== id));
@@ -110,10 +95,9 @@ function PresetGroup({
 			</div>
 
 			{/* List */}
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((p, i) => (
-					<div
-						role="listitem"
+					<li
 						key={p.id}
 						{...dragProps(i)}
 						className={cn(
@@ -135,14 +119,14 @@ function PresetGroup({
 								if (ok) handleDelete(p.id);
 							}}
 						/>
-					</div>
+					</li>
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
 						No options yet.
 					</p>
 				) : null}
-			</div>
+			</ul>
 
 			{/* Add */}
 			<form

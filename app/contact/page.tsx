@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
-import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
+import { AccentRule } from "@/components/ui/accent-rule";
+import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
@@ -16,21 +17,21 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
 	title: "Contact",
 	description:
-		"Get in touch about folk-art commissions, workshops, and prints by Megha Seth. WhatsApp, Instagram, or email.",
+		"Get in touch about folk-art commissions, workshops, and prints by Megha Seth. WhatsApp, Instagram, YouTube, or email.",
 };
 
 export default function ContactPage() {
 	const { contact, sections } = getSite();
-	const c = sections.contact;
+	const contactCopy = sections.contact;
 
 	return (
 		<main>
 			<Section accent="peacock">
 				<Container size="narrow" className="py-(--section-py)">
 					<PageHeader
-						eyebrow={c?.eyebrow ?? "Contact"}
-						title={c?.title ?? "Get in touch"}
-						lead="WhatsApp is the fastest way to reach us. For formal briefs, use email. Follow along on Instagram."
+						eyebrow={contactCopy?.eyebrow ?? "Contact"}
+						title={contactCopy?.title ?? "Get in touch"}
+						lead="WhatsApp is the fastest way to reach us. For formal briefs, use email. Follow along on Instagram and YouTube."
 					/>
 
 					{/* Primary: WhatsApp */}
@@ -90,8 +91,8 @@ export default function ContactPage() {
 					<div className="mt-10">
 						<Reveal>
 							<p className="t-eyebrow flex items-center gap-2">
-								<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
-								Follow on Instagram
+								<AccentRule />
+								Follow along
 							</p>
 						</Reveal>
 						<div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -105,6 +106,30 @@ export default function ContactPage() {
 							) : null}
 						</div>
 					</div>
+
+					{/* YouTube */}
+					{contact.youtube ? (
+						<Reveal delayMs={220}>
+							<a
+								href={contact.youtube.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="group mt-5 flex items-center gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:border-(--section-accent) sm:p-5"
+							>
+								<IconCircle size="sm">
+									<YouTubeIcon className="h-4 w-4" />
+								</IconCircle>
+								<div className="flex-1">
+									<p className="text-sm font-medium">{contact.youtube.display}</p>
+									<p className="text-xs text-muted">{contact.youtube.note ?? "Watch on YouTube"}</p>
+								</div>
+								<ArrowRight
+									size={14}
+									className="shrink-0 text-muted transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+								/>
+							</a>
+						</Reveal>
+					) : null}
 
 					{/* Email */}
 					<Reveal delayMs={240}>

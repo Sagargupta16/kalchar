@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -23,7 +24,7 @@ export function PageHeader({
 		<header className={cn("relative max-w-2xl", centered && "mx-auto text-center", className)}>
 			<Reveal>
 				<p className="t-eyebrow flex items-center gap-2">
-					<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+					<AccentRule />
 					{eyebrow}
 				</p>
 			</Reveal>

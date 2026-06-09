@@ -1,14 +1,14 @@
 "use client";
 
 import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { ReorderBar } from "./reorder-bar";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 
 /** Map of category name -> how many artworks use it (for the delete guard hint). */
@@ -18,28 +18,13 @@ export function CategoryManager({
 	categories: initial,
 	usage,
 }: Readonly<{ categories: Category[]; usage: UsageMap }>) {
-	const router = useRouter();
 	const confirm = useConfirm();
+	const { pending, err, run } = useAdminAction();
 	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
-	const [pending, startTransition] = useTransition();
 	const [saved, setSaved] = useState(false);
-	const [err, setErr] = useState<string | null>(null);
 	const [newName, setNewName] = useState("");
 	const { dragging, over, dragProps } = useReorder(items, setItems);
-
-	function run(fn: () => Promise<void>, after?: () => void) {
-		setErr(null);
-		startTransition(async () => {
-			try {
-				await fn();
-				after?.();
-				router.refresh();
-			} catch (e) {
-				setErr(e instanceof Error ? e.message : "Failed.");
-			}
-		});
-	}
 
 	const handleSaveOrder = () =>
 		run(
@@ -47,7 +32,7 @@ export function CategoryManager({
 			() => {
 				setBaseline(items);
 				setSaved(true);
-				setTimeout(() => setSaved(false), 2000);
+				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 
@@ -91,10 +76,9 @@ export function CategoryManager({
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
 			{/* List */}
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((c, i) => (
-					<div
-						role="listitem"
+					<li
 						key={c.id}
 						{...dragProps(i)}
 						className={cn(
@@ -117,14 +101,14 @@ export function CategoryManager({
 								if (ok) handleDelete(c.id);
 							}}
 						/>
-					</div>
+					</li>
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No categories yet. Add one above.
 					</p>
 				) : null}
-			</div>
+			</ul>
 
 			{hasOrderChanges ? (
 				<ReorderBar

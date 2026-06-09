@@ -9,6 +9,8 @@ import type { Artwork } from "@/lib/types";
 const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
+/** Hold the LCP default plate this long before shuffling to a random pair. */
+const SHUFFLE_DELAY_MS = 700;
 
 interface HeroPlatesProps {
 	/** Featured pieces the hero can shuffle through (full Artwork objects). */
@@ -65,7 +67,7 @@ export function HeroPlates({
 	const [shuffled, setShuffled] = useState(false);
 
 	useEffect(() => {
-		if (typeof window === "undefined") return;
+		if (globalThis.window === undefined) return;
 		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (pool.length < 1) return;
 
@@ -83,7 +85,7 @@ export function HeroPlates({
 			setFrontTilt(randIn(3, 7) * (flip ? 1 : -1));
 			setBackTilt(randIn(3, 7) * (flip ? -1 : 1));
 			setShuffled(true);
-		}, 700);
+		}, SHUFFLE_DELAY_MS);
 
 		return () => globalThis.clearTimeout(timer);
 	}, [pool, defaultFront]);
