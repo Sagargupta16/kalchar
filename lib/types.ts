@@ -102,6 +102,7 @@ export interface Contact {
 	instagram: ContactChannel;
 	instagramCommunity?: ContactChannel;
 	instagramPersonal?: ContactChannel;
+	youtube?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
 }

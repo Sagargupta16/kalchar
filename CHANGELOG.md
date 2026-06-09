@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.23.0 (2026-06-09)
+
+Adds the YouTube channel as a follow-us destination, and clears the repo's open security findings. Verified with lint (0 warnings), typecheck, and a full `next build` (36 routes).
+
+### Added
+
+- **YouTube channel** ([data/site.json](data/site.json), [lib/types.ts](lib/types.ts)) -- `contact.youtube` (`@Kalchar_by_megha`) added to the data seam, surfaced as a pellet in the footer "Reach out" row and a link block on the contact page (next to Instagram, under a reworded "Follow along" heading), and added to the `sameAs` JSON-LD for SEO. Optional field, so the rest of the site is unaffected if it's ever removed.
+
+### Fixed
+
+- **GitHub Actions least-privilege** ([.github/workflows/ci.yml](.github/workflows/ci.yml), [deploy.yml](.github/workflows/deploy.yml)) -- added a top-level `permissions: contents: read` default to both workflows (and an explicit job-level grant on CI), clearing 3 open code-scanning alerts (`githubactions:S8264`/`S8233`). Each job keeps exactly the scope it needs.
+- **ReDoS hotspot** ([app/admin/actions.ts](app/admin/actions.ts)) -- `slugify`'s trailing-dash trim `/^-+|-+$/g` simplified to `/^-|-$/g`. The preceding collapse-to-single-dash means a leading/trailing dash is always one character, so the `+` was dead and the regex is now strictly linear (clears SonarCloud `S5852`).
+
 ## 1.22.1 (2026-06-08)
 
 Clean-code pass across the codebase: no behavior change, no user-facing copy change. Every source file audited; surgical refactors only. Verified with lint (0 warnings), typecheck, and a full `next build` (36 routes, all artwork SSG pages intact).

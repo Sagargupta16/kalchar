@@ -79,7 +79,7 @@ const jsonLd = {
 	jobTitle: "Folk Artist & Workshop Facilitator",
 	description: site.brand.description,
 	image: `${siteConfig.url}/logo.jpg`,
-	sameAs: [site.contact.instagram.url],
+	sameAs: [site.contact.instagram.url, site.contact.youtube?.url].filter(Boolean),
 	knowsAbout: ["Madhubani painting", "Pichwai painting", "Lippan art", "Gond art"],
 };
 
