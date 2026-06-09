@@ -10,11 +10,14 @@ import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./co
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
 import { useAdminAction } from "./use-admin-action";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [items, setItems] = useState(initial);
+	// Adopts new server data after a router.refresh() (e.g. once a create lands)
+	// without clobbering optimistic delete/pin updates.
+	const [items, setItems] = useServerSyncedList(initial);
 
 	const handleDelete = (id: string) => {
 		setItems((prev) => prev.filter((i) => i.id !== id));

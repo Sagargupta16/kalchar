@@ -10,6 +10,7 @@ import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./co
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 /** Map of category name -> how many artworks use it (for the delete guard hint). */
 type UsageMap = Record<string, number>;
@@ -20,8 +21,10 @@ export function CategoryManager({
 }: Readonly<{ categories: Category[]; usage: UsageMap }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
+	// Adopt fresh server data after a create (router.refresh), keeping the
+	// reorder baseline in step.
+	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
 	const [newName, setNewName] = useState("");
 	const { dragging, over, dragProps } = useReorder(items, setItems);

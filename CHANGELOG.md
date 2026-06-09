@@ -21,6 +21,10 @@ Adds an Events section (community activities with multi-image galleries), an art
 - **Full-width admin create buttons** ([upload-form.tsx](app/admin/_components/upload-form.tsx), [events-manager.tsx](app/admin/_components/events-manager.tsx), [workshop-manager.tsx](app/admin/_components/workshop-manager.tsx)) -- "Add piece", "Add event", and "Add workshop" now span the form width (centered) instead of sitting left-aligned, reading as the form's primary action.
 - **Server Actions body limit** ([next.config.mjs](next.config.mjs)) -- raised `serverActions.bodySizeLimit` to 25mb so multi-photo event uploads (and artwork/profile uploads) aren't rejected by Next's 1MB default.
 
+### Fixed
+
+- **Created rows now appear without a manual refresh** ([use-server-synced-list.ts](app/admin/_components/use-server-synced-list.ts)) -- the events, workshops, categories, and presets managers snapshotted their list into `useState` once on mount, so a newly created row only showed after a reload (delete/pin looked instant only because they mutated local state). Extracted a `useServerSyncedList` hook that adopts fresh server data after `router.refresh()` (React's adjust-state-on-prop-change pattern), keeping any reorder baseline in step. The maintainer manager already rendered straight from props, so it was unaffected.
+
 ### Database
 
 - **`events` + `settings` tables** ([lib/db/schema.ts](lib/db/schema.ts)) -- `events` (id, title, description, eventDate, category, ordered `images` jsonb, featured, order) and a small key-value `settings` table (profile image key + home-intro toggle). Pushed to Neon via `db:push`.

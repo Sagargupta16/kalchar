@@ -10,12 +10,15 @@ import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./co
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
+	// Adopt fresh server data after a create (router.refresh), resetting the
+	// reorder baseline to match so a new row doesn't read as an unsaved move.
+	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
 	const { dragging, over, dragProps } = useReorder(items, setItems);
 
