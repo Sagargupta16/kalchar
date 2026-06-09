@@ -11,3 +11,15 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]): string {
 	return twMerge(clsx(inputs));
 }
+
+/**
+ * Format an ISO date string as a human-readable date (e.g. "12 March 2026").
+ * Used for event dates. Returns "" for an empty/invalid input so callers can
+ * gate on truthiness rather than guarding against "Invalid Date".
+ */
+export function formatEventDate(iso: string): string {
+	if (!iso) return "";
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return "";
+	return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+}

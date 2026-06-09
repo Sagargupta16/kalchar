@@ -54,6 +54,26 @@ export interface Workshop {
 	order: number;
 }
 
+/**
+ * A community activity (workshop held, class, exhibition, meetup). Each is a
+ * small photo gallery. `eventDate` is an ISO date string (not a Date) so it
+ * crosses the server/client boundary cleanly. `images` is an ordered list of
+ * R2 key-bases; the first is the cover. The gallery shows up to 5 inline and
+ * surfaces the rest behind a "+N more" lightbox entry.
+ */
+export interface Event {
+	id: string;
+	title: string;
+	description?: string;
+	/** ISO date string (YYYY-MM-DD or full ISO) of when the event took place. */
+	eventDate: string;
+	category?: string;
+	/** Ordered R2 key-bases, one per photo. First is the cover. */
+	images: string[];
+	featured: boolean;
+	order: number;
+}
+
 export type OrderPresetKind = "size" | "budget" | "timeline";
 
 export interface OrderPreset {

@@ -21,6 +21,10 @@ const r2Base = (
 /** Base URL for artwork variants: the R2 public origin + "/artworks". */
 export const ARTWORK_IMAGE_BASE = `${r2Base}/artworks`;
 
+/** R2 public origin. Event images store their full key-base, so they prefix
+ * with the bare origin (the "events/..." path is part of the stored key). */
+export const IMAGE_ORIGIN = r2Base;
+
 /** Width tiers emitted by the sharp pipeline. Mirrors WIDTHS in art-image.tsx. */
 const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 

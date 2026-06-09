@@ -86,17 +86,26 @@ export async function extractPalette(master: Buffer, count = 5): Promise<string[
 	return chosen.map(([r, g, b]) => `#${toHex(r)}${toHex(g)}${toHex(b)}`);
 }
 
-/** Generate + upload all variants for one master image buffer. */
-export async function processArtworkImage(slug: string, master: Buffer): Promise<ProcessedImage> {
-	const base = sharp(master, { failOn: "none" }).rotate().withMetadata({ orientation: undefined });
-	const meta = await base.metadata();
+/**
+ * Generate + upload the full variant set for one master image under an
+ * arbitrary R2 key-base. Writes "<keyBase>-<w>.avif|webp|jpg" for each width
+ * plus a master-width "<keyBase>.jpg" fallback -- the exact contract the
+ * <picture> srcset (lib/image-base.ts) reads. Shared by artworks
+ * ("artworks/<slug>") and events ("events/<id>/<imageId>").
+ *
+ * Returns the written keys + the source aspect ratio.
+ */
+export async function processImageVariants(
+	keyBase: string,
+	master: Buffer,
+): Promise<{ keys: string[]; aspectRatio: number }> {
+	const meta = await sharp(master, { failOn: "none" }).rotate().metadata();
 	const aspectRatio = meta.width && meta.height ? meta.width / meta.height : 0.75;
 
 	const keys: string[] = [];
-
 	const put = async (key: string, buf: Buffer, type: string) => {
-		await uploadObject(`artworks/${key}`, buf, type);
-		keys.push(`artworks/${key}`);
+		await uploadObject(key, buf, type);
+		keys.push(key);
 	};
 
 	for (const w of WIDTHS) {
@@ -109,9 +118,9 @@ export async function processArtworkImage(slug: string, master: Buffer): Promise
 			resized.clone().webp(WEBP_OPTS).toBuffer(),
 			resized.clone().jpeg(JPEG_OPTS).toBuffer(),
 		]);
-		await put(`${slug}-${w}.avif`, avif, "image/avif");
-		await put(`${slug}-${w}.webp`, webp, "image/webp");
-		await put(`${slug}-${w}.jpg`, jpg, "image/jpeg");
+		await put(`${keyBase}-${w}.avif`, avif, "image/avif");
+		await put(`${keyBase}-${w}.webp`, webp, "image/webp");
+		await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
 	}
 
 	// Master-width mozjpeg fallback (the bare <img src>).
@@ -120,22 +129,48 @@ export async function processArtworkImage(slug: string, master: Buffer): Promise
 		.withMetadata({ orientation: undefined })
 		.jpeg(JPEG_OPTS)
 		.toBuffer();
-	await put(`${slug}.jpg`, masterJpg, "image/jpeg");
+	await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
 
+	return { keys, aspectRatio };
+}
+
+/** Every R2 key written for one image key-base (variants + master fallback). */
+function variantKeys(keyBase: string): string[] {
+	const keys = [`${keyBase}.jpg`];
+	for (const w of WIDTHS) {
+		keys.push(`${keyBase}-${w}.avif`, `${keyBase}-${w}.webp`, `${keyBase}-${w}.jpg`);
+	}
+	return keys;
+}
+
+/** Generate + upload all variants for one master image buffer. */
+export async function processArtworkImage(slug: string, master: Buffer): Promise<ProcessedImage> {
+	const { keys, aspectRatio } = await processImageVariants(`artworks/${slug}`, master);
 	const palette = await extractPalette(master);
-
 	return { keys, aspectRatio, palette };
 }
 
 /** Remove every variant for a slug from R2 (used when deleting an artwork). */
 export async function deleteArtworkImages(slug: string): Promise<void> {
-	const keys: string[] = [`artworks/${slug}.jpg`];
-	for (const w of WIDTHS) {
-		keys.push(
-			`artworks/${slug}-${w}.avif`,
-			`artworks/${slug}-${w}.webp`,
-			`artworks/${slug}-${w}.jpg`,
-		);
-	}
-	await deleteObjects(keys);
+	await deleteObjects(variantKeys(`artworks/${slug}`));
+}
+
+/**
+ * Process one event photo into the variant set under "events/<id>/<imageId>"
+ * and return that key-base for storage on the event row. The caller generates
+ * a stable `imageId` so reordering the array never re-touches R2.
+ */
+export async function processEventImage(
+	eventId: string,
+	imageId: string,
+	master: Buffer,
+): Promise<string> {
+	const keyBase = `events/${eventId}/${imageId}`;
+	await processImageVariants(keyBase, master);
+	return keyBase;
+}
+
+/** Remove the variant set for a list of event image key-bases. */
+export async function deleteEventImages(keyBases: string[]): Promise<void> {
+	await deleteObjects(keyBases.flatMap(variantKeys));
 }
