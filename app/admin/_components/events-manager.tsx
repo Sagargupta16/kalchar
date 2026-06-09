@@ -130,7 +130,7 @@ function CreateEventForm({
 					</label>
 				</div>
 			</div>
-			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-3`}>
+			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
 				<Plus size={14} />
 				{pending ? "Adding..." : "Add event"}
 			</button>

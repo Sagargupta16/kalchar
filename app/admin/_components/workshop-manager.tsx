@@ -126,7 +126,7 @@ function CreateWorkshopForm({
 					className={`${adminField} sm:col-span-2`}
 				/>
 			</div>
-			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-3`}>
+			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
 				<Plus size={14} />
 				Add workshop
 			</button>

@@ -77,12 +77,12 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 					/>
 				</label>
 			</div>
-			<div className="flex items-center gap-3 sm:col-span-2">
-				<button type="submit" disabled={pending} className={adminBtnPrimary}>
+			<div className="mt-1 space-y-2 sm:col-span-2">
+				<button type="submit" disabled={pending} className={`${adminBtnPrimary} w-full`}>
 					{pending ? "Processing..." : "Add piece"}
 				</button>
-				{error ? <span className="text-sm text-ruby">{error}</span> : null}
-				{ok ? <span className="text-sm text-accent">{ok}</span> : null}
+				{error ? <p className="text-sm text-ruby">{error}</p> : null}
+				{ok ? <p className="text-sm text-accent">{ok}</p> : null}
 			</div>
 		</form>
 	);
