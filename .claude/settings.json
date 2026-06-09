@@ -1,52 +1,42 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "permissions": {
-    "allow": [
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git show:*)",
-      "Bash(git branch:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh run list:*)",
-      "Bash(gh run view:*)",
-      "Edit(/.claude/skills/clean-code/**)",
-      "Bash(python3)",
-      "Bash(find '/c/Users/sg852/.claude/plugins/cache/claude-plugins-official/' -name \"SKILL.md\" -type f 2>/dev/null | head -30)",
-      "Read(//c/Users/sg852/.claude/plugins/cache/claude-plugins-official//**)",
-      "Bash(cat)",
-      "Bash(chmod +x /tmp/extract_plugins.sh)",
-      "Bash(/tmp/extract_plugins.sh)",
-      "Edit(/.claude/skills/ship-it/**)",
-      "Edit(/.claude/skills/sonar-sweep/**)",
-      "Edit(/.claude/skills/kalchar-content/**)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/pretool-secrets.ps1",
-            "timeout": 60
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/prompt-secrets.ps1",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
-  }
+	"$schema": "https://json.schemastore.org/claude-code-settings.json",
+	"permissions": {
+		"allow": [
+			"Bash(git status:*)",
+			"Bash(git diff:*)",
+			"Bash(git log:*)",
+			"Bash(git show:*)",
+			"Bash(git branch:*)",
+			"Bash(gh pr view:*)",
+			"Bash(gh pr list:*)",
+			"Bash(gh run list:*)",
+			"Bash(gh run view:*)"
+		]
+	},
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Read",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/pretool-secrets.ps1",
+						"timeout": 60
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/prompt-secrets.ps1",
+						"timeout": 60
+					}
+				]
+			}
+		]
+	}
 }

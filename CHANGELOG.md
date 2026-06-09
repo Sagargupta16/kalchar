@@ -2,7 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
-## 1.23.0 (2026-06-09)
+## 1.23.1 (2026-06-09)
+
+Repo + docs hygiene. No app code, no behavior change.
+
+### Removed
+
+- **Stale planning docs** -- deleted `DESIGN_PLAN.md` (the shipped "Atelier" direction) and `ROADMAP.md` (Track A/B/C plan, mostly done; still referenced the retired GitHub Pages era). Root is now just CHANGELOG / CLAUDE / MEMORY / README.
+
+### Changed
+
+- **`.claude/settings.json` cleaned** -- moved machine-specific, session-accumulated permission entries (absolute `sg852` paths, `/tmp` scripts, `cat`/`python3`, auto-added skill-edit grants) into the gitignored `settings.local.json`. The committed file now holds only portable project defaults (read-only git/gh allows + the sonar-secrets hooks).
+- **MEMORY.md refreshed** -- status now reflects "live on Vercel, Phase 2 shipped"; corrected Next.js 15 -> 16, dropped the stale scaffolding architecture tree (points at the docs suite instead), updated current-state + focus rows.
+- **CLAUDE.md** -- documented the `.claude/` layout and added a Skills table (clean-code, ship-it, sonar-sweep, frontend-quality, kalchar-content, folder-structure-blueprint-generator).
+- **docs/DATABASE.md** -- documented the `categories` and `order_presets` tables (schema has five, the doc described three); fixed the "three tables" claims and the inferred-types list.
 
 Adds the YouTube channel as a follow-us destination, and clears the repo's open security findings. Verified with lint (0 warnings), typecheck, and a full `next build` (36 routes).
 

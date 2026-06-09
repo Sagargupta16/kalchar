@@ -1,7 +1,7 @@
 # MEMORY.md
 
 _Started: 2026-05-24_
-_Status: building. Stack and structure locked; scaffolding in progress._
+_Status: live in production on Vercel (kalchar.co.in). Phase 2 backend shipped (Neon + R2 + admin + Google auth). Ongoing work is content + UI polish._
 
 This is the project knowledge file. It captures decisions and open questions. Everything in "Confirmed decisions" is what Sagar has explicitly stated.
 
@@ -33,11 +33,11 @@ Live URL: <https://kalchar.co.in/>.
 | Phase 1 data | Lives in the repo (`data/*.json`), no DB | 2026-05-24 |
 | Phase 2 data | Database + admin panel + Google OAuth uploads | 2026-05-24 |
 | Hard constraint | Folder / file structure must make the Phase 1 -> Phase 2 switch a **localized change**, not a rewrite. Treat data reads as one seam, keep route boundaries clean, keep deploy config in one place. | 2026-05-24 |
-| Current focus | Better public UI. Not backend logic, not admin features. | 2026-05-24 |
+| Current focus | Content (catalog backfill via /admin) + public UI polish. Backend (DB/admin/auth) is built and live. | 2026-06-08 |
 | Repo visibility | Public | 2026-05-24 |
-| Phase 1 hosting | GitHub Pages, OIDC deploy from `main` | 2026-05-24 |
-| Migration posture | Same repo, same project. When Phase 2 needs server routes, switch deploy target only. No rewrite. | 2026-05-24 |
-| Stack: framework | Next.js 15 (App Router). Static export Phase 1 (`output: "export"`), de-export when Phase 2 needs API routes. | 2026-05-24 |
+| Hosting (current) | **Vercel** (Phase 2 shipped). `main` -> production (kalchar.co.in), `dev` -> preview. GitHub Pages retired (`deploy.yml` is a manual-only break-glass fallback). | 2026-06-05 |
+| Migration posture | Same repo, same project. Phase 1->2 was a deploy-target + data-seam switch, not a rewrite (as designed). | 2026-05-24 |
+| Stack: framework | Next.js 16 (App Router). Hybrid: public pages static/SSG, `/admin` + `/api` server-rendered on Vercel. (`output: "export"` retired with the move off Pages.) | 2026-06-08 |
 | Stack: language | TypeScript (latest stable, strict) | 2026-05-24 |
 | Stack: runtime | React 19 | 2026-05-24 |
 | Stack: styling | Tailwind CSS 4 + shadcn/ui (copy-paste, Radix-based, lucide-react icons) | 2026-05-24 |
@@ -118,85 +118,19 @@ Queued for the moment Sagar invites discovery. **Do not ask unprompted.**
 
 ---
 
-## Architecture (locked at scaffolding)
+## Architecture
 
-```text
-data/                         THE FILE-BASED CMS (today)
-  site.json                   brand, nav, contact, sections, workshops
-  artworks.json               catalog: one entry per piece
+The full, maintained system picture lives in the [docs suite](docs/README.md) -- start at [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), then DATABASE / AUTH / IMAGES / DEPLOYMENT / DEVELOPMENT. The repo layout is documented in [CLAUDE.md](CLAUDE.md) ("What's on disk"). This file no longer duplicates the tree (it drifted); those are the source of truth.
 
-public/
-  artworks/<slug>.jpg         high-res source images
-  logo.jpg, logo-180.png, CNAME, robots.txt
-
-app/                          Next.js App Router
-  layout.tsx                  root layout, fonts, theme provider
-  page.tsx                    home (hero + featured grid)
-  work/
-    page.tsx                  gallery list with filters
-    [slug]/page.tsx           artwork detail (statically generated)
-  about/page.tsx
-  workshops/page.tsx
-  custom-orders/page.tsx      custom-order form -> WhatsApp link
-  contact/page.tsx
-  (admin/)                    Phase 2 only, folder reserved
-
-components/
-  ui/                         shadcn primitives, added as used
-  layout/                     header, footer, nav
-  gallery/                    artwork-card, gallery-grid, lightbox
-  forms/                      custom-order-form, etc.
-
-lib/
-  data.ts                     *** THE SEAM. Reads /data/*.json today.
-                                  Phase 2: swap to DB queries; nothing else changes ***
-  types.ts                    Artwork, Workshop, Order, AdminUser, etc.
-  whatsapp.ts                 builds wa.me/?text=... deep links
-  site-config.ts              SITE, BASE, OG defaults, one place
-
-scripts/
-  optimize-images.mjs         build-time AVIF/WebP variant generator
-
-next.config.mjs               output: "export", basePath, trailingSlash for GH Pages
-tailwind.config.ts
-tsconfig.json
-package.json
-biome.json
-```
-
-### Phase 2 migration plan (when triggered)
-
-1. Add a database (Turso/libSQL or Neon Postgres, pick at Phase 2 time). Drizzle ORM.
-2. Switch deploy target from GH Pages to a host with server runtime (Vercel / Cloudflare Workers / Fly). DNS update at the registrar.
-3. Remove `output: "export"` from `next.config.mjs`. The same Next.js project now serves dynamic routes too.
-4. Add `app/api/*` routes with Auth.js v5 (NextAuth) + Google OAuth provider.
-5. Build admin pages at `app/admin/*` for upload, edit, reorder, prices, orders.
-6. **Rewrite `lib/data.ts` to query the DB instead of the filesystem. No other file changes.**
-7. Move images from `/public/artworks/` to object storage (Cloudflare R2 / Vercel Blob).
-8. Migrate JSON entries -> DB rows via a one-shot script, then delete `/data/`.
-
-The gallery UI never knows where the data came from. That's the whole point of the seam.
+The one principle that still governs everything: **`lib/data.ts` is the data seam.** Phase 1 read `data/*.json`; Phase 2 swapped it to async Drizzle queries against Neon, and nothing else in the UI changed. That seam is why the Phase 1 -> Phase 2 migration was localized, exactly as planned. `getSite()` stays sync (reads `data/site.json` chrome); the catalog getters are async DB reads. Images moved to Cloudflare R2 (sharp variants); `public/artworks/` is the regenerate source, not served.
 
 ---
 
 ## Current state on disk
 
-Branch: `feat/ui-theme-foundation`, ahead of `main` by ~15 commits, not pushed. Earlier commits in the branch (`bea4880`, `169f243`) contain prior wiped attempts; the current scaffold is a fresh Next.js 15 project, not a continuation of those.
+Live in production on Vercel (kalchar.co.in), Next.js 16 hybrid build (36 routes). Active work lands on `dev`, PRs into `dev`, then `dev` -> `main` promotes to production. Public site (home single-pager, `/work` gallery + `/work/[slug]` SSG details, `/about`, `/workshops`, `/custom-orders`, `/contact`) is static/SSG; `/admin` (dashboard + artwork/workshop/category/preset/maintainer managers) and `/api/auth` are server-rendered. Catalog reads from Neon via the `lib/data.ts` seam; images from R2. Theme toggle is light/dark only (system following was dropped). Contact surfaces WhatsApp / Instagram (art + community) / YouTube / email.
 
-What's built and live in dev:
-
-- Home: hero with character-entrance description, marquee band, Selected Work rail, Available Now (conditional), About teaser, Workshops + Custom Orders CTAs.
-- `/work`: full 21-piece gallery with style filter.
-- `/work/[slug]`: 21 statically generated artwork detail pages with image, metadata, palette swatches, WhatsApp enquire CTA, prev/next nav.
-- `/about`: paragraphs + drop-cap, marigold pull-quote, Devanagari iti, "Based in" + "Open to" aside.
-- `/workshops`: card grid from `workshops[]`, duration pills, per-card WhatsApp enquire link, group-enquiry CTA.
-- `/custom-orders`: 3-step "How it works" rail + form with name / style / size / budget / timeline / brief. Submit opens WhatsApp; email-fallback link appears after submit.
-- `/contact`: three big channel rows (WhatsApp / Instagram / Gmail with brand glyphs), monumental hover, custom-orders CTA card.
-- Header: brand mark, sticky nav with active-route underline, theme toggle (light / dark / system), hamburger drawer on mobile.
-- Footer: 3-col with brand mark + nav re-link + contact channels with brand glyphs, copyright bar.
-- Globals: scroll-progress bar at top, Lenis smooth scroll on idle.
-
-Verified: pnpm typecheck / lint / build all clean. 30 static pages generated.
+Verified each PR with `pnpm typecheck` + `pnpm lint` + `pnpm build` (no automated test suite; that trio + the production build is the regression net).
 
 ---
 
@@ -213,7 +147,7 @@ Likely candidates (Sagar drives the order):
 
 1. Backfill metadata (`priceInr`, `dimensions`, `year`) for the pieces that should be for sale, via the admin panel (`/admin`).
 2. Re-shoot or crop the artwork photos that have hands / clothespins / pots / wood floors visible.
-3. Open PR `dev` -> `main` and ship to production. CI runs lint + typecheck + build; Vercel deploys `main` to kalchar.co.in on merge.
+3. Ongoing content + UI polish, shipped via `dev` -> `main` PRs (CI: lint + typecheck + build; Vercel deploys `main` to kalchar.co.in on merge).
 
 ## Design direction note (2026-06-06)
 

@@ -1,6 +1,6 @@
 # Database
 
-The catalog (artworks, workshops) and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the three-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
+The catalog (artworks, workshops), the editable lookups (categories, custom-order presets), and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the five-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
 
 ## Overview
 
@@ -30,7 +30,7 @@ It uses the **neon-http** driver on purpose: it is the fastest path for single, 
 
 ## Schema
 
-Three tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK).
+Five tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `categories` and `order_presets` are editable lookups; `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK). No hard foreign keys -- `artworks.style` matches `categories.name` by value, kept in sync by the rename action.
 
 ```mermaid
 %%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
@@ -113,7 +113,28 @@ The admin allowlist. Replaces a static `ADMIN_EMAILS` env var so a logged-in mai
 | `added_by` | `text` | nullable | Email of the maintainer who added this one; null for the root seed. Soft self-reference into `email`. |
 | `created_at` | `timestamptz` | not null, default `now()` | Insert time, timezone-aware. |
 
-Drizzle infers select/insert types off these tables: `ArtworkRow`/`ArtworkInsert`, `WorkshopRow`/`WorkshopInsert`, `MaintainerRow`/`MaintainerInsert` (`lib/db/schema.ts:71`).
+### categories
+
+Art categories, formerly a fixed "styles" enum in `site.json`, now editable from `/admin` so new traditions can be added without a code change. An artwork's `style` column stores the category `name` (free text), so renaming a category does not orphan rows -- the admin rename action updates matching artworks too (see [app/admin/actions.ts](../app/admin/actions.ts) `renameCategory`).
+
+| Column | pg type | Null / default | Meaning |
+| --- | --- | --- | --- |
+| `id` | `text` | PK, not null | Slugified category id. |
+| `name` | `text` | not null | Display name, matched against `artworks.style`. |
+| `order` | `integer` | not null | Sort key, ascending. |
+
+### order_presets
+
+The custom-order form's dropdown options. One row per option, discriminated by `kind` (`"size" | "budget" | "timeline"`), so all three dropdowns share one table and a new kind needs no schema change. Editable from `/admin/presets`.
+
+| Column | pg type | Null / default | Meaning |
+| --- | --- | --- | --- |
+| `id` | `text` | PK, not null | Stable id, derived from kind + a monotonic suffix. |
+| `kind` | `text` | not null | `"size"`, `"budget"`, or `"timeline"`. |
+| `label` | `text` | not null | The option text shown in the dropdown. |
+| `order` | `integer` | not null | Sort key within the kind. |
+
+Drizzle infers select/insert types off these tables: `ArtworkRow`/`ArtworkInsert`, `WorkshopRow`/`WorkshopInsert`, `CategoryRow`/`CategoryInsert`, `OrderPresetRow`/`OrderPresetInsert`, `MaintainerRow`/`MaintainerInsert` (`lib/db/schema.ts:97`).
 
 ## The data seam
 

@@ -77,7 +77,11 @@ pnpm format
 ## What's on disk
 
 ```text
-.claude/                  settings + project-local AI config
+.claude/                  AI config (committed)
+  settings.json           project permission allowlist + sonar-secrets hooks
+  settings.local.json     per-user overrides (gitignored)
+  hooks/sonar-secrets/    PreToolUse/UserPromptSubmit secret-scan wrappers (no-op without `sonar`)
+  skills/                 project skills (see "Skills" below)
 app/                      Next.js App Router
   layout.tsx              root layout, fonts, providers, lightbox provider
   page.tsx                home single-pager (composes components/home/*)
@@ -115,6 +119,19 @@ docs/                     engineering docs (index in docs/README.md):
   DEPLOYMENT.md           Vercel, branches, CI, DNS, env matrix
   DEVELOPMENT.md          local setup, scripts, conventions
 ```
+
+## Skills
+
+Project skills live in `.claude/skills/<name>/SKILL.md` and trigger automatically. Adopt-from-public recommendations are in [.claude/skills/RECOMMENDED-SKILLS.md](.claude/skills/RECOMMENDED-SKILLS.md).
+
+| Skill | Use when... |
+| --- | --- |
+| `clean-code` | writing/reviewing/refactoring any code -- A-to-Z Clean Code adapted to this TS/React stack + house rules |
+| `ship-it` | taking finished work to an open PR: verify -> changelog/version -> commit -> push -> PR -> watch CI (dev->main flow, never push without approval) |
+| `sonar-sweep` | clearing SonarCloud findings end-to-end (fetch -> triage -> fix safe -> re-verify), via the Sonar CLI + project key |
+| `frontend-quality` | pre-ship a11y + performance + SEO gate, mobile-first |
+| `kalchar-content` | adding/editing catalog content (artwork/workshop/category/preset) through the data seam + R2 pipeline |
+| `folder-structure-blueprint-generator` | documenting/auditing the repo's folder organization |
 
 ## Operating mode
 
