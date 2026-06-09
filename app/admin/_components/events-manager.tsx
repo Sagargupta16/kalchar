@@ -1,43 +1,32 @@
 "use client";
 
-import { CalendarDays, GripVertical, Plus, Star, Trash2 } from "lucide-react";
+import { CalendarDays, Pin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { createEvent, deleteEvent, reorderEvents, setEventFeatured } from "../actions";
+import { createEvent, deleteEvent, setEventFeatured } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
-import { ReorderBar } from "./reorder-bar";
-import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
-import { useReorder } from "./use-reorder";
+import { useAdminAction } from "./use-admin-action";
 
 export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
 	const [items, setItems] = useState(initial);
-	const [baseline, setBaseline] = useState(initial);
-	const [saved, setSaved] = useState(false);
-	const { dragging, over, dragProps } = useReorder(items, setItems);
-
-	const handleSaveOrder = () =>
-		run(
-			() => reorderEvents(items.map((i) => i.id)),
-			() => {
-				setBaseline(items);
-				setSaved(true);
-				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
-			},
-		);
 
 	const handleDelete = (id: string) => {
 		setItems((prev) => prev.filter((i) => i.id !== id));
-		setBaseline((prev) => prev.filter((i) => i.id !== id));
 		run(() => deleteEvent(id));
 	};
 
-	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
+	const handleTogglePin = (event: Event) => {
+		// Optimistic flip so the badge updates instantly; the route refresh
+		// re-sorts pinned-to-top on the server.
+		setItems((prev) => prev.map((e) => (e.id === event.id ? { ...e, featured: !e.featured } : e)));
+		run(() => setEventFeatured(event.id, !event.featured));
+	};
 
 	return (
 		<div className="space-y-6">
@@ -48,21 +37,20 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
+			<p className="text-xs text-muted">
+				Events show newest first. Pin one to keep it at the top regardless of date.
+			</p>
+
 			<ul className="space-y-3">
-				{items.map((event, i) => (
+				{items.map((event) => (
 					<li
 						key={event.id}
-						{...dragProps(i)}
-						className={cn(
-							"rounded-(--radius-md) border border-line bg-bg transition-all duration-(--duration-fast)",
-							dragging === i && "opacity-50",
-							over === i && dragging !== i && "border-accent shadow-sm",
-						)}
+						className="rounded-(--radius-md) border border-line bg-bg transition-all duration-(--duration-fast)"
 					>
 						<EventItem
 							event={event}
 							pending={pending}
-							onToggleFeatured={() => run(() => setEventFeatured(event.id, !event.featured))}
+							onTogglePin={() => handleTogglePin(event)}
 							onDelete={async () => {
 								const ok = await confirm({
 									title: `Delete "${event.title}"?`,
@@ -80,16 +68,6 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 					</p>
 				) : null}
 			</ul>
-
-			{hasOrderChanges ? (
-				<ReorderBar
-					label="Event order changed"
-					pending={pending}
-					saved={saved}
-					onSave={handleSaveOrder}
-					onReset={() => setItems(baseline)}
-				/>
-			) : null}
 		</div>
 	);
 }
@@ -163,12 +141,12 @@ function CreateEventForm({
 function EventItem({
 	event,
 	pending,
-	onToggleFeatured,
+	onTogglePin,
 	onDelete,
 }: Readonly<{
 	event: Event;
 	pending: boolean;
-	onToggleFeatured: () => void;
+	onTogglePin: () => void;
 	onDelete: () => void;
 }>) {
 	const [expanded, setExpanded] = useState(false);
@@ -176,11 +154,13 @@ function EventItem({
 	return (
 		<div>
 			<div className="flex items-center gap-3 p-3">
-				<span className="cursor-grab text-muted active:cursor-grabbing">
-					<GripVertical size={16} />
-				</span>
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium">{event.title}</p>
+					<p className="flex items-center gap-1.5 truncate text-sm font-medium">
+						{event.featured ? (
+							<Pin size={12} className="shrink-0 fill-accent/20 text-accent" aria-label="Pinned" />
+						) : null}
+						{event.title}
+					</p>
 					<p className="flex items-center gap-1.5 truncate text-xs text-muted">
 						<CalendarDays size={11} />
 						{new Date(event.eventDate).toLocaleDateString("en-IN", {
@@ -195,9 +175,9 @@ function EventItem({
 				<button
 					type="button"
 					disabled={pending}
-					onClick={onToggleFeatured}
+					onClick={onTogglePin}
 					aria-pressed={event.featured}
-					title={event.featured ? "Featured on home" : "Not featured"}
+					title={event.featured ? "Pinned to top (tap to unpin)" : "Pin to top"}
 					className={cn(
 						"inline-flex h-8 w-8 items-center justify-center rounded-(--radius-sm) border transition-colors disabled:opacity-50",
 						event.featured
@@ -205,7 +185,7 @@ function EventItem({
 							: "border-line text-muted hover:border-accent hover:text-accent",
 					)}
 				>
-					<Star size={14} className={event.featured ? "fill-accent/20" : undefined} />
+					<Pin size={14} className={event.featured ? "fill-accent/20" : undefined} />
 				</button>
 				<button
 					type="button"

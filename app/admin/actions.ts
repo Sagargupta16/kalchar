@@ -544,25 +544,15 @@ export async function reorderEventImages(id: string, keyBases: string[]): Promis
 	revalidateEvents(id);
 }
 
-/** Toggle whether an event is featured (home preview inclusion). */
+/**
+ * Pin/unpin an event. Stored in the `featured` column; the seam sorts pinned
+ * events to the top (ahead of the date-desc order), and the home strip prefers
+ * them. "Featured" and "pinned" are the same flag.
+ */
 export async function setEventFeatured(id: string, featured: boolean): Promise<void> {
 	await requireMaintainer();
 	await db.update(events).set({ featured }).where(eq(events.id, id));
 	revalidateEvents(id);
-}
-
-/** Reorder events by providing the new id sequence. */
-export async function reorderEvents(ids: string[]): Promise<void> {
-	await requireMaintainer();
-	await Promise.all(
-		ids.map((id, i) =>
-			db
-				.update(events)
-				.set({ order: i + 1 })
-				.where(eq(events.id, id)),
-		),
-	);
-	revalidateEvents();
 }
 
 /** Delete an event row + all its R2 image variants. */

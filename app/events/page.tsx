@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Pin } from "lucide-react";
 import type { Metadata } from "next";
 import { EventGallery } from "@/components/events/event-gallery";
 import { Reveal } from "@/components/motion/reveal";
@@ -32,13 +32,14 @@ export default async function EventsPage() {
 					/>
 
 					{events.length > 0 ? (
-						<div className="mt-12 space-y-16 sm:mt-16 sm:space-y-24">
+						<div className="mt-12 space-y-8 sm:mt-16 sm:space-y-10">
 							{events.map((event, i) => (
 								<Reveal
 									key={event.id}
 									as="article"
 									eager={i === 0}
 									delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
+									className="overflow-hidden rounded-(--radius-lg) border border-line bg-bg-soft/40 p-5 sm:p-7"
 								>
 									<header className="mb-5 flex flex-col gap-1.5 sm:mb-6">
 										<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -51,6 +52,12 @@ export default async function EventsPage() {
 											{event.category ? (
 												<span className="rounded-full border border-line px-2.5 py-0.5 text-[0.65rem] uppercase tracking-[var(--tracking-meta)] text-muted">
 													{event.category}
+												</span>
+											) : null}
+											{event.featured ? (
+												<span className="inline-flex items-center gap-1 rounded-full bg-(--section-accent)/12 px-2.5 py-0.5 text-[0.65rem] uppercase tracking-[var(--tracking-meta)] text-(--section-accent)">
+													<Pin size={10} aria-hidden="true" />
+													Pinned
 												</span>
 											) : null}
 										</div>

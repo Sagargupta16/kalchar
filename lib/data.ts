@@ -220,12 +220,16 @@ function toEvent(row: EventRow): Event {
 }
 
 /**
- * All events, most recent first. `order` is the manual tie-break within a date,
- * so we sort by date desc then order asc -- newest events lead, with manual
- * control inside a day.
+ * Events ordered for display: pinned first (the `featured` flag), then most
+ * recent by date, with `order` as a stable tie-break inside the same date.
+ * So a maintainer can pin a highlight to the top, and everything else is
+ * automatically latest-first.
  */
 export async function getAllEvents(): Promise<readonly Event[]> {
-	const rows = await db.select().from(events).orderBy(desc(events.eventDate), asc(events.order));
+	const rows = await db
+		.select()
+		.from(events)
+		.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order));
 	return rows.map(toEvent);
 }
 

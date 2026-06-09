@@ -10,7 +10,7 @@ export default async function AdminEventsPage() {
 				<h2 className="text-sm font-semibold">Events</h2>
 				<p className="mt-1 text-xs text-muted">
 					Add workshops held, exhibitions, classes, and gatherings. Each event is a photo gallery.
-					Drag events to reorder; the public page shows the most recent first.
+					The public page shows newest first; pin one to keep it at the top.
 				</p>
 			</section>
 			<EventsManager events={[...events]} />

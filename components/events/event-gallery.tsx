@@ -7,14 +7,18 @@ import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { cn } from "@/lib/utils";
 
 /**
- * Inline photo grid for one event, with an image-only lightbox.
+ * Inline photo arrangement for one event, with an image-only lightbox.
  *
- * Shows up to MAX_INLINE photos directly. When there are more, the last visible
- * tile becomes a "+N more" entry that opens the lightbox at that point. The
- * lightbox cycles through ALL of the event's photos (keyboard + swipe).
+ * Up to MAX_INLINE photos show directly; when there are more, the last tile
+ * carries a "+N more" overlay opening the lightbox at that point. The lightbox
+ * cycles through ALL of the event's photos (keyboard + swipe).
  *
- * Layout is mobile-first: the cover spans the full width, the rest tile beneath
- * it. Fewer photos degrade gracefully (1 photo = just the cover).
+ * Layout (mobile-first), so each count reads as an intentional arrangement
+ * rather than a ragged grid:
+ *   1 photo  -> a single wide cover
+ *   2 photos -> two equal tiles
+ *   3+       -> a wide cover hero, then the rest in a row that fills the width
+ *               (remaining count drives the column count, so no empty cells)
  */
 const MAX_INLINE = 5;
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
@@ -30,70 +34,140 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 
 	if (images.length === 0) return null;
 
+	const open = (i: number) => setLightboxAt(i);
+	const lightbox = (
+		<EventLightbox
+			images={images}
+			title={title}
+			index={lightboxAt}
+			onClose={() => setLightboxAt(null)}
+			onIndex={setLightboxAt}
+		/>
+	);
+
+	// 1 or 2 photos: a simple equal arrangement, no hero.
+	if (images.length <= 2) {
+		return (
+			<>
+				<ul className={cn("grid gap-2", images.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
+					{images.map((keyBase, i) => (
+						<li key={keyBase}>
+							<PhotoTile
+								keyBase={keyBase}
+								title={title}
+								index={i}
+								aspect={images.length === 1 ? "aspect-3/2" : "aspect-4/3"}
+								priority={i === 0}
+								onClick={() => open(i)}
+							/>
+						</li>
+					))}
+				</ul>
+				{lightbox}
+			</>
+		);
+	}
+
+	// 3+ photos: a wide cover hero, then the remaining tiles in a width-filling row.
 	const inline = images.slice(0, MAX_INLINE);
+	const [cover, ...rest] = inline;
 	const overflow = images.length - MAX_INLINE;
 
 	return (
 		<>
-			<ul className={cn("grid gap-2", gridClass(inline.length))}>
-				{inline.map((keyBase, i) => {
-					const isCover = i === 0;
-					const showOverflow = overflow > 0 && i === MAX_INLINE - 1;
-					return (
-						<li key={keyBase} className={cn(isCover && coverSpanClass(inline.length))}>
-							<button
-								type="button"
-								onClick={() => setLightboxAt(i)}
-								aria-label={
-									showOverflow
-										? `View all ${images.length} photos from ${title}`
-										: `View photo ${i + 1} from ${title}`
-								}
-								className="group relative block aspect-4/3 w-full overflow-hidden rounded-(--radius-md) bg-bg-soft ring-1 ring-black/8 transition-all duration-(--duration-base) ease-(--ease-out) hover:shadow-lg hover:ring-(--section-accent) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:ring-white/8"
-							>
-								<ResponsiveImage
+			<div className="space-y-2">
+				<PhotoTile
+					keyBase={cover ?? ""}
+					title={title}
+					index={0}
+					aspect="aspect-16/9"
+					priority
+					onClick={() => open(0)}
+				/>
+				<ul className={cn("grid gap-2", restColumnsClass(rest.length))}>
+					{rest.map((keyBase, idx) => {
+						const i = idx + 1;
+						const isLast = idx === rest.length - 1;
+						const showOverflow = overflow > 0 && isLast;
+						return (
+							<li key={keyBase}>
+								<PhotoTile
 									keyBase={keyBase}
-									alt={`${title}, photo ${i + 1}`}
-									sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-									priority={isCover}
-									className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+									title={title}
+									index={i}
+									aspect="aspect-square"
+									overflow={showOverflow ? overflow : undefined}
+									totalForLabel={showOverflow ? images.length : undefined}
+									onClick={() => open(i)}
 								/>
-								{showOverflow ? (
-									<span className="absolute inset-0 grid place-items-center bg-black/55 text-bg backdrop-blur-[1px] transition-colors duration-(--duration-base) group-hover:bg-black/65">
-										<span className="t-display text-2xl sm:text-3xl">+{overflow}</span>
-									</span>
-								) : null}
-							</button>
-						</li>
-					);
-				})}
-			</ul>
-
-			<EventLightbox
-				images={images}
-				title={title}
-				index={lightboxAt}
-				onClose={() => setLightboxAt(null)}
-				onIndex={setLightboxAt}
-			/>
+							</li>
+						);
+					})}
+				</ul>
+			</div>
+			{lightbox}
 		</>
 	);
 }
 
-/** Grid column count for the inline tiles, by visible count. */
-function gridClass(count: number): string {
-	if (count <= 1) return "grid-cols-1";
-	if (count === 2) return "grid-cols-2";
-	// 3-5 photos: 2 columns on phones, 3 from sm up.
-	return "grid-cols-2 sm:grid-cols-3";
+/** Columns for the non-cover row, sized so the tiles always fill the width. */
+function restColumnsClass(count: number): string {
+	if (count <= 2) return "grid-cols-2";
+	if (count === 3) return "grid-cols-3";
+	return "grid-cols-2 sm:grid-cols-4";
 }
 
-/** The cover tile spans wider when there are enough siblings to balance it. */
-function coverSpanClass(count: number): string {
-	if (count <= 1) return "";
-	if (count === 2) return "";
-	// With 3+ tiles, let the cover span both/all columns for a hero feel.
-	return "col-span-2 sm:col-span-3";
+interface PhotoTileProps {
+	keyBase: string;
+	title: string;
+	index: number;
+	aspect: string;
+	priority?: boolean;
+	/** When set, render a "+N" overlay (the overflow entry). */
+	overflow?: number;
+	/** Total photo count, for the overflow tile's aria-label. */
+	totalForLabel?: number;
+	onClick: () => void;
+}
+
+function PhotoTile({
+	keyBase,
+	title,
+	index,
+	aspect,
+	priority = false,
+	overflow,
+	totalForLabel,
+	onClick,
+}: Readonly<PhotoTileProps>) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			aria-label={
+				overflow !== undefined && totalForLabel !== undefined
+					? `View all ${totalForLabel} photos from ${title}`
+					: `View photo ${index + 1} from ${title}`
+			}
+			className={cn(
+				"group relative block w-full overflow-hidden rounded-(--radius-md) bg-bg-soft ring-1 ring-black/8 transition-all duration-(--duration-base) ease-(--ease-out) hover:shadow-lg hover:ring-(--section-accent) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:ring-white/8",
+				aspect,
+			)}
+		>
+			<ResponsiveImage
+				keyBase={keyBase}
+				alt={`${title}, photo ${index + 1}`}
+				sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+				priority={priority}
+				className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+			/>
+			{overflow !== undefined ? (
+				<span className="absolute inset-0 grid place-items-center bg-black/55 text-bg backdrop-blur-[1px] transition-colors duration-(--duration-base) group-hover:bg-black/65">
+					<span className="t-display text-2xl sm:text-3xl">+{overflow}</span>
+				</span>
+			) : null}
+		</button>
+	);
 }
 
 interface EventLightboxProps {
