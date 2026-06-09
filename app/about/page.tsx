@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { ArtistAvatar } from "@/components/about/artist-avatar";
 import { Reveal } from "@/components/motion/reveal";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { getSite } from "@/lib/data";
+import { getSetting, getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
 	title: "About",
@@ -21,9 +22,10 @@ interface AboutSection {
 	asideBody?: string;
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
 	const { brand, sections } = getSite();
 	const about = (sections.about ?? {}) as AboutSection;
+	const profileImage = await getSetting<string>("profileImage");
 
 	return (
 		<main>
@@ -74,7 +76,15 @@ export default function AboutPage() {
 						{/* Aside */}
 						<aside className="md:col-span-4">
 							<Reveal>
-								<Card padding="md">
+								<ArtistAvatar
+									imageKey={profileImage}
+									monogram={brand.devanagariMark}
+									alt={`${brand.publicName}, folk artist`}
+									sizes="(min-width: 768px) 30vw, 100vw"
+								/>
+							</Reveal>
+							<Reveal delayMs={80}>
+								<Card padding="md" className="mt-4">
 									<p className="t-eyebrow">Based in</p>
 									<p className="t-display mt-2 text-2xl">{brand.location}</p>
 								</Card>

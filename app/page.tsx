@@ -2,30 +2,47 @@ import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { AboutTeaser } from "@/components/home/about-teaser";
 import { ContactTeaser } from "@/components/home/contact-teaser";
 import { CustomOrdersTeaser } from "@/components/home/custom-orders-teaser";
+import { EventsTeaser } from "@/components/home/events-teaser";
 import { Hero } from "@/components/home/hero";
 import { SectionShell } from "@/components/home/section-shell";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
 import { Reveal } from "@/components/motion/reveal";
+import { Section } from "@/components/ui/section";
 import {
 	getAllArtworks,
 	getAllWorkshops,
 	getAvailableArtworks,
 	getCategoryNames,
 	getFeaturedArtwork,
+	getRecentEvents,
+	getSetting,
 	getSite,
 } from "@/lib/data";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export default async function HomePage() {
 	const site = getSite();
-	const [featured, all, available, allWorkshops, categoryNames] = await Promise.all([
+	const [
+		featured,
+		all,
+		available,
+		allWorkshops,
+		categoryNames,
+		recentEvents,
+		showHomeIntro,
+		profileImage,
+	] = await Promise.all([
 		getFeaturedArtwork(),
 		getAllArtworks(),
 		getAvailableArtworks(),
 		getAllWorkshops(),
 		getCategoryNames(),
+		getRecentEvents(3),
+		getSetting<boolean>("showHomeIntro"),
+		getSetting<string>("profileImage"),
 	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
+	const aboutCopy = site.sections.about as { intro?: string } | undefined;
 
 	const SELECTED_WORK_COUNT = 6;
 	const WORKSHOPS_PREVIEW_COUNT = 3;
@@ -99,6 +116,10 @@ export default async function HomePage() {
 				title={site.sections.about?.title ?? "The practice"}
 				lead={site.sections.about?.lead}
 				location={site.brand.location}
+				intro={showHomeIntro ? aboutCopy?.intro : undefined}
+				profileImage={profileImage}
+				monogram={site.brand.devanagariMark}
+				publicName={site.brand.publicName}
 			/>
 
 			{workshopsPreview.length > 0 ? (
@@ -109,6 +130,17 @@ export default async function HomePage() {
 					title={site.sections.workshops?.title ?? "Hands-on sessions"}
 					lead={site.sections.workshops?.lead}
 				/>
+			) : null}
+
+			{recentEvents.length > 0 ? (
+				<Section accent="peacock">
+					<EventsTeaser
+						events={recentEvents}
+						eyebrow="Recent events"
+						title="From the workshop floor"
+						lead="Workshops held, exhibitions, and gatherings with the community."
+					/>
+				</Section>
 			) : null}
 
 			<CustomOrdersTeaser
