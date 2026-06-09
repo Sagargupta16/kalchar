@@ -15,7 +15,7 @@ export default function NotFound() {
 				</p>
 				<div className="mt-8 flex flex-wrap items-center justify-center gap-3">
 					<Link href="/work" className={cn(buttonVariants({ variant: "primary" }), "group")}>
-						Browse the work
+						Browse the artwork
 						<ArrowRight
 							size={16}
 							aria-hidden="true"

@@ -15,7 +15,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-	{ label: "Work", href: "/work" },
+	{ label: "Artwork", href: "/work" },
 	{ label: "About", href: "/about" },
 	{ label: "Workshops", href: "/workshops" },
 	{ label: "Custom Orders", href: "/custom-orders" },

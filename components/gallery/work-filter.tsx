@@ -1,5 +1,6 @@
 "use client";
 
+import { ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -12,6 +13,11 @@ import { cn } from "@/lib/utils";
  * Server passes the full sorted catalog as props; the Client island handles
  * the filter pill state and renders the visible subset. Filtering is local
  * (no re-fetch) so toggling between styles is instant.
+ *
+ * The pill row carries two axes in one single-select: the style chips (All +
+ * each tradition) plus a distinct "Available to buy" chip that narrows to
+ * for-sale pieces (priced and not yet sold). Sold pieces show under All with
+ * their badge, and drop out the moment "Available to buy" is active.
  *
  * Cards are uniform 3:4 plates -- the user picked uniform-cropped over
  * masonry to avoid the previous attempt's size inconsistency.
@@ -38,32 +44,46 @@ interface WorkFilterProps {
 }
 
 const ALL = "All" as const;
+const AVAILABLE = "Available to buy" as const;
+type Filter = typeof ALL | typeof AVAILABLE | ArtStyle;
 /** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
 const STAGGER_STEP_MS = 60;
 const STAGGER_MAX_INDEX = 5;
 
+/** For-sale: a price is set and the piece has not been sold. */
+function isForSale(item: GalleryItem): boolean {
+	return typeof item.priceInr === "number" && item.status !== "sold";
+}
+
 export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
-	const [active, setActive] = useState<typeof ALL | ArtStyle>(ALL);
+	const [active, setActive] = useState<Filter>(ALL);
 
-	const visible = useMemo(
-		() => (active === ALL ? items : items.filter((i) => i.style === active)),
-		[active, items],
-	);
+	const forSaleCount = useMemo(() => items.filter(isForSale).length, [items]);
 
-	const filters: (typeof ALL | ArtStyle)[] = [ALL, ...styles];
+	const visible = useMemo(() => {
+		if (active === ALL) return items;
+		if (active === AVAILABLE) return items.filter(isForSale);
+		return items.filter((i) => i.style === active);
+	}, [active, items]);
+
+	const styleFilters: Filter[] = [ALL, ...styles];
 
 	const pieceWord = visible.length === 1 ? "piece" : "pieces";
-	const statusMessage =
-		active === ALL
-			? `Showing all ${visible.length} pieces`
-			: `Showing ${visible.length} ${active} ${pieceWord}`;
+	let statusMessage: string;
+	if (active === ALL) {
+		statusMessage = `Showing all ${visible.length} pieces`;
+	} else if (active === AVAILABLE) {
+		statusMessage = `Showing ${visible.length} ${pieceWord} available to buy`;
+	} else {
+		statusMessage = `Showing ${visible.length} ${active} ${pieceWord}`;
+	}
 
 	return (
 		<>
 			<h2 className="sr-only">Gallery</h2>
-			<fieldset className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0">
-				<legend className="sr-only">Filter by style</legend>
-				{filters.map((f) => {
+			<fieldset className="flex flex-wrap items-center gap-2 border-0 p-0 m-0 min-w-0">
+				<legend className="sr-only">Filter artwork</legend>
+				{styleFilters.map((f) => {
 					const isActive = f === active;
 					return (
 						<button
@@ -82,6 +102,30 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 						</button>
 					);
 				})}
+
+				{/* "Available to buy" -- a second axis, vermillion-accented so it reads
+				    as its own thing rather than another tradition. Hidden entirely when
+				    nothing is for sale, so the row never offers an empty filter. */}
+				{forSaleCount > 0 ? (
+					<>
+						<span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
+						<button
+							type="button"
+							onClick={() => setActive(AVAILABLE)}
+							aria-pressed={active === AVAILABLE}
+							className={cn(
+								"inline-flex min-h-10 items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
+								active === AVAILABLE
+									? "border-(--color-vermillion) bg-(--color-vermillion) text-bg"
+									: "border-(--color-vermillion)/50 text-(--color-vermillion) hover:bg-(--color-vermillion)/10",
+							)}
+						>
+							<ShoppingBag size={13} aria-hidden="true" />
+							{AVAILABLE}
+							<span className="tabular-nums opacity-80">{forSaleCount}</span>
+						</button>
+					</>
+				) : null}
 			</fieldset>
 
 			<p className="sr-only" aria-live="polite">

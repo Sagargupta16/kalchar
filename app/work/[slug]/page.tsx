@@ -123,7 +123,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
 				>
 					<ArrowLeft size={14} aria-hidden="true" />
-					Back to work
+					Back to artwork
 				</Link>
 			</Reveal>
 
