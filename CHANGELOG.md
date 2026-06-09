@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.24.0 (2026-06-09)
+
+Adds an Events section (community activities with multi-image galleries), an artist profile photo, and home-page previews for both. The "Work" section is renamed "Artwork" with an in-page "Available to buy" filter, so the shop is a lens over the catalog rather than a separate surface. Verified with lint (0 warnings), typecheck, a full `next build` (39 routes), and a browser pass over the new flows (create/edit/delete an event with 7 photos, profile upload, home intro toggle).
+
+### Added
+
+- **Events section** ([app/events/page.tsx](app/events/page.tsx), [components/events/event-gallery.tsx](components/events/event-gallery.tsx)) -- public `/events` page (peacock accent) for workshops held, exhibitions, classes, and gatherings. Each event is a photo gallery: up to 5 images inline, with a "+N more" tile opening an image-only lightbox (keyboard + swipe). Graceful empty state and `<5`-photo layouts. Added to the header nav, footer Explore, and a home "Recent events" preview strip.
+- **Events admin** ([app/admin/events/page.tsx](app/admin/events/page.tsx), [app/admin/_components/events-manager.tsx](app/admin/_components/events-manager.tsx)) -- full CRUD with a multi-file photo picker, a drag-to-reorder thumbnail grid (first photo = cover), per-photo remove, add-more, a meta editor (title, date, category, description), a featured toggle, and event reordering.
+- **Artist profile** ([app/admin/profile/page.tsx](app/admin/profile/page.tsx), [components/about/artist-avatar.tsx](components/about/artist-avatar.tsx)) -- upload/remove an artist photo and toggle "show intro on home" from `/admin/profile`. The photo appears on the About page aside and (when the toggle is on) in an avatar + intro layout on the home About teaser. Falls back to a clean monogram (the brand devanagari mark) when no photo is set.
+- **"Available to buy" filter** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- a vermillion-accented chip in the Artwork gallery that narrows to priced, unsold pieces (the store, as a filter rather than a separate page). Hidden when nothing is for sale. Sold pieces keep their badge under "All" and drop out of the buy filter.
+
+### Changed
+
+- **"Work" renamed to "Artwork"** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx), [data/site.json](data/site.json)) -- nav label, page title, hero/404 CTAs, and detail back-link now say "Artwork". URL stays `/work` (no redirect churn, keeps shared links + SEO).
+- **Image pipeline generalized** ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts), [components/gallery/responsive-image.tsx](components/gallery/responsive-image.tsx)) -- extracted `processImageVariants` (artworks + events share one sharp -> R2 variant flow) and `ResponsiveImage` (the `<picture>`/srcset/settle logic; `ArtImage` now wraps it). No behavior change for artworks.
+
+### Database
+
+- **`events` + `settings` tables** ([lib/db/schema.ts](lib/db/schema.ts)) -- `events` (id, title, description, eventDate, category, ordered `images` jsonb, featured, order) and a small key-value `settings` table (profile image key + home-intro toggle). Pushed to Neon via `db:push`.
+
 ## 1.23.1 (2026-06-09)
 
 Repo + docs hygiene. No app code, no behavior change.
