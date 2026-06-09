@@ -7,20 +7,17 @@ import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { cn } from "@/lib/utils";
 
 /**
- * Inline photo arrangement for one event, with an image-only lightbox.
+ * Inline photo grid for one event, with an image-only lightbox.
  *
- * Up to MAX_INLINE photos show directly; when there are more, the last tile
- * carries a "+N more" overlay opening the lightbox at that point. The lightbox
- * cycles through ALL of the event's photos (keyboard + swipe).
- *
- * Layout (mobile-first), so each count reads as an intentional arrangement
- * rather than a ragged grid:
- *   1 photo  -> a single wide cover
- *   2 photos -> two equal tiles
- *   3+       -> a wide cover hero, then the rest in a row that fills the width
- *               (remaining count drives the column count, so no empty cells)
+ * Instagram-profile style: a uniform square grid (2 cols on phones, 3 from sm
+ * up). Each tile shows the WHOLE image (object-contain on a soft ground), never
+ * cropped -- this is an art portfolio, so the artist's framing is preserved;
+ * only the displayed size changes, not the aspect. Up to MAX_INLINE tiles show;
+ * a "+N more" overlay on the last opens the lightbox at that point. The lightbox
+ * cycles through ALL photos (arrows + keyboard + swipe), arrows shown whenever
+ * there's more than one.
  */
-const MAX_INLINE = 5;
+const MAX_INLINE = 6;
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
 
@@ -34,87 +31,43 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 
 	if (images.length === 0) return null;
 
-	const open = (i: number) => setLightboxAt(i);
-	const lightbox = (
-		<EventLightbox
-			images={images}
-			title={title}
-			index={lightboxAt}
-			onClose={() => setLightboxAt(null)}
-			onIndex={setLightboxAt}
-		/>
-	);
+	const inline = images.slice(0, MAX_INLINE);
+	const overflow = images.length - MAX_INLINE;
+	// A single photo gets a roomier slot; multiples tile as a uniform square grid.
+	const gridClass = images.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3";
+	const tileAspect = images.length === 1 ? "aspect-4/3" : "aspect-square";
 
-	// 1 or 2 photos: a simple equal arrangement, no hero.
-	if (images.length <= 2) {
-		return (
-			<>
-				<ul className={cn("grid gap-2", images.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
-					{images.map((keyBase, i) => (
+	return (
+		<>
+			<ul className={cn("grid gap-2 sm:gap-3", gridClass)}>
+				{inline.map((keyBase, i) => {
+					const showOverflow = overflow > 0 && i === MAX_INLINE - 1;
+					return (
 						<li key={keyBase}>
 							<PhotoTile
 								keyBase={keyBase}
 								title={title}
 								index={i}
-								aspect={images.length === 1 ? "aspect-3/2" : "aspect-4/3"}
+								aspect={tileAspect}
 								priority={i === 0}
-								onClick={() => open(i)}
+								overflow={showOverflow ? overflow : undefined}
+								totalForLabel={showOverflow ? images.length : undefined}
+								onClick={() => setLightboxAt(i)}
 							/>
 						</li>
-					))}
-				</ul>
-				{lightbox}
-			</>
-		);
-	}
+					);
+				})}
+			</ul>
 
-	// 3+ photos: a wide cover hero, then the remaining tiles in a width-filling row.
-	const inline = images.slice(0, MAX_INLINE);
-	const [cover, ...rest] = inline;
-	const overflow = images.length - MAX_INLINE;
-
-	return (
-		<>
-			<div className="space-y-2">
-				<PhotoTile
-					keyBase={cover ?? ""}
-					title={title}
-					index={0}
-					aspect="aspect-16/9"
-					priority
-					onClick={() => open(0)}
-				/>
-				<ul className={cn("grid gap-2", restColumnsClass(rest.length))}>
-					{rest.map((keyBase, idx) => {
-						const i = idx + 1;
-						const isLast = idx === rest.length - 1;
-						const showOverflow = overflow > 0 && isLast;
-						return (
-							<li key={keyBase}>
-								<PhotoTile
-									keyBase={keyBase}
-									title={title}
-									index={i}
-									aspect="aspect-square"
-									overflow={showOverflow ? overflow : undefined}
-									totalForLabel={showOverflow ? images.length : undefined}
-									onClick={() => open(i)}
-								/>
-							</li>
-						);
-					})}
-				</ul>
-			</div>
-			{lightbox}
+			<EventLightbox
+				images={images}
+				title={title}
+				index={lightboxAt}
+				onClose={() => setLightboxAt(null)}
+				onIndex={setLightboxAt}
+			/>
 		</>
 	);
-}
-
-/** Columns for the non-cover row, sized so the tiles always fill the width. */
-function restColumnsClass(count: number): string {
-	if (count <= 2) return "grid-cols-2";
-	if (count === 3) return "grid-cols-3";
-	return "grid-cols-2 sm:grid-cols-4";
 }
 
 interface PhotoTileProps {
@@ -159,7 +112,7 @@ function PhotoTile({
 				alt={`${title}, photo ${index + 1}`}
 				sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
 				priority={priority}
-				className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+				className="absolute inset-0 h-full w-full object-contain transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
 			/>
 			{overflow !== undefined ? (
 				<span className="absolute inset-0 grid place-items-center bg-black/55 text-bg backdrop-blur-[1px] transition-colors duration-(--duration-base) group-hover:bg-black/65">
@@ -267,15 +220,17 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 						transition={{ type: "spring", damping: 28, stiffness: 340 }}
 						onTouchStart={onTouchStart}
 						onTouchEnd={onTouchEnd}
-						className="relative z-10 m-0 flex max-h-[85vh] w-full max-w-4xl flex-col"
+						className="relative z-10 m-0 flex w-full max-w-5xl flex-col items-center"
 					>
-						<div className="relative aspect-4/3 max-h-[78vh] overflow-hidden rounded-(--radius-lg) border border-line bg-bg-soft shadow-2xl">
+						{/* The image sizes to its own ratio (capped by the viewport), so the
+						    whole photo shows uncropped whatever its dimensions. */}
+						<div className="relative flex max-h-[80vh] w-full items-center justify-center">
 							<ResponsiveImage
 								keyBase={images[index] ?? ""}
 								alt={`${title}, photo ${index + 1} of ${images.length}`}
 								sizes="(min-width: 768px) 80vw, 100vw"
 								priority
-								className="absolute inset-0 h-full w-full object-contain"
+								className="max-h-[80vh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-bg-soft object-contain shadow-2xl"
 							/>
 							{hasMany ? (
 								<>
@@ -284,7 +239,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 								</>
 							) : null}
 						</div>
-						<figcaption className="mt-3 flex items-center justify-between text-xs text-muted">
+						<figcaption className="mt-3 flex w-full items-center justify-between text-xs text-muted">
 							<span className="t-meta normal-case tracking-normal">{title}</span>
 							{hasMany ? (
 								<span className="tabular-nums">

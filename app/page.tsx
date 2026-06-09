@@ -7,7 +7,6 @@ import { Hero } from "@/components/home/hero";
 import { SectionShell } from "@/components/home/section-shell";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
 import { Reveal } from "@/components/motion/reveal";
-import { Section } from "@/components/ui/section";
 import {
 	getAllArtworks,
 	getAllWorkshops,
@@ -133,14 +132,12 @@ export default async function HomePage() {
 			) : null}
 
 			{recentEvents.length > 0 ? (
-				<Section accent="peacock">
-					<EventsTeaser
-						events={recentEvents}
-						eyebrow="Recent events"
-						title="From the workshop floor"
-						lead="Workshops held, exhibitions, and gatherings with the community."
-					/>
-				</Section>
+				<EventsTeaser
+					events={recentEvents}
+					eyebrow="Recent events"
+					title="From the workshop floor"
+					lead="Workshops held, exhibitions, and gatherings with the community."
+				/>
 			) : null}
 
 			<CustomOrdersTeaser
