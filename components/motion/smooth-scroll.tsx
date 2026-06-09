@@ -7,7 +7,7 @@ const IDLE_FALLBACK_DELAY_MS = 200;
 
 export function SmoothScroll() {
 	useEffect(() => {
-		if (typeof globalThis.window === "undefined") return;
+		if (globalThis.window === undefined) return;
 		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!globalThis.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
