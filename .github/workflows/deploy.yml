@@ -9,6 +9,11 @@ name: Deploy to GitHub Pages
 on:
   workflow_dispatch:
 
+# Least-privilege default for GITHUB_TOKEN; each job re-declares exactly what it
+# needs (build reads the repo, deploy writes Pages + an OIDC token).
+permissions:
+  contents: read
+
 concurrency:
   group: pages
   cancel-in-progress: false

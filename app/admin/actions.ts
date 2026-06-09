@@ -31,11 +31,14 @@ async function requireMaintainer(): Promise<string> {
 }
 
 function slugify(input: string): string {
+	// The first replace collapses every non-alphanumeric run to a single "-",
+	// so a leading/trailing dash is always a lone character: matching one "-"
+	// is enough (no "+", so the regex stays strictly linear).
 	return input
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+		.replace(/^-|-$/g, "");
 }
 
 /** Next 1-based order value for appending a row after the current maximum. */
