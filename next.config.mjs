@@ -19,6 +19,18 @@ const nextConfig = {
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: false,
+	experimental: {
+		// Admin image uploads (artwork, multi-photo events, the artist profile)
+		// travel inside the server action's FormData, so the whole batch counts
+		// against this body limit. The 1 MB default rejects even a single phone
+		// photo. Raised generously so a multi-image event upload goes through.
+		// Note: on Vercel the platform also caps serverless request bodies
+		// (~4.5 MB), so very large batches should upload a few photos at a time;
+		// see docs/IMAGES.md.
+		serverActions: {
+			bodySizeLimit: "25mb",
+		},
+	},
 	// Disable the in-app DevTools panel. It first landed in Next 15.5 where, on
 	// Windows + pnpm, its `segment-explorer-node` module drifted out of sync
 	// with the React Client Manifest after a hot reload and crashed client-

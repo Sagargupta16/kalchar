@@ -1,6 +1,6 @@
 # Database
 
-The catalog (artworks, workshops), the editable lookups (categories, custom-order presets), and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the five-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
+The catalog (artworks, workshops), community events, the editable lookups (categories, custom-order presets), singleton site settings, and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the seven-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
 
 ## Overview
 
@@ -30,7 +30,7 @@ It uses the **neon-http** driver on purpose: it is the fastest path for single, 
 
 ## Schema
 
-Five tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `categories` and `order_presets` are editable lookups; `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK). No hard foreign keys -- `artworks.style` matches `categories.name` by value, kept in sync by the rename action.
+Seven tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `events` is a community-activity entity keyed by a UUID `id` with an ordered `images` jsonb array of R2 key-bases (first = cover); `settings` is a small key-value store for singleton site settings (artist profile image key, home-intro toggle); `categories` and `order_presets` are editable lookups; `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK). No hard foreign keys -- `artworks.style` matches `categories.name` by value, kept in sync by the rename action.
 
 ```mermaid
 %%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
