@@ -25,8 +25,13 @@ export const ARTWORK_IMAGE_BASE = `${r2Base}/artworks`;
  * with the bare origin (the "events/..." path is part of the stored key). */
 export const IMAGE_ORIGIN = r2Base;
 
-/** Width tiers emitted by the sharp pipeline. Mirrors WIDTHS in art-image.tsx. */
-const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
+/**
+ * Width tiers emitted by the sharp pipeline -- the single source of truth.
+ * The pipeline that writes the variants (lib/storage/process-artwork-image.ts)
+ * and every consumer that reads them (ResponsiveImage srcset, this preload
+ * hint) import this, so the set is changed in exactly one place.
+ */
+export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 
 /**
  * Build an AVIF srcset string for an artwork slug, for use in a

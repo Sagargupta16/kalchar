@@ -23,3 +23,12 @@ export function formatEventDate(iso: string): string {
 	if (Number.isNaN(d.getTime())) return "";
 	return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
+
+/**
+ * Format a rupee amount as "INR 12,500" (Indian digit grouping). One
+ * authoritative price format for the gallery, store, lightbox, admin, and the
+ * WhatsApp message, so the currency label and grouping never drift.
+ */
+export function formatInr(amount: number): string {
+	return `INR ${amount.toLocaleString("en-IN")}`;
+}

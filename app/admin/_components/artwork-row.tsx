@@ -4,6 +4,7 @@ import { ImageUp, Palette, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Artwork } from "@/lib/types";
+import { formatInr } from "@/lib/utils";
 import {
 	deleteArtwork,
 	regeneratePalette,
@@ -43,7 +44,7 @@ export function ArtworkRow({
 					</div>
 					<p className="truncate text-xs text-muted">
 						{art.style} · {art.status}
-						{isAvailable && art.priceInr ? ` · INR ${art.priceInr.toLocaleString("en-IN")}` : ""}
+						{isAvailable && art.priceInr ? ` · ${formatInr(art.priceInr)}` : ""}
 					</p>
 					{art.palette && art.palette.length > 0 ? (
 						<div className="mt-1.5 flex gap-1" aria-hidden="true">
@@ -83,7 +84,7 @@ function ArtworkEditModal({
 	const confirm = useConfirm();
 	const [pending, startTransition] = useTransition();
 	const [err, setErr] = useState<string | null>(null);
-	const [ok, setOk] = useState<string | null>(null);
+	const [okMsg, setOkMsg] = useState<string | null>(null);
 
 	// Editable fields
 	const [title, setTitle] = useState(art.title);
@@ -98,13 +99,13 @@ function ArtworkEditModal({
 
 	const styleOptions = categories.includes(art.style) ? categories : [art.style, ...categories];
 
-	function run(fn: () => Promise<void>, okMsg?: string) {
+	function run(fn: () => Promise<void>, successMsg?: string) {
 		setErr(null);
-		setOk(null);
+		setOkMsg(null);
 		startTransition(async () => {
 			try {
 				await fn();
-				if (okMsg) setOk(okMsg);
+				if (successMsg) setOkMsg(successMsg);
 				router.refresh();
 			} catch (e) {
 				setErr(e instanceof Error ? e.message : "Failed.");
@@ -113,18 +114,18 @@ function ArtworkEditModal({
 	}
 
 	const handleSaveAll = () => {
-		const y = year ? Number(year) : null;
-		const p = price === "" ? null : Number(price);
+		const parsedYear = year ? Number(year) : null;
+		const parsedPrice = price === "" ? null : Number(price);
 		run(async () => {
 			await updateArtworkMeta(art.slug, {
 				title: title.trim(),
 				style,
 				medium: medium.trim(),
 				dimensions: dimensions.trim() || null,
-				year: y && !Number.isNaN(y) ? y : null,
+				year: parsedYear && !Number.isNaN(parsedYear) ? parsedYear : null,
 				description: description.trim() || null,
 			});
-			await setPrice(art.slug, p && !Number.isNaN(p) ? p : null);
+			await setPrice(art.slug, parsedPrice && !Number.isNaN(parsedPrice) ? parsedPrice : null);
 			await setStatus(art.slug, status as "archive" | "available" | "sold");
 			if (featured !== art.featured) await setFeatured(art.slug, featured);
 		}, "Saved.");
@@ -275,7 +276,7 @@ function ArtworkEditModal({
 				</div>
 
 				{err ? <p className="mt-4 text-sm text-ruby">{err}</p> : null}
-				{ok ? <p className="mt-4 text-sm text-accent">{ok}</p> : null}
+				{okMsg ? <p className="mt-4 text-sm text-accent">{okMsg}</p> : null}
 			</div>
 
 			{/* Sticky footer: Save / Delete */}

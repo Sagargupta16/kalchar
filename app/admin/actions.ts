@@ -19,6 +19,7 @@ import {
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
+import type { OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, requireMaintainer, slugify } from "./_helpers";
 
 function revalidateCatalog(slug?: string) {
@@ -253,15 +254,13 @@ export async function deleteWorkshop(slug: string): Promise<void> {
 
 // --- Custom-order preset actions ---
 
-type PresetKind = "size" | "budget" | "timeline";
-
 function revalidateOrderPresets() {
 	revalidatePath("/custom-orders");
 	revalidatePath("/admin/presets");
 }
 
 /** Add a preset option of a given kind (size / budget / timeline). */
-export async function createOrderPreset(kind: PresetKind, label: string): Promise<void> {
+export async function createOrderPreset(kind: OrderPresetKind, label: string): Promise<void> {
 	await requireMaintainer();
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("Label is required.");

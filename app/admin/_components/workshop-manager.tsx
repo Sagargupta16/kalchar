@@ -210,11 +210,12 @@ function WorkshopItem({
 					type="button"
 					disabled={pending}
 					onClick={() => {
-						const d = duration ? Number(duration) : null;
+						const parsedDuration = duration ? Number(duration) : null;
 						onSave({
 							title: title.trim(),
 							blurb: blurb.trim(),
-							durationHours: d && !Number.isNaN(d) ? d : null,
+							durationHours:
+								parsedDuration && !Number.isNaN(parsedDuration) ? parsedDuration : null,
 						});
 						setEditing(false);
 					}}

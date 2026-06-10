@@ -12,9 +12,9 @@
  * can store it on the artwork row for layout.
  */
 import sharp from "sharp";
+import { VARIANT_WIDTHS as WIDTHS } from "../image-base";
 import { deleteObjects, uploadObject } from "./r2";
 
-const WIDTHS = [400, 800, 1200, 1600] as const;
 const AVIF_OPTS = { quality: 60, effort: 4, chromaSubsampling: "4:2:0" } as const;
 const WEBP_OPTS = { quality: 72, effort: 4 } as const;
 const JPEG_OPTS = { quality: 82, mozjpeg: true, chromaSubsampling: "4:2:0" } as const;

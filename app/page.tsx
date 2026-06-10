@@ -82,7 +82,7 @@ export default async function HomePage() {
 					href="/work"
 					hrefLabel="See all work"
 				>
-					<ul className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+					<ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
 						{selected.map((art, i) => (
 							<Reveal key={art.slug} as="li" delayMs={i * 60}>
 								<ArtworkCard artwork={art} siblings={selected} priority={i < 3} />
@@ -100,7 +100,7 @@ export default async function HomePage() {
 					href="/work"
 					hrefLabel="Browse the archive"
 				>
-					<ul className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+					<ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
 						{available.map((art, i) => (
 							<Reveal key={art.slug} as="li" delayMs={i * 60}>
 								<ArtworkCard artwork={art} siblings={available} priority={i < 3} />
@@ -124,7 +124,6 @@ export default async function HomePage() {
 			{workshopsPreview.length > 0 ? (
 				<WorkshopsTeaser
 					workshops={workshopsPreview}
-					totalCount={allWorkshops.length}
 					eyebrow={site.sections.workshops?.eyebrow ?? "Workshops"}
 					title={site.sections.workshops?.title ?? "Hands-on sessions"}
 					lead={site.sections.workshops?.lead}

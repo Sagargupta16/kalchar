@@ -39,7 +39,7 @@ export default async function EventsPage() {
 									as="article"
 									eager={i === 0}
 									delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
-									className="overflow-hidden rounded-(--radius-lg) border border-line bg-bg-soft/40 p-5 sm:p-7"
+									className="overflow-hidden rounded-(--radius-md) border border-line bg-bg-soft/40 p-5 sm:p-7"
 								>
 									<header className="mb-5 flex flex-col gap-1.5 sm:mb-6">
 										<div className="flex flex-wrap items-center gap-x-3 gap-y-1">

@@ -24,6 +24,13 @@ Adds an Events section (community activities with multi-image galleries), an art
 ### Fixed
 
 - **Created rows now appear without a manual refresh** ([use-server-synced-list.ts](app/admin/_components/use-server-synced-list.ts)) -- the events, workshops, categories, and presets managers snapshotted their list into `useState` once on mount, so a newly created row only showed after a reload (delete/pin looked instant only because they mutated local state). Extracted a `useServerSyncedList` hook that adopts fresh server data after `router.refresh()` (React's adjust-state-on-prop-change pattern), keeping any reorder baseline in step. The maintainer manager already rendered straight from props, so it was unaffected.
+- **Artwork detail corners were sharp** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- the image plate and the price/CTA panel used `rounded-(--radius-card)`, an undefined token that resolved to no radius. Switched to `--radius-lg` (image plate) and `--radius-md` (panel), matching the rest of the card system, and aligned the plate ring to `/8`.
+
+### Consistency pass (full-project audit)
+
+- **Uniform section symmetry** -- home "Selected work" / "Available now" grids now match the `/work` gallery (2-up on phones, not 1-up) so the same card renders identically across surfaces; the about-teaser intro heading regained `md:text-5xl` to match every sibling teaser; the WorkshopsTeaser card regained its missing `group` (its title-hover colour was dead); home "See all" CTA labels normalised ("See all workshops", dropping the lone count); event panels moved from `--radius-lg` to the `--radius-md` panel convention.
+- **DRY** -- added `formatInr()` to [lib/utils.ts](lib/utils.ts) and routed the 6 inlined `INR <n>.toLocaleString` sites through it; the variant-width tier list is now a single exported `VARIANT_WIDTHS` in [lib/image-base.ts](lib/image-base.ts) (was declared in 3 files); `createOrderPreset` uses the shared `OrderPresetKind` type instead of a duplicate.
+- **Style** -- 3 raw `rounded-md` utilities (rendering 6px instead of the intended token radius) switched to `--radius-sm`/`--radius-md`; renamed cryptic locals (`d`/`y`/`p`/`ok`) to descriptive names.
 
 ### Database
 

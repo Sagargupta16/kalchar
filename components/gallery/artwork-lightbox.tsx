@@ -13,6 +13,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
@@ -183,7 +184,6 @@ function LightboxContent({
 	onTouchStart,
 	onTouchEnd,
 }: Readonly<LightboxContentProps>) {
-	const isAvailable = typeof artwork.priceInr === "number";
 	const whatsappLink = buildWhatsAppLink({
 		phoneE164NoPlus: whatsappPhone,
 		message: buyArtworkMessage(artwork),
@@ -310,11 +310,11 @@ function LightboxContent({
 							{artwork.dimensions ? (
 								<MetaRow icon={<Ruler size={13} />} label="Size" value={artwork.dimensions} />
 							) : null}
-							{isAvailable ? (
+							{typeof artwork.priceInr === "number" ? (
 								<div className="flex items-baseline justify-between border-t border-line/50 pt-3">
 									<dt className="t-meta normal-case tracking-normal">Price</dt>
 									<dd className="text-lg font-semibold tabular-nums text-accent">
-										INR {artwork.priceInr?.toLocaleString("en-IN")}
+										{formatInr(artwork.priceInr)}
 									</dd>
 								</div>
 							) : null}

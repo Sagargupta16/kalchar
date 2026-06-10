@@ -3,7 +3,7 @@
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
-import { IMAGE_ORIGIN } from "@/lib/image-base";
+import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
 
 /**
@@ -33,12 +33,11 @@ interface ResponsiveImageProps {
 	maxWidth?: 400 | 800 | 1200 | 1600;
 }
 
-const WIDTHS = [400, 800, 1200, 1600] as const;
 /** Pre-decode "settle" state the plate animates out of as it loads. */
 const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
-	return WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
+	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
 		.map((w) => `${IMAGE_ORIGIN}/${keyBase}-${w}.${ext} ${w}w`)
 		.join(", ");
 }

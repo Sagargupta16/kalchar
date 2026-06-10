@@ -55,7 +55,11 @@ export function AboutTeaser({
 									{eyebrow}
 								</p>
 							</Reveal>
-							<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl">
+							<Reveal
+								delayMs={80}
+								as="h2"
+								className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl"
+							>
 								{title}
 							</Reveal>
 							<Reveal delayMs={160}>

@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 interface WorkshopsTeaserProps {
 	workshops: readonly Workshop[];
-	totalCount: number;
 	eyebrow: string;
 	title: string;
 	lead?: string;
@@ -20,7 +19,6 @@ interface WorkshopsTeaserProps {
 
 export function WorkshopsTeaser({
 	workshops,
-	totalCount,
 	eyebrow,
 	title,
 	lead,
@@ -48,7 +46,7 @@ export function WorkshopsTeaser({
 				<ul className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 lg:grid-cols-3">
 					{workshops.map((item, i) => (
 						<Reveal key={item.slug} as="li" delayMs={i * 60}>
-							<Card hover className="flex h-full flex-col">
+							<Card hover className="group flex h-full flex-col">
 								<h3 className="t-display text-xl transition-colors group-hover:text-(--section-accent)">
 									{item.title}
 								</h3>
@@ -74,7 +72,7 @@ export function WorkshopsTeaser({
 							href="/workshops"
 							className={cn(buttonVariants({ variant: "secondary" }), "group")}
 						>
-							See all {totalCount} sessions
+							See all workshops
 							<ArrowRight
 								size={14}
 								aria-hidden="true"
