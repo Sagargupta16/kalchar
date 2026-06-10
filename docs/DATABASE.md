@@ -194,7 +194,7 @@ Under SSG these getters run at build time and bake into HTML; the same functions
 
 ## Writes
 
-Catalog mutations live in [app/admin/actions.ts](../app/admin/actions.ts) as server actions. Each one calls `requireMaintainer()` first (defense in depth -- the proxy already gates `/admin`, but actions can be invoked directly), then mutates rows, then calls `revalidateCatalog(slug)` to refresh the affected paths (`/`, `/work`, `/admin`, and `/work/${slug}`). The auth re-check is detailed in [AUTH.md](AUTH.md); the R2 image side in [IMAGES.md](IMAGES.md).
+Mutations are server actions: catalog + lookups + roster in [app/admin/actions.ts](../app/admin/actions.ts), events + profile settings in [app/admin/event-actions.ts](../app/admin/event-actions.ts), with the shared sync helpers (`requireMaintainer`, `slugify`, `nextOrderSql`, `formString`) in [app/admin/_helpers.ts](../app/admin/_helpers.ts). Each action calls `requireMaintainer()` first (defense in depth -- the proxy already gates `/admin`, but actions can be invoked directly), then mutates rows, then calls the relevant `revalidate*` helper to refresh the affected paths. The auth re-check is detailed in [AUTH.md](AUTH.md); the R2 image side in [IMAGES.md](IMAGES.md).
 
 | Action | DB effect | Notes |
 | --- | --- | --- |
@@ -205,7 +205,7 @@ Catalog mutations live in [app/admin/actions.ts](../app/admin/actions.ts) as ser
 | `createArtwork(formData)` | `insert` new row | Slugifies the title, processes the image, computes `order`. |
 | `deleteArtwork(slug)` | `delete` row + R2 variants | Deletes the row, then `deleteArtworkImages(slug)`. |
 
-`createArtwork` does the most work: it slugifies the title via `slugify()` (lowercase, non-alphanumeric runs to `-`, trimmed) (`app/admin/actions.ts:29`), rejects a duplicate slug, runs `processArtworkImage` to derive `aspectRatio`, computes the next sort key as `max(order) + 1` over all rows (`app/admin/actions.ts:113`), and sets `status` to `available` when a valid price is provided, else `archive`. The maintainer-roster actions (`inviteMaintainer`, `revokeMaintainer`) go through [lib/maintainers.ts](../lib/maintainers.ts) rather than touching `artworks`.
+`createArtwork` does the most work: it slugifies the title via `slugify()` in `_helpers.ts` (Unicode-aware -- keeps letters/digits in any script including Devanagari, collapses the rest to `-`, 64-char cap), rejects a duplicate slug, runs `processArtworkImage` to derive `aspectRatio`, assigns the sort key inside the INSERT via `nextOrderSql` (`coalesce(max("order"),0)+1`, so concurrent creates can't collide), sets `status` to `available` when a valid price is provided (else `archive`), and cleans up the already-uploaded R2 variants if the row insert fails. The maintainer-roster actions (`inviteMaintainer`, `revokeMaintainer`) go through [lib/maintainers.ts](../lib/maintainers.ts) rather than touching `artworks`.
 
 ## Migrations and commands
 

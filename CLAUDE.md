@@ -63,7 +63,7 @@ pnpm format
 - **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
 - **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`; `IMAGE_ORIGIN` = the bare R2 origin (events store full key-bases). The gallery `<picture>` srcset, lightbox, and OG metadata read it. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
-- **Admin mutations in `app/admin/actions.ts`** (server actions), each re-checks `isMaintainer` before touching Neon/R2.
+- **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
 - **Data files at repo root** (`data/`). Not under `src/`.
@@ -91,7 +91,8 @@ app/                      Next.js App Router
   work/                   "Artwork" gallery + per-artwork detail (SSG from Neon);
                           in-page "Available to buy" filter is the store surface
   events/                 community events: multi-image galleries (5 inline + "+N more")
-  admin/                  dashboard + events + profile + maintainers (dynamic; actions.ts)
+  admin/                  dashboard + events + profile + maintainers (dynamic;
+                          actions.ts + event-actions.ts + _helpers.ts)
   api/auth/[...nextauth]/ Auth.js v5 Google handler
   sitemap.ts, fonts.ts, globals.css
 auth.ts                   Auth.js config (Google, signIn gated to maintainers)

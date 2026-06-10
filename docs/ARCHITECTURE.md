@@ -112,7 +112,7 @@ flowchart TB
 | --- | --- | --- |
 | **Presentation** | Routes, React components, all rendering. Public pages are async server components that read the seam; admin pages add client islands for interactivity. | `app/`, `components/` |
 | **Domain access** | The read API the UI depends on. `lib/data.ts` is the only place the catalog is read; `getSite()` reads `data/site.json` (static chrome). | `lib/data.ts`, `lib/maintainers.ts`, `lib/image-base.ts`, `lib/whatsapp.ts` |
-| **Mutations** | Write paths, server-only, each re-checking auth. Catalog CRUD + maintainer roster + image processing. | `app/admin/actions.ts`, `lib/storage/process-artwork-image.ts` |
+| **Mutations** | Write paths, server-only, each re-checking auth. Catalog CRUD + events + profile settings + maintainer roster + image processing. | `app/admin/actions.ts`, `app/admin/event-actions.ts`, `lib/storage/process-artwork-image.ts` |
 | **Infrastructure** | The external systems: Postgres via Drizzle, R2 via the S3 SDK, Auth.js session/OAuth. | `lib/db/`, `lib/storage/r2.ts`, `auth.ts`, `proxy.ts` |
 
 ## The data seam
@@ -125,6 +125,7 @@ flowchart LR
     subgraph callers["Callers (server components)"]
         home["app/page.tsx"]
         work["app/work + /[slug]"]
+        eventsPg["app/events"]
         sitemap["app/sitemap.ts"]
         marquee["components/decor/marquee"]
     end
@@ -134,10 +135,12 @@ flowchart LR
         getAvail["getAvailableArtworks()"]
         getFeat["getFeaturedArtwork()"]
         getShop["getAllWorkshops()"]
+        getEvents["getAllEvents() / getRecentEvents()"]
+        getSet["getSetting&lt;T&gt;()"]
         getSite["getSite()  (sync)"]
     end
-    callers --> getAll & getOne & getAvail & getFeat & getShop & getSite
-    getAll & getOne & getAvail & getFeat & getShop -->|await Drizzle| neon[("Neon")]
+    callers --> getAll & getOne & getAvail & getFeat & getShop & getEvents & getSet & getSite
+    getAll & getOne & getAvail & getFeat & getShop & getEvents & getSet -->|await Drizzle| neon[("Neon")]
     getSite -->|import| sj["data/site.json"]
 ```
 
@@ -171,11 +174,11 @@ Public pages are **statically generated** -- at build time, `generateStaticParam
 
 ```text
 app/                      routes (public SSG + /admin dynamic + /api/auth)
-components/               home/ gallery/ layout/ motion/ decor/ ui/ forms/
+components/               home/ gallery/ events/ about/ layout/ motion/ decor/ ui/ forms/
 auth.ts, proxy.ts         Auth.js config + /admin gate
 lib/
   data.ts                 the catalog seam
-  db/                     schema.ts (3 tables) + client.ts (neon-http + Drizzle)
+  db/                     schema.ts (7 tables) + client.ts (neon-http + Drizzle)
   storage/                r2.ts + process-artwork-image.ts
   maintainers.ts          admin allowlist
   image-base.ts           R2 image URL base

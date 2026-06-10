@@ -9,7 +9,7 @@ Auth is configured once in [auth.ts](../auth.ts) via `NextAuth({ ... })`, which 
 | Export | Used by | Purpose |
 | --- | --- | --- |
 | `handlers` (`GET`, `POST`) | [app/api/auth/[...nextauth]/route.ts](../app/api/auth/[...nextauth]/route.ts) | The `/api/auth/*` endpoints (sign-in, callback, sign-out) |
-| `auth` | [proxy.ts](../proxy.ts), `app/admin/layout.tsx`, `app/admin/actions.ts` | Read the current session server-side |
+| `auth` | [proxy.ts](../proxy.ts), `app/admin/layout.tsx`, `app/admin/_helpers.ts` | Read the current session server-side |
 | `signOut` | [app/admin/layout.tsx](../app/admin/layout.tsx) | The "Sign out" form action |
 | `signIn` | (available; flow uses the `/api/auth/signin` redirect directly) | Programmatic sign-in |
 
@@ -20,7 +20,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Google],
   callbacks: {
     async signIn({ profile }) {
-      return await isMaintainer(profile?.email);
+      const email = profile?.email;
+      if (!email) return false;
+      return await isMaintainer(email);
     },
   },
 });
@@ -88,7 +90,7 @@ if (!email || !(await isMaintainer(email))) redirect("/api/auth/signin?callbackU
 
 Gate 2 should already guarantee this, but the layout never trusts that assumption. The layout also sets `robots: { index: false, follow: false }` (`export const metadata` in app/admin/layout.tsx:13) so the admin shell stays out of search indexes.
 
-**Gate 4 -- per-mutation (server actions).** [app/admin/actions.ts](../app/admin/actions.ts) defines `requireMaintainer()` (actions.ts:20-27) and every exported action calls it before touching the database or R2:
+**Gate 4 -- per-mutation (server actions).** [app/admin/_helpers.ts](../app/admin/_helpers.ts) defines `requireMaintainer()`, and every exported action in both action modules ([actions.ts](../app/admin/actions.ts) for the catalog/roster, [event-actions.ts](../app/admin/event-actions.ts) for events + profile settings) calls it before touching the database or R2:
 
 ```ts
 async function requireMaintainer(): Promise<string> {
@@ -108,7 +110,7 @@ Server actions are POST endpoints that can be invoked directly, bypassing the pr
 | 1 | `proxy.ts` | Session exists for `/admin/*` | No |
 | 2 | `auth.ts` `signIn` callback | Email is a maintainer (at login) | Yes |
 | 3 | `app/admin/layout.tsx` | Session + maintainer (per render) | Yes |
-| 4 | `app/admin/actions.ts` `requireMaintainer` | Session + maintainer (per mutation) | Yes |
+| 4 | `app/admin/_helpers.ts` `requireMaintainer` (used by actions.ts + event-actions.ts) | Session + maintainer (per mutation) | Yes |
 
 ## Sign-in flow
 
