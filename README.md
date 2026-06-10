@@ -33,8 +33,8 @@ pnpm db:images    # upload public/artworks/ image variants to R2
 
 | Path | Purpose |
 | --- | --- |
-| [`app/`](app/) | Routes: home single-pager, `/work` + `/work/[slug]`, about / workshops / custom-orders / contact, `/admin` (+ maintainers), `/api/auth`, sitemap. |
-| [`components/`](components/) | `home/` teasers, `gallery/`, `layout/`, `motion/`, `decor/`, `ui/`, `forms/`. |
+| [`app/`](app/) | Routes: home single-pager, `/work` + `/work/[slug]` (Artwork gallery + buy filter), `/events`, about / workshops / custom-orders / contact, `/admin` (artworks, events, profile, maintainers, more), `/api/auth`, sitemap. |
+| [`components/`](components/) | `home/` teasers, `gallery/`, `events/`, `about/`, `layout/`, `motion/`, `decor/`, `ui/`, `forms/`. |
 | [`lib/`](lib/) | `data.ts` (the seam), `db/` (Drizzle schema + client), `storage/` (R2 + image processing), `maintainers.ts`, `image-base.ts`, `types.ts`, `whatsapp.ts`, `site-config.ts`, hooks. |
 | [`auth.ts`](auth.ts), [`proxy.ts`](proxy.ts) | Auth.js config + `/admin` route protection (`proxy.ts` is the Next 16 rename of `middleware.ts`). |
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |

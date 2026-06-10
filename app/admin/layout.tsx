@@ -1,4 +1,4 @@
-import { ExternalLink, LogOut, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -8,6 +8,13 @@ import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
 import { ConfirmProvider } from "./_components/confirm-dialog";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
+
+/** Up to two initials from an email's local part (e.g. "sg85207" -> "SG"). */
+function initials(email: string): string {
+	const local = email.split("@")[0] ?? email;
+	const letters = local.replace(/[^a-zA-Z]/g, "");
+	return (letters.slice(0, 2) || local.slice(0, 2)).toUpperCase();
+}
 
 export default async function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
 	const session = await auth();
@@ -29,15 +36,15 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 							</Link>
 							<AdminNavDesktop />
 						</div>
-						<div className="flex items-center gap-3">
-							<Link
-								href="/"
-								target="_blank"
-								className="hidden items-center gap-1 text-xs text-muted transition-colors hover:text-accent sm:inline-flex"
+						<div className="flex items-center gap-2.5">
+							<span
+								role="img"
+								title={email}
+								aria-label={`Signed in as ${email}`}
+								className="grid h-8 w-8 place-items-center rounded-full bg-bg-muted text-[0.65rem] font-semibold uppercase tracking-wide text-ink ring-1 ring-line"
 							>
-								View site <ExternalLink size={11} />
-							</Link>
-							<span className="hidden text-xs text-muted lg:inline">{email}</span>
+								{initials(email)}
+							</span>
 							<form
 								action={async () => {
 									"use server";
@@ -49,7 +56,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 									className="inline-flex h-8 items-center gap-1.5 rounded-(--radius-sm) border border-line bg-bg px-3 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
 								>
 									<LogOut size={12} />
-									<span className="hidden sm:inline">Sign out</span>
+									<span>Sign out</span>
 								</button>
 							</form>
 						</div>

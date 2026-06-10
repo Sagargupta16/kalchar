@@ -10,12 +10,15 @@ import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./co
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
+	// Adopt fresh server data after a create (router.refresh), resetting the
+	// reorder baseline to match so a new row doesn't read as an unsaved move.
+	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
 	const { dragging, over, dragProps } = useReorder(items, setItems);
 
@@ -126,7 +129,7 @@ function CreateWorkshopForm({
 					className={`${adminField} sm:col-span-2`}
 				/>
 			</div>
-			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-3`}>
+			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
 				<Plus size={14} />
 				Add workshop
 			</button>
@@ -207,11 +210,12 @@ function WorkshopItem({
 					type="button"
 					disabled={pending}
 					onClick={() => {
-						const d = duration ? Number(duration) : null;
+						const parsedDuration = duration ? Number(duration) : null;
 						onSave({
 							title: title.trim(),
 							blurb: blurb.trim(),
-							durationHours: d && !Number.isNaN(d) ? d : null,
+							durationHours:
+								parsedDuration && !Number.isNaN(parsedDuration) ? parsedDuration : null,
 						});
 						setEditing(false);
 					}}

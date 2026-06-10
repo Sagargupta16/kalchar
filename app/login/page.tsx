@@ -57,7 +57,7 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 				</p>
 
 				{error ? (
-					<p className="mt-6 rounded-md border border-ruby/40 bg-bg-soft px-4 py-3 text-sm text-ruby">
+					<p className="mt-6 rounded-(--radius-md) border border-ruby/40 bg-bg-soft px-4 py-3 text-sm text-ruby">
 						That account is not on the maintainer list. Ask an existing maintainer to add you, then
 						try again.
 					</p>

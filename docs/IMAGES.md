@@ -1,6 +1,6 @@
 # Images and Storage
 
-How artwork images are stored, processed, and served. Masters live in Cloudflare R2; a sharp pipeline derives a fixed set of responsive variants on upload; the gallery serves them through a hand-rolled `<picture>` straight off Cloudflare's CDN with no server or DB at request time. This is the image layer of [ARCHITECTURE.md](ARCHITECTURE.md); for the schema that carries the per-row image metadata see [DATABASE.md](DATABASE.md), and for who is allowed to upload see [AUTH.md](AUTH.md).
+How catalog images (artworks, event photos, the artist profile photo) are stored, processed, and served. Masters live in Cloudflare R2; one sharp pipeline (`processImageVariants`, shared by artworks under `artworks/<slug>`, events under `events/<id>/<imageId>`, and the profile photo under `profile/artist`) derives a fixed set of responsive variants on upload; the site serves them through a hand-rolled `<picture>` (`ResponsiveImage`, wrapped by `ArtImage` for artworks) straight off Cloudflare's CDN with no server or DB at request time. This is the image layer of [ARCHITECTURE.md](ARCHITECTURE.md); for the schema that carries the per-row image metadata see [DATABASE.md](DATABASE.md), and for who is allowed to upload see [AUTH.md](AUTH.md).
 
 ## Overview
 

@@ -59,9 +59,11 @@ pnpm format
 
 ### Architecture
 
-- **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file.
-- **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`. The gallery `<picture>` srcset, lightbox, and OG metadata all read it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
-- **Admin mutations in `app/admin/actions.ts`** (server actions), each re-checks `isMaintainer` before touching Neon/R2.
+- **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`/`getEventById`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
+- **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
+- **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
+- **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`; `IMAGE_ORIGIN` = the bare R2 origin (events store full key-bases). The gallery `<picture>` srcset, lightbox, and OG metadata read it. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
+- **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
 - **Data files at repo root** (`data/`). Not under `src/`.
@@ -86,19 +88,24 @@ app/                      Next.js App Router
   layout.tsx              root layout, fonts, providers, lightbox provider
   page.tsx                home single-pager (composes components/home/*)
   about/, workshops/, custom-orders/, contact/
-  work/                   gallery + per-artwork detail (SSG from Neon)
-  admin/                  dashboard + maintainers (dynamic; actions.ts server actions)
+  work/                   "Artwork" gallery + per-artwork detail (SSG from Neon);
+                          in-page "Available to buy" filter is the store surface
+  events/                 community events: multi-image galleries (5 inline + "+N more")
+  admin/                  dashboard + events + profile + maintainers (dynamic;
+                          actions.ts + event-actions.ts + _helpers.ts)
   api/auth/[...nextauth]/ Auth.js v5 Google handler
   sitemap.ts, fonts.ts, globals.css
 auth.ts                   Auth.js config (Google, signIn gated to maintainers)
 proxy.ts                  gates /admin -> sign-in (Next 16 rename of middleware.ts)
-components/               home/ layout/ gallery/ forms/ motion/ decor/ ui/
+components/               home/ layout/ gallery/ events/ about/ forms/ motion/ decor/ ui/
 lib/
   data.ts                 the data seam (Neon via Drizzle; getSite reads site.json)
-  db/                     schema.ts (artworks/workshops/maintainers) + client.ts
-  storage/                r2.ts + process-artwork-image.ts (sharp variants -> R2)
+  db/                     schema.ts (artworks/workshops/events/settings/categories/
+                          order_presets/maintainers) + client.ts
+  storage/                r2.ts + process-artwork-image.ts (processImageVariants shared
+                          by artworks + events; sharp variants -> R2)
   maintainers.ts          admin allowlist (list/add/remove, root-protected)
-  image-base.ts           ARTWORK_IMAGE_BASE (R2 public URL)
+  image-base.ts           ARTWORK_IMAGE_BASE + IMAGE_ORIGIN (R2 public URL)
   types.ts, utils.ts, whatsapp.ts, site-config.ts, hooks/
 data/
   site.json               brand/nav/copy, read at runtime

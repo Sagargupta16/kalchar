@@ -2,6 +2,41 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.24.0 (2026-06-09)
+
+Adds an Events section (community activities with multi-image galleries), an artist profile photo, and home-page previews for both. The "Work" section is renamed "Artwork" with an in-page "Available to buy" filter, so the shop is a lens over the catalog rather than a separate surface. Verified with lint (0 warnings), typecheck, a full `next build` (39 routes), and a browser pass over the new flows (create/edit/delete an event with 7 photos, profile upload, home intro toggle).
+
+### Added
+
+- **Events section** ([app/events/page.tsx](app/events/page.tsx), [components/events/event-gallery.tsx](components/events/event-gallery.tsx)) -- public `/events` page (peacock accent) for workshops held, exhibitions, classes, and gatherings. Each event is a distinct card with an Instagram-style uniform photo grid (2 cols on phones, 3 from sm up); a "+N more" tile opens an image-only lightbox (arrows + keyboard + swipe). Images are shown whole, never cropped (`object-contain`) -- the artist's framing is preserved, only the size scales -- and the lightbox sizes each photo to its own ratio. Events sort newest-first, with any event pinnable to the top. Graceful empty state. Added to the header nav, footer Explore, and a home "Recent events" preview grid.
+- **Events admin** ([app/admin/events/page.tsx](app/admin/events/page.tsx), [app/admin/_components/events-manager.tsx](app/admin/_components/events-manager.tsx)) -- full CRUD with a multi-file photo picker, a drag-to-reorder thumbnail grid (first photo = cover), per-photo remove, add-more, a meta editor (title, date, category, description), and a pin toggle (events otherwise sort by date, so there's no manual event reordering to manage).
+- **Artist profile** ([app/admin/profile/page.tsx](app/admin/profile/page.tsx), [components/about/artist-avatar.tsx](components/about/artist-avatar.tsx)) -- upload/remove an artist photo and toggle "show intro on home" from `/admin/profile`. The photo appears on the About page aside and (when the toggle is on) in an avatar + intro layout on the home About teaser. Falls back to a clean monogram (the brand devanagari mark) when no photo is set.
+- **"Available to buy" filter** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- a vermillion-accented chip in the Artwork gallery that narrows to priced, unsold pieces (the store, as a filter rather than a separate page). Hidden when nothing is for sale. Sold pieces keep their badge under "All" and drop out of the buy filter.
+
+### Changed
+
+- **"Work" renamed to "Artwork"** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx), [data/site.json](data/site.json)) -- nav label, page title, hero/404 CTAs, and detail back-link now say "Artwork". URL stays `/work` (no redirect churn, keeps shared links + SEO).
+- **Image pipeline generalized** ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts), [components/gallery/responsive-image.tsx](components/gallery/responsive-image.tsx)) -- extracted `processImageVariants` (artworks + events share one sharp -> R2 variant flow) and `ResponsiveImage` (the `<picture>`/srcset/settle logic; `ArtImage` now wraps it). No behavior change for artworks.
+- **Admin top bar tightened** ([app/admin/layout.tsx](app/admin/layout.tsx)) -- dropped "View site"; the signed-in email is now a compact initials badge (hover for the full address), so "Sign out" always fits.
+- **Full-width admin create buttons** ([upload-form.tsx](app/admin/_components/upload-form.tsx), [events-manager.tsx](app/admin/_components/events-manager.tsx), [workshop-manager.tsx](app/admin/_components/workshop-manager.tsx)) -- "Add piece", "Add event", and "Add workshop" now span the form width (centered) instead of sitting left-aligned, reading as the form's primary action.
+- **Server Actions body limit** ([next.config.mjs](next.config.mjs)) -- raised `serverActions.bodySizeLimit` to 25mb so multi-photo event uploads (and artwork/profile uploads) aren't rejected by Next's 1MB default.
+
+### Fixed
+
+- **Created rows now appear without a manual refresh** ([use-server-synced-list.ts](app/admin/_components/use-server-synced-list.ts)) -- the events, workshops, categories, and presets managers snapshotted their list into `useState` once on mount, so a newly created row only showed after a reload (delete/pin looked instant only because they mutated local state). Extracted a `useServerSyncedList` hook that adopts fresh server data after `router.refresh()` (React's adjust-state-on-prop-change pattern), keeping any reorder baseline in step. The maintainer manager already rendered straight from props, so it was unaffected.
+- **Artwork detail corners were sharp** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- the image plate and the price/CTA panel used `rounded-(--radius-card)`, an undefined token that resolved to no radius. Switched to `--radius-lg` (image plate) and `--radius-md` (panel), matching the rest of the card system, and aligned the plate ring to `/8`.
+- **Bug-hunt pass (whole repo)** -- `/events` added to the sitemap (was missing, so the page never reached search engines). A failed photo no longer poisons the event lightbox: `ResponsiveImage` resets its error/settle state when pointed at a new image (one 404 used to show the placeholder for every photo after it). Devanagari and accented titles now slugify correctly ([\_helpers.ts](app/admin/_helpers.ts) keeps Unicode letters + combining marks, strips emoji glue, caps at 64 chars) instead of failing with "Title must contain letters or numbers." Creates assign `order` inside the INSERT (`nextOrderSql`) so two concurrent creates can't mint the same position. R2 uploads are cleaned up if the DB insert fails (no orphaned variants), and bulk deletes chunk at the S3 1000-key limit. Root-level `proxy.ts`/`drizzle.config.ts` are now covered by `pnpm typecheck` (tsconfig missed them). The Google sign-in callback explicitly denies a missing profile email.
+
+### Consistency pass (full-project audit)
+
+- **Uniform section symmetry** -- home "Selected work" / "Available now" grids now match the `/work` gallery (2-up on phones, not 1-up) so the same card renders identically across surfaces; the about-teaser intro heading regained `md:text-5xl` to match every sibling teaser; the WorkshopsTeaser card regained its missing `group` (its title-hover colour was dead); home "See all" CTA labels normalised ("See all workshops", dropping the lone count); event panels moved from `--radius-lg` to the `--radius-md` panel convention.
+- **DRY** -- added `formatInr()` to [lib/utils.ts](lib/utils.ts) and routed the 6 inlined `INR <n>.toLocaleString` sites through it; the variant-width tier list is now a single exported `VARIANT_WIDTHS` in [lib/image-base.ts](lib/image-base.ts) (was declared in 3 files); `createOrderPreset` uses the shared `OrderPresetKind` type instead of a duplicate.
+- **Style** -- 3 raw `rounded-md` utilities (rendering 6px instead of the intended token radius) switched to `--radius-sm`/`--radius-md`; renamed cryptic locals (`d`/`y`/`p`/`ok`) to descriptive names.
+
+### Database
+
+- **`events` + `settings` tables** ([lib/db/schema.ts](lib/db/schema.ts)) -- `events` (id, title, description, eventDate, category, ordered `images` jsonb, featured, order) and a small key-value `settings` table (profile image key + home-intro toggle). Pushed to Neon via `db:push`.
+
 ## 1.23.1 (2026-06-09)
 
 Repo + docs hygiene. No app code, no behavior change.

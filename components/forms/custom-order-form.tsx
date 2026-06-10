@@ -189,7 +189,7 @@ export function CustomOrderForm({
 					</p>
 				) : null}
 				{sent && !error ? (
-					<div className="flex items-start gap-3 rounded-md border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
+					<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
 						<span
 							className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
 							aria-hidden="true"
@@ -236,7 +236,7 @@ export function CustomOrderForm({
 /* ----------------------------- helpers ----------------------------- */
 
 const inputClass =
-	"block w-full min-h-12 rounded-md border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";
+	"block w-full min-h-12 rounded-(--radius-sm) border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";
 
 // Selects drop the OS chevron (appearance-none) so they match the cream/ink
 // fields; a lucide chevron is layered in via the SelectField wrapper. Extra

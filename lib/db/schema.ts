@@ -51,6 +51,44 @@ export const workshops = pgTable("workshops", {
 });
 
 /**
+ * Community activities: workshops held, classes, exhibitions, meetups. Distinct
+ * from `workshops` (the sessions offered) -- events are things that happened,
+ * each a small photo gallery.
+ *
+ * `images` is an ordered list of R2 key-bases (e.g. "events/<id>/<imageId>"),
+ * one per photo. The variant pipeline writes "<keyBase>-<w>.<ext>" siblings, so
+ * the public gallery's <picture> srcset resolves the same way artworks do. The
+ * first entry is the cover. Storing key-bases (not indices) keeps reorder and
+ * per-image delete trivial -- no re-indexing.
+ */
+export const events = pgTable("events", {
+	id: text("id").primaryKey(),
+	title: text("title").notNull(),
+	description: text("description"),
+	/** When the event took place. */
+	eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
+	/** Optional grouping label (e.g. "Exhibition", "Workshop", "Meetup"). */
+	category: text("category"),
+	/** Ordered R2 key-bases, one per photo. First is the cover. */
+	images: jsonb("images").$type<string[]>().notNull().default([]),
+	featured: boolean("featured").notNull().default(false),
+	/** Sort key, ascending. Lower = earlier in the list. */
+	order: integer("order").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Small key-value store for singleton site settings the maintainer can edit
+ * without a schema change -- the artist profile image key and the
+ * "show intro on home" toggle. One row per setting, value is jsonb so a setting
+ * can hold a string, boolean, or small object.
+ */
+export const settings = pgTable("settings", {
+	key: text("key").primaryKey(),
+	value: jsonb("value").$type<unknown>(),
+});
+
+/**
  * Custom-order form dropdown options. One row per option, discriminated by
  * `kind` ("size" | "budget" | "timeline"), so all three dropdowns are one
  * table and a new kind needs no schema change. Editable from /admin so the
@@ -98,6 +136,10 @@ export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;
 export type WorkshopRow = typeof workshops.$inferSelect;
 export type WorkshopInsert = typeof workshops.$inferInsert;
+export type EventRow = typeof events.$inferSelect;
+export type EventInsert = typeof events.$inferInsert;
+export type SettingRow = typeof settings.$inferSelect;
+export type SettingInsert = typeof settings.$inferInsert;
 export type OrderPresetRow = typeof orderPresets.$inferSelect;
 export type OrderPresetInsert = typeof orderPresets.$inferInsert;
 export type CategoryRow = typeof categories.$inferSelect;

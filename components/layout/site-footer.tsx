@@ -1,4 +1,13 @@
-import { Brush, Frame, Lock, type LucideIcon, Mail, Palette, Users } from "lucide-react";
+import {
+	Brush,
+	CalendarDays,
+	Frame,
+	Lock,
+	type LucideIcon,
+	Mail,
+	Palette,
+	Users,
+} from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 import { Reveal } from "@/components/motion/reveal";
@@ -18,6 +27,7 @@ const ICON_FOR_KEY: Record<string, BrandIcon> = {
 // Falls back to a neutral dot when a new nav item has no mapping yet.
 const NAV_ICON: Record<string, LucideIcon> = {
 	work: Frame,
+	events: CalendarDays,
 	about: Palette,
 	workshops: Users,
 	"custom-orders": Brush,

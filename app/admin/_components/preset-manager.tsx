@@ -14,6 +14,7 @@ import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 const GROUPS: Array<{ kind: OrderPresetKind; title: string; hint: string }> = [
 	{ kind: "size", title: "Sizes", hint: "e.g. A4 (8 x 12 inches)" },
@@ -50,8 +51,10 @@ function PresetGroup({
 }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [items, setItems] = useState(initial);
 	const [baseline, setBaseline] = useState(initial);
+	// Adopt fresh server data after a create (router.refresh), keeping the
+	// reorder baseline in step.
+	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [newLabel, setNewLabel] = useState("");
 	const { dragging, over, dragProps } = useReorder(items, setItems);
 

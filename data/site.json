@@ -21,7 +21,8 @@
 		}
 	},
 	"nav": [
-		{ "label": "Work", "href": "#work" },
+		{ "label": "Artwork", "href": "#work" },
+		{ "label": "Events", "href": "/events" },
 		{ "label": "About", "href": "#about" },
 		{ "label": "Workshops", "href": "#workshops" },
 		{ "label": "Custom Orders", "href": "#custom-orders" },
@@ -81,6 +82,7 @@
 		"about": {
 			"eyebrow": "About",
 			"title": "On preserving folk traditions through practice",
+			"intro": "I am an Indian folk artist and workshop facilitator working in Madhubani, Pichwai, Lippan, Gond and texture art. I paint, and I teach these centuries-old forms to new hands.",
 			"paragraphs": [
 				"I am an Indian folk artist and workshop facilitator. I work in Madhubani, Pichwai, Lippan, Gond and texture art, forms whose grammar is centuries old and still evolving in the hands of the people who keep them alive.",
 				"My practice moves between two rooms: a quiet one where I paint, and a louder one where I teach. The studio side is where I sit with a single piece for as long as it asks. The workshop side is where the same forms meet new hands (children, beginners, professionals on a Saturday afternoon) and become useful in a different way."

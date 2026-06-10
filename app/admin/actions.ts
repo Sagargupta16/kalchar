@@ -1,6 +1,5 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 /**
  * Admin server actions. Every action re-checks the session (defense in depth --
  * the proxy already gates /admin, but actions can be invoked directly) and
@@ -10,47 +9,18 @@ import { eq } from "drizzle-orm";
  * mutations touch the roster. All revalidate the affected paths so the public
  * gallery and the admin list reflect changes immediately.
  */
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
-import { addMaintainer, isMaintainer, removeMaintainer } from "@/lib/maintainers";
+import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
 import {
 	deleteArtworkImages,
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
-
-async function requireMaintainer(): Promise<string> {
-	const session = await auth();
-	const email = session?.user?.email;
-	if (!email || !(await isMaintainer(email))) {
-		throw new Error("Not authorized.");
-	}
-	return email.toLowerCase();
-}
-
-function slugify(input: string): string {
-	// The first replace collapses every non-alphanumeric run to a single "-",
-	// so a leading/trailing dash is always a lone character: matching one "-"
-	// is enough (no "+", so the regex stays strictly linear).
-	return input
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "");
-}
-
-/** Next 1-based order value for appending a row after the current maximum. */
-function getNextOrder(rows: ReadonlyArray<{ order: number }>): number {
-	return rows.reduce((max, row) => Math.max(max, row.order), 0) + 1;
-}
-
-/** Read a FormData field as a string, defaulting to "" for missing/file values. */
-function formString(formData: FormData, key: string): string {
-	const value = formData.get(key);
-	return typeof value === "string" ? value : "";
-}
+import type { OrderPresetKind } from "@/lib/types";
+import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 
 function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
@@ -155,24 +125,32 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	const priceInr = priceRaw ? Number(priceRaw) : null;
 	const yearRaw = formData.get("year");
 	const year = yearRaw ? Number(yearRaw) : null;
-	const orderRows = await db.select({ order: artworks.order }).from(artworks);
 
-	await db.insert(artworks).values({
-		slug,
-		title,
-		style,
-		medium,
-		image: `${slug}.jpg`,
-		aspectRatio,
-		order: getNextOrder(orderRows),
-		featured: false,
-		description: formString(formData, "description").trim() || null,
-		dimensions: formString(formData, "dimensions").trim() || null,
-		year: year && !Number.isNaN(year) ? year : null,
-		palette: palette.length > 0 ? palette : null,
-		priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
-		status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
-	});
+	try {
+		await db.insert(artworks).values({
+			slug,
+			title,
+			style,
+			medium,
+			image: `${slug}.jpg`,
+			aspectRatio,
+			// Computed inside the INSERT so two concurrent creates can't mint the
+			// same order (no read-then-write window).
+			order: nextOrderSql(artworks),
+			featured: false,
+			description: formString(formData, "description").trim() || null,
+			dimensions: formString(formData, "dimensions").trim() || null,
+			year: year && !Number.isNaN(year) ? year : null,
+			palette: palette.length > 0 ? palette : null,
+			priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
+			status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
+		});
+	} catch (err) {
+		// The variants were already uploaded; if the row insert fails (concurrent
+		// duplicate slug, network), remove them so R2 doesn't accumulate orphans.
+		await deleteArtworkImages(slug).catch(() => {});
+		throw err;
+	}
 
 	revalidateCatalog(slug);
 	return { slug };
@@ -237,14 +215,13 @@ export async function createWorkshop(formData: FormData): Promise<{ slug: string
 
 	const durationRaw = formString(formData, "durationHours");
 	const durationHours = durationRaw ? Number(durationRaw) : null;
-	const orderRows = await db.select({ order: workshops.order }).from(workshops);
 
 	await db.insert(workshops).values({
 		slug,
 		title,
 		blurb,
 		durationHours: durationHours && !Number.isNaN(durationHours) ? durationHours : null,
-		order: getNextOrder(orderRows),
+		order: nextOrderSql(workshops),
 	});
 
 	revalidateWorkshops();
@@ -284,15 +261,13 @@ export async function deleteWorkshop(slug: string): Promise<void> {
 
 // --- Custom-order preset actions ---
 
-type PresetKind = "size" | "budget" | "timeline";
-
 function revalidateOrderPresets() {
 	revalidatePath("/custom-orders");
 	revalidatePath("/admin/presets");
 }
 
 /** Add a preset option of a given kind (size / budget / timeline). */
-export async function createOrderPreset(kind: PresetKind, label: string): Promise<void> {
+export async function createOrderPreset(kind: OrderPresetKind, label: string): Promise<void> {
 	await requireMaintainer();
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("Label is required.");
@@ -359,8 +334,7 @@ export async function createCategory(name: string): Promise<void> {
 		.from(categories)
 		.where(eq(categories.id, id));
 	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
-	const orderRows = await db.select({ order: categories.order }).from(categories);
-	await db.insert(categories).values({ id, name: trimmed, order: getNextOrder(orderRows) });
+	await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
 	revalidateCategories();
 }
 

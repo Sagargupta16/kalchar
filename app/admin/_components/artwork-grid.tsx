@@ -3,7 +3,7 @@
 import { GripVertical, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatInr } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { ReorderBar } from "./reorder-bar";
@@ -90,7 +90,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							<p className="text-xs text-muted">
 								{art.style}
 								{art.status !== "archive" ? ` · ${art.status}` : ""}
-								{art.priceInr ? ` · INR ${art.priceInr.toLocaleString("en-IN")}` : ""}
+								{art.priceInr ? ` · ${formatInr(art.priceInr)}` : ""}
 							</p>
 						</div>
 						{art.featured ? <Star size={14} className="shrink-0 fill-accent text-accent" /> : null}
