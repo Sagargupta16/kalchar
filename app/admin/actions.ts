@@ -20,7 +20,7 @@ import {
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
 import type { OrderPresetKind } from "@/lib/types";
-import { formString, getNextOrder, requireMaintainer, slugify } from "./_helpers";
+import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 
 function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
@@ -125,24 +125,32 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	const priceInr = priceRaw ? Number(priceRaw) : null;
 	const yearRaw = formData.get("year");
 	const year = yearRaw ? Number(yearRaw) : null;
-	const orderRows = await db.select({ order: artworks.order }).from(artworks);
 
-	await db.insert(artworks).values({
-		slug,
-		title,
-		style,
-		medium,
-		image: `${slug}.jpg`,
-		aspectRatio,
-		order: getNextOrder(orderRows),
-		featured: false,
-		description: formString(formData, "description").trim() || null,
-		dimensions: formString(formData, "dimensions").trim() || null,
-		year: year && !Number.isNaN(year) ? year : null,
-		palette: palette.length > 0 ? palette : null,
-		priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
-		status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
-	});
+	try {
+		await db.insert(artworks).values({
+			slug,
+			title,
+			style,
+			medium,
+			image: `${slug}.jpg`,
+			aspectRatio,
+			// Computed inside the INSERT so two concurrent creates can't mint the
+			// same order (no read-then-write window).
+			order: nextOrderSql(artworks),
+			featured: false,
+			description: formString(formData, "description").trim() || null,
+			dimensions: formString(formData, "dimensions").trim() || null,
+			year: year && !Number.isNaN(year) ? year : null,
+			palette: palette.length > 0 ? palette : null,
+			priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
+			status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
+		});
+	} catch (err) {
+		// The variants were already uploaded; if the row insert fails (concurrent
+		// duplicate slug, network), remove them so R2 doesn't accumulate orphans.
+		await deleteArtworkImages(slug).catch(() => {});
+		throw err;
+	}
 
 	revalidateCatalog(slug);
 	return { slug };
@@ -207,14 +215,13 @@ export async function createWorkshop(formData: FormData): Promise<{ slug: string
 
 	const durationRaw = formString(formData, "durationHours");
 	const durationHours = durationRaw ? Number(durationRaw) : null;
-	const orderRows = await db.select({ order: workshops.order }).from(workshops);
 
 	await db.insert(workshops).values({
 		slug,
 		title,
 		blurb,
 		durationHours: durationHours && !Number.isNaN(durationHours) ? durationHours : null,
-		order: getNextOrder(orderRows),
+		order: nextOrderSql(workshops),
 	});
 
 	revalidateWorkshops();
@@ -327,8 +334,7 @@ export async function createCategory(name: string): Promise<void> {
 		.from(categories)
 		.where(eq(categories.id, id));
 	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
-	const orderRows = await db.select({ order: categories.order }).from(categories);
-	await db.insert(categories).values({ id, name: trimmed, order: getNextOrder(orderRows) });
+	await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
 	revalidateCategories();
 }
 

@@ -54,6 +54,17 @@ export function ResponsiveImage({
 	const [loaded, setLoaded] = useState(false);
 	const reduceMotion = usePrefersReducedMotion();
 
+	// Reset per image: when the same mounted instance is pointed at a new
+	// keyBase (lightbox arrows, hero shuffle), a previous photo's failure or
+	// settle state must not leak onto it -- otherwise one 404 would show the
+	// placeholder for every photo after it. Render-time adjust-state pattern.
+	const [seenKeyBase, setSeenKeyBase] = useState(keyBase);
+	if (seenKeyBase !== keyBase) {
+		setSeenKeyBase(keyBase);
+		setFailed(false);
+		setLoaded(false);
+	}
+
 	if (failed) {
 		return (
 			<div

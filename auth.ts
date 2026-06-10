@@ -24,7 +24,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 	},
 	callbacks: {
 		async signIn({ profile }) {
-			return await isMaintainer(profile?.email);
+			// Explicit deny when the provider returns no email (scope change,
+			// provider quirk) -- never let that case reach the roster lookup.
+			const email = profile?.email;
+			if (!email) return false;
+			return await isMaintainer(email);
 		},
 	},
 });

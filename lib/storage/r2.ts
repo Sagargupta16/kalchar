@@ -49,15 +49,20 @@ export async function uploadObject(
 	return `${PUBLIC_BASE_URL}/${key}`;
 }
 
+/** S3 DeleteObjects accepts at most 1000 keys per request; chunk above that. */
+const DELETE_BATCH_MAX = 1000;
+
 /** Delete a batch of objects by key. No-op on an empty list. */
 export async function deleteObjects(keys: string[]): Promise<void> {
-	if (keys.length === 0) return;
-	await r2.send(
-		new DeleteObjectsCommand({
-			Bucket: BUCKET,
-			Delete: { Objects: keys.map((Key) => ({ Key })) },
-		}),
-	);
+	for (let i = 0; i < keys.length; i += DELETE_BATCH_MAX) {
+		const batch = keys.slice(i, i + DELETE_BATCH_MAX);
+		await r2.send(
+			new DeleteObjectsCommand({
+				Bucket: BUCKET,
+				Delete: { Objects: batch.map((Key) => ({ Key })) },
+			}),
+		);
+	}
 }
 
 export const r2Config = { bucket: BUCKET, publicBaseUrl: PUBLIC_BASE_URL };

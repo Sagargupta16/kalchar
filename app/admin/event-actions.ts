@@ -16,7 +16,7 @@ import {
 	processEventImage,
 	processImageVariants,
 } from "@/lib/storage/process-artwork-image";
-import { formString, getNextOrder, requireMaintainer } from "./_helpers";
+import { formString, nextOrderSql, requireMaintainer } from "./_helpers";
 
 // --- Event actions ---
 
@@ -57,21 +57,29 @@ export async function createEvent(formData: FormData): Promise<{ id: string }> {
 	// Upload sequentially so a partial failure leaves a contiguous set, and the
 	// stored order matches the order the maintainer picked them.
 	const images: string[] = [];
-	for (const file of files) {
-		images.push(await uploadEventPhoto(id, file));
-	}
+	try {
+		for (const file of files) {
+			images.push(await uploadEventPhoto(id, file));
+		}
 
-	const orderRows = await db.select({ order: events.order }).from(events);
-	await db.insert(events).values({
-		id,
-		title,
-		description: formString(formData, "description").trim() || null,
-		eventDate: parseEventDate(formData),
-		category: formString(formData, "category").trim() || null,
-		images,
-		featured: false,
-		order: getNextOrder(orderRows),
-	});
+		await db.insert(events).values({
+			id,
+			title,
+			description: formString(formData, "description").trim() || null,
+			eventDate: parseEventDate(formData),
+			category: formString(formData, "category").trim() || null,
+			images,
+			featured: false,
+			// Computed inside the INSERT so two concurrent creates can't mint the
+			// same order (no read-then-write window).
+			order: nextOrderSql(events),
+		});
+	} catch (err) {
+		// Photos already uploaded for this event are unreferenced if the insert
+		// (or a later upload) fails -- remove them so R2 doesn't accumulate orphans.
+		if (images.length > 0) await deleteEventImages(images).catch(() => {});
+		throw err;
+	}
 
 	revalidateEvents(id);
 	return { id };
@@ -107,14 +115,19 @@ export async function addEventImages(id: string, formData: FormData): Promise<vo
 	const [row] = await db.select().from(events).where(eq(events.id, id));
 	if (!row) throw new Error("Event not found.");
 	const added: string[] = [];
-	for (const file of formImages(formData)) {
-		added.push(await uploadEventPhoto(id, file));
+	try {
+		for (const file of formImages(formData)) {
+			added.push(await uploadEventPhoto(id, file));
+		}
+		if (added.length === 0) return;
+		await db
+			.update(events)
+			.set({ images: [...(row.images ?? []), ...added] })
+			.where(eq(events.id, id));
+	} catch (err) {
+		if (added.length > 0) await deleteEventImages(added).catch(() => {});
+		throw err;
 	}
-	if (added.length === 0) return;
-	await db
-		.update(events)
-		.set({ images: [...(row.images ?? []), ...added] })
-		.where(eq(events.id, id));
 	revalidateEvents(id);
 }
 
