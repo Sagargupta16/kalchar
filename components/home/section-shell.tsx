@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ export function SectionShell({
 				<header className="max-w-2xl">
 					<Reveal>
 						<p className="t-eyebrow flex items-center gap-2">
-							<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+							<AccentRule />
 							{eyebrow}
 						</p>
 					</Reveal>

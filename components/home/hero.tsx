@@ -98,7 +98,7 @@ export function Hero({
 						<Reveal eager delayMs={260}>
 							<div className="mt-8 flex flex-wrap gap-3">
 								<Link href="/work" className={buttonVariants({ variant: "primary" })}>
-									See the work
+									See the artwork
 								</Link>
 								<Link href="/custom-orders" className={buttonVariants({ variant: "secondary" })}>
 									Order a custom piece

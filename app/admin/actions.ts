@@ -1,6 +1,5 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 /**
  * Admin server actions. Every action re-checks the session (defense in depth --
  * the proxy already gates /admin, but actions can be invoked directly) and
@@ -10,33 +9,18 @@ import { eq } from "drizzle-orm";
  * mutations touch the roster. All revalidate the affected paths so the public
  * gallery and the admin list reflect changes immediately.
  */
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
-import { addMaintainer, isMaintainer, removeMaintainer } from "@/lib/maintainers";
+import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
 import {
 	deleteArtworkImages,
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
-
-async function requireMaintainer(): Promise<string> {
-	const session = await auth();
-	const email = session?.user?.email;
-	if (!email || !(await isMaintainer(email))) {
-		throw new Error("Not authorized.");
-	}
-	return email.toLowerCase();
-}
-
-function slugify(input: string): string {
-	return input
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
+import type { OrderPresetKind } from "@/lib/types";
+import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 
 function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
@@ -117,14 +101,9 @@ export async function replaceArtworkImage(slug: string, formData: FormData): Pro
 export async function createArtwork(formData: FormData): Promise<{ slug: string }> {
 	await requireMaintainer();
 
-	const str = (k: string) => {
-		const v = formData.get(k);
-		return typeof v === "string" ? v : "";
-	};
-
-	const title = str("title").trim();
-	const style = str("style").trim();
-	const medium = str("medium").trim();
+	const title = formString(formData, "title").trim();
+	const style = formString(formData, "style").trim();
+	const medium = formString(formData, "medium").trim();
 	const file = formData.get("image");
 
 	if (!title || !style || !medium) throw new Error("Title, style, and medium are required.");
@@ -146,25 +125,32 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	const priceInr = priceRaw ? Number(priceRaw) : null;
 	const yearRaw = formData.get("year");
 	const year = yearRaw ? Number(yearRaw) : null;
-	const maxOrderRow = await db.select({ order: artworks.order }).from(artworks);
-	const nextOrder = maxOrderRow.reduce((m, r) => Math.max(m, r.order), 0) + 1;
 
-	await db.insert(artworks).values({
-		slug,
-		title,
-		style,
-		medium,
-		image: `${slug}.jpg`,
-		aspectRatio,
-		order: nextOrder,
-		featured: false,
-		description: str("description").trim() || null,
-		dimensions: str("dimensions").trim() || null,
-		year: year && !Number.isNaN(year) ? year : null,
-		palette: palette.length > 0 ? palette : null,
-		priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
-		status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
-	});
+	try {
+		await db.insert(artworks).values({
+			slug,
+			title,
+			style,
+			medium,
+			image: `${slug}.jpg`,
+			aspectRatio,
+			// Computed inside the INSERT so two concurrent creates can't mint the
+			// same order (no read-then-write window).
+			order: nextOrderSql(artworks),
+			featured: false,
+			description: formString(formData, "description").trim() || null,
+			dimensions: formString(formData, "dimensions").trim() || null,
+			year: year && !Number.isNaN(year) ? year : null,
+			palette: palette.length > 0 ? palette : null,
+			priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
+			status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
+		});
+	} catch (err) {
+		// The variants were already uploaded; if the row insert fails (concurrent
+		// duplicate slug, network), remove them so R2 doesn't accumulate orphans.
+		await deleteArtworkImages(slug).catch(() => {});
+		throw err;
+	}
 
 	revalidateCatalog(slug);
 	return { slug };
@@ -213,13 +199,9 @@ export async function deleteArtwork(slug: string): Promise<void> {
 /** Create a workshop from form fields. */
 export async function createWorkshop(formData: FormData): Promise<{ slug: string }> {
 	await requireMaintainer();
-	const str = (k: string) => {
-		const v = formData.get(k);
-		return typeof v === "string" ? v : "";
-	};
 
-	const title = str("title").trim();
-	const blurb = str("blurb").trim();
+	const title = formString(formData, "title").trim();
+	const blurb = formString(formData, "blurb").trim();
 	if (!title || !blurb) throw new Error("Title and blurb are required.");
 
 	const slug = slugify(title);
@@ -231,17 +213,15 @@ export async function createWorkshop(formData: FormData): Promise<{ slug: string
 		.where(eq(workshops.slug, slug));
 	if (existing.length > 0) throw new Error(`A workshop with slug "${slug}" already exists.`);
 
-	const durationRaw = str("durationHours");
+	const durationRaw = formString(formData, "durationHours");
 	const durationHours = durationRaw ? Number(durationRaw) : null;
-	const maxOrderRow = await db.select({ order: workshops.order }).from(workshops);
-	const nextOrder = maxOrderRow.reduce((m, r) => Math.max(m, r.order), 0) + 1;
 
 	await db.insert(workshops).values({
 		slug,
 		title,
 		blurb,
 		durationHours: durationHours && !Number.isNaN(durationHours) ? durationHours : null,
-		order: nextOrder,
+		order: nextOrderSql(workshops),
 	});
 
 	revalidateWorkshops();
@@ -281,20 +261,18 @@ export async function deleteWorkshop(slug: string): Promise<void> {
 
 // --- Custom-order preset actions ---
 
-type PresetKind = "size" | "budget" | "timeline";
-
 function revalidateOrderPresets() {
 	revalidatePath("/custom-orders");
 	revalidatePath("/admin/presets");
 }
 
 /** Add a preset option of a given kind (size / budget / timeline). */
-export async function createOrderPreset(kind: PresetKind, label: string): Promise<void> {
+export async function createOrderPreset(kind: OrderPresetKind, label: string): Promise<void> {
 	await requireMaintainer();
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("Label is required.");
-	const existing = await db.select({ order: orderPresets.order }).from(orderPresets);
-	const nextOrder = existing.reduce((m, r) => Math.max(m, r.order), 0) + 1;
+	const orderRows = await db.select({ order: orderPresets.order }).from(orderPresets);
+	const nextOrder = getNextOrder(orderRows);
 	// id must be stable + unique; derive from kind + a monotonic suffix.
 	const id = `${kind}-${nextOrder}-${trimmed
 		.toLowerCase()
@@ -356,9 +334,7 @@ export async function createCategory(name: string): Promise<void> {
 		.from(categories)
 		.where(eq(categories.id, id));
 	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
-	const rows = await db.select({ order: categories.order }).from(categories);
-	const nextOrder = rows.reduce((m, r) => Math.max(m, r.order), 0) + 1;
-	await db.insert(categories).values({ id, name: trimmed, order: nextOrder });
+	await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
 	revalidateCategories();
 }
 

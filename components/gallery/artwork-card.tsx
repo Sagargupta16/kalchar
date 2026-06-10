@@ -7,7 +7,7 @@ import { Chromacard } from "@/components/gallery/chromacard";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Badge } from "@/components/ui/badge";
 import type { Artwork } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatInr } from "@/lib/utils";
 
 interface ArtworkCardProps {
 	artwork: Artwork;
@@ -90,9 +90,9 @@ export function ArtworkCard({
 
 			<p className="mt-1.5 text-xs text-muted">{artwork.medium}</p>
 
-			{isAvailable ? (
+			{isAvailable && typeof artwork.priceInr === "number" ? (
 				<p className="mt-1.5 text-sm font-medium text-ink tabular-nums">
-					INR {artwork.priceInr?.toLocaleString("en-IN")}
+					{formatInr(artwork.priceInr)}
 				</p>
 			) : null}
 		</Link>

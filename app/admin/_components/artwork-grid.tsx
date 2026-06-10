@@ -3,10 +3,11 @@
 import { GripVertical, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatInr } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { ReorderBar } from "./reorder-bar";
+import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 
 interface ArtworkItem {
@@ -36,7 +37,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 			setBaseline(items);
 			setSaved(true);
 			router.refresh();
-			setTimeout(() => setSaved(false), 2000);
+			setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 		});
 	};
 
@@ -64,10 +65,9 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 
 	return (
 		<>
-			<div role="list" className="space-y-2">
+			<ul className="space-y-2">
 				{items.map((art, i) => (
-					<div
-						role="listitem"
+					<li
 						key={art.slug}
 						{...dragProps(i)}
 						className={cn(
@@ -90,7 +90,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							<p className="text-xs text-muted">
 								{art.style}
 								{art.status !== "archive" ? ` · ${art.status}` : ""}
-								{art.priceInr ? ` · INR ${art.priceInr.toLocaleString("en-IN")}` : ""}
+								{art.priceInr ? ` · ${formatInr(art.priceInr)}` : ""}
 							</p>
 						</div>
 						{art.featured ? <Star size={14} className="shrink-0 fill-accent text-accent" /> : null}
@@ -104,9 +104,9 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 						>
 							<Trash2 size={13} />
 						</button>
-					</div>
+					</li>
 				))}
-			</div>
+			</ul>
 
 			{hasChanges ? (
 				<ReorderBar

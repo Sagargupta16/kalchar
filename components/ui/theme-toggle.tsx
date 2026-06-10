@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 
 type Mode = "light" | "dark";
 
+// Must match the localStorage key read by the pre-paint script in app/layout.tsx.
 const STORAGE_KEY = "theme";
 
 function applyMode(mode: Mode) {

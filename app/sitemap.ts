@@ -15,7 +15,7 @@ export const dynamic = "force-static";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const base = siteConfig.prodUrl.replace(/\/$/, "");
 
-	const routes = ["", "/work", "/about", "/workshops", "/custom-orders", "/contact"];
+	const routes = ["", "/work", "/events", "/about", "/workshops", "/custom-orders", "/contact"];
 	const staticEntries: MetadataRoute.Sitemap = routes.map((path) => ({
 		url: `${base}${path}/`,
 	}));

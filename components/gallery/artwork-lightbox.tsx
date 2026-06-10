@@ -13,9 +13,13 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
+
+/** Minimum horizontal travel (px) before a touch counts as a swipe. */
+const SWIPE_THRESHOLD_PX = 50;
 
 function deriveSlug(image: string): string {
 	const file = image.split("/").pop() ?? "";
@@ -98,7 +102,7 @@ export function ArtworkLightbox() {
 			const touch = e.changedTouches[0];
 			if (!touch) return;
 			const dx = touch.clientX - touchStartX.current;
-			if (Math.abs(dx) > 50) {
+			if (Math.abs(dx) > SWIPE_THRESHOLD_PX) {
 				if (dx > 0) prevArtwork();
 				else nextArtwork();
 				setZoom(false);
@@ -180,7 +184,6 @@ function LightboxContent({
 	onTouchStart,
 	onTouchEnd,
 }: Readonly<LightboxContentProps>) {
-	const isAvailable = typeof artwork.priceInr === "number";
 	const whatsappLink = buildWhatsAppLink({
 		phoneE164NoPlus: whatsappPhone,
 		message: buyArtworkMessage(artwork),
@@ -307,11 +310,11 @@ function LightboxContent({
 							{artwork.dimensions ? (
 								<MetaRow icon={<Ruler size={13} />} label="Size" value={artwork.dimensions} />
 							) : null}
-							{isAvailable ? (
+							{typeof artwork.priceInr === "number" ? (
 								<div className="flex items-baseline justify-between border-t border-line/50 pt-3">
 									<dt className="t-meta normal-case tracking-normal">Price</dt>
 									<dd className="text-lg font-semibold tabular-nums text-accent">
-										INR {artwork.priceInr?.toLocaleString("en-IN")}
+										{formatInr(artwork.priceInr)}
 									</dd>
 								</div>
 							) : null}

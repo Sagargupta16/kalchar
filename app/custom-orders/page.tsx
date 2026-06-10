@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
@@ -36,7 +37,7 @@ interface CustomOrdersSection {
 
 export default async function CustomOrdersPage() {
 	const { contact, sections } = getSite();
-	const co = (sections.customOrders ?? {}) as CustomOrdersSection;
+	const customOrders = (sections.customOrders ?? {}) as CustomOrdersSection;
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
 	const [presets, styleSamples, allArtworks, styles] = await Promise.all([
 		getOrderPresets(),
@@ -47,17 +48,22 @@ export default async function CustomOrdersPage() {
 
 	// A few finished pieces to show what a commission can look like. Prefer
 	// featured pieces; fall back to the first few in the catalog.
-	const examples = allArtworks.filter((a) => a.featured).slice(0, 4);
-	const examplePieces = examples.length >= 3 ? examples : allArtworks.slice(0, 4);
+	const EXAMPLE_PIECE_COUNT = 4;
+	const MIN_FEATURED_EXAMPLES = 3;
+	const featuredExamples = allArtworks.filter((art) => art.featured).slice(0, EXAMPLE_PIECE_COUNT);
+	const examplePieces =
+		featuredExamples.length >= MIN_FEATURED_EXAMPLES
+			? featuredExamples
+			: allArtworks.slice(0, EXAMPLE_PIECE_COUNT);
 
 	return (
 		<main>
 			<Section accent="vermillion">
 				<Container className="py-(--section-py)">
 					<PageHeader
-						eyebrow={co.eyebrow ?? "Custom orders"}
-						title={co.title ?? "Order a custom painting"}
-						lead={co.lead}
+						eyebrow={customOrders.eyebrow ?? "Custom orders"}
+						title={customOrders.title ?? "Order a custom painting"}
+						lead={customOrders.lead}
 					/>
 
 					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
@@ -114,8 +120,8 @@ export default async function CustomOrdersPage() {
 										sizes={presets.sizes}
 										budgets={presets.budgets}
 										timelines={presets.timelines}
-										submitLabel={co.submitLabel ?? "Send via WhatsApp"}
-										fallbackEmailLabel={co.fallbackEmailLabel ?? "Or email instead"}
+										submitLabel={customOrders.submitLabel ?? "Send via WhatsApp"}
+										fallbackEmailLabel={customOrders.fallbackEmailLabel ?? "Or email instead"}
 									/>
 								</Card>
 							</Reveal>
@@ -129,10 +135,7 @@ export default async function CustomOrdersPage() {
 								<div className="flex items-baseline justify-between gap-4">
 									<div>
 										<p className="t-eyebrow flex items-center gap-2">
-											<span
-												aria-hidden="true"
-												className="inline-block h-px w-5 bg-(--section-accent)"
-											/>
+											<AccentRule />
 											For inspiration
 										</p>
 										<h2 className="t-display mt-2 text-2xl sm:text-3xl">

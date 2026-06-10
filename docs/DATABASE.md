@@ -1,6 +1,6 @@
 # Database
 
-The catalog (artworks, workshops) and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the three-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
+The catalog (artworks, workshops), community events, the editable lookups (categories, custom-order presets), singleton site settings, and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the seven-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
 
 ## Overview
 
@@ -30,7 +30,7 @@ It uses the **neon-http** driver on purpose: it is the fastest path for single, 
 
 ## Schema
 
-Three tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK).
+Seven tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `events` is a community-activity entity keyed by a UUID `id` with an ordered `images` jsonb array of R2 key-bases (first = cover); `settings` is a small key-value store for singleton site settings (artist profile image key, home-intro toggle); `categories` and `order_presets` are editable lookups; `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK). No hard foreign keys -- `artworks.style` matches `categories.name` by value, kept in sync by the rename action.
 
 ```mermaid
 %%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
@@ -113,7 +113,28 @@ The admin allowlist. Replaces a static `ADMIN_EMAILS` env var so a logged-in mai
 | `added_by` | `text` | nullable | Email of the maintainer who added this one; null for the root seed. Soft self-reference into `email`. |
 | `created_at` | `timestamptz` | not null, default `now()` | Insert time, timezone-aware. |
 
-Drizzle infers select/insert types off these tables: `ArtworkRow`/`ArtworkInsert`, `WorkshopRow`/`WorkshopInsert`, `MaintainerRow`/`MaintainerInsert` (`lib/db/schema.ts:71`).
+### categories
+
+Art categories, formerly a fixed "styles" enum in `site.json`, now editable from `/admin` so new traditions can be added without a code change. An artwork's `style` column stores the category `name` (free text), so renaming a category does not orphan rows -- the admin rename action updates matching artworks too (see [app/admin/actions.ts](../app/admin/actions.ts) `renameCategory`).
+
+| Column | pg type | Null / default | Meaning |
+| --- | --- | --- | --- |
+| `id` | `text` | PK, not null | Slugified category id. |
+| `name` | `text` | not null | Display name, matched against `artworks.style`. |
+| `order` | `integer` | not null | Sort key, ascending. |
+
+### order_presets
+
+The custom-order form's dropdown options. One row per option, discriminated by `kind` (`"size" | "budget" | "timeline"`), so all three dropdowns share one table and a new kind needs no schema change. Editable from `/admin/presets`.
+
+| Column | pg type | Null / default | Meaning |
+| --- | --- | --- | --- |
+| `id` | `text` | PK, not null | Stable id, derived from kind + a monotonic suffix. |
+| `kind` | `text` | not null | `"size"`, `"budget"`, or `"timeline"`. |
+| `label` | `text` | not null | The option text shown in the dropdown. |
+| `order` | `integer` | not null | Sort key within the kind. |
+
+Drizzle infers select/insert types off these tables: `ArtworkRow`/`ArtworkInsert`, `WorkshopRow`/`WorkshopInsert`, `CategoryRow`/`CategoryInsert`, `OrderPresetRow`/`OrderPresetInsert`, `MaintainerRow`/`MaintainerInsert` (`lib/db/schema.ts:97`).
 
 ## The data seam
 
@@ -173,7 +194,7 @@ Under SSG these getters run at build time and bake into HTML; the same functions
 
 ## Writes
 
-Catalog mutations live in [app/admin/actions.ts](../app/admin/actions.ts) as server actions. Each one calls `requireMaintainer()` first (defense in depth -- the proxy already gates `/admin`, but actions can be invoked directly), then mutates rows, then calls `revalidateCatalog(slug)` to refresh the affected paths (`/`, `/work`, `/admin`, and `/work/${slug}`). The auth re-check is detailed in [AUTH.md](AUTH.md); the R2 image side in [IMAGES.md](IMAGES.md).
+Mutations are server actions: catalog + lookups + roster in [app/admin/actions.ts](../app/admin/actions.ts), events + profile settings in [app/admin/event-actions.ts](../app/admin/event-actions.ts), with the shared sync helpers (`requireMaintainer`, `slugify`, `nextOrderSql`, `formString`) in [app/admin/_helpers.ts](../app/admin/_helpers.ts). Each action calls `requireMaintainer()` first (defense in depth -- the proxy already gates `/admin`, but actions can be invoked directly), then mutates rows, then calls the relevant `revalidate*` helper to refresh the affected paths. The auth re-check is detailed in [AUTH.md](AUTH.md); the R2 image side in [IMAGES.md](IMAGES.md).
 
 | Action | DB effect | Notes |
 | --- | --- | --- |
@@ -184,7 +205,7 @@ Catalog mutations live in [app/admin/actions.ts](../app/admin/actions.ts) as ser
 | `createArtwork(formData)` | `insert` new row | Slugifies the title, processes the image, computes `order`. |
 | `deleteArtwork(slug)` | `delete` row + R2 variants | Deletes the row, then `deleteArtworkImages(slug)`. |
 
-`createArtwork` does the most work: it slugifies the title via `slugify()` (lowercase, non-alphanumeric runs to `-`, trimmed) (`app/admin/actions.ts:29`), rejects a duplicate slug, runs `processArtworkImage` to derive `aspectRatio`, computes the next sort key as `max(order) + 1` over all rows (`app/admin/actions.ts:113`), and sets `status` to `available` when a valid price is provided, else `archive`. The maintainer-roster actions (`inviteMaintainer`, `revokeMaintainer`) go through [lib/maintainers.ts](../lib/maintainers.ts) rather than touching `artworks`.
+`createArtwork` does the most work: it slugifies the title via `slugify()` in `_helpers.ts` (Unicode-aware -- keeps letters/digits in any script including Devanagari, collapses the rest to `-`, 64-char cap), rejects a duplicate slug, runs `processArtworkImage` to derive `aspectRatio`, assigns the sort key inside the INSERT via `nextOrderSql` (`coalesce(max("order"),0)+1`, so concurrent creates can't collide), sets `status` to `available` when a valid price is provided (else `archive`), and cleans up the already-uploaded R2 variants if the row insert fails. The maintainer-roster actions (`inviteMaintainer`, `revokeMaintainer`) go through [lib/maintainers.ts](../lib/maintainers.ts) rather than touching `artworks`.
 
 ## Migrations and commands
 

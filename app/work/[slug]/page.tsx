@@ -9,14 +9,23 @@ import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 /** sizes hint shared by the detail <img> and its preload link -- must match. */
 const DETAIL_SIZES = "(min-width: 768px) 60vw, 100vw";
+/** Largest variant the detail plate renders; also caps the preload srcset. */
+const DETAIL_MAX_WIDTH = 800;
+/** OG card image width (the 1200px webp variant). */
+const OG_IMAGE_WIDTH = 1200;
 
 interface PageProps {
 	params: Promise<{ slug: string }>;
+}
+
+/** Fallback alt text when a piece has no description, shared by metadata + img. */
+function artworkAlt(art: Pick<Artwork, "title" | "style" | "medium">): string {
+	return `${art.title}, ${art.style} painting in ${art.medium}.`;
 }
 
 export async function generateStaticParams() {
@@ -29,9 +38,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	if (!art) return { title: "Artwork not found" };
 	return {
 		title: art.title,
-		description: art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`,
+		description: art.description ?? artworkAlt(art),
 		openGraph: {
-			images: [{ url: `${ARTWORK_IMAGE_BASE}/${art.slug}-1200.webp`, width: 1200 }],
+			images: [
+				{ url: `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`, width: OG_IMAGE_WIDTH },
+			],
 		},
 	};
 }
@@ -102,7 +113,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 				rel="preload"
 				as="image"
 				type="image/avif"
-				imageSrcSet={artworkPreloadSrcset(art.image, 800)}
+				imageSrcSet={artworkPreloadSrcset(art.image, DETAIL_MAX_WIDTH)}
 				imageSizes={DETAIL_SIZES}
 				fetchPriority="high"
 			/>
@@ -112,19 +123,19 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
 				>
 					<ArrowLeft size={14} aria-hidden="true" />
-					Back to work
+					Back to artwork
 				</Link>
 			</Reveal>
 
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
 				<Reveal eager className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-card) bg-bg-soft ring-1 ring-black/10 dark:ring-white/10">
+					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-lg) bg-bg-soft ring-1 ring-black/8 dark:ring-white/8">
 						<ArtImage
 							src={`/artworks/${art.image}`}
-							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
+							alt={art.description ?? artworkAlt(art)}
 							sizes={DETAIL_SIZES}
-							maxWidth={800}
+							maxWidth={DETAIL_MAX_WIDTH}
 							priority
 							className="absolute inset-0 h-full w-full object-cover"
 						/>
@@ -199,12 +210,12 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					) : null}
 
 					<Reveal delayMs={260}>
-						<div className="mt-10 rounded-(--radius-card) border border-line bg-bg-soft p-5 sm:p-6">
-							{isAvailable ? (
+						<div className="mt-10 rounded-(--radius-md) border border-line bg-bg-soft p-5 sm:p-6">
+							{typeof art.priceInr === "number" ? (
 								<div className="mb-4 flex items-baseline justify-between gap-3">
 									<span className="t-meta normal-case tracking-normal text-muted">Price</span>
 									<span className="t-display text-2xl tabular-nums text-(--section-accent) sm:text-3xl">
-										INR {art.priceInr?.toLocaleString("en-IN")}
+										{formatInr(art.priceInr)}
 									</span>
 								</div>
 							) : null}

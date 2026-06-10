@@ -1,6 +1,7 @@
 import { ArrowRight, Clock } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -11,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 interface WorkshopsTeaserProps {
 	workshops: readonly Workshop[];
-	totalCount: number;
 	eyebrow: string;
 	title: string;
 	lead?: string;
@@ -19,7 +19,6 @@ interface WorkshopsTeaserProps {
 
 export function WorkshopsTeaser({
 	workshops,
-	totalCount,
 	eyebrow,
 	title,
 	lead,
@@ -30,7 +29,7 @@ export function WorkshopsTeaser({
 				<header className="max-w-2xl">
 					<Reveal>
 						<p className="t-eyebrow flex items-center gap-2">
-							<span aria-hidden="true" className="inline-block h-px w-5 bg-(--section-accent)" />
+							<AccentRule />
 							{eyebrow}
 						</p>
 					</Reveal>
@@ -47,7 +46,7 @@ export function WorkshopsTeaser({
 				<ul className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 lg:grid-cols-3">
 					{workshops.map((item, i) => (
 						<Reveal key={item.slug} as="li" delayMs={i * 60}>
-							<Card hover className="flex h-full flex-col">
+							<Card hover className="group flex h-full flex-col">
 								<h3 className="t-display text-xl transition-colors group-hover:text-(--section-accent)">
 									{item.title}
 								</h3>
@@ -73,7 +72,7 @@ export function WorkshopsTeaser({
 							href="/workshops"
 							className={cn(buttonVariants({ variant: "secondary" }), "group")}
 						>
-							See all {totalCount} sessions
+							See all workshops
 							<ArrowRight
 								size={14}
 								aria-hidden="true"

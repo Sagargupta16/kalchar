@@ -40,7 +40,7 @@ export interface Artwork {
 	image: string;
 	/** Optional sampled palette (3-5 hex values) for chromacard / accent UI. */
 	palette?: string[];
-	/** Phase 1 derives status from absence of price; Phase 2 will store this directly. */
+	/** Lifecycle state (archive / available / sold), stored directly on the row. */
 	status?: ArtworkStatus;
 	/** INR. When set, the piece is considered for-sale. */
 	priceInr?: number;
@@ -51,6 +51,26 @@ export interface Workshop {
 	title: string;
 	blurb: string;
 	durationHours?: number;
+	order: number;
+}
+
+/**
+ * A community activity (workshop held, class, exhibition, meetup). Each is a
+ * small photo gallery. `eventDate` is an ISO date string (not a Date) so it
+ * crosses the server/client boundary cleanly. `images` is an ordered list of
+ * R2 key-bases; the first is the cover. The gallery shows up to 5 inline and
+ * surfaces the rest behind a "+N more" lightbox entry.
+ */
+export interface Event {
+	id: string;
+	title: string;
+	description?: string;
+	/** ISO date string (YYYY-MM-DD or full ISO) of when the event took place. */
+	eventDate: string;
+	category?: string;
+	/** Ordered R2 key-bases, one per photo. First is the cover. */
+	images: string[];
+	featured: boolean;
 	order: number;
 }
 
@@ -102,6 +122,7 @@ export interface Contact {
 	instagram: ContactChannel;
 	instagramCommunity?: ContactChannel;
 	instagramPersonal?: ContactChannel;
+	youtube?: ContactChannel;
 	whatsapp: ContactChannel;
 	email: ContactChannel;
 }

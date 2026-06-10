@@ -15,6 +15,9 @@ import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion"
  * bottom-right zone with its own mobile tab bar). Reduced motion -> instant
  * jump and no fade transition.
  */
+/** Reveal the button once the reader is ~90% of a viewport down the page. */
+const REVEAL_VIEWPORT_RATIO = 0.9;
+
 export function BackToTop() {
 	const [visible, setVisible] = useState(false);
 	const reduceMotion = usePrefersReducedMotion();
@@ -28,7 +31,7 @@ export function BackToTop() {
 			if (ticking) return;
 			ticking = true;
 			requestAnimationFrame(() => {
-				setVisible(globalThis.scrollY > globalThis.innerHeight * 0.9);
+				setVisible(globalThis.scrollY > globalThis.innerHeight * REVEAL_VIEWPORT_RATIO);
 				ticking = false;
 			});
 		}

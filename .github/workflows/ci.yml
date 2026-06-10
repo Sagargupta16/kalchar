@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   workflow_dispatch:
 
+# Least-privilege default: CI only reads the repo to lint/typecheck/build.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,6 +20,8 @@ jobs:
     name: lint, typecheck and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

@@ -12,5 +12,31 @@
 			"Bash(gh run list:*)",
 			"Bash(gh run view:*)"
 		]
+	},
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Read",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/pretool-secrets.ps1",
+						"timeout": 60
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "powershell -NoProfile -File .claude/hooks/sonar-secrets/build-scripts/prompt-secrets.ps1",
+						"timeout": 60
+					}
+				]
+			}
+		]
 	}
 }

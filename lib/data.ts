@@ -16,7 +16,7 @@
  *
  * Do not import `data/site.json` (or query the DB) directly outside this file.
  */
-import { asc } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import siteJson from "@/data/site.json";
 import { db } from "./db/client";
 import {
@@ -24,8 +24,11 @@ import {
 	artworks,
 	type CategoryRow,
 	categories,
+	type EventRow,
+	events,
 	type OrderPresetRow,
 	orderPresets,
+	settings,
 	type WorkshopRow,
 	workshops,
 } from "./db/schema";
@@ -34,6 +37,7 @@ import type {
 	Artwork,
 	ArtworkStatus,
 	Category,
+	Event,
 	OrderPreset,
 	OrderPresetKind,
 	OrderPresets,
@@ -201,7 +205,54 @@ export async function getOrderPresets(): Promise<OrderPresets> {
 	};
 }
 
+function toEvent(row: EventRow): Event {
+	return {
+		id: row.id,
+		title: row.title,
+		description: row.description ?? undefined,
+		// ISO date string so it crosses the server/client boundary cleanly.
+		eventDate: row.eventDate.toISOString(),
+		category: row.category ?? undefined,
+		images: row.images ?? [],
+		featured: row.featured,
+		order: row.order,
+	};
+}
+
+/**
+ * Events ordered for display: pinned first (the `featured` flag), then most
+ * recent by date, with `order` as a stable tie-break inside the same date.
+ * So a maintainer can pin a highlight to the top, and everything else is
+ * automatically latest-first.
+ */
+export async function getAllEvents(): Promise<readonly Event[]> {
+	const rows = await db
+		.select()
+		.from(events)
+		.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order));
+	return rows.map(toEvent);
+}
+
+/** The most recent `limit` events, for the home preview strip. */
+export async function getRecentEvents(limit: number): Promise<readonly Event[]> {
+	return (await getAllEvents()).slice(0, limit);
+}
+
+/** Look up a single event by id. */
+export async function getEventById(id: string): Promise<Event | undefined> {
+	return (await getAllEvents()).find((e) => e.id === id);
+}
+
+/**
+ * Read a single setting value by key, or undefined if unset. Typed by the
+ * caller. Settings hold the artist profile image key + the home-intro toggle.
+ */
+export async function getSetting<T>(key: string): Promise<T | undefined> {
+	const [row] = await db.select().from(settings).where(eq(settings.key, key));
+	return (row?.value as T | undefined) ?? undefined;
+}
+
 /** Site-wide copy: brand, nav, contact, section text, etc. Stays JSON (sync). */
 export function getSite(): Site {
-	return siteJson as Site;
+	return siteJson;
 }

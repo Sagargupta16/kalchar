@@ -10,6 +10,7 @@
  * silently-broken CTA.
  */
 import type { Artwork, CustomOrderDraft } from "./types";
+import { formatInr } from "./utils";
 
 export interface WhatsAppLinkOptions {
 	/** E.164-style number with country code, no `+` (e.g. "918435652636"). */
@@ -51,9 +52,7 @@ export function extractPhoneFromWaUrl(waUrl: string): string {
 /** Pre-filled "I'm interested in this piece" message. */
 export function buyArtworkMessage(art: Artwork): string {
 	const priceLine =
-		typeof art.priceInr === "number"
-			? `\nListed price: INR ${art.priceInr.toLocaleString("en-IN")}`
-			: "";
+		typeof art.priceInr === "number" ? `\nListed price: ${formatInr(art.priceInr)}` : "";
 	return `Hi, I'd like to buy "${art.title}" (${art.style}).${priceLine}\nIs this still available?`;
 }
 

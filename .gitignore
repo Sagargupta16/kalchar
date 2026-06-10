@@ -9,7 +9,6 @@ build/
 .output/
 .vercel/
 .netlify/
-.astro/
 .next/
 out/
 tsconfig.tsbuildinfo
@@ -50,6 +49,7 @@ desktop.ini
 .eslintcache
 .turbo/
 .playwright-mcp/
+.sonar/
 
 # Claude / per-user (never commit)
 .claude/settings.local.json

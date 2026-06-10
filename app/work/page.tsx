@@ -10,7 +10,7 @@ import { getAllArtworks, getCategoryNames, getSite } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-	title: "Work",
+	title: "Artwork",
 	description:
 		"Selected paintings across Madhubani, Pichwai, Lippan, Gond, Texture, and Mixed Media.",
 };
