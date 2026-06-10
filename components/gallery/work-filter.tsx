@@ -45,7 +45,10 @@ interface WorkFilterProps {
 
 const ALL = "All" as const;
 const AVAILABLE = "Available to buy" as const;
-type Filter = typeof ALL | typeof AVAILABLE | ArtStyle;
+// A filter is either a style name or one of the two reserved sentinels. Since
+// ArtStyle is `string`, the sentinels would be absorbed into the union, so the
+// type is just `string` and the ALL/AVAILABLE consts carry the intent.
+type Filter = ArtStyle;
 /** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
 const STAGGER_STEP_MS = 60;
 const STAGGER_MAX_INDEX = 5;

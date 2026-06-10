@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@/lib/types";
-import { updateEventMeta } from "../actions";
+import { updateEventMeta } from "../event-actions";
 import { adminBtnPrimary, adminField } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 

@@ -114,11 +114,11 @@ function PhotoTile({
 				priority={priority}
 				className="absolute inset-0 h-full w-full object-contain transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
 			/>
-			{overflow !== undefined ? (
+			{overflow === undefined ? null : (
 				<span className="absolute inset-0 grid place-items-center bg-black/55 text-bg backdrop-blur-[1px] transition-colors duration-(--duration-base) group-hover:bg-black/65">
 					<span className="t-display text-2xl sm:text-3xl">+{overflow}</span>
 				</span>
-			) : null}
+			)}
 		</button>
 	);
 }

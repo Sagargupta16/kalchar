@@ -4,7 +4,7 @@ import { ImagePlus, Trash2, UserCircle } from "lucide-react";
 import { useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
-import { clearProfileImage, setProfileImage, setShowHomeIntro } from "../actions";
+import { clearProfileImage, setProfileImage, setShowHomeIntro } from "../event-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary } from "./controls";
 import { useAdminAction } from "./use-admin-action";

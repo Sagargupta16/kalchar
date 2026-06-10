@@ -5,7 +5,7 @@ import { useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { addEventImages, removeEventImage, reorderEventImages } from "../actions";
+import { addEventImages, removeEventImage, reorderEventImages } from "../event-actions";
 import { adminBtn, adminBtnPrimary } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";

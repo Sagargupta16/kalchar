@@ -18,21 +18,36 @@ import { cn, formatEventDate } from "@/lib/utils";
  * gap: 1 event = a full-width feature banner; 2 = two columns; 3 = three. The
  * cover aspect ratio follows suit (wide banner for 1, 4:3 tiles otherwise).
  */
+/**
+ * Grid + cover styling derived from how many events show, so the section fills
+ * its width at any count: 1 = a wide feature banner, 2 = two columns, 3 = three.
+ */
+function layoutForCount(count: number): {
+	gridCols: string;
+	coverAspect: string;
+	coverSizes: string;
+} {
+	if (count === 1) {
+		return {
+			gridCols: "",
+			coverAspect: "aspect-16/9 sm:aspect-21/9",
+			coverSizes: "(min-width: 768px) 100vw, 100vw",
+		};
+	}
+	return {
+		gridCols: count === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3",
+		coverAspect: "aspect-4/3",
+		coverSizes: "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw",
+	};
+}
+
 export function EventsTeaser({
 	events,
 	eyebrow,
 	title,
 	lead,
 }: Readonly<{ events: readonly Event[]; eyebrow: string; title: string; lead?: string }>) {
-	const count = events.length;
-	const gridCols =
-		count === 1 ? "" : count === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
-	// A lone event reads as a wide feature; multiples are 4:3 tiles.
-	const coverAspect = count === 1 ? "aspect-16/9 sm:aspect-21/9" : "aspect-4/3";
-	const coverSizes =
-		count === 1
-			? "(min-width: 768px) 100vw, 100vw"
-			: "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
+	const { gridCols, coverAspect, coverSizes } = layoutForCount(events.length);
 
 	return (
 		<Section accent="peacock" borderBottom>

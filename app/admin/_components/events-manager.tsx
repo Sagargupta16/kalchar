@@ -4,13 +4,19 @@ import { CalendarDays, Pin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { createEvent, deleteEvent, setEventFeatured } from "../actions";
+import { createEvent, deleteEvent, setEventFeatured } from "../event-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
+
+/** Label for the multi-file photo picker, reflecting how many are selected. */
+function photoPickerLabel(count: number): string {
+	if (count === 0) return "Choose photos (you can select several)";
+	return `${count} photo${count === 1 ? "" : "s"} selected`;
+}
 
 export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>) {
 	const confirm = useConfirm();
@@ -117,11 +123,7 @@ function CreateEventForm({
 				<div className="sm:col-span-2">
 					<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
 						<Plus size={18} />
-						<span>
-							{fileCount > 0
-								? `${fileCount} photo${fileCount === 1 ? "" : "s"} selected`
-								: "Choose photos (you can select several)"}
-						</span>
+						<span>{photoPickerLabel(fileCount)}</span>
 						<input
 							name="images"
 							type="file"
