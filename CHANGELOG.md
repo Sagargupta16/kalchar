@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.24.1 (2026-06-13)
+
+Security patch: closes Dependabot alert #4 (esbuild). Verified with a full `next build` (40 routes, 22 SSG work paths).
+
+### Fixed
+
+- **esbuild bumped to >=0.28.1** ([package.json](package.json)) -- the dev toolchain pulled esbuild 0.28.0 transitively (via `tsx` and `@esbuild-kit/*` under `drizzle-kit`), which falls in the vulnerable range `>= 0.27.3, < 0.28.1`. Replaced the stale `esbuild@<0.25.0` pnpm override with a blanket `esbuild: ">=0.28.1"`, collapsing every transitive esbuild to a single patched 0.28.1. Dev/build-tooling only -- Next 16 uses its own bundler, so the production build is unaffected.
+
 ## 1.24.0 (2026-06-09)
 
 Adds an Events section (community activities with multi-image galleries), an artist profile photo, and home-page previews for both. The "Work" section is renamed "Artwork" with an in-page "Available to buy" filter, so the shop is a lens over the catalog rather than a separate surface. Verified with lint (0 warnings), typecheck, a full `next build` (39 routes), and a browser pass over the new flows (create/edit/delete an event with 7 photos, profile upload, home intro toggle).
