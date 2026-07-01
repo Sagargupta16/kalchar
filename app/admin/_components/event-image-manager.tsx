@@ -9,6 +9,7 @@ import { addEventImages, removeEventImage, reorderEventImages } from "../event-a
 import { adminBtn, adminBtnPrimary } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 /**
  * Photo manager for one event: a draggable thumbnail grid (reorder), per-photo
@@ -18,8 +19,10 @@ import { useReorder } from "./use-reorder";
  */
 export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	const { pending, err, run } = useAdminAction();
-	const [images, setImages] = useState(event.images);
 	const [baseline, setBaseline] = useState(event.images);
+	// Adopt fresh server data after an upload (router.refresh), resetting the
+	// reorder baseline to match so new photos appear without a manual reload.
+	const [images, setImages] = useServerSyncedList(event.images, setBaseline);
 	const [fileCount, setFileCount] = useState(0);
 	const { dragging, over, dragProps } = useReorder(images, setImages);
 
