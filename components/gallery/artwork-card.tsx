@@ -43,7 +43,7 @@ export function ArtworkCard({
 			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
 		>
 			{/* Image plate */}
-			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft ring-1 ring-black/8 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/8">
+			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline transition-[box-shadow] duration-(--duration-base) ease-(--ease-out) group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent">
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}

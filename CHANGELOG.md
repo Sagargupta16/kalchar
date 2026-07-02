@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.32.0 (2026-07-02)
+
+UI-consistency Phase 0: the elevation token foundation. A multi-agent UI research + per-page audit found the frontend's core inconsistency is that the design system had no elevation tier, so shadows and rings were ad-hoc per component. This lands the missing tokens and adopts them on the first surfaces to prove them end-to-end. Verified with typecheck, lint, tests, a full `next build`, and a real-browser check in light + dark.
+
+### Added
+
+- **Elevation + shadow tokens** ([app/globals.css](app/globals.css)) -- a layered `--shadow-e0..e5` scale plus `--shadow-hairline`, tinted with a warm `--shadow-ink` triplet (not black) so depth reads as sunlit-paper on the cream ground. Dark mode remaps them to an inset top-highlight + deeper ambient shadow (drop-shadows are invisible on the dark ground). Role map documented inline: hairline = resting frame edge, e1 = card, e2 = hover, e3 = dropdown, e4 = FAB/lightbox chrome, e5 = modal.
+- **Spacing + motion tokens** -- filled scale holes (`--space-5/14/20`), a fluid `--space-block` / `--grid-gap` / `--header-max` for rhythm, and a `--duration-micro/instant` interaction rung.
+- **UI consistency plan** ([docs/UI-CONSISTENCY-PLAN.md](docs/UI-CONSISTENCY-PLAN.md)) -- the full research: token foundation, phased migration, and 48 verified per-page findings, for the follow-up PRs.
+
+### Changed
+
+- **Card + artwork plate adopt the tokens** ([components/ui/card.tsx](components/ui/card.tsx), [components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- Card rests at `shadow-e1`, lifts to `shadow-e2` on hover with a scoped micro-duration transition (was `shadow-lg` + `transition-all`). The gallery plate now uses `shadow-hairline` at rest (art stays the hero, no heavy shadow) and rises to `shadow-e3` on hover, replacing the ad-hoc `ring-black/8` + `shadow-xl`. Proves the token pipeline; the remaining ~30 shadow/ring migrations follow in the next PR.
+
 ## 1.31.0 (2026-07-02)
 
 Admin + share polish, and two real auth fixes found during review.
