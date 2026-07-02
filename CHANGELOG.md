@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.28.0 (2026-07-02)
+
+Roadmap Phase 2: capture custom-order enquiries as leads, so the funnel keeps a durable record instead of dead-ending at WhatsApp. Also establishes the versioned-migration path. **Requires a DB migration** (`pnpm db:migrate`) before the leads page works. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Added
+
+- **Leads capture** ([lib/db/schema.ts](lib/db/schema.ts), [app/admin/lead-actions.ts](app/admin/lead-actions.ts), [components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- a `leads` table plus a `submitLead` server action the custom-order form calls BEFORE handing off to WhatsApp. The write is fire-and-forget: it never throws and isn't awaited, so the WhatsApp open is never blocked (the always-works link doesn't regress). Hardened as a public endpoint with a honeypot field, a coarse rate limit, and length caps. A one-line privacy note sits by the submit button.
+- **Admin leads queue** ([app/admin/leads/page.tsx](app/admin/leads/page.tsx), [app/admin/_components/leads-manager.tsx](app/admin/_components/leads-manager.tsx)) -- a new /admin/leads page listing enquiries newest-first, with a new/contacted/closed status dropdown and a delete control (the PII-removal path). Added to the admin nav.
+- **Data-seam reader** ([lib/data.ts](lib/data.ts)) -- `getAllLeads()` through the seam, matching the existing readers.
+
+### Changed
+
+- **Versioned migrations are now the prod path** ([drizzle/0000_conscious_mercury.sql](drizzle/0000_conscious_mercury.sql)) -- the schema is baselined into a committed migration. Because the DB was originally created with `db:push`, the baseline uses `CREATE TABLE IF NOT EXISTS`, so applying it is a safe no-op for the 7 existing tables and creates only `leads`. Every schema change from here uses `db:generate` + `db:migrate`.
+
 ## 1.27.0 (2026-07-02)
 
 Roadmap Phase 5 (non-DB slice): the verifiable performance and accessibility hardening for slow phones. Verified with typecheck, lint, tests (43), and a full `next build`.

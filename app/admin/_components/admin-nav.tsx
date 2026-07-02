@@ -3,6 +3,7 @@
 import {
 	CalendarDays,
 	GraduationCap,
+	Inbox,
 	ListChecks,
 	Palette,
 	Tags,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
 	{ label: "Artworks", href: "/admin", icon: Palette },
+	{ label: "Leads", href: "/admin/leads", icon: Inbox },
 	{ label: "Events", href: "/admin/events", icon: CalendarDays },
 	{ label: "Categories", href: "/admin/categories", icon: Tags },
 	{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },

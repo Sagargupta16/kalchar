@@ -132,6 +132,32 @@ export const maintainers = pgTable("maintainers", {
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Custom-order enquiries, captured before the visitor is handed to WhatsApp.
+ *
+ * The custom-order form has always built a pre-filled WhatsApp message; now it
+ * also persists the brief here first, so an enquiry survives even when an
+ * in-app browser blocks the WhatsApp popup (the funnel used to lose it). This
+ * is the durable record the funnel never had. The write is fire-and-forget:
+ * the WhatsApp hand-off still fires if this insert fails, so the always-works
+ * link never regresses.
+ *
+ * Holds buyer-supplied PII (name + free-text brief), so keep it minimal and
+ * expose a delete path in admin. `status` drives the /admin/leads queue.
+ */
+export const leads = pgTable("leads", {
+	id: text("id").primaryKey(),
+	name: text("name"),
+	style: text("style"),
+	size: text("size"),
+	budget: text("budget"),
+	timeline: text("timeline"),
+	brief: text("brief").notNull(),
+	/** new | contacted | closed -- the maintainer's triage state. */
+	status: text("status").notNull().default("new"),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;
 export type WorkshopRow = typeof workshops.$inferSelect;
@@ -146,3 +172,5 @@ export type CategoryRow = typeof categories.$inferSelect;
 export type CategoryInsert = typeof categories.$inferInsert;
 export type MaintainerRow = typeof maintainers.$inferSelect;
 export type MaintainerInsert = typeof maintainers.$inferInsert;
+export type LeadRow = typeof leads.$inferSelect;
+export type LeadInsert = typeof leads.$inferInsert;

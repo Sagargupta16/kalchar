@@ -172,3 +172,23 @@ export interface CustomOrderDraft {
 	timeline?: string;
 	briefMessage: string;
 }
+
+/** Triage state for a captured custom-order enquiry in the admin queue. */
+export type LeadStatus = "new" | "contacted" | "closed";
+
+/**
+ * A persisted custom-order enquiry (the Phase 2 row the CustomOrderDraft
+ * docstring promised). Mirrors the draft fields plus admin triage metadata.
+ * `createdAt` is an ISO string so it crosses the server/client boundary.
+ */
+export interface Lead {
+	id: string;
+	name?: string;
+	style?: string;
+	size?: string;
+	budget?: string;
+	timeline?: string;
+	brief: string;
+	status: LeadStatus;
+	createdAt: string;
+}
