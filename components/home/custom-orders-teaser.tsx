@@ -108,7 +108,7 @@ function StepCard({
 	return (
 		<Card className="flex h-full flex-col">
 			<IconCircle>{icon}</IconCircle>
-			<h3 className="t-display mt-4 text-xl">{title}</h3>
+			<h3 className="t-display mt-4 text-lg sm:text-xl">{title}</h3>
 			<p className="mt-2 text-sm text-muted">{body}</p>
 		</Card>
 	);

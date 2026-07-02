@@ -30,7 +30,9 @@ export default function TrustPage() {
 				<Section accent="peacock">
 					<Container className="py-(--section-py)">
 						<PageHeader eyebrow="FAQ" title="Frequently asked questions" />
-						<p className="mt-8 text-sm text-muted">Details coming soon.</p>
+						<p className="mt-12 rounded-(--radius-sm) border border-dashed border-line bg-bg-soft px-6 py-12 text-center text-sm text-muted">
+							Details coming soon. Reach out on WhatsApp with any question in the meantime.
+						</p>
 					</Container>
 				</Section>
 			</main>

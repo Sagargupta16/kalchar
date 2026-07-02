@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.1 (2026-07-02)
+
+UI-consistency Phase 2: spacing rhythm + type-scale alignment, from the verified per-page audit findings.
+
+### Changed
+
+- **Fluid section rhythm** -- every `mt-10 sm:mt-14` header-to-content gap (section-shell, workshops/events/contact teasers) now uses the fluid `--space-block` token, killing the mid-scroll snap; the home testimonials grid joins the same rhythm (it was the one section sitting tighter on desktop).
+- **Card-title scale unified** -- workshops and custom-orders card titles now use the responsive `text-lg sm:text-xl` the other three card families already use (they were flat `text-xl`).
+- **Events page** -- removed a redundant top margin on event descriptions (the header stack already spaces via gap).
+- **Trust/FAQ empty state** ([app/trust/page.tsx](app/trust/page.tsx)) -- the bare "Details coming soon." line is now a framed dashed panel matching the site's empty-state language, with a WhatsApp pointer.
+
 ## 1.33.0 (2026-07-02)
 
 UI-consistency Phase 1: the sitewide elevation migration. Every raw Tailwind shadow (33 across sm/md/lg/xl/2xl) and every ad-hoc black/white ring pair is now routed through the tokenized elevation scale from 1.32.0, mapped by ROLE rather than size. Zero raw `shadow-sm..2xl` or `ring-black/N`/`ring-white/N` remain in components/ or app/ (grep-verified). Confirmed in a real browser in light + dark.
