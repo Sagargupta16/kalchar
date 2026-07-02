@@ -32,6 +32,8 @@ import {
 	type OrderPresetRow,
 	orderPresets,
 	settings,
+	type TestimonialRow,
+	testimonials,
 	type WorkshopRow,
 	workshops,
 } from "./db/schema";
@@ -46,6 +48,7 @@ import type {
 	OrderPresetKind,
 	OrderPresets,
 	Site,
+	Testimonial,
 	Workshop,
 } from "./types";
 
@@ -252,6 +255,37 @@ function toLead(row: LeadRow): Lead {
 export async function getAllLeads(): Promise<readonly Lead[]> {
 	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt));
 	return rows.map(toLead);
+}
+
+function toTestimonial(row: TestimonialRow): Testimonial {
+	return {
+		id: row.id,
+		quote: row.quote,
+		authorName: row.authorName,
+		authorLocation: row.authorLocation ?? undefined,
+		artworkSlug: row.artworkSlug ?? undefined,
+		featured: row.featured,
+		order: row.order,
+	};
+}
+
+/** All testimonials, featured first then by order, for the admin list. */
+export async function getAllTestimonials(): Promise<readonly Testimonial[]> {
+	const rows = await db
+		.select()
+		.from(testimonials)
+		.orderBy(desc(testimonials.featured), asc(testimonials.order));
+	return rows.map(toTestimonial);
+}
+
+/** Featured testimonials for the home page (empty array hides the section). */
+export async function getFeaturedTestimonials(): Promise<readonly Testimonial[]> {
+	return (await getAllTestimonials()).filter((t) => t.featured);
+}
+
+/** Testimonials soft-linked to a specific artwork, for its detail page. */
+export async function getTestimonialsForArtwork(slug: string): Promise<readonly Testimonial[]> {
+	return (await getAllTestimonials()).filter((t) => t.artworkSlug === slug);
 }
 
 /**
