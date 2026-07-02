@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.24.2 (2026-07-02)
+
+Fixes surfaced by a multi-agent audit (security, bugs, deps, frontend quality). Two user-visible bugs (event gallery "+N more" undercount, admin reorder loss) plus SEO metadata hardening. Verified with typecheck, lint (0 warnings), and a full `next build` (40 routes, 21 SSG work paths).
+
+### Fixed
+
+- **Event gallery "+N more" undercounted by one** ([components/events/event-gallery.tsx](components/events/event-gallery.tsx)) -- the overflow overlay sits on the last inline tile and covers its own photo, but that photo wasn't counted, so a 7-photo event showed "+1" while hiding 2. The count now starts from the overflow tile (`total - (MAX_INLINE - 1)`) and only triggers past the grid, so the badge matches the number of photos it hides and an exact-fit set shows every tile clean.
+- **Staged admin reorder discarded on refresh** ([app/admin/_components/use-server-synced-list.ts](app/admin/_components/use-server-synced-list.ts)) -- the server-synced list re-adopted server data on reference change, but the parent hands a fresh array identity every render, so any unrelated `router.refresh()` (e.g. a sibling action) wiped an in-progress drag reorder. Now compares by serialized content, resyncing only when the data actually changed. Covers the event photo, artwork, workshop, and category reorder lists.
+
+### SEO
+
+- **Default social-share image** ([app/layout.tsx](app/layout.tsx)) -- root Open Graph + Twitter cards had no image, so the home page and every static route produced a text-only preview when shared to WhatsApp/Instagram (the primary traffic channel). Added a self-hosted default (`logo.jpg`) with dimensions and alt.
+- **Home page metadata** ([app/page.tsx](app/page.tsx)) -- the highest-traffic entry page inherited the generic root title/description; now has a unique, keyword-rich title and description (Madhubani, Pichwai, Lippan, Gond).
+- **Artwork OG image hardened** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- per-piece OG image now carries a real `height` (derived from the piece's aspect ratio) and `alt`, so social crawlers lay out the card without a fetch.
+- **Sitemap freshness** ([app/sitemap.ts](app/sitemap.ts)) -- every entry now carries a `lastModified` (the build time, the honest signal for a force-static site) so crawlers get a freshness cue.
+
+### Removed
+
+- **Dead `getEventById`** ([lib/data.ts](lib/data.ts)) -- exported but never imported (there is no `/events/[id]` route), so removed. No behavior change.
+
 ## 1.24.1 (2026-06-13)
 
 Security patch: closes Dependabot alert #4 (esbuild). Verified with a full `next build` (40 routes, 22 SSG work paths).
