@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.25.1 (2026-07-02)
+
+Roadmap Phase 1 (part 2): a single typed env module. Internal only, no user-facing change. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Changed
+
+- **Central typed env module** ([lib/env.ts](lib/env.ts)) -- the one place `process.env` is read. `clientEnv` (NEXT_PUBLIC_*) and `serverEnv` (secrets) validate each var lazily on access, throwing a pointed error (naming the var + its doc) instead of a silent failure. Rewired every prior raw read: [lib/db/client.ts](lib/db/client.ts), [lib/storage/r2.ts](lib/storage/r2.ts), [lib/image-base.ts](lib/image-base.ts), [app/layout.tsx](app/layout.tsx), [app/admin/actions.ts](app/admin/actions.ts). Zero raw `process.env` reads remain outside this module.
+- Kept dependency-free by design (no zod / t3-env): a handful of vars doesn't warrant a schema library or its lock-in; the module's internals can be swapped later without touching callers.
+
+### Fixed
+
+- **No more silent empty image base** ([lib/image-base.ts](lib/image-base.ts)) -- the old `?? ""` fallback would ship a site with dead `<picture>` srcsets if `NEXT_PUBLIC_IMAGE_BASE_URL` was unset; it now fails the build loudly via the validated getter. The `regeneratePalette` action and the layout preconnect hint now derive from the shared image-base constants rather than re-reading env.
+
 ## 1.25.0 (2026-07-02)
 
 Roadmap Phase 1 (part 1): the testing safety net + catalog correctness. First automated tests in the repo. Verified with typecheck, lint, the new suite (43 tests), and a full `next build` (40 routes, 21 SSG work paths).
