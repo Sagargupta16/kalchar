@@ -40,7 +40,7 @@ export default function ContactPage() {
 							href={contact.whatsapp.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="group mt-10 flex items-center gap-5 rounded-(--radius-md) border border-(--section-accent)/30 bg-bg-soft p-5 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-6"
+							className="group mt-10 flex items-center gap-5 rounded-(--radius-md) border border-(--section-accent)/30 bg-bg-soft p-5 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-e2 sm:p-6"
 						>
 							<IconCircle size="lg" className="group-hover:ring-(--section-accent)">
 								<WhatsAppIcon className="h-6 w-6" />
@@ -205,7 +205,7 @@ function InstagramQrCard({ channel }: Readonly<{ channel: ContactChannel }>) {
 			href={channel.url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="group flex h-full items-center gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg sm:p-5"
+			className="group flex h-full items-center gap-4 rounded-(--radius-md) border border-line bg-bg p-4 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-e2 sm:p-5"
 		>
 			{/* QR plate */}
 			<div className="relative shrink-0">

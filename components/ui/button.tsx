@@ -8,7 +8,7 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				primary:
-					"rounded-(--radius-sm) bg-accent text-bg shadow-sm hover:bg-accent-hover hover:-translate-y-px hover:shadow-md",
+					"rounded-(--radius-sm) bg-accent text-bg shadow-e1 hover:bg-accent-hover hover:-translate-y-px hover:shadow-e2",
 				secondary:
 					"rounded-(--radius-sm) bg-bg-soft text-ink border border-line hover:border-accent hover:text-accent",
 				ghost:

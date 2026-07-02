@@ -106,7 +106,7 @@ export function HeroPlates({
 				{back ? (
 					<div
 						aria-hidden="true"
-						className="hero-plate absolute inset-0 overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-lg ring-1 ring-black/5 motion-reduce:opacity-60 dark:ring-white/5"
+						className="hero-plate absolute inset-0 overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-e2 shadow-hairline motion-reduce:opacity-60"
 						style={{ transform: `translate(6%, 4%) rotate(${backTilt}deg)` }}
 					>
 						<ArtImage
@@ -131,7 +131,7 @@ export function HeroPlates({
 						className="group absolute inset-0 block focus-visible:outline-none"
 						aria-label={`View ${front.title}`}
 					>
-						<div className="relative h-full overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-xl ring-1 ring-black/10 transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
+						<div className="relative h-full overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-e3 transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-1 group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
 							<ArtImage
 								key={front.slug}
 								src={`/artworks/${front.image}`}
@@ -153,7 +153,7 @@ export function HeroPlates({
 						✦
 					</span>
 					<span className="t-meta">
-						Featured . {index >= 0 ? index + 1 : 1} of {totalCount}
+						Featured, {index >= 0 ? index + 1 : 1} of {totalCount}
 					</span>
 				</p>
 				<p className="mt-2 flex items-baseline justify-between gap-3">

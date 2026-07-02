@@ -74,7 +74,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 						className={cn(
 							"flex items-center gap-3 rounded-(--radius-sm) border border-line bg-bg p-3 transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50 scale-[0.98]",
-							over === i && dragging !== i && "border-accent shadow-sm",
+							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
 						<span className="cursor-grab text-muted hover:text-ink active:cursor-grabbing">

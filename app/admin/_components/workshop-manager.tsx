@@ -59,7 +59,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 						className={cn(
 							"rounded-(--radius-sm) border border-line bg-bg transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50",
-							over === i && dragging !== i && "border-accent shadow-sm",
+							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
 						<WorkshopItem

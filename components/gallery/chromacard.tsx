@@ -40,7 +40,7 @@ export function Chromacard({
 			className={cn(
 				"flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50",
 				groupHoverBloom &&
-					"transition-[height] duration-(--duration-base) ease-out-soft group-hover:h-2.5",
+					"transition-[height] duration-(--duration-base) ease-(--ease-out) group-hover:h-2.5",
 				className,
 			)}
 		>

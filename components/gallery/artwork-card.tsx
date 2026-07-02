@@ -57,13 +57,13 @@ export function ArtworkCard({
 
 				{/* Status badges */}
 				{isAvailable && !isSold ? (
-					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-sm">
+					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-e1">
 						<Check size={11} className="text-(--section-accent)" />
 						Available
 					</Badge>
 				) : null}
 				{isSold ? (
-					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-sm">
+					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-e1">
 						Sold
 					</span>
 				) : null}
