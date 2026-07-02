@@ -2,6 +2,7 @@
 
 import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { submitLead } from "@/app/admin/lead-actions";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
@@ -77,6 +78,11 @@ export function CustomOrderForm({
 		const next = readDraft(e.currentTarget);
 		if (!next) return;
 		setDraft(next);
+		// Persist the brief BEFORE the WhatsApp hand-off, so a blocked in-app
+		// popup no longer loses the lead. Fire-and-forget: submitLead never
+		// throws and we don't await it, so the WhatsApp open below is never
+		// gated on the DB write.
+		void submitLead(new FormData(e.currentTarget));
 		const url = buildWhatsAppLink({ phoneE164NoPlus, message: customOrderMessage(next) });
 		setSubmitting(true);
 		// `window.open` returns null when blocked (popup blocker, in-app
@@ -104,6 +110,16 @@ export function CustomOrderForm({
 
 	return (
 		<form onSubmit={onSubmit} className="space-y-6" noValidate>
+			{/* Honeypot: hidden from users + assistive tech; bots fill it and the
+			    lead is silently dropped server-side. Not display:none (some bots
+			    skip those) -- off-screen + aria-hidden + no tab stop. */}
+			<div
+				aria-hidden="true"
+				className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
+			>
+				<label htmlFor="website">Leave this field empty</label>
+				<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+			</div>
 			{/* Brief -- the one required field, given hero weight up top. */}
 			<Field id="brief" label="What would you like painted?" required>
 				<textarea
@@ -220,6 +236,7 @@ export function CustomOrderForm({
 				<p className="text-xs text-muted">
 					You&rsquo;ll review the message in WhatsApp before it sends.
 				</p>
+				<p className="text-xs text-muted">We keep your brief only to reply to your enquiry.</p>
 				{mailtoHref ? (
 					<a
 						href={mailtoHref}

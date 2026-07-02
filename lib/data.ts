@@ -27,6 +27,8 @@ import {
 	categories,
 	type EventRow,
 	events,
+	type LeadRow,
+	leads,
 	type OrderPresetRow,
 	orderPresets,
 	settings,
@@ -38,6 +40,8 @@ import type {
 	Artwork,
 	Category,
 	Event,
+	Lead,
+	LeadStatus,
 	OrderPreset,
 	OrderPresetKind,
 	OrderPresets,
@@ -228,6 +232,26 @@ export async function getAllEvents(): Promise<readonly Event[]> {
 /** The most recent `limit` events, for the home preview strip. */
 export async function getRecentEvents(limit: number): Promise<readonly Event[]> {
 	return (await getAllEvents()).slice(0, limit);
+}
+
+function toLead(row: LeadRow): Lead {
+	return {
+		id: row.id,
+		name: row.name ?? undefined,
+		style: row.style ?? undefined,
+		size: row.size ?? undefined,
+		budget: row.budget ?? undefined,
+		timeline: row.timeline ?? undefined,
+		brief: row.brief,
+		status: row.status as LeadStatus,
+		createdAt: row.createdAt.toISOString(),
+	};
+}
+
+/** All captured custom-order leads, newest first, for the admin queue. */
+export async function getAllLeads(): Promise<readonly Lead[]> {
+	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt));
+	return rows.map(toLead);
 }
 
 /**
