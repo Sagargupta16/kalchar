@@ -193,6 +193,10 @@ export function SiteFooter() {
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
 					<div className="flex items-center gap-3">
+						<Link href="/trust" className="transition-colors hover:text-accent">
+							Trust &amp; FAQ
+						</Link>
+						<span aria-hidden="true" className="h-3 w-px bg-line" />
 						<Link
 							href="/admin"
 							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"

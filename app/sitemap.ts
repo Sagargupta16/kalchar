@@ -19,7 +19,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	// freshness signal to give crawlers -- every URL is as fresh as this build.
 	const lastModified = new Date();
 
-	const routes = ["", "/work", "/events", "/about", "/workshops", "/custom-orders", "/contact"];
+	const routes = [
+		"",
+		"/work",
+		"/events",
+		"/about",
+		"/workshops",
+		"/custom-orders",
+		"/contact",
+		"/trust",
+	];
 	const staticEntries: MetadataRoute.Sitemap = routes.map((path) => ({
 		url: `${base}${path}/`,
 		lastModified,
