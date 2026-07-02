@@ -10,7 +10,7 @@ const site = getSite();
 const trust = site.trust;
 
 export const metadata: Metadata = {
-	title: trust?.title ?? "Trust & FAQ",
+	title: trust?.title ?? "FAQ",
 	description: trust?.lead,
 };
 
@@ -29,7 +29,7 @@ export default function TrustPage() {
 			<main>
 				<Section accent="peacock">
 					<Container className="py-(--section-py)">
-						<PageHeader eyebrow="Trust & FAQ" title="How buying works" />
+						<PageHeader eyebrow="FAQ" title="Frequently asked questions" />
 						<p className="mt-8 text-sm text-muted">Details coming soon.</p>
 					</Container>
 				</Section>
@@ -58,11 +58,7 @@ export default function TrustPage() {
 			/>
 			<Section accent="peacock">
 				<Container className="py-(--section-py)">
-					<PageHeader
-						eyebrow={trust.eyebrow ?? "Trust & FAQ"}
-						title={trust.title}
-						lead={trust.lead}
-					/>
+					<PageHeader eyebrow={trust.eyebrow ?? "FAQ"} title={trust.title} lead={trust.lead} />
 
 					<div className="mx-auto mt-12 max-w-2xl divide-y divide-line border-y border-line">
 						{trust.faqs.map((faq, i) => (

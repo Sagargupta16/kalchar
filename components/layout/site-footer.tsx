@@ -194,7 +194,7 @@ export function SiteFooter() {
 					</p>
 					<div className="flex items-center gap-3">
 						<Link href="/trust" className="transition-colors hover:text-accent">
-							Trust &amp; FAQ
+							FAQ
 						</Link>
 						<span aria-hidden="true" className="h-3 w-px bg-line" />
 						<Link

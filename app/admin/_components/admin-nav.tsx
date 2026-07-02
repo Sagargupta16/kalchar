@@ -15,17 +15,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-	{ label: "Artworks", href: "/admin", icon: Palette },
-	{ label: "Leads", href: "/admin/leads", icon: Inbox },
-	{ label: "Events", href: "/admin/events", icon: CalendarDays },
-	{ label: "Categories", href: "/admin/categories", icon: Tags },
-	{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
-	{ label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
-	{ label: "Presets", href: "/admin/presets", icon: ListChecks },
-	{ label: "Profile", href: "/admin/profile", icon: UserCircle },
-	{ label: "Maintainers", href: "/admin/maintainers", icon: Users },
+// Grouped so related destinations cluster instead of reading as one long,
+// arbitrary row: the catalog, then community content, then the enquiry inbox,
+// then site settings. A separator is drawn between groups on desktop.
+const NAV_GROUPS = [
+	[
+		{ label: "Artworks", href: "/admin", icon: Palette },
+		{ label: "Categories", href: "/admin/categories", icon: Tags },
+		{ label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
+	],
+	[
+		{ label: "Events", href: "/admin/events", icon: CalendarDays },
+		{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
+	],
+	[{ label: "Leads", href: "/admin/leads", icon: Inbox }],
+	[
+		{ label: "Presets", href: "/admin/presets", icon: ListChecks },
+		{ label: "Profile", href: "/admin/profile", icon: UserCircle },
+		{ label: "Maintainers", href: "/admin/maintainers", icon: Users },
+	],
 ];
+
+// Flat list for the mobile tab bar (grouping separators don't fit there).
+const NAV = NAV_GROUPS.flat();
 
 function useIsActive() {
 	const pathname = usePathname();
@@ -38,30 +50,35 @@ function useIsActive() {
 	};
 }
 
-/** Desktop horizontal nav (>= md). */
+/** Desktop horizontal nav (>= md), grouped with separators between clusters. */
 export function AdminNavDesktop() {
 	const isActive = useIsActive();
 	return (
 		<nav aria-label="Admin" className="hidden items-center gap-1 md:flex">
-			{NAV.map((item) => {
-				const active = isActive(item.href);
-				return (
-					<Link
-						key={item.href}
-						href={item.href}
-						aria-current={active ? "page" : undefined}
-						className={cn(
-							"inline-flex items-center gap-1.5 rounded-(--radius-sm) px-3 py-1.5 text-sm transition-colors",
-							active
-								? "bg-bg-muted font-medium text-ink"
-								: "text-muted hover:bg-bg-muted hover:text-ink",
-						)}
-					>
-						<item.icon size={14} className={active ? "text-accent" : undefined} />
-						{item.label}
-					</Link>
-				);
-			})}
+			{NAV_GROUPS.map((group, gi) => (
+				<div key={group[0]?.href ?? gi} className="flex items-center gap-1">
+					{gi > 0 ? <span aria-hidden="true" className="mx-1.5 h-4 w-px bg-line" /> : null}
+					{group.map((item) => {
+						const active = isActive(item.href);
+						return (
+							<Link
+								key={item.href}
+								href={item.href}
+								aria-current={active ? "page" : undefined}
+								className={cn(
+									"inline-flex items-center gap-1.5 rounded-(--radius-sm) px-3 py-1.5 text-sm transition-colors",
+									active
+										? "bg-bg-muted font-medium text-ink"
+										: "text-muted hover:bg-bg-muted hover:text-ink",
+								)}
+							>
+								<item.icon size={14} className={active ? "text-accent" : undefined} />
+								{item.label}
+							</Link>
+						);
+					})}
+				</div>
+			))}
 		</nav>
 	);
 }

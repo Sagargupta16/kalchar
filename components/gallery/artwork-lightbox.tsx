@@ -13,10 +13,12 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { siteConfig } from "@/lib/site-config";
 import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
+import { ShareButton } from "./share-button";
 
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
@@ -354,16 +356,24 @@ function LightboxContent({
 						) : null}
 					</div>
 
-					{/* CTA */}
-					<a
-						href={whatsappLink}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="mt-6 flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-md transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-					>
-						<MessageCircle size={16} />
-						Enquire on WhatsApp
-					</a>
+					{/* CTA + share */}
+					<div className="mt-6 space-y-2.5">
+						<a
+							href={whatsappLink}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-md transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+						>
+							<MessageCircle size={16} />
+							Enquire on WhatsApp
+						</a>
+						{/* Shareable deep link: opens THIS piece's modal for whoever receives it. */}
+						<ShareButton
+							title={`${artwork.title} by Megha Seth`}
+							url={`${siteConfig.url}/work?piece=${artwork.slug}`}
+							className="w-full justify-center"
+						/>
+					</div>
 				</div>
 			</motion.div>
 		</motion.div>

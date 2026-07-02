@@ -2,8 +2,9 @@
 
 import { ShoppingBag } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Reveal } from "@/components/motion/reveal";
 import { isForSale } from "@/lib/catalog";
 import type { ArtStyle, Artwork } from "@/lib/types";
@@ -98,6 +99,42 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		if (active === AVAILABLE) return items.filter(isForSale);
 		return items.filter((i) => i.style === active);
 	}, [active, items]);
+
+	// --- Shareable deep-link <-> lightbox binding ---
+	// `?piece=<slug>` opens that artwork's modal on load, so a shared link lands
+	// the recipient straight on the piece. As the modal opens / navigates /
+	// closes, we keep the param in sync (replace, no history spam) so the address
+	// bar always holds a copy-able link to whatever is on screen.
+	const { isOpen, activeArtwork, openLightbox } = useLightbox();
+	const pieceParam = searchParams.get("piece");
+	const openedFromUrl = useRef<string | null>(null);
+
+	// Open from the URL once per distinct ?piece= value (guard against re-opening
+	// after the user closes the modal on the same param).
+	useEffect(() => {
+		if (!pieceParam || openedFromUrl.current === pieceParam) return;
+		const match = items.find((i) => i.slug === pieceParam);
+		if (!match) return;
+		openedFromUrl.current = pieceParam;
+		openLightbox(match as Artwork, items as Artwork[]);
+	}, [pieceParam, items, openLightbox]);
+
+	// Reflect the lightbox state back into the URL: the active slug while open,
+	// nothing when closed. Preserves any active style/view filter param.
+	useEffect(() => {
+		const params = new URLSearchParams(searchParams.toString());
+		if (isOpen && activeArtwork) {
+			if (params.get("piece") === activeArtwork.slug) return;
+			params.set("piece", activeArtwork.slug);
+			openedFromUrl.current = activeArtwork.slug;
+		} else {
+			if (!params.has("piece")) return;
+			params.delete("piece");
+			openedFromUrl.current = null;
+		}
+		const qs = params.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+	}, [isOpen, activeArtwork, searchParams, router, pathname]);
 
 	const styleFilters: Filter[] = [ALL, ...styles];
 
