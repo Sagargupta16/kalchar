@@ -9,14 +9,15 @@
  * NEXT_PUBLIC_ prefix: art-image.tsx is a client component, so this value must
  * ship to the browser. It's a public URL, not a secret. Set
  * NEXT_PUBLIC_IMAGE_BASE_URL in every environment (Vercel prod + preview, CI,
- * and local .env.local). R2_PUBLIC_BASE_URL is the server-side fallback for
- * local scripts that don't load the NEXT_PUBLIC_ copy.
+ * and local .env.local).
+ *
+ * Read through `clientEnv`, which throws if the var is unset or not a URL --
+ * so a misconfigured environment fails the build loudly here instead of the
+ * old silent `?? ""` that shipped a site with dead <picture> srcsets.
  */
-const r2Base = (
-	process.env.NEXT_PUBLIC_IMAGE_BASE_URL ??
-	process.env.R2_PUBLIC_BASE_URL ??
-	""
-).replace(/\/$/, "");
+import { clientEnv } from "./env";
+
+const r2Base = clientEnv.imageBaseUrl.replace(/\/$/, "");
 
 /** Base URL for artwork variants: the R2 public origin + "/artworks". */
 export const ARTWORK_IMAGE_BASE = `${r2Base}/artworks`;
