@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.25.0 (2026-07-02)
+
+Roadmap Phase 1 (part 1): the testing safety net + catalog correctness. First automated tests in the repo. Verified with typecheck, lint, the new suite (43 tests), and a full `next build` (40 routes, 21 SSG work paths).
+
+### Added
+
+- **Vitest + pure-function unit suite** ([vitest.config.ts](vitest.config.ts), `lib/*.test.ts`) -- 43 tests over the dependency-free logic that had zero coverage: slug minting (Devanagari matras, emoji/ZWJ glue, truncation), price/status rules, the WhatsApp message + link builders (phone guard, double-dash house-rule), and INR/date formatting. `pnpm test` runs them; Vitest 4's native tsconfig-paths resolution means no extra path plugin.
+- **CI test gate** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) -- `pnpm test` runs between typecheck and build. Pure-fn tests need no secrets, so they fail fast before the secret-injected build.
+- **Shared catalog module** ([lib/catalog.ts](lib/catalog.ts)) -- one source of truth for the "store is a filter" rules (`deriveStatus`, `isForSale`, `isPositivePrice`, `getCtaCopy`), previously duplicated across the data seam, the gallery filter, and the detail page.
+- **Pure admin helpers** ([lib/admin-helpers.ts](lib/admin-helpers.ts)) -- `slugify`, `getNextOrder`, `formString` extracted from `app/admin/_helpers.ts` (which imports the Auth.js session) so they're unit-testable; `_helpers.ts` re-exports them, so action-file imports are unchanged.
+
+### Fixed
+
+- **Price / sold-out integrity guard** ([lib/catalog.ts](lib/catalog.ts), [lib/data.ts](lib/data.ts)) -- `isForSale` now requires a positive, finite price and excludes sold pieces via the derived status, and `getAvailableArtworks` uses it instead of a bare `status === "available"` check. A piece whose status drifted to "available" without a real price (or a sold piece still carrying a price) can no longer leak into the "Available to buy" filter or its count.
+
 ## 1.24.3 (2026-07-02)
 
 ### Added

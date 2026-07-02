@@ -10,6 +10,12 @@ import type { PgTable } from "drizzle-orm/pg-core";
 import { auth } from "@/auth";
 import { isMaintainer } from "@/lib/maintainers";
 
+// The pure string/number helpers (slugify, getNextOrder, formString) live in
+// lib/admin-helpers.ts so they can be unit-tested without importing this
+// module's Auth.js session. Re-exported here so the action files keep their
+// existing "./_helpers" import path.
+export { formString, getNextOrder, slugify } from "@/lib/admin-helpers";
+
 /** Re-check the session and confirm the caller is a maintainer; returns their email. */
 export async function requireMaintainer(): Promise<string> {
 	const session = await auth();
@@ -18,38 +24,6 @@ export async function requireMaintainer(): Promise<string> {
 		throw new Error("Not authorized.");
 	}
 	return email.toLowerCase();
-}
-
-/** Longest slug we mint; long titles truncate (uniqueness is checked on insert). */
-const SLUG_MAX_LENGTH = 64;
-
-export function slugify(input: string): string {
-	// Unicode-aware: keeps letters/digits in any script (Devanagari titles like
-	// "सूर्यास्त" make valid slugs -- URLs and R2 keys are UTF-8 safe), collapses
-	// everything else to single dashes. \p{Mark} is required alongside
-	// \p{Letter}: Devanagari vowel signs (matras) and the virama are combining
-	// marks, and dropping them would shred the word. The collapse means a
-	// leading/trailing dash is always a lone character, so the trim regex needs
-	// no "+" and stays strictly linear. NFC-normalize first so visually
-	// identical Devanagari (precomposed vs combining) yields one canonical slug.
-	return (
-		input
-			.normalize("NFC")
-			.toLowerCase()
-			.trim()
-			// Emoji glue (variation selectors U+FE00-FE0F, zero-width joiner) are
-			// Marks that would otherwise survive after their emoji base is stripped.
-			.replace(/[\ufe00-\ufe0f\u200d]/gu, "")
-			.replace(/[^\p{Letter}\p{Mark}\p{Number}]+/gu, "-")
-			.replace(/^-|-$/g, "")
-			.slice(0, SLUG_MAX_LENGTH)
-			.replace(/-$/, "")
-	);
-}
-
-/** Next 1-based order value for appending a row after the current maximum. */
-export function getNextOrder(rows: ReadonlyArray<{ order: number }>): number {
-	return rows.reduce((max, row) => Math.max(max, row.order), 0) + 1;
 }
 
 /**
@@ -61,10 +35,4 @@ export function getNextOrder(rows: ReadonlyArray<{ order: number }>): number {
  */
 export function nextOrderSql(table: PgTable): SQL<number> {
 	return sql<number>`(select coalesce(max("order"), 0) + 1 from ${table})`;
-}
-
-/** Read a FormData field as a string, defaulting to "" for missing/file values. */
-export function formString(formData: FormData, key: string): string {
-	const value = formData.get(key);
-	return typeof value === "string" ? value : "";
 }

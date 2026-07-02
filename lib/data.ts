@@ -18,6 +18,7 @@
  */
 import { asc, desc, eq } from "drizzle-orm";
 import siteJson from "@/data/site.json";
+import { deriveStatus, isForSale } from "./catalog";
 import { db } from "./db/client";
 import {
 	type ArtworkRow,
@@ -44,19 +45,6 @@ import type {
 	Site,
 	Workshop,
 } from "./types";
-
-/**
- * Phase 1 derived status from `priceInr`. The DB stores it explicitly now, but
- * we keep the fallback so a row left at the default "archive" still resolves
- * to "available" the moment a price is set, without an extra admin step.
- */
-function deriveStatus(row: ArtworkRow): ArtworkStatus {
-	if (row.status === "available" || row.status === "sold" || row.status === "archive") {
-		if (row.status === "archive" && typeof row.priceInr === "number") return "available";
-		return row.status;
-	}
-	return typeof row.priceInr === "number" ? "available" : "archive";
-}
 
 /** Map a DB row (nullable columns) to the UI `Artwork` shape (optional fields). */
 function toArtwork(row: ArtworkRow): Artwork {
@@ -94,9 +82,14 @@ export async function getAllArtworks(): Promise<readonly Artwork[]> {
 	return rows.map(toArtwork);
 }
 
-/** Currently for-sale artworks. */
+/**
+ * Currently for-sale artworks: priced (positive) and not sold. Uses the shared
+ * `isForSale` guard rather than a bare `status === "available"` check, so a
+ * piece whose status drifted to "available" without a real price can never leak
+ * into the buy filter or its count.
+ */
 export async function getAvailableArtworks(): Promise<readonly Artwork[]> {
-	return (await getAllArtworks()).filter((a) => a.status === "available");
+	return (await getAllArtworks()).filter(isForSale);
 }
 
 /** The featured piece for the hero, or the lowest-order one as fallback. */
