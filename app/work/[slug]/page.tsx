@@ -188,7 +188,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
 				<Reveal eager className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-lg) bg-bg-soft ring-1 ring-black/8 dark:ring-white/8">
+					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-hairline">
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? artworkAlt(art)}
@@ -198,12 +198,12 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 							className="absolute inset-0 h-full w-full object-cover"
 						/>
 						{isAvailable && !isSold ? (
-							<span className="absolute left-3.5 top-3.5 z-10 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+							<span className="absolute left-3.5 top-3.5 z-10 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-e1 backdrop-blur">
 								Available
 							</span>
 						) : null}
 						{isSold ? (
-							<span className="pointer-events-none absolute -left-9 top-4 z-10 w-32 -rotate-45 bg-ruby py-1 text-center text-[0.6rem] font-semibold uppercase tracking-meta text-bg shadow-sm sm:-left-10 sm:top-5 sm:w-36 sm:text-[0.7rem]">
+							<span className="pointer-events-none absolute -left-9 top-4 z-10 w-32 -rotate-45 bg-ruby py-1 text-center text-[0.6rem] font-semibold uppercase tracking-meta text-bg shadow-e1 sm:-left-10 sm:top-5 sm:w-36 sm:text-[0.7rem]">
 								Sold
 							</span>
 						) : null}

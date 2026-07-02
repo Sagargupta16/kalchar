@@ -64,7 +64,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 							className={cn(
 								"group relative aspect-square overflow-hidden rounded-(--radius-sm) border bg-bg-soft transition-all duration-(--duration-fast)",
 								dragging === i ? "opacity-50" : "border-line",
-								over === i && dragging !== i && "border-accent shadow-sm",
+								over === i && dragging !== i && "border-accent shadow-e1",
 							)}
 						>
 							{/* biome-ignore lint/performance/noImgElement: admin-only thumb, R2 origin, next/image not configured for this host */}

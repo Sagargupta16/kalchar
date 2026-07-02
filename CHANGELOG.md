@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.0 (2026-07-02)
+
+UI-consistency Phase 1: the sitewide elevation migration. Every raw Tailwind shadow (33 across sm/md/lg/xl/2xl) and every ad-hoc black/white ring pair is now routed through the tokenized elevation scale from 1.32.0, mapped by ROLE rather than size. Zero raw `shadow-sm..2xl` or `ring-black/N`/`ring-white/N` remain in components/ or app/ (grep-verified). Confirmed in a real browser in light + dark.
+
+### Changed
+
+- **Role-mapped elevation everywhere** -- resting art plates and frames carry `shadow-hairline` only (the art stays the hero); card/badge chrome sits at `e1`; hovers and floating controls (lightbox nav, buy CTA, close buttons) at `e2`; picture-frame hovers and the scrolled header at `e3`; the back-to-top FAB at `e4`; the lightbox panel and admin modal at `e5`. Dark mode gets the inset-highlight treatment automatically via the token remap, killing the old mismatched `ring-black/8 dark:ring-white/5` pairs.
+- **Button** lifts `e1 -> e2` on hover (was `shadow-sm -> shadow-md`).
+
+### Fixed
+
+- **Undefined easing token** ([components/gallery/chromacard.tsx](components/gallery/chromacard.tsx), [app/login/page.tsx](app/login/page.tsx)) -- `ease-out-soft` is not a defined token, so the browser silently dropped the timing function on every gallery card's palette-strip hover; both now use `ease-(--ease-out)`.
+- **Floating period in the hero caption** ([components/home/hero-plates.tsx](components/home/hero-plates.tsx)) -- "Featured . 1 of 21" now reads "Featured, 1 of 21".
+
 ## 1.32.1 (2026-07-02)
 
 Admin UI consistency pass, fixing the verified findings from the per-page audit: the admin shell previously read as "assembled by different hands" (drifting radii, three different delete buttons, invisible keyboard focus). All admin-only; no public-page change.

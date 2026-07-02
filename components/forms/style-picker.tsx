@@ -110,8 +110,8 @@ function OptionCard({
 			className={cn(
 				"group relative cursor-pointer overflow-hidden rounded-(--radius-md) border bg-bg transition-all duration-(--duration-base) ease-(--ease-out) focus-within:ring-2 focus-within:ring-(--section-accent) focus-within:ring-offset-2 focus-within:ring-offset-bg",
 				checked
-					? "border-(--section-accent) shadow-md"
-					: "border-line hover:border-(--section-accent)/50 hover:shadow-sm",
+					? "border-(--section-accent) shadow-e2"
+					: "border-line hover:border-(--section-accent)/50 hover:shadow-e1",
 			)}
 		>
 			<input

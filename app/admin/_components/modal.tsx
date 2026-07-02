@@ -84,7 +84,7 @@ export function Modal({
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="modal-title"
-				className={`relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-bg shadow-2xl sm:max-h-[calc(100dvh-2rem)] ${
+				className={`relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-bg shadow-e5 sm:max-h-[calc(100dvh-2rem)] ${
 					size === "lg" ? "max-w-lg" : "max-w-sm"
 				}`}
 			>

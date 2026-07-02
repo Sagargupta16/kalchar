@@ -47,7 +47,7 @@ export function BackToTop() {
 			type="button"
 			aria-label="Back to top"
 			onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
-			className={`group fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-40 grid h-11 w-11 place-items-center rounded-full border border-line bg-bg/90 text-ink shadow-lg ring-1 ring-black/5 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-accent hover:text-accent ${
+			className={`group fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-40 grid h-11 w-11 place-items-center rounded-full border border-line bg-bg/90 text-ink shadow-e4 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-accent hover:text-accent ${
 				visible
 					? "pointer-events-auto translate-y-0 opacity-100"
 					: "pointer-events-none translate-y-2 opacity-0"
