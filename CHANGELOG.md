@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.3 (2026-07-02)
+
+### Fixed
+
+- **Forward-port open-redirect fix to dev** ([app/login/page.tsx](app/login/page.tsx)) -- the `safeCallback()` guard shipped to main in v1.24.2 (PR #58) was missing from dev, so the release-to-main merge would have silently REMOVED the CWE-601 protection. Now on dev too. Cherry-picked from `54ebdc3` on main.
+
 ## 1.33.2 (2026-07-02)
 
 UI-consistency Phase 3 (final): mobile tap targets, dynamic-viewport units, and the CI drift guard that locks the whole migration in.
