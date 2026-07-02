@@ -5,7 +5,7 @@ import type { Lead, LeadStatus } from "@/lib/types";
 import { formatEventDate } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminField } from "./controls";
+import { adminField, adminIconBtnDestructive } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -41,7 +41,7 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 
 	if (leads.length === 0) {
 		return (
-			<p className="rounded-(--radius-md) border border-dashed border-line p-6 text-center text-sm text-muted">
+			<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 				No enquiries yet. Custom-order briefs submitted from the site appear here.
 			</p>
 		);
@@ -52,7 +52,7 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 			<ul className="space-y-3">
 				{leads.map((lead) => (
-					<li key={lead.id} className="rounded-(--radius-md) border border-line bg-bg-soft/40 p-4">
+					<li key={lead.id} className="rounded-(--radius-sm) border border-line bg-bg-soft/40 p-4">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div className="min-w-0">
 								<p className="text-sm font-medium text-ink">
@@ -83,7 +83,7 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 									disabled={pending}
 									onClick={() => onDelete(lead.id)}
 									aria-label="Delete lead"
-									className="grid h-9 w-9 place-items-center rounded-(--radius-sm) border border-ruby/40 text-ruby transition-colors hover:bg-ruby hover:text-bg disabled:opacity-50"
+									className={adminIconBtnDestructive}
 								>
 									<Trash2 size={15} />
 								</button>

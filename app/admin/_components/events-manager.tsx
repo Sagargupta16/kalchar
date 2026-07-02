@@ -54,7 +54,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 				{items.map((event) => (
 					<li
 						key={event.id}
-						className="rounded-(--radius-md) border border-line bg-bg transition-all duration-(--duration-fast)"
+						className="rounded-(--radius-sm) border border-line bg-bg transition-all duration-(--duration-fast)"
 					>
 						<EventItem
 							event={event}

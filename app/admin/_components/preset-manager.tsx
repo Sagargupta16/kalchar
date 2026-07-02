@@ -126,7 +126,7 @@ function PresetGroup({
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
-						No options yet.
+						No options yet. Add one below.
 					</p>
 				) : null}
 			</ul>

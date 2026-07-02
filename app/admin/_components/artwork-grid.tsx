@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { cn, formatInr } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../actions";
 import { useConfirm } from "./confirm-dialog";
+import { adminIconBtnDestructive } from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
@@ -100,7 +101,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							disabled={pending}
 							onClick={() => handleDelete(art)}
 							title={`Delete ${art.title}`}
-							className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-(--radius-sm) border border-ruby/30 text-ruby transition-colors hover:bg-ruby hover:text-bg"
+							className={cn(adminIconBtnDestructive, "shrink-0")}
 						>
 							<Trash2 size={13} />
 						</button>
