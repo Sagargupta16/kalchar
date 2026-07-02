@@ -18,10 +18,13 @@ export function Card({ children, className, hover = false, padding = "md" }: Rea
 	return (
 		<div
 			className={cn(
-				"rounded-(--radius-md) border border-line bg-bg",
+				// Resting: hairline edge + e1 lift (one elevation decision). Hover
+				// rises to e2 with a subtle translate. Transition is scoped to the
+				// props that change (not `all`) at the micro duration for tactility.
+				"rounded-(--radius-md) border border-line bg-bg shadow-e1",
 				PADDING_MAP[padding],
 				hover &&
-					"transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg",
+					"transition-[transform,box-shadow,border-color] duration-(--duration-micro) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-e2",
 				className,
 			)}
 		>
