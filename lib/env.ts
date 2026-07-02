@@ -31,26 +31,35 @@ function required(name: string, doc: string): string {
 	return value;
 }
 
-/** Read a required URL var, also validating it parses (catches typos early). */
-function requiredUrl(name: string, doc: string): string {
-	const value = required(name, doc);
-	try {
-		new URL(value);
-	} catch {
-		throw new Error(`${name} is set but is not a valid URL ("${value}"). See ${doc}.`);
-	}
-	return value;
-}
-
 /**
  * Client-safe env (NEXT_PUBLIC_*). Read lazily via getters so importing this
  * module never throws at load time -- only the specific missing var throws, and
  * only when something actually reads it.
+ *
+ * IMPORTANT: the NEXT_PUBLIC_ var is referenced as a DIRECT, literal
+ * `process.env.NEXT_PUBLIC_IMAGE_BASE_URL`. Next inlines client env vars at
+ * build time by textually replacing exactly that literal form -- a dynamic
+ * `process.env[name]` (as the `required()` helper uses) is NOT inlined, so it
+ * would read `undefined` in the browser bundle and throw at hydration. Keep
+ * this literal; do not route it through the helper.
  */
 export const clientEnv = {
 	/** R2 public base URL, baked into the client bundle's <picture> srcsets. */
 	get imageBaseUrl(): string {
-		return requiredUrl("NEXT_PUBLIC_IMAGE_BASE_URL", "docs/IMAGES.md");
+		const value = process.env.NEXT_PUBLIC_IMAGE_BASE_URL;
+		if (!value) {
+			throw new Error(
+				"NEXT_PUBLIC_IMAGE_BASE_URL is not set. See .env.example and docs/IMAGES.md.",
+			);
+		}
+		try {
+			new URL(value);
+		} catch {
+			throw new Error(
+				`NEXT_PUBLIC_IMAGE_BASE_URL is set but is not a valid URL ("${value}"). See docs/IMAGES.md.`,
+			);
+		}
+		return value;
 	},
 } as const;
 

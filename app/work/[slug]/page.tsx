@@ -5,10 +5,17 @@ import { notFound } from "next/navigation";
 import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { ShareButton } from "@/components/gallery/share-button";
+import { Testimonials } from "@/components/home/testimonials";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
-import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
+import {
+	getAllArtworkSlugs,
+	getAllArtworks,
+	getArtworkBySlug,
+	getSite,
+	getTestimonialsForArtwork,
+} from "@/lib/data";
 import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
@@ -129,7 +136,10 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 	const art = await getArtworkBySlug(slug);
 	if (!art) notFound();
 
-	const all = await getAllArtworks();
+	const [all, testimonials] = await Promise.all([
+		getAllArtworks(),
+		getTestimonialsForArtwork(art.slug),
+	]);
 	const { prev, next } = getSiblings(all, art.slug);
 
 	const { contact } = getSite();
@@ -298,6 +308,15 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					</Reveal>
 				</div>
 			</div>
+
+			{/* Testimonials tied to this piece (renders nothing when none). The
+			    component brings its own max-width + padding, so drop it full-bleed
+			    here rather than nesting it in the detail grid. */}
+			{testimonials.length > 0 ? (
+				<div className="-mx-(--container-px)">
+					<Testimonials testimonials={testimonials} heading="What collectors say" />
+				</div>
+			) : null}
 
 			{/* Prev / next */}
 			{(prev || next) && (

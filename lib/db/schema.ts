@@ -158,6 +158,26 @@ export const leads = pgTable("leads", {
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Visitor/buyer testimonials -- the durable trust asset a WhatsApp-only seller
+ * of one-of-a-kind originals lives on. `artworkSlug` is an optional soft-link
+ * (free text, like artworks.style) so a quote can surface on a specific piece's
+ * detail page; `featured` + `order` control home-page placement. Managed from
+ * /admin like workshops/presets.
+ */
+export const testimonials = pgTable("testimonials", {
+	id: text("id").primaryKey(),
+	quote: text("quote").notNull(),
+	authorName: text("author_name").notNull(),
+	authorLocation: text("author_location"),
+	/** Optional soft-link to an artwork slug; surfaces the quote on that piece. */
+	artworkSlug: text("artwork_slug"),
+	featured: boolean("featured").notNull().default(false),
+	/** Sort key, ascending. Lower = earlier. */
+	order: integer("order").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;
 export type WorkshopRow = typeof workshops.$inferSelect;
@@ -174,3 +194,5 @@ export type MaintainerRow = typeof maintainers.$inferSelect;
 export type MaintainerInsert = typeof maintainers.$inferInsert;
 export type LeadRow = typeof leads.$inferSelect;
 export type LeadInsert = typeof leads.$inferInsert;
+export type TestimonialRow = typeof testimonials.$inferSelect;
+export type TestimonialInsert = typeof testimonials.$inferInsert;

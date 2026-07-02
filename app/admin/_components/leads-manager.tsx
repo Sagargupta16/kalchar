@@ -1,7 +1,6 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
 import type { Lead, LeadStatus } from "@/lib/types";
 import { formatEventDate } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";

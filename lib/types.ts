@@ -173,6 +173,17 @@ export interface CustomOrderDraft {
 	briefMessage: string;
 }
 
+/** A buyer/visitor testimonial. `artworkSlug` optionally ties it to one piece. */
+export interface Testimonial {
+	id: string;
+	quote: string;
+	authorName: string;
+	authorLocation?: string;
+	artworkSlug?: string;
+	featured: boolean;
+	order: number;
+}
+
 /** Triage state for a captured custom-order enquiry in the admin queue. */
 export type LeadStatus = "new" | "contacted" | "closed";
 

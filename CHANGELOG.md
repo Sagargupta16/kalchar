@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.29.0 (2026-07-02)
+
+Roadmap Phase 5: testimonials as a first-class entity. Also fixes a client-side regression from the typed-env refactor found while testing this in `next start`. Verified with typecheck, lint, tests (43), a full `next build`, the DB migration applied, and a real-browser render pass.
+
+### Added
+
+- **Testimonials** ([lib/db/schema.ts](lib/db/schema.ts), [app/admin/testimonial-actions.ts](app/admin/testimonial-actions.ts), [app/admin/testimonials/page.tsx](app/admin/testimonials/page.tsx), [components/home/testimonials.tsx](components/home/testimonials.tsx)) -- a `testimonials` table + admin CRUD (create, feature-on-home toggle, delete) mirroring the workshop/preset managers, `getAllTestimonials`/`getFeaturedTestimonials`/`getTestimonialsForArtwork` readers through the data seam, and a quiet quote row surfaced on the home page (featured) and on an artwork's detail page (when a testimonial soft-links its slug). The section hides entirely when empty. Added to the admin nav. Migration `drizzle/0001_*.sql`.
+
+### Fixed
+
+- **Client image base broke under the typed-env module** ([lib/env.ts](lib/env.ts)) -- `clientEnv.imageBaseUrl` read `NEXT_PUBLIC_IMAGE_BASE_URL` through a dynamic `process.env[name]` helper, which Next does NOT inline into the browser bundle (only a literal `process.env.NEXT_PUBLIC_*` is replaced at build). So on the client the value was `undefined` and the getter threw at hydration, blanking the artwork `<picture>` srcsets. Now references the var as a direct literal. (Regression from 1.25.1; surfaced in `next start`, not caught by `next build` alone because prerender uses server-side env.)
+
 ## 1.28.0 (2026-07-02)
 
 Roadmap Phase 2: capture custom-order enquiries as leads, so the funnel keeps a durable record instead of dead-ending at WhatsApp. Also establishes the versioned-migration path. **Requires a DB migration** (`pnpm db:migrate`) before the leads page works. Verified with typecheck, lint, tests (43), and a full `next build`.
