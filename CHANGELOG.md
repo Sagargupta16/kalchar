@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.27.0 (2026-07-02)
+
+Roadmap Phase 5 (non-DB slice): the verifiable performance and accessibility hardening for slow phones. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Added
+
+- **Image cache headers on R2 uploads** ([lib/storage/r2.ts](lib/storage/r2.ts)) -- `uploadObject` now sets `Cache-Control: public, max-age=86400, must-revalidate`. Repeat WhatsApp/IG visitors reuse variants instead of re-validating every AVIF. Deliberately NOT `immutable`: this is the shared writer, and the replace-image + profile-photo flows reuse a key, so `immutable` would pin a stale image at the edge for up to a year.
+- **Lightbox neighbour prefetch** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx)) -- when a piece settles, the immediate next/previous AVIF is warmed so arrow/swipe is near-instant. One each side, skipped under `Save-Data`.
+
+### Fixed
+
+- **Focus not obscured by the sticky header (WCAG 2.4.11)** ([app/globals.css](app/globals.css)) -- added `scroll-padding-top` on `html` and `scroll-margin-top` on `#main`, sized to a new `--header-h-shrunk` token, so keyboard/skip-link/anchor targets no longer land hidden behind the sticky, backdrop-blur bar.
+- **Removed a dead `ArtworkStatus` import** ([lib/data.ts](lib/data.ts)) left over from the Phase 1 catalog extraction.
+
+### Deferred (need live measurement, not guesswork)
+
+- **Pigment contrast fixes** and the **AVIF quality re-encode** were scoped out of this PR: both require a real browser contrast measurement / side-by-side eyeball on actual artwork, and guessing risks dulling the folk palette (house rule) or degrading linework. Flagged as a measurement follow-up.
+
 ## 1.26.0 (2026-07-02)
 
 Roadmap Phase 3: reach and discoverability. Makes the phone-first, WhatsApp/IG-driven front door work harder without touching the DB. Verified with typecheck, lint, tests (43), a full `next build` (41 routes), and a live `next start` pass over the new surfaces.

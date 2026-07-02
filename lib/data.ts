@@ -36,7 +36,6 @@ import {
 import type {
 	ArtStyle,
 	Artwork,
-	ArtworkStatus,
 	Category,
 	Event,
 	OrderPreset,
