@@ -14,15 +14,21 @@ export const dynamic = "force-static";
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const base = siteConfig.prodUrl.replace(/\/$/, "");
+	// This is a force-static route, so the whole site is regenerated on each
+	// build/deploy. There's no per-row updatedAt, so the build time is the honest
+	// freshness signal to give crawlers -- every URL is as fresh as this build.
+	const lastModified = new Date();
 
 	const routes = ["", "/work", "/events", "/about", "/workshops", "/custom-orders", "/contact"];
 	const staticEntries: MetadataRoute.Sitemap = routes.map((path) => ({
 		url: `${base}${path}/`,
+		lastModified,
 	}));
 
 	const slugs = await getAllArtworkSlugs();
 	const artworkEntries: MetadataRoute.Sitemap = slugs.map((slug) => ({
 		url: `${base}/work/${slug}/`,
+		lastModified,
 	}));
 
 	return [...staticEntries, ...artworkEntries];

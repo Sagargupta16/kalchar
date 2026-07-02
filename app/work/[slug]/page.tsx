@@ -36,12 +36,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	const { slug } = await params;
 	const art = await getArtworkBySlug(slug);
 	if (!art) return { title: "Artwork not found" };
+	// aspectRatio is width/height, so height = width / ratio. Giving the OG image
+	// real dimensions + alt lets social crawlers lay out the card without a fetch.
+	const ogHeight = Math.round(OG_IMAGE_WIDTH / art.aspectRatio);
 	return {
 		title: art.title,
 		description: art.description ?? artworkAlt(art),
 		openGraph: {
 			images: [
-				{ url: `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`, width: OG_IMAGE_WIDTH },
+				{
+					url: `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`,
+					width: OG_IMAGE_WIDTH,
+					height: ogHeight,
+					alt: artworkAlt(art),
+				},
 			],
 		},
 	};

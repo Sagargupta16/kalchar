@@ -12,11 +12,14 @@ import { useState } from "react";
  * snapshots only on mount and ignores later prop changes, so a newly created
  * row wouldn't appear without a manual reload.
  *
- * `initial` keeps a stable reference across client-only re-renders and only
- * changes identity when the server component re-fetches, so comparing it to the
- * last-seen reference detects exactly "the server gave us new data". This is
- * React's documented "adjust state when a prop changes" pattern -- a render-time
- * setState, no effect.
+ * We compare by serialized CONTENT, not reference: a server component hands a
+ * fresh array identity on every re-render (the parent often spreads the rows),
+ * so a reference check would resync on any unrelated `router.refresh()` -- e.g.
+ * a sibling action elsewhere on the page -- and clobber staged local edits like
+ * an in-progress reorder. Keying on content resyncs only when the data actually
+ * changed. This is React's documented "adjust state when a prop changes"
+ * pattern -- a render-time setState, no effect. The lists are small (a handful
+ * of admin rows), so stringifying each render is negligible.
  *
  * Returns `[items, setItems]` like `useState`, plus an optional `onResync`
  * callback invoked with the fresh list whenever it adopts server data (used by
@@ -27,10 +30,11 @@ export function useServerSyncedList<T>(
 	onResync?: (next: T[]) => void,
 ): [T[], React.Dispatch<React.SetStateAction<T[]>>] {
 	const [items, setItems] = useState(initial);
-	const [seen, setSeen] = useState(initial);
+	const [seenKey, setSeenKey] = useState(() => JSON.stringify(initial));
 
-	if (seen !== initial) {
-		setSeen(initial);
+	const initialKey = JSON.stringify(initial);
+	if (seenKey !== initialKey) {
+		setSeenKey(initialKey);
 		setItems(initial);
 		onResync?.(initial);
 	}

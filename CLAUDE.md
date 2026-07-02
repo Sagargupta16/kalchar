@@ -55,7 +55,7 @@ pnpm format
 - **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
 - **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
-- **No magic timings.** Use named tokens (`--duration-fast/base/slow`, `--ease-out-soft/glide/spring`).
+- **No magic timings.** Use named tokens (`--duration-fast/base/slow/enter`, `--ease-out/in-out/spring`).
 
 ### Architecture
 

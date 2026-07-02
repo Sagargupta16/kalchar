@@ -32,7 +32,11 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 	if (images.length === 0) return null;
 
 	const inline = images.slice(0, MAX_INLINE);
-	const overflow = images.length - MAX_INLINE;
+	// The overflow tile sits on the last inline slot and covers its own photo, so
+	// that photo counts toward "+N" too: N = total - the (MAX_INLINE - 1) tiles
+	// that stay individually viewable. Only overflow once we actually exceed the
+	// grid, so an exact-fit set (length === MAX_INLINE) shows every tile clean.
+	const overflow = images.length > MAX_INLINE ? images.length - (MAX_INLINE - 1) : 0;
 	// A single photo gets a roomier slot; multiples tile as a uniform square grid.
 	const gridClass = images.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3";
 	const tileAspect = images.length === 1 ? "aspect-4/3" : "aspect-square";
