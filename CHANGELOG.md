@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.31.0 (2026-07-02)
+
+Admin + share polish, and two real auth fixes found during review.
+
+### Added
+
+- **Share any artwork via a deep link** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx), [components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- the lightbox now has a Share button that copies (or native-shares) a `/work?piece=<slug>` link. Opening that link lands the recipient on the gallery with that piece's modal already open, and the URL tracks whatever piece is on screen as you browse.
+
+### Changed
+
+- **FAQ nav** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx), [data/site.json](data/site.json)) -- renamed "Trust & FAQ" to just "FAQ", kept in the footer (not the header). Page title is now "Frequently asked questions".
+- **Grouped admin nav** ([app/admin/_components/admin-nav.tsx](app/admin/_components/admin-nav.tsx)) -- the 9 flat tabs are now four labelled clusters (Catalog / Community / Leads / Settings) with separators, so the admin bar reads as structured groups.
+- **Testimonials admin clarity** ([app/admin/testimonials/page.tsx](app/admin/testimonials/page.tsx)) -- explains exactly where each testimonial appears (Feature -> home, Link artwork -> that piece, neither -> admin only).
+- **Auto-revalidate the catalog feed + sitemap** ([app/admin/actions.ts](app/admin/actions.ts)) -- artwork price/status/create/delete now refreshes `/catalog.csv` and `/sitemap.xml` so they never go stale after an edit.
+
+### Fixed
+
+- **Sign-in account loop** ([auth.ts](auth.ts)) -- Google now always shows the account chooser (`prompt: "select_account"`), so "Try a different account" works instead of silently reusing the current session.
+- **`UntrustedHost` on self-hosted / local runs** ([auth.ts](auth.ts)) -- added `trustHost: true`, which was making admin sign-in fail entirely outside Vercel.
+
 ## 1.30.0 (2026-07-02)
 
 Roadmap Phase 4: an editable Trust / FAQ page. Ships the structure with clearly-marked placeholder copy so nothing false goes live; the artist edits the real terms in one JSON file. Verified with typecheck, lint, tests (43), a full `next build`, and a real-browser pass.

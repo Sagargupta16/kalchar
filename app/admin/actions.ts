@@ -27,6 +27,10 @@ function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
 	revalidatePath("/work");
 	revalidatePath("/admin");
+	// The Meta Commerce feed and the sitemap both derive from the catalog, so a
+	// price/status/create/delete change must refresh them too or they go stale.
+	revalidatePath("/catalog.csv");
+	revalidatePath("/sitemap.xml");
 	if (slug) revalidatePath(`/work/${slug}`);
 }
 

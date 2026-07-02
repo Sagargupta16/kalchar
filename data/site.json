@@ -169,8 +169,8 @@
 		}
 	],
 	"trust": {
-		"eyebrow": "Trust & FAQ",
-		"title": "How buying works",
+		"eyebrow": "FAQ",
+		"title": "Frequently asked questions",
 		"lead": "How enquiries, shipping, and care work for original folk art bought over WhatsApp.",
 		"_notes": "PLACEHOLDER COPY. Replace each 'answer' with Megha's real terms before relying on this page. Do not promise a returns policy that can't be honoured. Every answer is editable here in site.json, no code change needed.",
 		"faqs": [

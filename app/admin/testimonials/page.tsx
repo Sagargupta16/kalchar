@@ -11,9 +11,21 @@ export default async function AdminTestimonialsPage() {
 			<section>
 				<h2 className="text-sm font-semibold">Testimonials</h2>
 				<p className="mt-1 text-xs text-muted">
-					Words from buyers and workshop guests. Feature a few to show them on the home page; link
-					one to an artwork to have it appear on that piece&rsquo;s page.
+					Words from buyers and workshop guests. A testimonial only appears in public once you place
+					it:
 				</p>
+				<ul className="mt-2 space-y-1 text-xs text-muted">
+					<li>
+						&bull; <span className="font-medium text-ink">Feature</span> it &rarr; shows in the
+						&ldquo;In their words&rdquo; row on the{" "}
+						<span className="font-medium text-ink">home page</span>.
+					</li>
+					<li>
+						&bull; <span className="font-medium text-ink">Link an artwork</span> &rarr; also shows
+						on that piece&rsquo;s detail page.
+					</li>
+					<li>&bull; Neither set &rarr; it stays here in admin only, not shown anywhere public.</li>
+				</ul>
 			</section>
 			<TestimonialsManager testimonials={[...testimonials]} artworkSlugs={[...slugs]} />
 		</div>
