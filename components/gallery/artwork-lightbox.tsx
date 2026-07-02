@@ -244,7 +244,7 @@ function LightboxContent({
 				type="button"
 				onClick={onClose}
 				aria-label="Close"
-				className="absolute right-4 top-4 z-[110] flex h-10 w-10 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+				className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
 			>
 				<X size={18} />
 			</button>
@@ -275,7 +275,7 @@ function LightboxContent({
 						onMouseMove={onMouseMove}
 						onMouseEnter={onZoomEnter}
 						onMouseLeave={onZoomLeave}
-						className="relative aspect-3/4 max-h-[80vh] overflow-hidden rounded-(--radius-md) shadow-hairline cursor-zoom-in m-0"
+						className="relative aspect-3/4 max-h-[80svh] overflow-hidden rounded-(--radius-md) shadow-hairline cursor-zoom-in m-0"
 					>
 						<picture>
 							{srcFailed ? null : (
@@ -405,7 +405,7 @@ function NavButton({
 			type="button"
 			onClick={onClick}
 			aria-label={isPrev ? "Previous artwork" : "Next artwork"}
-			className={`absolute ${isPrev ? "left-3" : "right-3"} z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg/80 text-ink border border-line/40 shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent`}
+			className={`absolute ${isPrev ? "left-3" : "right-3"} z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink border border-line/40 shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent`}
 		>
 			{isPrev ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
 		</button>

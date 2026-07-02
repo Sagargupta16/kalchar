@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.2 (2026-07-02)
+
+UI-consistency Phase 3 (final): mobile tap targets, dynamic-viewport units, and the CI drift guard that locks the whole migration in.
+
+### Changed
+
+- **44px lightbox tap targets** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx), [components/events/event-gallery.tsx](components/events/event-gallery.tsx)) -- close + prev/next controls bumped h-10 to h-11 (44px, the coarse-pointer minimum); theme-toggle knobs h-8 to h-9.
+- **`svh` viewport units** -- lightbox image heights use `80svh` instead of `80vh`, so the WhatsApp/Instagram in-app browser URL bar no longer pushes the image off-screen.
+
+### Added
+
+- **CI elevation-token guard** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) -- the build now fails if any raw `shadow-sm..2xl` or `ring-black/ ring-white/` utility reappears in components/ or app/, so the v1.33.0 migration can't silently regress.
+
 ## 1.33.1 (2026-07-02)
 
 UI-consistency Phase 2: spacing rhythm + type-scale alignment, from the verified per-page audit findings.

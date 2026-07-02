@@ -212,7 +212,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 						type="button"
 						onClick={onClose}
 						aria-label="Close"
-						className="absolute right-4 top-4 z-[110] flex h-10 w-10 items-center justify-center rounded-full border border-line bg-bg-soft text-ink shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+						className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full border border-line bg-bg-soft text-ink shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
 					>
 						<X size={18} />
 					</button>
@@ -228,13 +228,13 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 					>
 						{/* The image sizes to its own ratio (capped by the viewport), so the
 						    whole photo shows uncropped whatever its dimensions. */}
-						<div className="relative flex max-h-[80vh] w-full items-center justify-center">
+						<div className="relative flex max-h-[80svh] w-full items-center justify-center">
 							<ResponsiveImage
 								keyBase={images[index] ?? ""}
 								alt={`${title}, photo ${index + 1} of ${images.length}`}
 								sizes="(min-width: 768px) 80vw, 100vw"
 								priority
-								className="max-h-[80vh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-bg-soft object-contain shadow-e5"
+								className="max-h-[80svh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-bg-soft object-contain shadow-e5"
 							/>
 							{hasMany ? (
 								<>
@@ -269,7 +269,7 @@ function LightboxNav({
 			onClick={onClick}
 			aria-label={isPrev ? "Previous photo" : "Next photo"}
 			className={cn(
-				"absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line/40 bg-bg/80 text-ink shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent",
+				"absolute top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/40 bg-bg/80 text-ink shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent",
 				isPrev ? "left-3" : "right-3",
 			)}
 		>
