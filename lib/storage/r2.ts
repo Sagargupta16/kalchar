@@ -14,23 +14,30 @@
  * the same prefix, preserving the existing filename contract.
  */
 import { DeleteObjectsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { serverEnv } from "@/lib/env";
 
-const accountId = process.env.R2_ACCOUNT_ID;
-const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-
-const BUCKET = process.env.R2_BUCKET ?? "kalchar-artworks";
-const PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL ?? "";
-
-if (!accountId || !accessKeyId || !secretAccessKey) {
-	throw new Error("R2 credentials are not set. See .env.example and docs/IMAGES.md.");
-}
+const BUCKET = serverEnv.r2Bucket;
+const PUBLIC_BASE_URL = serverEnv.r2PublicBaseUrl;
 
 const r2 = new S3Client({
 	region: "auto",
-	endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-	credentials: { accessKeyId, secretAccessKey },
+	endpoint: `https://${serverEnv.r2AccountId}.r2.cloudflarestorage.com`,
+	credentials: {
+		accessKeyId: serverEnv.r2AccessKeyId,
+		secretAccessKey: serverEnv.r2SecretAccessKey,
+	},
 });
+
+/**
+ * Cache-Control for uploaded objects. A meaningful max-age lets repeat
+ * WhatsApp/IG visitors and page-to-page navigation reuse variants instead of
+ * re-validating every AVIF, but deliberately NOT `immutable`: this is the
+ * shared writer for artwork/event/profile images, and the replace-image and
+ * profile-photo flows reuse the same key. `immutable` would pin a stale image
+ * at the edge for up to a year after a replace; `must-revalidate` past the day
+ * lets a replaced key refresh with one conditional request.
+ */
+const UPLOAD_CACHE_CONTROL = "public, max-age=86400, must-revalidate";
 
 /** Upload one object and return its public URL. */
 export async function uploadObject(
@@ -44,6 +51,7 @@ export async function uploadObject(
 			Key: key,
 			Body: body,
 			ContentType: contentType,
+			CacheControl: UPLOAD_CACHE_CONTROL,
 		}),
 	);
 	return `${PUBLIC_BASE_URL}/${key}`;

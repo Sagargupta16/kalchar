@@ -30,7 +30,7 @@ export function ChannelLink({
 			target={external ? "_blank" : undefined}
 			rel={external ? "noopener noreferrer" : undefined}
 			className={cn(
-				"group flex h-full items-start gap-4 rounded-(--radius-md) border bg-bg p-5 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg",
+				"group flex h-full items-start gap-4 rounded-(--radius-md) border bg-bg p-5 transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-e2",
 				highlight ? "border-(--section-accent)/40" : "border-line",
 				className,
 			)}

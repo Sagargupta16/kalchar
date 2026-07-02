@@ -65,6 +65,12 @@
   --space-16: 4rem;    /* 64px */
   --space-24: 6rem;    /* 96px */
 
+  /* Shrunk sticky-header height (logo h-8 = 2rem + py-2.5 = 1.25rem, +border).
+     Used as scroll-padding so anchor/skip-link/focus targets don't land hidden
+     behind the sticky bar (WCAG 2.4.11). Sized to the SHRUNK bar, which is the
+     one in play once the page has scrolled. */
+  --header-h-shrunk: 3.5rem;
+
   /* ─── MOTION TOKENS ─── */
   --duration-fast: 150ms;
   --duration-base: 300ms;
@@ -86,12 +92,47 @@
   --radius-md: 0.75rem;    /* 12px - cards, panels */
   --radius-lg: 1rem;       /* 16px - image plates, lightbox */
   --radius-full: 9999px;   /* pills, avatars */
+
+  /* ─── ELEVATION (the missing tier) ─────────────────────────────────
+   * A small, layered shadow scale. Shadows are tinted with --shadow-ink
+   * (the warm ink triplet, defined in :root) via oklch() alpha, not black,
+   * so they read as sunlit-paper depth on the cream ground rather than gray
+   * murk. Role map: hairline = every resting frame edge; e1 = resting card;
+   * e2 = card hover / small popover; e3 = header-on-scroll / dropdown;
+   * e4 = back-to-top FAB / lightbox chrome; e5 = modal / lightbox panel.
+   * Dark mode swaps drop-shadow (invisible on 0.14 ground) for an inset top
+   * highlight + deeper ambient shadow -- remapped in :root.dark below.
+   * Keep resting art plates at hairline only; the art is the hero. */
+  --shadow-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.07);
+  --shadow-e0: none;
+  --shadow-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.07), 0 1px 1px -0.5px oklch(var(--shadow-ink) / 0.05);
+  --shadow-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.06), 0 3px 6px -1px oklch(var(--shadow-ink) / 0.07), 0 6px 10px -2px oklch(var(--shadow-ink) / 0.05);
+  --shadow-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.06), 0 8px 14px -3px oklch(var(--shadow-ink) / 0.08), 0 16px 24px -6px oklch(var(--shadow-ink) / 0.06);
+  --shadow-e4: 0 2px 4px oklch(var(--shadow-ink) / 0.05), 0 10px 16px -3px oklch(var(--shadow-ink) / 0.07), 0 22px 32px -8px oklch(var(--shadow-ink) / 0.08), 0 36px 48px -12px oklch(var(--shadow-ink) / 0.06);
+  --shadow-e5: 0 4px 8px oklch(var(--shadow-ink) / 0.06), 0 14px 24px -6px oklch(var(--shadow-ink) / 0.09), 0 30px 44px -10px oklch(var(--shadow-ink) / 0.10), 0 56px 72px -16px oklch(var(--shadow-ink) / 0.08);
+
+  /* ─── SPACING SCALE FILL + RHYTHM ─── */
+  --space-5: 1.25rem;   /* 20px */
+  --space-14: 3.5rem;   /* 56px */
+  --space-20: 5rem;     /* 80px */
+  /* Fluid header->content block gap; replaces the snapped mt-10 sm:mt-14. */
+  --space-block: clamp(2.5rem, 4vw, 3.5rem);
+  --grid-gap: clamp(1.5rem, 3vw, 2.5rem);
+  --header-max: 42rem;  /* section header measure */
+
+  /* ─── MOTION: interaction rung + composed tokens ─── */
+  --duration-micro: 150ms;   /* hover/press feedback */
+  --duration-instant: 100ms;
 }
 
 /* ─── DARK MODE REMAPS ─── */
 
 :root {
   --section-accent: var(--color-accent);
+  /* Shadow tint: the --color-ink light triplet (L C H), fed to oklch(.../a) in
+   * the elevation tokens so depth reads as warm brown, never flat black. Lives
+   * here (not @theme) because it's an oklch component triplet, not a color. */
+  --shadow-ink: 0.18 0.022 60;
 }
 
 :root.dark {
@@ -113,6 +154,17 @@
   --color-peacock: oklch(0.65 0.09 220);
   --color-ruby: oklch(0.65 0.18 28);
   --color-gold-leaf: oklch(0.82 0.13 88);
+
+  /* Dark elevation: drop-shadows vanish on the 0.14 ground, so depth becomes a
+   * faint inset top highlight (catches light like a raised surface) plus a
+   * deeper ambient shadow. Pair with the bg-soft/bg-muted ramp (lighter =
+   * higher). Hairline flips to a light edge. */
+  --shadow-hairline: 0 0 0 1px oklch(1 0 0 / 0.07);
+  --shadow-e1: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-e2: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 8px -2px oklch(0 0 0 / 0.5);
+  --shadow-e3: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 10px 20px -6px oklch(0 0 0 / 0.55);
+  --shadow-e4: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 18px 32px -10px oklch(0 0 0 / 0.6);
+  --shadow-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 28px 52px -12px oklch(0 0 0 / 0.7);
 }
 
 /* ─── BASE RESETS ─── */
@@ -125,6 +177,15 @@ html {
   text-rendering: optimizeLegibility;
   overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
+  /* Keep in-page anchor / skip-link / focus targets clear of the sticky
+     header (WCAG 2.4.11 Focus Not Obscured) plus a little breathing room. */
+  scroll-padding-top: calc(var(--header-h-shrunk) + var(--space-4));
+}
+
+/* The skip-to-content target: same offset, so "Skip to content" doesn't jump
+   the focused region under the sticky header. */
+#main {
+  scroll-margin-top: calc(var(--header-h-shrunk) + var(--space-4));
 }
 
 body {

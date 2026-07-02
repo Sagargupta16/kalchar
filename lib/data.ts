@@ -18,6 +18,7 @@
  */
 import { asc, desc, eq } from "drizzle-orm";
 import siteJson from "@/data/site.json";
+import { deriveStatus, isForSale } from "./catalog";
 import { db } from "./db/client";
 import {
 	type ArtworkRow,
@@ -26,37 +27,30 @@ import {
 	categories,
 	type EventRow,
 	events,
+	type LeadRow,
+	leads,
 	type OrderPresetRow,
 	orderPresets,
 	settings,
+	type TestimonialRow,
+	testimonials,
 	type WorkshopRow,
 	workshops,
 } from "./db/schema";
 import type {
 	ArtStyle,
 	Artwork,
-	ArtworkStatus,
 	Category,
 	Event,
+	Lead,
+	LeadStatus,
 	OrderPreset,
 	OrderPresetKind,
 	OrderPresets,
 	Site,
+	Testimonial,
 	Workshop,
 } from "./types";
-
-/**
- * Phase 1 derived status from `priceInr`. The DB stores it explicitly now, but
- * we keep the fallback so a row left at the default "archive" still resolves
- * to "available" the moment a price is set, without an extra admin step.
- */
-function deriveStatus(row: ArtworkRow): ArtworkStatus {
-	if (row.status === "available" || row.status === "sold" || row.status === "archive") {
-		if (row.status === "archive" && typeof row.priceInr === "number") return "available";
-		return row.status;
-	}
-	return typeof row.priceInr === "number" ? "available" : "archive";
-}
 
 /** Map a DB row (nullable columns) to the UI `Artwork` shape (optional fields). */
 function toArtwork(row: ArtworkRow): Artwork {
@@ -94,9 +88,14 @@ export async function getAllArtworks(): Promise<readonly Artwork[]> {
 	return rows.map(toArtwork);
 }
 
-/** Currently for-sale artworks. */
+/**
+ * Currently for-sale artworks: priced (positive) and not sold. Uses the shared
+ * `isForSale` guard rather than a bare `status === "available"` check, so a
+ * piece whose status drifted to "available" without a real price can never leak
+ * into the buy filter or its count.
+ */
 export async function getAvailableArtworks(): Promise<readonly Artwork[]> {
-	return (await getAllArtworks()).filter((a) => a.status === "available");
+	return (await getAllArtworks()).filter(isForSale);
 }
 
 /** The featured piece for the hero, or the lowest-order one as fallback. */
@@ -236,6 +235,57 @@ export async function getAllEvents(): Promise<readonly Event[]> {
 /** The most recent `limit` events, for the home preview strip. */
 export async function getRecentEvents(limit: number): Promise<readonly Event[]> {
 	return (await getAllEvents()).slice(0, limit);
+}
+
+function toLead(row: LeadRow): Lead {
+	return {
+		id: row.id,
+		name: row.name ?? undefined,
+		style: row.style ?? undefined,
+		size: row.size ?? undefined,
+		budget: row.budget ?? undefined,
+		timeline: row.timeline ?? undefined,
+		brief: row.brief,
+		status: row.status as LeadStatus,
+		createdAt: row.createdAt.toISOString(),
+	};
+}
+
+/** All captured custom-order leads, newest first, for the admin queue. */
+export async function getAllLeads(): Promise<readonly Lead[]> {
+	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt));
+	return rows.map(toLead);
+}
+
+function toTestimonial(row: TestimonialRow): Testimonial {
+	return {
+		id: row.id,
+		quote: row.quote,
+		authorName: row.authorName,
+		authorLocation: row.authorLocation ?? undefined,
+		artworkSlug: row.artworkSlug ?? undefined,
+		featured: row.featured,
+		order: row.order,
+	};
+}
+
+/** All testimonials, featured first then by order, for the admin list. */
+export async function getAllTestimonials(): Promise<readonly Testimonial[]> {
+	const rows = await db
+		.select()
+		.from(testimonials)
+		.orderBy(desc(testimonials.featured), asc(testimonials.order));
+	return rows.map(toTestimonial);
+}
+
+/** Featured testimonials for the home page (empty array hides the section). */
+export async function getFeaturedTestimonials(): Promise<readonly Testimonial[]> {
+	return (await getAllTestimonials()).filter((t) => t.featured);
+}
+
+/** Testimonials soft-linked to a specific artwork, for its detail page. */
+export async function getTestimonialsForArtwork(slug: string): Promise<readonly Testimonial[]> {
+	return (await getAllTestimonials()).filter((t) => t.artworkSlug === slug);
 }
 
 /**

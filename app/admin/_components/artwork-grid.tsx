@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { cn, formatInr } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../actions";
 import { useConfirm } from "./confirm-dialog";
+import { adminIconBtnDestructive } from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
@@ -76,7 +77,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 						className={cn(
 							"flex items-center gap-3 rounded-(--radius-sm) border border-line bg-bg p-3 transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50 scale-[0.98]",
-							over === i && dragging !== i && "border-accent shadow-sm",
+							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
 						<span className="cursor-grab text-muted hover:text-ink active:cursor-grabbing">
@@ -103,7 +104,7 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							disabled={pending}
 							onClick={() => handleDelete(art)}
 							title={`Delete ${art.title}`}
-							className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-(--radius-sm) border border-ruby/30 text-ruby transition-colors hover:bg-ruby hover:text-bg"
+							className={cn(adminIconBtnDestructive, "shrink-0")}
 						>
 							<Trash2 size={13} />
 						</button>

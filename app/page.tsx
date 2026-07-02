@@ -6,6 +6,7 @@ import { CustomOrdersTeaser } from "@/components/home/custom-orders-teaser";
 import { EventsTeaser } from "@/components/home/events-teaser";
 import { Hero } from "@/components/home/hero";
 import { SectionShell } from "@/components/home/section-shell";
+import { Testimonials } from "@/components/home/testimonials";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
 import { Reveal } from "@/components/motion/reveal";
 import {
@@ -14,6 +15,7 @@ import {
 	getAvailableArtworks,
 	getCategoryNames,
 	getFeaturedArtwork,
+	getFeaturedTestimonials,
 	getRecentEvents,
 	getSetting,
 	getSite,
@@ -40,6 +42,7 @@ export default async function HomePage() {
 		recentEvents,
 		showHomeIntro,
 		profileImage,
+		testimonials,
 	] = await Promise.all([
 		getFeaturedArtwork(),
 		getAllArtworks(),
@@ -49,6 +52,7 @@ export default async function HomePage() {
 		getRecentEvents(3),
 		getSetting<boolean>("showHomeIntro"),
 		getSetting<string>("profileImage"),
+		getFeaturedTestimonials(),
 	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 	const aboutCopy = site.sections.about as { intro?: string } | undefined;
@@ -130,6 +134,8 @@ export default async function HomePage() {
 				monogram={site.brand.devanagariMark}
 				publicName={site.brand.publicName}
 			/>
+
+			<Testimonials testimonials={testimonials} />
 
 			{workshopsPreview.length > 0 ? (
 				<WorkshopsTeaser

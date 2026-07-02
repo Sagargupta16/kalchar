@@ -35,7 +35,7 @@ export function ArtworkRow({
 				<img
 					src={thumb}
 					alt=""
-					className="h-16 w-16 shrink-0 rounded-(--radius-sm) object-cover ring-1 ring-black/5 dark:ring-white/5 sm:h-20 sm:w-20"
+					className="h-16 w-16 shrink-0 rounded-(--radius-sm) object-cover shadow-hairline sm:h-20 sm:w-20"
 				/>
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-1.5">
@@ -51,7 +51,7 @@ export function ArtworkRow({
 							{art.palette.slice(0, 5).map((hex) => (
 								<span
 									key={hex}
-									className="h-3 w-3 rounded-full ring-1 ring-black/10 dark:ring-white/10"
+									className="h-3 w-3 rounded-full shadow-hairline"
 									style={{ backgroundColor: hex }}
 								/>
 							))}
@@ -229,7 +229,7 @@ function ArtworkEditModal({
 								{art.palette.slice(0, 5).map((hex) => (
 									<span
 										key={hex}
-										className="h-5 w-5 rounded-full ring-1 ring-black/10 dark:ring-white/10"
+										className="h-5 w-5 rounded-full shadow-hairline"
 										style={{ backgroundColor: hex }}
 									/>
 								))}

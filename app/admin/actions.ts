@@ -13,6 +13,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
+import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
 import {
 	deleteArtworkImages,
@@ -26,6 +27,10 @@ function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
 	revalidatePath("/work");
 	revalidatePath("/admin");
+	// The Meta Commerce feed and the sitemap both derive from the catalog, so a
+	// price/status/create/delete change must refresh them too or they go stale.
+	revalidatePath("/catalog.csv");
+	revalidatePath("/sitemap.xml");
 	if (slug) revalidatePath(`/work/${slug}`);
 }
 
@@ -159,9 +164,7 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 /** Re-sample the palette for a piece from its stored master image in R2. */
 export async function regeneratePalette(slug: string): Promise<void> {
 	await requireMaintainer();
-	const base = process.env.NEXT_PUBLIC_IMAGE_BASE_URL ?? process.env.R2_PUBLIC_BASE_URL ?? "";
-	if (!base) throw new Error("Image base URL not configured.");
-	const res = await fetch(`${base.replace(/\/$/, "")}/artworks/${slug}.jpg`);
+	const res = await fetch(`${ARTWORK_IMAGE_BASE}/${slug}.jpg`);
 	if (!res.ok) throw new Error("Could not fetch the master image.");
 	const buffer = Buffer.from(await res.arrayBuffer());
 	const palette = await extractPalette(buffer);

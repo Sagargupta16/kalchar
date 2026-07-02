@@ -32,7 +32,7 @@ export function ArtistAvatar({
 	return (
 		<div
 			className={cn(
-				"relative aspect-4/5 overflow-hidden rounded-(--radius-md) bg-bg-soft ring-1 ring-black/8 dark:ring-white/8",
+				"relative aspect-4/5 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline",
 				className,
 			)}
 		>

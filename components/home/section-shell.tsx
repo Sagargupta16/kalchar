@@ -43,10 +43,10 @@ export function SectionShell({
 					) : null}
 				</header>
 
-				<div className="mt-10 sm:mt-14">{children}</div>
+				<div className="mt-(--space-block)">{children}</div>
 
 				<Reveal>
-					<div className="mt-10 sm:mt-14">
+					<div className="mt-(--space-block)">
 						<Link href={href} className={cn(buttonVariants({ variant: "secondary" }), "group")}>
 							{hrefLabel}
 							<ArrowRight

@@ -158,7 +158,7 @@ export function SiteFooter() {
 											target={c.url.startsWith("http") ? "_blank" : undefined}
 											rel={c.url.startsWith("http") ? "noopener noreferrer" : undefined}
 										>
-											<span className="relative grid h-12 w-12 place-items-center rounded-full border border-line bg-bg/60 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:-translate-y-0.5 group-hover:border-(--ch-accent)/60 group-hover:shadow-sm">
+											<span className="relative grid h-12 w-12 place-items-center rounded-full border border-line bg-bg/60 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:-translate-y-0.5 group-hover:border-(--ch-accent)/60 group-hover:shadow-e1">
 												{Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
 												{/* Tooltip -- full handle on hover/focus (pointer + keyboard). */}
 												<span
@@ -193,6 +193,10 @@ export function SiteFooter() {
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
 					<div className="flex items-center gap-3">
+						<Link href="/trust" className="transition-colors hover:text-accent">
+							FAQ
+						</Link>
+						<span aria-hidden="true" className="h-3 w-px bg-line" />
 						<Link
 							href="/admin"
 							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"

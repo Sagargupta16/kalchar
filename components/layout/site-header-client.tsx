@@ -94,7 +94,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 		<header
 			className={cn(
 				"sticky top-0 z-40 border-b bg-bg/90 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out)",
-				scrolled ? "border-line shadow-sm" : "border-transparent",
+				scrolled ? "border-line shadow-e3" : "border-transparent",
 			)}
 		>
 			<div

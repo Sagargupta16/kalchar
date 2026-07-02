@@ -43,7 +43,7 @@ export function ArtworkCard({
 			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
 		>
 			{/* Image plate */}
-			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft ring-1 ring-black/8 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/8">
+			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline transition-[box-shadow] duration-(--duration-base) ease-(--ease-out) group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent">
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
@@ -57,13 +57,13 @@ export function ArtworkCard({
 
 				{/* Status badges */}
 				{isAvailable && !isSold ? (
-					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-sm">
+					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-e1">
 						<Check size={11} className="text-(--section-accent)" />
 						Available
 					</Badge>
 				) : null}
 				{isSold ? (
-					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-sm">
+					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-e1">
 						Sold
 					</span>
 				) : null}

@@ -13,10 +13,12 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { siteConfig } from "@/lib/site-config";
 import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
+import { ShareButton } from "./share-button";
 
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
@@ -79,6 +81,28 @@ export function ArtworkLightbox() {
 		globalThis.addEventListener("keydown", handleKeyDown);
 		return () => globalThis.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
+
+	// Warm the immediate neighbours' AVIF once the current piece settles, so
+	// arrow/swipe to the next plate is near-instant. One each side only, and
+	// skipped under Save-Data (metered connections) to not spend bytes a user
+	// asked us to conserve.
+	useEffect(() => {
+		if (!isOpen || !activeArtwork || artworksList.length < 2) return;
+		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+			?.saveData;
+		if (saveData) return;
+		const i = artworksList.findIndex((a) => a.slug === activeArtwork.slug);
+		if (i === -1) return;
+		const neighbours = [
+			artworksList[(i + 1) % artworksList.length],
+			artworksList[(i - 1 + artworksList.length) % artworksList.length],
+		];
+		for (const n of neighbours) {
+			if (!n) continue;
+			const img = new Image();
+			img.src = `${ARTWORK_IMAGE_BASE}/${deriveSlug(n.image)}-1600.avif`;
+		}
+	}, [isOpen, activeArtwork, artworksList]);
 
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
@@ -220,7 +244,7 @@ function LightboxContent({
 				type="button"
 				onClick={onClose}
 				aria-label="Close"
-				className="absolute right-4 top-4 z-[110] flex h-10 w-10 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-sm transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+				className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
 			>
 				<X size={18} />
 			</button>
@@ -231,7 +255,7 @@ function LightboxContent({
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.96, y: 12 }}
 				transition={{ type: "spring", damping: 28, stiffness: 340 }}
-				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-lg) border border-line bg-bg shadow-2xl md:grid-cols-12"
+				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-lg) border border-line bg-bg shadow-e5 md:grid-cols-12"
 			>
 				{/* Image panel */}
 				<div
@@ -251,7 +275,7 @@ function LightboxContent({
 						onMouseMove={onMouseMove}
 						onMouseEnter={onZoomEnter}
 						onMouseLeave={onZoomLeave}
-						className="relative aspect-3/4 max-h-[80vh] overflow-hidden rounded-(--radius-md) ring-1 ring-black/8 dark:ring-white/5 cursor-zoom-in m-0"
+						className="relative aspect-3/4 max-h-[80svh] overflow-hidden rounded-(--radius-md) shadow-hairline cursor-zoom-in m-0"
 					>
 						<picture>
 							{srcFailed ? null : (
@@ -332,16 +356,24 @@ function LightboxContent({
 						) : null}
 					</div>
 
-					{/* CTA */}
-					<a
-						href={whatsappLink}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="mt-6 flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-md transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-					>
-						<MessageCircle size={16} />
-						Enquire on WhatsApp
-					</a>
+					{/* CTA + share */}
+					<div className="mt-6 space-y-2.5">
+						<a
+							href={whatsappLink}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-e2 transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+						>
+							<MessageCircle size={16} />
+							Enquire on WhatsApp
+						</a>
+						{/* Shareable deep link: opens THIS piece's modal for whoever receives it. */}
+						<ShareButton
+							title={`${artwork.title} by Megha Seth`}
+							url={`${siteConfig.url}/work?piece=${artwork.slug}`}
+							className="w-full justify-center"
+						/>
+					</div>
 				</div>
 			</motion.div>
 		</motion.div>
@@ -373,7 +405,7 @@ function NavButton({
 			type="button"
 			onClick={onClick}
 			aria-label={isPrev ? "Previous artwork" : "Next artwork"}
-			className={`absolute ${isPrev ? "left-3" : "right-3"} z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg/80 text-ink border border-line/40 shadow-md backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent`}
+			className={`absolute ${isPrev ? "left-3" : "right-3"} z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-ink border border-line/40 shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent`}
 		>
 			{isPrev ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
 		</button>

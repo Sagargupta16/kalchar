@@ -10,6 +10,7 @@ Engineering documentation for [kalchar.co.in](https://kalchar.co.in/) -- the por
 | [IMAGES.md](IMAGES.md) | Cloudflare R2 + the sharp variant pipeline, the `<picture>` serving path, upload + delete + bulk migration. |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Vercel (`main` -> prod, `dev` -> preview), branch + deploy flow, CI, the env matrix, GoDaddy DNS, releases. |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, the scripts reference, dev notes, and the conventions a contributor follows. |
+| [ROADMAP.md](ROADMAP.md) | Prioritized feature roadmap from a multi-agent deep-dive: themes, phased solo-dev sequence, quick wins, big bets, RICE-scored idea pool. A decision aid, not a commitment. |
 
 ## Conventions in these docs
 

@@ -2,6 +2,205 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.3 (2026-07-02)
+
+### Fixed
+
+- **Forward-port open-redirect fix to dev** ([app/login/page.tsx](app/login/page.tsx)) -- the `safeCallback()` guard shipped to main in v1.24.2 (PR #58) was missing from dev, so the release-to-main merge would have silently REMOVED the CWE-601 protection. Now on dev too. Cherry-picked from `54ebdc3` on main.
+
+## 1.33.2 (2026-07-02)
+
+UI-consistency Phase 3 (final): mobile tap targets, dynamic-viewport units, and the CI drift guard that locks the whole migration in.
+
+### Changed
+
+- **44px lightbox tap targets** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx), [components/events/event-gallery.tsx](components/events/event-gallery.tsx)) -- close + prev/next controls bumped h-10 to h-11 (44px, the coarse-pointer minimum); theme-toggle knobs h-8 to h-9.
+- **`svh` viewport units** -- lightbox image heights use `80svh` instead of `80vh`, so the WhatsApp/Instagram in-app browser URL bar no longer pushes the image off-screen.
+
+### Added
+
+- **CI elevation-token guard** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) -- the build now fails if any raw `shadow-sm..2xl` or `ring-black/ ring-white/` utility reappears in components/ or app/, so the v1.33.0 migration can't silently regress.
+
+## 1.33.1 (2026-07-02)
+
+UI-consistency Phase 2: spacing rhythm + type-scale alignment, from the verified per-page audit findings.
+
+### Changed
+
+- **Fluid section rhythm** -- every `mt-10 sm:mt-14` header-to-content gap (section-shell, workshops/events/contact teasers) now uses the fluid `--space-block` token, killing the mid-scroll snap; the home testimonials grid joins the same rhythm (it was the one section sitting tighter on desktop).
+- **Card-title scale unified** -- workshops and custom-orders card titles now use the responsive `text-lg sm:text-xl` the other three card families already use (they were flat `text-xl`).
+- **Events page** -- removed a redundant top margin on event descriptions (the header stack already spaces via gap).
+- **Trust/FAQ empty state** ([app/trust/page.tsx](app/trust/page.tsx)) -- the bare "Details coming soon." line is now a framed dashed panel matching the site's empty-state language, with a WhatsApp pointer.
+
+## 1.33.0 (2026-07-02)
+
+UI-consistency Phase 1: the sitewide elevation migration. Every raw Tailwind shadow (33 across sm/md/lg/xl/2xl) and every ad-hoc black/white ring pair is now routed through the tokenized elevation scale from 1.32.0, mapped by ROLE rather than size. Zero raw `shadow-sm..2xl` or `ring-black/N`/`ring-white/N` remain in components/ or app/ (grep-verified). Confirmed in a real browser in light + dark.
+
+### Changed
+
+- **Role-mapped elevation everywhere** -- resting art plates and frames carry `shadow-hairline` only (the art stays the hero); card/badge chrome sits at `e1`; hovers and floating controls (lightbox nav, buy CTA, close buttons) at `e2`; picture-frame hovers and the scrolled header at `e3`; the back-to-top FAB at `e4`; the lightbox panel and admin modal at `e5`. Dark mode gets the inset-highlight treatment automatically via the token remap, killing the old mismatched `ring-black/8 dark:ring-white/5` pairs.
+- **Button** lifts `e1 -> e2` on hover (was `shadow-sm -> shadow-md`).
+
+### Fixed
+
+- **Undefined easing token** ([components/gallery/chromacard.tsx](components/gallery/chromacard.tsx), [app/login/page.tsx](app/login/page.tsx)) -- `ease-out-soft` is not a defined token, so the browser silently dropped the timing function on every gallery card's palette-strip hover; both now use `ease-(--ease-out)`.
+- **Floating period in the hero caption** ([components/home/hero-plates.tsx](components/home/hero-plates.tsx)) -- "Featured . 1 of 21" now reads "Featured, 1 of 21".
+
+## 1.32.1 (2026-07-02)
+
+Admin UI consistency pass, fixing the verified findings from the per-page audit: the admin shell previously read as "assembled by different hands" (drifting radii, three different delete buttons, invisible keyboard focus). All admin-only; no public-page change.
+
+### Changed
+
+- **Shared admin control tokens** ([app/admin/_components/controls.ts](app/admin/_components/controls.ts)) -- every admin button (`adminBtn`/`Primary`/`Destructive`) now carries a visible `focus-visible` ring (keyboard focus was browser-default/invisible), and a new `adminIconBtnDestructive` defines the square row-delete button once. Leads, testimonials, and the artwork grid now use it instead of three hand-rolled variants that drifted on size (h-8 vs h-9) and ring opacity (ruby/30 vs /40).
+- **Unified list-row radius** -- admin list rows all use `--radius-sm` now (leads and events rows were `--radius-md` while artworks/workshops/categories/presets were `sm`); empty-state cards match.
+- **Dashboard page intro** ([app/admin/page.tsx](app/admin/page.tsx)) -- /admin now opens with the same title + description block every other admin route has, instead of jumping straight into stat cards.
+- **Copy polish** -- testimonials admin explainer uses a real `list-disc` list with plain-word connectors (was hand-built bullet/arrow glyphs); preset empty state now says "Add one below" like its siblings; testimonials create-form background matches the other create forms.
+
+## 1.32.0 (2026-07-02)
+
+UI-consistency Phase 0: the elevation token foundation. A multi-agent UI research + per-page audit found the frontend's core inconsistency is that the design system had no elevation tier, so shadows and rings were ad-hoc per component. This lands the missing tokens and adopts them on the first surfaces to prove them end-to-end. Verified with typecheck, lint, tests, a full `next build`, and a real-browser check in light + dark.
+
+### Added
+
+- **Elevation + shadow tokens** ([app/globals.css](app/globals.css)) -- a layered `--shadow-e0..e5` scale plus `--shadow-hairline`, tinted with a warm `--shadow-ink` triplet (not black) so depth reads as sunlit-paper on the cream ground. Dark mode remaps them to an inset top-highlight + deeper ambient shadow (drop-shadows are invisible on the dark ground). Role map documented inline: hairline = resting frame edge, e1 = card, e2 = hover, e3 = dropdown, e4 = FAB/lightbox chrome, e5 = modal.
+- **Spacing + motion tokens** -- filled scale holes (`--space-5/14/20`), a fluid `--space-block` / `--grid-gap` / `--header-max` for rhythm, and a `--duration-micro/instant` interaction rung.
+- **UI consistency plan** ([docs/UI-CONSISTENCY-PLAN.md](docs/UI-CONSISTENCY-PLAN.md)) -- the full research: token foundation, phased migration, and 48 verified per-page findings, for the follow-up PRs.
+
+### Changed
+
+- **Card + artwork plate adopt the tokens** ([components/ui/card.tsx](components/ui/card.tsx), [components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- Card rests at `shadow-e1`, lifts to `shadow-e2` on hover with a scoped micro-duration transition (was `shadow-lg` + `transition-all`). The gallery plate now uses `shadow-hairline` at rest (art stays the hero, no heavy shadow) and rises to `shadow-e3` on hover, replacing the ad-hoc `ring-black/8` + `shadow-xl`. Proves the token pipeline; the remaining ~30 shadow/ring migrations follow in the next PR.
+
+## 1.31.0 (2026-07-02)
+
+Admin + share polish, and two real auth fixes found during review.
+
+### Added
+
+- **Share any artwork via a deep link** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx), [components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- the lightbox now has a Share button that copies (or native-shares) a `/work?piece=<slug>` link. Opening that link lands the recipient on the gallery with that piece's modal already open, and the URL tracks whatever piece is on screen as you browse.
+
+### Changed
+
+- **FAQ nav** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx), [data/site.json](data/site.json)) -- renamed "Trust & FAQ" to just "FAQ", kept in the footer (not the header). Page title is now "Frequently asked questions".
+- **Grouped admin nav** ([app/admin/_components/admin-nav.tsx](app/admin/_components/admin-nav.tsx)) -- the 9 flat tabs are now four labelled clusters (Catalog / Community / Leads / Settings) with separators, so the admin bar reads as structured groups.
+- **Testimonials admin clarity** ([app/admin/testimonials/page.tsx](app/admin/testimonials/page.tsx)) -- explains exactly where each testimonial appears (Feature -> home, Link artwork -> that piece, neither -> admin only).
+- **Auto-revalidate the catalog feed + sitemap** ([app/admin/actions.ts](app/admin/actions.ts)) -- artwork price/status/create/delete now refreshes `/catalog.csv` and `/sitemap.xml` so they never go stale after an edit.
+
+### Fixed
+
+- **Sign-in account loop** ([auth.ts](auth.ts)) -- Google now always shows the account chooser (`prompt: "select_account"`), so "Try a different account" works instead of silently reusing the current session.
+- **`UntrustedHost` on self-hosted / local runs** ([auth.ts](auth.ts)) -- added `trustHost: true`, which was making admin sign-in fail entirely outside Vercel.
+
+## 1.30.0 (2026-07-02)
+
+Roadmap Phase 4: an editable Trust / FAQ page. Ships the structure with clearly-marked placeholder copy so nothing false goes live; the artist edits the real terms in one JSON file. Verified with typecheck, lint, tests (43), a full `next build`, and a real-browser pass.
+
+### Added
+
+- **Trust / FAQ page** ([app/trust/page.tsx](app/trust/page.tsx), [data/site.json](data/site.json)) -- a `/trust` route answering how buying over WhatsApp works, payment, shipping-from-India, returns stance, care, and authenticity, as a native `<details>` accordion (accessible, keyboard-friendly, reduced-motion-safe, no JS). Content lives in a new `trust` block in `data/site.json`, read via the sync `getSite()`, so the maintainer edits copy without a deploy. FAQPage JSON-LD is emitted from the same content (angle brackets escaped).
+- Linked from the footer bottom bar; added to `app/sitemap.ts`.
+
+### Note
+
+**The answers are PLACEHOLDERS** ("Details coming soon...") pending Megha's real terms -- shipping timelines, the returns/damage stance, payment flow, and authenticity. This was deliberate: a returns policy the artist can't honour must not ship. Each answer is editable in `data/site.json` (`trust.faqs`) with no code change; replace the copy and the page + JSON-LD update on the next deploy.
+
+## 1.29.0 (2026-07-02)
+
+Roadmap Phase 5: testimonials as a first-class entity. Also fixes a client-side regression from the typed-env refactor found while testing this in `next start`. Verified with typecheck, lint, tests (43), a full `next build`, the DB migration applied, and a real-browser render pass.
+
+### Added
+
+- **Testimonials** ([lib/db/schema.ts](lib/db/schema.ts), [app/admin/testimonial-actions.ts](app/admin/testimonial-actions.ts), [app/admin/testimonials/page.tsx](app/admin/testimonials/page.tsx), [components/home/testimonials.tsx](components/home/testimonials.tsx)) -- a `testimonials` table + admin CRUD (create, feature-on-home toggle, delete) mirroring the workshop/preset managers, `getAllTestimonials`/`getFeaturedTestimonials`/`getTestimonialsForArtwork` readers through the data seam, and a quiet quote row surfaced on the home page (featured) and on an artwork's detail page (when a testimonial soft-links its slug). The section hides entirely when empty. Added to the admin nav. Migration `drizzle/0001_*.sql`.
+
+### Fixed
+
+- **Client image base broke under the typed-env module** ([lib/env.ts](lib/env.ts)) -- `clientEnv.imageBaseUrl` read `NEXT_PUBLIC_IMAGE_BASE_URL` through a dynamic `process.env[name]` helper, which Next does NOT inline into the browser bundle (only a literal `process.env.NEXT_PUBLIC_*` is replaced at build). So on the client the value was `undefined` and the getter threw at hydration, blanking the artwork `<picture>` srcsets. Now references the var as a direct literal. (Regression from 1.25.1; surfaced in `next start`, not caught by `next build` alone because prerender uses server-side env.)
+
+## 1.28.0 (2026-07-02)
+
+Roadmap Phase 2: capture custom-order enquiries as leads, so the funnel keeps a durable record instead of dead-ending at WhatsApp. Also establishes the versioned-migration path. **Requires a DB migration** (`pnpm db:migrate`) before the leads page works. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Added
+
+- **Leads capture** ([lib/db/schema.ts](lib/db/schema.ts), [app/admin/lead-actions.ts](app/admin/lead-actions.ts), [components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- a `leads` table plus a `submitLead` server action the custom-order form calls BEFORE handing off to WhatsApp. The write is fire-and-forget: it never throws and isn't awaited, so the WhatsApp open is never blocked (the always-works link doesn't regress). Hardened as a public endpoint with a honeypot field, a coarse rate limit, and length caps. A one-line privacy note sits by the submit button.
+- **Admin leads queue** ([app/admin/leads/page.tsx](app/admin/leads/page.tsx), [app/admin/_components/leads-manager.tsx](app/admin/_components/leads-manager.tsx)) -- a new /admin/leads page listing enquiries newest-first, with a new/contacted/closed status dropdown and a delete control (the PII-removal path). Added to the admin nav.
+- **Data-seam reader** ([lib/data.ts](lib/data.ts)) -- `getAllLeads()` through the seam, matching the existing readers.
+
+### Changed
+
+- **Versioned migrations are now the prod path** ([drizzle/0000_conscious_mercury.sql](drizzle/0000_conscious_mercury.sql)) -- the schema is baselined into a committed migration. Because the DB was originally created with `db:push`, the baseline uses `CREATE TABLE IF NOT EXISTS`, so applying it is a safe no-op for the 7 existing tables and creates only `leads`. Every schema change from here uses `db:generate` + `db:migrate`.
+
+## 1.27.0 (2026-07-02)
+
+Roadmap Phase 5 (non-DB slice): the verifiable performance and accessibility hardening for slow phones. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Added
+
+- **Image cache headers on R2 uploads** ([lib/storage/r2.ts](lib/storage/r2.ts)) -- `uploadObject` now sets `Cache-Control: public, max-age=86400, must-revalidate`. Repeat WhatsApp/IG visitors reuse variants instead of re-validating every AVIF. Deliberately NOT `immutable`: this is the shared writer, and the replace-image + profile-photo flows reuse a key, so `immutable` would pin a stale image at the edge for up to a year.
+- **Lightbox neighbour prefetch** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx)) -- when a piece settles, the immediate next/previous AVIF is warmed so arrow/swipe is near-instant. One each side, skipped under `Save-Data`.
+
+### Fixed
+
+- **Focus not obscured by the sticky header (WCAG 2.4.11)** ([app/globals.css](app/globals.css)) -- added `scroll-padding-top` on `html` and `scroll-margin-top` on `#main`, sized to a new `--header-h-shrunk` token, so keyboard/skip-link/anchor targets no longer land hidden behind the sticky, backdrop-blur bar.
+- **Removed a dead `ArtworkStatus` import** ([lib/data.ts](lib/data.ts)) left over from the Phase 1 catalog extraction.
+
+### Deferred (need live measurement, not guesswork)
+
+- **Pigment contrast fixes** and the **AVIF quality re-encode** were scoped out of this PR: both require a real browser contrast measurement / side-by-side eyeball on actual artwork, and guessing risks dulling the folk palette (house rule) or degrading linework. Flagged as a measurement follow-up.
+
+## 1.26.0 (2026-07-02)
+
+Roadmap Phase 3: reach and discoverability. Makes the phone-first, WhatsApp/IG-driven front door work harder without touching the DB. Verified with typecheck, lint, tests (43), a full `next build` (41 routes), and a live `next start` pass over the new surfaces.
+
+### Added
+
+- **VisualArtwork JSON-LD** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- per-piece schema.org structured data (name, image, artform, medium, dateCreated, dimensions, creator, and a nested Offer mapping status to InStock/SoldOut) for rich results. Angle brackets are escaped so an admin-entered title/dimension can't break out of the script tag.
+- **Product Rich Pin tags** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- a priced, unsold piece emits `og:type=product` + `product:price:*`, so it unfurls with its price in WhatsApp/IG DMs.
+- **Shareable filtered galleries** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx), [app/work/page.tsx](app/work/page.tsx)) -- the gallery filter now lives in the URL (`?style=<name>`, `?view=available`), so a filtered view is a shareable, back-button-friendly link. `/work` stays static via a Suspense boundary.
+- **"Share" button** ([components/gallery/share-button.tsx](components/gallery/share-button.tsx)) -- native share sheet with a copy-link fallback and a transient, reduced-motion-safe confirmation, on the artwork detail page.
+- **"See more <style>" cross-link** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- deep-links from a piece to its style-filtered gallery via the new URL lens.
+- **Meta Commerce data feed** ([app/catalog.csv/route.ts](app/catalog.csv/route.ts)) -- a static `/catalog.csv` of every for-sale piece (id, title, price, link, image_link, ...), so Commerce Manager auto-syncs the WhatsApp catalogue with zero manual re-entry. Reads the data seam's `getAvailableArtworks`.
+- **Conversion CTAs on the storytelling dead-ends** ([app/about/page.tsx](app/about/page.tsx), [app/events/page.tsx](app/events/page.tsx)) -- a quiet "Commission a piece" card on /about and a "See workshops" card on /events (shown only when there are events). Internal links, no popup fragility.
+- **Honest scarcity microcopy** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- an available original states "One of a kind, the only original. Not a print." No timers, no fake stock counts.
+
+### Notes
+
+- The dynamic OG-image generator (ImageResponse) idea was intentionally skipped: adversarial review found Satori can't reproduce the paper-grain ground or the Devanagari mark, and a static branded card is the better path. The self-hosted default OG image + real per-artwork OG photo already shipped.
+
+## 1.25.1 (2026-07-02)
+
+Roadmap Phase 1 (part 2): a single typed env module. Internal only, no user-facing change. Verified with typecheck, lint, tests (43), and a full `next build`.
+
+### Changed
+
+- **Central typed env module** ([lib/env.ts](lib/env.ts)) -- the one place `process.env` is read. `clientEnv` (NEXT_PUBLIC_*) and `serverEnv` (secrets) validate each var lazily on access, throwing a pointed error (naming the var + its doc) instead of a silent failure. Rewired every prior raw read: [lib/db/client.ts](lib/db/client.ts), [lib/storage/r2.ts](lib/storage/r2.ts), [lib/image-base.ts](lib/image-base.ts), [app/layout.tsx](app/layout.tsx), [app/admin/actions.ts](app/admin/actions.ts). Zero raw `process.env` reads remain outside this module.
+- Kept dependency-free by design (no zod / t3-env): a handful of vars doesn't warrant a schema library or its lock-in; the module's internals can be swapped later without touching callers.
+
+### Fixed
+
+- **No more silent empty image base** ([lib/image-base.ts](lib/image-base.ts)) -- the old `?? ""` fallback would ship a site with dead `<picture>` srcsets if `NEXT_PUBLIC_IMAGE_BASE_URL` was unset; it now fails the build loudly via the validated getter. The `regeneratePalette` action and the layout preconnect hint now derive from the shared image-base constants rather than re-reading env.
+
+## 1.25.0 (2026-07-02)
+
+Roadmap Phase 1 (part 1): the testing safety net + catalog correctness. First automated tests in the repo. Verified with typecheck, lint, the new suite (43 tests), and a full `next build` (40 routes, 21 SSG work paths).
+
+### Added
+
+- **Vitest + pure-function unit suite** ([vitest.config.ts](vitest.config.ts), `lib/*.test.ts`) -- 43 tests over the dependency-free logic that had zero coverage: slug minting (Devanagari matras, emoji/ZWJ glue, truncation), price/status rules, the WhatsApp message + link builders (phone guard, double-dash house-rule), and INR/date formatting. `pnpm test` runs them; Vitest 4's native tsconfig-paths resolution means no extra path plugin.
+- **CI test gate** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) -- `pnpm test` runs between typecheck and build. Pure-fn tests need no secrets, so they fail fast before the secret-injected build.
+- **Shared catalog module** ([lib/catalog.ts](lib/catalog.ts)) -- one source of truth for the "store is a filter" rules (`deriveStatus`, `isForSale`, `isPositivePrice`, `getCtaCopy`), previously duplicated across the data seam, the gallery filter, and the detail page.
+- **Pure admin helpers** ([lib/admin-helpers.ts](lib/admin-helpers.ts)) -- `slugify`, `getNextOrder`, `formString` extracted from `app/admin/_helpers.ts` (which imports the Auth.js session) so they're unit-testable; `_helpers.ts` re-exports them, so action-file imports are unchanged.
+
+### Fixed
+
+- **Price / sold-out integrity guard** ([lib/catalog.ts](lib/catalog.ts), [lib/data.ts](lib/data.ts)) -- `isForSale` now requires a positive, finite price and excludes sold pieces via the derived status, and `getAvailableArtworks` uses it instead of a bare `status === "available"` check. A piece whose status drifted to "available" without a real price (or a sold piece still carrying a price) can no longer leak into the "Available to buy" filter or its count.
+
+## 1.24.3 (2026-07-02)
+
+### Added
+
+- **Feature roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)) -- a prioritized product roadmap synthesized from a multi-agent deep-dive (196 agents, 148 ideas across 20 domains, RICE-scored, top 22 adversarially verified). Themes, a phased solo-dev sequence, quick wins, big bets, and the full ranked idea pool with per-idea detail. A decision aid; nothing committed. Docs-only, no runtime change.
+
 ## 1.24.2 (2026-07-02)
 
 Fixes surfaced by a multi-agent audit (security, bugs, deps, frontend quality). Two user-visible bugs (event gallery "+N more" undercount, admin reorder loss) plus SEO metadata hardening. Verified with typecheck, lint (0 warnings), and a full `next build` (40 routes, 21 SSG work paths).

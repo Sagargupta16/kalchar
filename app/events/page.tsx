@@ -1,12 +1,14 @@
-import { CalendarDays, Pin } from "lucide-react";
+import { ArrowRight, CalendarDays, Pin } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { EventGallery } from "@/components/events/event-gallery";
 import { Reveal } from "@/components/motion/reveal";
+import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getAllEvents } from "@/lib/data";
-import { formatEventDate } from "@/lib/utils";
+import { cn, formatEventDate } from "@/lib/utils";
 
 export const metadata: Metadata = {
 	title: "Events",
@@ -63,7 +65,7 @@ export default async function EventsPage() {
 										</div>
 										<h2 className="t-display text-2xl sm:text-3xl">{event.title}</h2>
 										{event.description ? (
-											<p className="t-body mt-1 max-w-2xl text-muted">{event.description}</p>
+											<p className="t-body max-w-2xl text-muted">{event.description}</p>
 										) : null}
 									</header>
 
@@ -87,6 +89,33 @@ export default async function EventsPage() {
 							</div>
 						</Reveal>
 					)}
+
+					{/* Closing CTA: events are the proof; point interested visitors to
+					    the workshops they can actually book. Shown only when there are
+					    events, so the empty state stays quiet. Internal link, no popup. */}
+					{events.length > 0 ? (
+						<Reveal delayMs={120}>
+							<div className="mt-12 flex flex-col items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft/40 p-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between">
+								<div>
+									<p className="t-display text-xl">Want a session like these?</p>
+									<p className="mt-1 text-sm text-muted">
+										We run hands-on workshops for groups, schools, and studios.
+									</p>
+								</div>
+								<Link
+									href="/workshops"
+									className={cn(buttonVariants({ variant: "secondary" }), "group shrink-0")}
+								>
+									See workshops
+									<ArrowRight
+										size={14}
+										aria-hidden="true"
+										className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+									/>
+								</Link>
+							</div>
+						</Reveal>
+					) : null}
 				</Container>
 			</Section>
 		</main>

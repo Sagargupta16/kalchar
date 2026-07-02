@@ -94,7 +94,7 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 					<ArrowLeft
 						size={12}
 						aria-hidden="true"
-						className="transition-transform duration-(--duration-base) ease-out-soft group-hover:-translate-x-0.5"
+						className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:-translate-x-0.5"
 					/>
 					Back to site
 				</Link>

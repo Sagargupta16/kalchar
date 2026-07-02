@@ -145,6 +145,20 @@ export interface SectionCopy {
 	[key: string]: unknown;
 }
 
+/** One editable FAQ entry for the Trust page (and its FAQPage JSON-LD). */
+export interface TrustFaq {
+	question: string;
+	answer: string;
+}
+
+/** Editable Trust / FAQ content (shipping, returns, care, authenticity). */
+export interface TrustContent {
+	eyebrow?: string;
+	title: string;
+	lead?: string;
+	faqs: TrustFaq[];
+}
+
 export interface Site {
 	brand: Brand;
 	contact: Contact;
@@ -153,6 +167,7 @@ export interface Site {
 	styles: readonly ArtStyle[];
 	sections: Record<string, SectionCopy>;
 	workshops: Workshop[];
+	trust?: TrustContent;
 }
 
 /**
@@ -171,4 +186,35 @@ export interface CustomOrderDraft {
 	budget?: string;
 	timeline?: string;
 	briefMessage: string;
+}
+
+/** A buyer/visitor testimonial. `artworkSlug` optionally ties it to one piece. */
+export interface Testimonial {
+	id: string;
+	quote: string;
+	authorName: string;
+	authorLocation?: string;
+	artworkSlug?: string;
+	featured: boolean;
+	order: number;
+}
+
+/** Triage state for a captured custom-order enquiry in the admin queue. */
+export type LeadStatus = "new" | "contacted" | "closed";
+
+/**
+ * A persisted custom-order enquiry (the Phase 2 row the CustomOrderDraft
+ * docstring promised). Mirrors the draft fields plus admin triage metadata.
+ * `createdAt` is an ISO string so it crosses the server/client boundary.
+ */
+export interface Lead {
+	id: string;
+	name?: string;
+	style?: string;
+	size?: string;
+	budget?: string;
+	timeline?: string;
+	brief: string;
+	status: LeadStatus;
+	createdAt: string;
 }

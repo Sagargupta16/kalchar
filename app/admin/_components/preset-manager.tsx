@@ -106,7 +106,7 @@ function PresetGroup({
 						className={cn(
 							"rounded-(--radius-sm) border border-line bg-bg-soft transition-all duration-(--duration-fast)",
 							dragging === i && "opacity-50",
-							over === i && dragging !== i && "border-accent shadow-sm",
+							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
 						<PresetItem
@@ -126,7 +126,7 @@ function PresetGroup({
 				))}
 				{items.length === 0 ? (
 					<p className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
-						No options yet.
+						No options yet. Add one below.
 					</p>
 				) : null}
 			</ul>

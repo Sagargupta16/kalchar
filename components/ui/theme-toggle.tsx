@@ -99,8 +99,8 @@ export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 						title={`${label} theme`}
 						onClick={() => setTheme(value)}
 						className={cn(
-							"inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-							active ? "bg-bg text-ink shadow-sm ring-1 ring-line" : "text-muted hover:text-ink",
+							"inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+							active ? "bg-bg text-ink shadow-e1 ring-1 ring-line" : "text-muted hover:text-ink",
 						)}
 					>
 						<Icon size={14} aria-hidden="true" />

@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
+import { IMAGE_ORIGIN } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
@@ -20,10 +21,12 @@ import "./globals.css";
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
+// Origin of the R2 public base, for a preconnect hint. IMAGE_ORIGIN is the
+// validated base URL (via clientEnv); reduce it to the bare origin. Tolerant
+// on the off chance it isn't a parseable URL -- the preconnect is optional.
 const imageOrigin = (() => {
-	const base = process.env.NEXT_PUBLIC_IMAGE_BASE_URL ?? process.env.R2_PUBLIC_BASE_URL ?? "";
 	try {
-		return base ? new URL(base).origin : "";
+		return new URL(IMAGE_ORIGIN).origin;
 	} catch {
 		return "";
 	}

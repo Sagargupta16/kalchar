@@ -167,5 +167,37 @@
 			"durationHours": 2,
 			"order": 5
 		}
-	]
+	],
+	"trust": {
+		"eyebrow": "FAQ",
+		"title": "Frequently asked questions",
+		"lead": "How enquiries, shipping, and care work for original folk art bought over WhatsApp.",
+		"_notes": "PLACEHOLDER COPY. Replace each 'answer' with Megha's real terms before relying on this page. Do not promise a returns policy that can't be honoured. Every answer is editable here in site.json, no code change needed.",
+		"faqs": [
+			{
+				"question": "How do I buy a piece?",
+				"answer": "Details coming soon. Tap Enquire on any available piece to open a WhatsApp message; we confirm availability, price, and shipping there. No payment is taken on this site."
+			},
+			{
+				"question": "When and how do I pay?",
+				"answer": "Details coming soon. Payment is arranged directly over WhatsApp once the piece and shipping are confirmed."
+			},
+			{
+				"question": "Do you ship, and from where?",
+				"answer": "Details coming soon. Pieces ship from India; delivery timelines and courier details will be confirmed with you before you pay."
+			},
+			{
+				"question": "Can I return a piece?",
+				"answer": "Details coming soon. Each work is a one-of-a-kind original; the returns and damage-in-transit stance will be stated here once confirmed."
+			},
+			{
+				"question": "How should I care for the artwork?",
+				"answer": "Details coming soon. Handling and framing guidance for the medium will be added here."
+			},
+			{
+				"question": "Is the work original and authentic?",
+				"answer": "Details coming soon. Every piece is an original handmade work by Megha Seth; authenticity details will be confirmed here."
+			}
+		]
+	}
 }
