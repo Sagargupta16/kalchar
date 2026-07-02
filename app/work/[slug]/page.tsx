@@ -6,6 +6,7 @@ import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
+import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
@@ -64,26 +65,6 @@ function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; n
 	};
 }
 
-/** CTA label + supporting note, derived from the piece's availability state. */
-function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: string; note: string } {
-	if (isSold) {
-		return {
-			label: "Ask about a similar piece",
-			note: "This piece has found a home. Reach out for a commission in the same style.",
-		};
-	}
-	if (isAvailable) {
-		return {
-			label: "Enquire on WhatsApp",
-			note: "Tap to open a pre-filled WhatsApp message. Ships from India.",
-		};
-	}
-	return {
-		label: "Ask about this piece",
-		note: "Listed in the archive. Reach out if you'd like a similar piece commissioned.",
-	};
-}
-
 /**
  * Artwork detail page.
  *
@@ -109,7 +90,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 		message: buyArtworkMessage(art),
 	});
 
-	const isAvailable = typeof art.priceInr === "number";
+	const isAvailable = isPositivePrice(art.priceInr);
 	const isSold = art.status === "sold";
 	const cta = getCtaCopy(isAvailable, isSold);
 

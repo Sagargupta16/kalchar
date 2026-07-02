@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
+import { isForSale } from "@/lib/catalog";
 import type { ArtStyle, Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +53,6 @@ type Filter = ArtStyle;
 /** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
 const STAGGER_STEP_MS = 60;
 const STAGGER_MAX_INDEX = 5;
-
-/** For-sale: a price is set and the piece has not been sold. */
-function isForSale(item: GalleryItem): boolean {
-	return typeof item.priceInr === "number" && item.status !== "sold";
-}
 
 export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const [active, setActive] = useState<Filter>(ALL);

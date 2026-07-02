@@ -41,6 +41,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Test
+        # Pure-function unit suite (no Neon/R2), so it runs before the
+        # secret-injected build and fails fast on a logic regression.
+        run: pnpm test
+
       - name: Build
         run: pnpm build
         env:
