@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.30.0 (2026-07-02)
+
+Roadmap Phase 4: an editable Trust / FAQ page. Ships the structure with clearly-marked placeholder copy so nothing false goes live; the artist edits the real terms in one JSON file. Verified with typecheck, lint, tests (43), a full `next build`, and a real-browser pass.
+
+### Added
+
+- **Trust / FAQ page** ([app/trust/page.tsx](app/trust/page.tsx), [data/site.json](data/site.json)) -- a `/trust` route answering how buying over WhatsApp works, payment, shipping-from-India, returns stance, care, and authenticity, as a native `<details>` accordion (accessible, keyboard-friendly, reduced-motion-safe, no JS). Content lives in a new `trust` block in `data/site.json`, read via the sync `getSite()`, so the maintainer edits copy without a deploy. FAQPage JSON-LD is emitted from the same content (angle brackets escaped).
+- Linked from the footer bottom bar; added to `app/sitemap.ts`.
+
+### Note
+
+**The answers are PLACEHOLDERS** ("Details coming soon...") pending Megha's real terms -- shipping timelines, the returns/damage stance, payment flow, and authenticity. This was deliberate: a returns policy the artist can't honour must not ship. Each answer is editable in `data/site.json` (`trust.faqs`) with no code change; replace the copy and the page + JSON-LD update on the next deploy.
+
 ## 1.29.0 (2026-07-02)
 
 Roadmap Phase 5: testimonials as a first-class entity. Also fixes a client-side regression from the typed-env refactor found while testing this in `next start`. Verified with typecheck, lint, tests (43), a full `next build`, the DB migration applied, and a real-browser render pass.

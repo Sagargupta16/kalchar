@@ -145,6 +145,20 @@ export interface SectionCopy {
 	[key: string]: unknown;
 }
 
+/** One editable FAQ entry for the Trust page (and its FAQPage JSON-LD). */
+export interface TrustFaq {
+	question: string;
+	answer: string;
+}
+
+/** Editable Trust / FAQ content (shipping, returns, care, authenticity). */
+export interface TrustContent {
+	eyebrow?: string;
+	title: string;
+	lead?: string;
+	faqs: TrustFaq[];
+}
+
 export interface Site {
 	brand: Brand;
 	contact: Contact;
@@ -153,6 +167,7 @@ export interface Site {
 	styles: readonly ArtStyle[];
 	sections: Record<string, SectionCopy>;
 	workshops: Workshop[];
+	trust?: TrustContent;
 }
 
 /**
