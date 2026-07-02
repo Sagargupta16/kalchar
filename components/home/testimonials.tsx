@@ -18,7 +18,7 @@ export function Testimonials({
 			<Reveal>
 				<p className="t-eyebrow text-center">{heading}</p>
 			</Reveal>
-			<ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+			<ul className="mt-(--space-block) grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 				{testimonials.map((t, i) => (
 					<Reveal key={t.id} as="li" delayMs={i * 60}>
 						<figure className="flex h-full flex-col rounded-(--radius-md) border border-line bg-bg-soft/40 p-6">

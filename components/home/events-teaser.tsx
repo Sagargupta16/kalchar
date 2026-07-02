@@ -119,7 +119,7 @@ export function EventsTeaser({
 				</ul>
 
 				<Reveal delayMs={220}>
-					<div className="mt-10 sm:mt-14">
+					<div className="mt-(--space-block)">
 						<Link href="/events" className={cn(buttonVariants({ variant: "secondary" }), "group")}>
 							See all events
 							<ArrowRight

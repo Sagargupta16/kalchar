@@ -65,7 +65,7 @@ export default async function EventsPage() {
 										</div>
 										<h2 className="t-display text-2xl sm:text-3xl">{event.title}</h2>
 										{event.description ? (
-											<p className="t-body mt-1 max-w-2xl text-muted">{event.description}</p>
+											<p className="t-body max-w-2xl text-muted">{event.description}</p>
 										) : null}
 									</header>
 

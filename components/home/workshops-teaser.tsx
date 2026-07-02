@@ -47,7 +47,7 @@ export function WorkshopsTeaser({
 					{workshops.map((item, i) => (
 						<Reveal key={item.slug} as="li" delayMs={i * 60}>
 							<Card hover className="group flex h-full flex-col">
-								<h3 className="t-display text-xl transition-colors group-hover:text-(--section-accent)">
+								<h3 className="t-display text-lg sm:text-xl transition-colors group-hover:text-(--section-accent)">
 									{item.title}
 								</h3>
 								<p className="mt-3 line-clamp-3 text-sm text-muted">{item.blurb}</p>
@@ -67,7 +67,7 @@ export function WorkshopsTeaser({
 				</ul>
 
 				<Reveal delayMs={220}>
-					<div className="mt-10 sm:mt-14">
+					<div className="mt-(--space-block)">
 						<Link
 							href="/workshops"
 							className={cn(buttonVariants({ variant: "secondary" }), "group")}

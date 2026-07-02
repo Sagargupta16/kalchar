@@ -70,7 +70,7 @@ export function ContactTeaser({ contact, eyebrow, title, lead }: Readonly<Contac
 				</div>
 
 				<Reveal delayMs={260}>
-					<div className="mt-10 sm:mt-14">
+					<div className="mt-(--space-block)">
 						<Link href="/contact" className={cn(buttonVariants({ variant: "secondary" }), "group")}>
 							Full contact page
 							<ArrowRight
