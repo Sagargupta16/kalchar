@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.32.1 (2026-07-02)
+
+Admin UI consistency pass, fixing the verified findings from the per-page audit: the admin shell previously read as "assembled by different hands" (drifting radii, three different delete buttons, invisible keyboard focus). All admin-only; no public-page change.
+
+### Changed
+
+- **Shared admin control tokens** ([app/admin/_components/controls.ts](app/admin/_components/controls.ts)) -- every admin button (`adminBtn`/`Primary`/`Destructive`) now carries a visible `focus-visible` ring (keyboard focus was browser-default/invisible), and a new `adminIconBtnDestructive` defines the square row-delete button once. Leads, testimonials, and the artwork grid now use it instead of three hand-rolled variants that drifted on size (h-8 vs h-9) and ring opacity (ruby/30 vs /40).
+- **Unified list-row radius** -- admin list rows all use `--radius-sm` now (leads and events rows were `--radius-md` while artworks/workshops/categories/presets were `sm`); empty-state cards match.
+- **Dashboard page intro** ([app/admin/page.tsx](app/admin/page.tsx)) -- /admin now opens with the same title + description block every other admin route has, instead of jumping straight into stat cards.
+- **Copy polish** -- testimonials admin explainer uses a real `list-disc` list with plain-word connectors (was hand-built bullet/arrow glyphs); preset empty state now says "Add one below" like its siblings; testimonials create-form background matches the other create forms.
+
 ## 1.32.0 (2026-07-02)
 
 UI-consistency Phase 0: the elevation token foundation. A multi-agent UI research + per-page audit found the frontend's core inconsistency is that the design system had no elevation tier, so shadows and rings were ad-hoc per component. This lands the missing tokens and adopts them on the first surfaces to prove them end-to-end. Verified with typecheck, lint, tests, a full `next build`, and a real-browser check in light + dark.

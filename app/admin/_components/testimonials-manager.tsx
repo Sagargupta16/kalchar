@@ -10,7 +10,7 @@ import {
 	setTestimonialFeatured,
 } from "../testimonial-actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnPrimary, adminField } from "./controls";
+import { adminBtn, adminBtnPrimary, adminField, adminIconBtnDestructive } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -54,7 +54,7 @@ export function TestimonialsManager({
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}
 
 			{items.length === 0 ? (
-				<p className="rounded-(--radius-md) border border-dashed border-line p-6 text-center text-sm text-muted">
+				<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 					No testimonials yet. Add one above; featured ones show on the home page.
 				</p>
 			) : (
@@ -88,7 +88,7 @@ export function TestimonialsManager({
 										disabled={pending}
 										onClick={() => onDelete(t.id)}
 										aria-label="Delete testimonial"
-										className="grid h-9 w-9 place-items-center rounded-(--radius-sm) border border-ruby/40 text-ruby transition-colors hover:bg-ruby hover:text-bg disabled:opacity-50"
+										className={adminIconBtnDestructive}
 									>
 										<Trash2 size={15} />
 									</button>
@@ -131,7 +131,7 @@ function CreateForm({
 					setOpen(false);
 				});
 			}}
-			className="space-y-3 rounded-(--radius-md) border border-line bg-bg-soft/40 p-4"
+			className="space-y-3 rounded-(--radius-md) border border-line bg-bg-soft p-4"
 		>
 			<textarea
 				name="quote"

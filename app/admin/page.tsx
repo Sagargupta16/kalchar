@@ -13,6 +13,15 @@ export default async function AdminDashboard() {
 
 	return (
 		<div className="space-y-8">
+			{/* Page intro -- matches the shared header block every other admin route
+			    opens with, so the dashboard doesn't jump straight into stat cards. */}
+			<section>
+				<h2 className="text-sm font-semibold">Pieces</h2>
+				<p className="mt-1 text-xs text-muted">
+					Your catalog at a glance, plus add, reorder, and manage each piece.
+				</p>
+			</section>
+
 			{/* Stats */}
 			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 				<StatCard icon={Image} label="Total pieces" value={artworks.length} />
