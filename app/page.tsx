@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { AboutTeaser } from "@/components/home/about-teaser";
 import { ContactTeaser } from "@/components/home/contact-teaser";
@@ -18,6 +19,15 @@ import {
 	getSite,
 } from "@/lib/data";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
+
+// Home-specific metadata: the highest-traffic entry page (most visits arrive
+// from WhatsApp/Instagram link-taps), so give it a unique, keyword-rich title
+// and description rather than inheriting the generic root defaults.
+export const metadata: Metadata = {
+	title: "Madhubani, Pichwai & Lippan Folk Art",
+	description:
+		"Original Madhubani, Pichwai, Lippan and Gond folk paintings by Megha Seth, plus hands-on workshops rooted in Indian folk traditions. Browse the archive or commission a custom piece.",
+};
 
 export default async function HomePage() {
 	const site = getSite();

@@ -238,11 +238,6 @@ export async function getRecentEvents(limit: number): Promise<readonly Event[]> 
 	return (await getAllEvents()).slice(0, limit);
 }
 
-/** Look up a single event by id. */
-export async function getEventById(id: string): Promise<Event | undefined> {
-	return (await getAllEvents()).find((e) => e.id === id);
-}
-
 /**
  * Read a single setting value by key, or undefined if unset. Typed by the
  * caller. Settings hold the artist profile image key + the home-intro toggle.
