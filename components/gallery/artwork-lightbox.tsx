@@ -80,6 +80,28 @@ export function ArtworkLightbox() {
 		return () => globalThis.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
 
+	// Warm the immediate neighbours' AVIF once the current piece settles, so
+	// arrow/swipe to the next plate is near-instant. One each side only, and
+	// skipped under Save-Data (metered connections) to not spend bytes a user
+	// asked us to conserve.
+	useEffect(() => {
+		if (!isOpen || !activeArtwork || artworksList.length < 2) return;
+		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+			?.saveData;
+		if (saveData) return;
+		const i = artworksList.findIndex((a) => a.slug === activeArtwork.slug);
+		if (i === -1) return;
+		const neighbours = [
+			artworksList[(i + 1) % artworksList.length],
+			artworksList[(i - 1 + artworksList.length) % artworksList.length],
+		];
+		for (const n of neighbours) {
+			if (!n) continue;
+			const img = new Image();
+			img.src = `${ARTWORK_IMAGE_BASE}/${deriveSlug(n.image)}-1600.avif`;
+		}
+	}, [isOpen, activeArtwork, artworksList]);
+
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
 			if (!imageRef.current || !zoom) return;
