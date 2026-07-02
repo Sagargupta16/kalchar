@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.24.3 (2026-07-02)
+
+### Added
+
+- **Feature roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)) -- a prioritized product roadmap synthesized from a multi-agent deep-dive (196 agents, 148 ideas across 20 domains, RICE-scored, top 22 adversarially verified). Themes, a phased solo-dev sequence, quick wins, big bets, and the full ranked idea pool with per-idea detail. A decision aid; nothing committed. Docs-only, no runtime change.
+
 ## 1.24.2 (2026-07-02)
 
 Fixes surfaced by a multi-agent audit (security, bugs, deps, frontend quality). Two user-visible bugs (event gallery "+N more" undercount, admin reorder loss) plus SEO metadata hardening. Verified with typecheck, lint (0 warnings), and a full `next build` (40 routes, 21 SSG work paths).
