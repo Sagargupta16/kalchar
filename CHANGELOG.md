@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.26.0 (2026-07-02)
+
+Roadmap Phase 3: reach and discoverability. Makes the phone-first, WhatsApp/IG-driven front door work harder without touching the DB. Verified with typecheck, lint, tests (43), a full `next build` (41 routes), and a live `next start` pass over the new surfaces.
+
+### Added
+
+- **VisualArtwork JSON-LD** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- per-piece schema.org structured data (name, image, artform, medium, dateCreated, dimensions, creator, and a nested Offer mapping status to InStock/SoldOut) for rich results. Angle brackets are escaped so an admin-entered title/dimension can't break out of the script tag.
+- **Product Rich Pin tags** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- a priced, unsold piece emits `og:type=product` + `product:price:*`, so it unfurls with its price in WhatsApp/IG DMs.
+- **Shareable filtered galleries** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx), [app/work/page.tsx](app/work/page.tsx)) -- the gallery filter now lives in the URL (`?style=<name>`, `?view=available`), so a filtered view is a shareable, back-button-friendly link. `/work` stays static via a Suspense boundary.
+- **"Share" button** ([components/gallery/share-button.tsx](components/gallery/share-button.tsx)) -- native share sheet with a copy-link fallback and a transient, reduced-motion-safe confirmation, on the artwork detail page.
+- **"See more <style>" cross-link** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- deep-links from a piece to its style-filtered gallery via the new URL lens.
+- **Meta Commerce data feed** ([app/catalog.csv/route.ts](app/catalog.csv/route.ts)) -- a static `/catalog.csv` of every for-sale piece (id, title, price, link, image_link, ...), so Commerce Manager auto-syncs the WhatsApp catalogue with zero manual re-entry. Reads the data seam's `getAvailableArtworks`.
+- **Conversion CTAs on the storytelling dead-ends** ([app/about/page.tsx](app/about/page.tsx), [app/events/page.tsx](app/events/page.tsx)) -- a quiet "Commission a piece" card on /about and a "See workshops" card on /events (shown only when there are events). Internal links, no popup fragility.
+- **Honest scarcity microcopy** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- an available original states "One of a kind, the only original. Not a print." No timers, no fake stock counts.
+
+### Notes
+
+- The dynamic OG-image generator (ImageResponse) idea was intentionally skipped: adversarial review found Satori can't reproduce the paper-grain ground or the Devanagari mark, and a static branded card is the better path. The self-hosted default OG image + real per-artwork OG photo already shipped.
+
 ## 1.25.1 (2026-07-02)
 
 Roadmap Phase 1 (part 2): a single typed env module. Internal only, no user-facing change. Verified with typecheck, lint, tests (43), and a full `next build`.
