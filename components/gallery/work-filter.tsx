@@ -1,7 +1,8 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
 import { isForSale } from "@/lib/catalog";
@@ -54,8 +55,41 @@ type Filter = ArtStyle;
 const STAGGER_STEP_MS = 60;
 const STAGGER_MAX_INDEX = 5;
 
+/**
+ * Resolve the active filter from the URL: `?view=available` -> the buy lens,
+ * `?style=<name>` -> that tradition (case-insensitive, validated against the
+ * real style list so a junk param falls back to All), else All. Keeping the
+ * filter in the URL makes a filtered gallery a shareable link and lets the
+ * "Explore this style" chips on the detail page deep-link straight to it.
+ */
+function filterFromParams(params: URLSearchParams, styles: readonly ArtStyle[]): Filter {
+	if (params.get("view") === "available") return AVAILABLE;
+	const style = params.get("style");
+	if (style) {
+		const match = styles.find((s) => s.toLowerCase() === style.toLowerCase());
+		if (match) return match;
+	}
+	return ALL;
+}
+
 export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
-	const [active, setActive] = useState<Filter>(ALL);
+	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const active = filterFromParams(new URLSearchParams(searchParams.toString()), styles);
+
+	// Write the chosen filter to the URL (replace, no scroll jump) so it's the
+	// single source of truth and the view is shareable/back-button friendly.
+	const setActive = useCallback(
+		(next: Filter) => {
+			const params = new URLSearchParams();
+			if (next === AVAILABLE) params.set("view", "available");
+			else if (next !== ALL) params.set("style", next);
+			const qs = params.toString();
+			router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		},
+		[router, pathname],
+	);
 
 	const forSaleCount = useMemo(() => items.filter(isForSale).length, [items]);
 

@@ -1,11 +1,15 @@
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArtistAvatar } from "@/components/about/artist-avatar";
 import { Reveal } from "@/components/motion/reveal";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSetting, getSite } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
 	title: "About",
@@ -97,6 +101,30 @@ export default async function AboutPage() {
 									</Card>
 								</Reveal>
 							) : null}
+							{/* Quiet closing CTA: turn the editorial page into a path onward
+							    (internal link to the commission flow, no hard sell). */}
+							<Reveal delayMs={120}>
+								<Card padding="md" className="mt-4">
+									<p className="t-eyebrow">Commission</p>
+									<p className="mt-2 text-sm text-muted">
+										Have a piece in mind? We take on a few custom works at a time.
+									</p>
+									<Link
+										href="/custom-orders"
+										className={cn(
+											buttonVariants({ variant: "secondary", size: "sm" }),
+											"group mt-4",
+										)}
+									>
+										Commission a piece
+										<ArrowRight
+											size={14}
+											aria-hidden="true"
+											className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+										/>
+									</Link>
+								</Card>
+							</Reveal>
 						</aside>
 					</div>
 				</Container>

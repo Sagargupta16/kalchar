@@ -4,11 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
+import { ShareButton } from "@/components/gallery/share-button";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
 import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
+import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
@@ -29,6 +31,39 @@ function artworkAlt(art: Pick<Artwork, "title" | "style" | "medium">): string {
 	return `${art.title}, ${art.style} painting in ${art.medium}.`;
 }
 
+/**
+ * schema.org VisualArtwork JSON-LD for one piece, mapping fields the catalog
+ * already has. A priced, unsold piece nests an Offer (InStock); a sold piece
+ * maps to SoldOut. Each work is a 1-of-1 original, so no artEdition. This is
+ * the rich-result signal for an artwork catalog; the render pattern (a
+ * <script type="application/ld+json">) mirrors app/layout.tsx.
+ */
+function artworkJsonLd(art: Artwork): Record<string, unknown> {
+	const image = `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`;
+	const offer = isPositivePrice(art.priceInr)
+		? {
+				"@type": "Offer",
+				price: art.priceInr,
+				priceCurrency: "INR",
+				availability:
+					art.status === "sold" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+				url: `${siteConfig.url}/work/${art.slug}/`,
+			}
+		: undefined;
+	return {
+		"@context": "https://schema.org",
+		"@type": "VisualArtwork",
+		name: art.title,
+		image,
+		artform: art.style,
+		artMedium: art.medium,
+		...(art.year ? { dateCreated: String(art.year) } : {}),
+		...(art.dimensions ? { size: art.dimensions } : {}),
+		creator: { "@type": "Person", name: getSite().brand.publicName },
+		...(offer ? { offers: offer } : {}),
+	};
+}
+
 export async function generateStaticParams() {
 	return (await getAllArtworkSlugs()).map((slug) => ({ slug }));
 }
@@ -40,6 +75,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	// aspectRatio is width/height, so height = width / ratio. Giving the OG image
 	// real dimensions + alt lets social crawlers lay out the card without a fetch.
 	const ogHeight = Math.round(OG_IMAGE_WIDTH / art.aspectRatio);
+	// Product Rich Pin tags: a priced, unsold piece unfurls in WhatsApp/IG DMs
+	// with its price. Only emitted when there's a real price to advertise.
+	const productMeta =
+		isPositivePrice(art.priceInr) && art.status !== "sold"
+			? {
+					"product:price:amount": String(art.priceInr),
+					"product:price:currency": "INR",
+					"product:availability": "in stock",
+				}
+			: undefined;
 	return {
 		title: art.title,
 		description: art.description ?? artworkAlt(art),
@@ -53,6 +98,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 				},
 			],
 		},
+		// og:type=product + product:price:* make a priced piece unfurl as a
+		// Product Rich Pin. Emitted via `other` so the tags sit alongside the
+		// openGraph block Next already renders.
+		other: productMeta ? { "og:type": "product", ...productMeta } : undefined,
 	};
 }
 
@@ -96,6 +145,16 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 
 	return (
 		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+			{/* VisualArtwork structured data for rich results. Escape "<" to
+			    < so an admin-entered title/dimension containing "</script>"
+			    can't break out of the tag (the fields are DB-editable). */}
+			<script
+				type="application/ld+json"
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD, angle brackets escaped below
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(artworkJsonLd(art)).replace(/</g, "\\u003c"),
+				}}
+			/>
 			{/* Preload the artwork plate (the LCP element) so its fetch starts at
 			    HTML parse. imageSrcSet/imageSizes mirror the <img> exactly. */}
 			<link
@@ -208,6 +267,13 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 									</span>
 								</div>
 							) : null}
+							{/* Honest scarcity: every piece is a single physical original, so
+							    say so plainly on an available piece. No timers, no fake stock. */}
+							{isAvailable && !isSold ? (
+								<p className="mb-4 text-xs text-muted">
+									One of a kind, the only original. Not a print.
+								</p>
+							) : null}
 							<a
 								href={whatsappLink}
 								target="_blank"
@@ -218,6 +284,16 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 								{cta.label}
 							</a>
 							<p className="mt-3 text-xs text-muted">{cta.note}</p>
+							<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+								<ShareButton title={art.title} url={`${siteConfig.url}/work/${art.slug}/`} />
+								<Link
+									href={`/work?style=${encodeURIComponent(art.style)}`}
+									className="inline-flex min-h-10 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
+								>
+									See more {art.style}
+									<ArrowRight size={13} aria-hidden="true" />
+								</Link>
+							</div>
 						</div>
 					</Reveal>
 				</div>
