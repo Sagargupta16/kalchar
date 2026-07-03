@@ -70,3 +70,7 @@ tmp/
 *.psd
 *.ai
 .vite/
+
+# Claude local context (untracked)
+.claude/
+MEMORY.md
