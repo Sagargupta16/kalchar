@@ -9,19 +9,18 @@ when_to_use: |
 
 Takes finished work to an open, green PR -- the loop Sagar runs constantly. Encodes this repo's exact tooling and guardrails so it's consistent every time.
 
-## Hard guardrails (never violate)
+## Repo guardrails
 
-- **Never push to remote without explicit per-session approval.** The user's "ship it" / "push it" / "open a PR" IS that approval for this run. A vague "looks good" is not -- confirm intent.
-- **Never push to `main`. Never force-push. Never `--no-verify`. Never `git add .`/`-A`** -- stage by name.
-- **Default branch is `main`.** Active work lands on `dev`; feature branches PR into `dev`. `main` is branch-protected.
-- **Merging to `main` deploys production (kalchar.co.in)** -- it's outward-facing. Open the PR; do NOT merge to main without a separate explicit go.
+- Pushing to remote needs explicit per-session approval. The user's "ship it" / "push it" / "open a PR" IS that approval for this run. A vague "looks good" is not -- confirm intent.
+- Active work lands on `dev`; feature branches PR into `dev`. `main` is branch-protected. (Git safety basics -- force-push, hooks, staging by name -- per global always-on rules.)
+- Merging to `main` deploys production (kalchar.co.in) -- it's outward-facing. Open the PR; do not merge to main without a separate explicit go.
 
 ## Steps
 
 1. **Establish/refresh green.** Run in order, stop on first failure and report:
    - `pnpm typecheck`
    - `pnpm lint`
-   - `pnpm build` (needs `.env.local`; reads Neon + R2 at build time -- this is the real verification, never claim done on types+lint alone)
+   - `pnpm build` (needs `.env.local`; reads Neon + R2 at build time -- the minimum gate; types+lint alone never qualify. For UI changes, load the page in `pnpm dev` or a preview deploy as the actual proof)
 
 2. **Branch check.** `git branch --show-current`.
    - On `dev` or `main` (a deploy branch): create a feature branch off the latest `origin/dev` first (`git fetch origin && git checkout -b <type>/<topic> origin/dev`). Branch names: `feat/`, `fix/`, `chore/`, `refactor/`.
@@ -29,7 +28,7 @@ Takes finished work to an open, green PR -- the loop Sagar runs constantly. Enco
 
 3. **CHANGELOG + version (repo rule -- every PR).** Add a new top entry in `CHANGELOG.md` under a chosen version (no `[Unreleased]`), bump `package.json` `version` to match. Pre-1.0-style semver: patch for typo/link/image/artwork, minor for new section/content-model/stack change, major reserved. Use absolute dates.
 
-4. **Stage by name + commit.** Conventional commit (`feat:`/`fix:`/`refactor:`/`docs:`/`chore:`), lowercase imperative, no trailing period, no emojis, no `Co-Authored-By`. Keep the subject human; put detail in the body. Exclude untracked tooling files (`.claude/`, `.mcp.json`, `.sonar/`) and Next's auto-regenerated `next-env.d.ts` unless they're the actual change.
+4. **Stage by name + commit.** Conventional commit, subject human, detail in the body (format per global always-on rules). Exclude untracked tooling files (`.claude/`, `.mcp.json`, `.sonar/`) and Next's auto-regenerated `next-env.d.ts` unless they're the actual change.
 
 5. **Push** the feature branch (`git push -u origin <branch>`).
 
@@ -41,10 +40,9 @@ Takes finished work to an open, green PR -- the loop Sagar runs constantly. Enco
 
 ## After a main merge (only when the user merges)
 
-Tag the merge commit `vX.Y.Z` and push the tag (repo convention; tags are markers only, nothing automated reads them -- skip is harmless if the user doesn't care).
+- Tag the merge commit `vX.Y.Z` and push the tag (repo convention; tags are markers only, nothing automated reads them -- skip is harmless if the user doesn't care).
+- Confirm the production deploy actually landed: check the Vercel production deployment succeeded and load kalchar.co.in to see the change serving. Merged-with-green-CI is not "deployed".
 
 ## Notes
-
-- `next build` is the source of truth; typecheck+lint alone never qualify as "shipped."
 - Vercel "Canceled by Ignored Build Step" on a feature branch is expected (only main/dev deploy).
 - If a check fails, diagnose and fix on the branch, re-verify, re-push -- don't merge around red.

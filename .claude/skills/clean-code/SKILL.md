@@ -15,15 +15,8 @@ This one skill replaces the former `boy-scout`, `clean-names`, `clean-functions`
 
 ## 0. The Boy Scout Rule (the mindset that orchestrates the rest)
 
-> "Always leave the campground cleaner than you found it." Every time you touch code, make it **a little** better, proportional to your task.
+Apply cleanup only when the task IS cleanup (review, refactor, "clean this up" asks). When writing or fixing code, follow the sections below for the NEW code you write; do not expand the diff with drive-by improvements to adjacent code (global surgical-changes rule wins).
 
-When working on code:
-1. Complete the requested task first.
-2. Identify at least one small cleanup in what you touched.
-3. Apply the relevant section below.
-4. Note it briefly (e.g. "Also cleaned up: renamed `co` to `customOrders`").
-
-**Do:** one small improvement per change; fix what you see in your blast radius.
 **Don't:** rewrite working code, "improve" adjacent code you didn't touch, or wait for a refactor sprint. Surgical over sweeping. (Matches the repo's refactor discipline: never bundle behavior changes into a cleanup.)
 
 ---

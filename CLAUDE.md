@@ -53,7 +53,7 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 ### Visual / motion
 
 - **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
-- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). **MEMORY.md "Motion exclusions" is the source of truth for this policy; if the two disagree, MEMORY.md wins.**
+- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). This is a deliberate repo exception to the global "no reduced-motion" rule (public a11y-sensitive art site; confirmed by Sagar 2026-07-07). **MEMORY.md "Motion exclusions" + "Reduced motion" rows are the source of truth for this policy; if files disagree, MEMORY.md wins.**
 - **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
 - **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
@@ -74,8 +74,7 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 
 - **Never push to remote without explicit per-session approval.** Rebasing local feature branches autonomously is fine.
 - **One open PR at a time per target.** Bot PRs (Renovate, ImgBot) count.
-- **Default branch is `main`.** Never `master`.
-- **Never force-push to `main`. Never amend published commits. Never skip hooks (`--no-verify`).**
+- Git safety (force-push, amend, hooks, staging) per global always-on rules.
 - **Update `CHANGELOG.md` on every PR.** Add a new top entry under a chosen version number (no `[Unreleased]` placeholder), and bump `package.json` `version` to match. Versioning: patch (`x.y.Z`) for typo / link / image swap / new artwork, minor (`x.Y.0`) for new section / content-model change / stack swap, major (`X.0.0`) reserved (1.0.0, the first public launch, shipped 2026-05-17). On merge to `main`, tag the merge commit (`git tag vX.Y.Z`) and push the tag.
 
 ## What's on disk
