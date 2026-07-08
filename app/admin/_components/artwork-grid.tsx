@@ -10,6 +10,7 @@ import { adminIconBtnDestructive } from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 interface ArtworkItem {
 	slug: string;
@@ -24,10 +25,12 @@ interface ArtworkItem {
 export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkItem[] }>) {
 	const router = useRouter();
 	const confirm = useConfirm();
-	const [items, setItems] = useState(initial);
 	// Baseline = the last server-known order. Reset returns to it; it also
 	// shifts when we delete so a delete doesn't look like an "unsaved reorder".
 	const [baseline, setBaseline] = useState(initial);
+	// Adopt fresh server data after an upload (router.refresh), resetting the
+	// reorder baseline to match so a newly added piece appears without a reload.
+	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [pending, startTransition] = useTransition();
 	const [saved, setSaved] = useState(false);
 	const { dragging, over, dragProps } = useReorder(items, setItems);
