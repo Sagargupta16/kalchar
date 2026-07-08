@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.33.4 (2026-07-08)
+
+Docs + branch hygiene. No app code, no behavior change.
+
+### Changed
+
+- **CLAUDE.md aligned with the global prompt rework** ([CLAUDE.md](CLAUDE.md)) -- stacking preamble fixed, stale `getEventById` reference dropped, `pnpm test` added to the local-dev commands, guidance deduplicated against the always-on global rules.
+- **Back-merged main into dev** -- picked up the two main-only hotfix commits from PR #56 (`useServerSyncedList` in [app/admin/_components/artwork-grid.tsx](app/admin/_components/artwork-grid.tsx) and [app/admin/_components/event-image-manager.tsx](app/admin/_components/event-image-manager.tsx), so uploads appear without a manual reload) and PR #75's untracking of `.claude/` + `MEMORY.md`. Branches are back to a clean dev -> main line; all merged feature branches pruned.
+
 ## 1.33.3 (2026-07-02)
 
 ### Fixed
