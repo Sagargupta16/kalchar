@@ -2,12 +2,13 @@
 
 Guidance for Claude Code (claude.ai/code) when working in this repository.
 
-> Stacks on the workspace root at `C:\Code\GitHub\`:
+> This file stacks on top of the workspace root at `C:\Code\GitHub\`:
+> - Root [`CLAUDE.md`](../../CLAUDE.md) -- voice, rules, routing map, references, skills, slash commands, conventions.
+> - Root [`MEMORY.md`](../../MEMORY.md) -- live facts across repos.
+> - Root [`STATUS.md`](../../STATUS.md) -- live PR/CI/security dashboard.
+> - [`.claude/resources/`](../../.claude/resources/README.md) -- deep reference for collaboration, workflow, git, OSS, debugging, voice.
 >
-> - Root [CLAUDE.md](../../CLAUDE.md): voice, rules, routing, references, skills, conventions.
-> - Root [MEMORY.md](../../MEMORY.md), [STATUS.md](../../STATUS.md): live cross-repo facts.
->
-> Read those first. This file adds repo-specific context only.
+> Read those first. The guidance below only adds **repo-specific context** -- it does not override anything in the root.
 
 ## Project
 
@@ -35,6 +36,7 @@ pnpm build        # next build
 pnpm typecheck
 pnpm lint
 pnpm format
+pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 # DB/images:  pnpm db:push | db:seed | db:images
 ```
 
@@ -51,7 +53,7 @@ pnpm format
 ### Visual / motion
 
 - **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
-- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). **MEMORY.md "Motion exclusions" is the source of truth for this policy; if the two disagree, MEMORY.md wins.**
+- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). This is a deliberate repo exception to the global "no reduced-motion" rule (public a11y-sensitive art site; confirmed by Sagar 2026-07-07). **MEMORY.md "Motion exclusions" + "Reduced motion" rows are the source of truth for this policy; if files disagree, MEMORY.md wins.**
 - **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
 - **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
@@ -59,11 +61,11 @@ pnpm format
 
 ### Architecture
 
-- **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`/`getEventById`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
+- **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
 - **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
 - **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`; `IMAGE_ORIGIN` = the bare R2 origin (events store full key-bases). The gallery `<picture>` srcset, lightbox, and OG metadata read it. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
-- **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
+- **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, custom-order leads in `app/admin/lead-actions.ts`, testimonials in `app/admin/testimonial-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
 - **Data files at repo root** (`data/`). Not under `src/`.
@@ -72,9 +74,8 @@ pnpm format
 
 - **Never push to remote without explicit per-session approval.** Rebasing local feature branches autonomously is fine.
 - **One open PR at a time per target.** Bot PRs (Renovate, ImgBot) count.
-- **Default branch is `main`.** Never `master`.
-- **Never force-push to `main`. Never amend published commits. Never skip hooks (`--no-verify`).**
-- **Update `CHANGELOG.md` on every PR.** Add a new top entry under a chosen version number (no `[Unreleased]` placeholder), and bump `package.json` `version` to match. Versioning: pre-1.0.0 patch (`0.x.Y`) for typo / link / image swap / new artwork, minor (`0.X.0`) for new section / content-model change / stack swap, major (`X.0.0`) reserved until after 1.0.0 (first public launch). On merge to `main`, tag the merge commit (`git tag v0.X.Y`) and push the tag.
+- Git safety (force-push, amend, hooks, staging) per global always-on rules.
+- **Update `CHANGELOG.md` on every PR.** Add a new top entry under a chosen version number (no `[Unreleased]` placeholder), and bump `package.json` `version` to match. Versioning: patch (`x.y.Z`) for typo / link / image swap / new artwork, minor (`x.Y.0`) for new section / content-model change / stack swap, major (`X.0.0`) reserved (1.0.0, the first public launch, shipped 2026-05-17). On merge to `main`, tag the merge commit (`git tag vX.Y.Z`) and push the tag.
 
 ## What's on disk
 
@@ -91,8 +92,9 @@ app/                      Next.js App Router
   work/                   "Artwork" gallery + per-artwork detail (SSG from Neon);
                           in-page "Available to buy" filter is the store surface
   events/                 community events: multi-image galleries (5 inline + "+N more")
-  admin/                  dashboard + events + profile + maintainers (dynamic;
-                          actions.ts + event-actions.ts + _helpers.ts)
+  admin/                  dashboard + events + profile + maintainers + leads +
+                          testimonials (dynamic; actions.ts + event-actions.ts +
+                          lead-actions.ts + testimonial-actions.ts + _helpers.ts)
   api/auth/[...nextauth]/ Auth.js v5 Google handler
   sitemap.ts, fonts.ts, globals.css
 auth.ts                   Auth.js config (Google, signIn gated to maintainers)
@@ -101,7 +103,7 @@ components/               home/ layout/ gallery/ events/ about/ forms/ motion/ d
 lib/
   data.ts                 the data seam (Neon via Drizzle; getSite reads site.json)
   db/                     schema.ts (artworks/workshops/events/settings/categories/
-                          order_presets/maintainers) + client.ts
+                          order_presets/maintainers/leads/testimonials) + client.ts
   storage/                r2.ts + process-artwork-image.ts (processImageVariants shared
                           by artworks + events; sharp variants -> R2)
   maintainers.ts          admin allowlist (list/add/remove, root-protected)
@@ -117,7 +119,7 @@ drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
   migrate-json-to-db.ts   pnpm db:seed -- JSON -> Neon rows
   migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
-.github/workflows/        ci.yml (lint+typecheck+build). deploy.yml = retired Pages fallback (manual-only)
+.github/workflows/        ci.yml (lint+typecheck+test+build). deploy.yml = retired Pages fallback (manual-only)
 docs/                     engineering docs (index in docs/README.md):
   ARCHITECTURE.md         full system diagram + flows (entry point)
   DATABASE.md             Neon/Drizzle schema, seam, migrations
