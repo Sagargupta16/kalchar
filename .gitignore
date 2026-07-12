@@ -74,3 +74,6 @@ tmp/
 # Claude local context (untracked)
 .claude/
 MEMORY.md
+
+# graphify knowledge graph artifacts
+graphify-out/

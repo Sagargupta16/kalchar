@@ -145,3 +145,8 @@ Project skills live in `.claude/skills/<name>/SKILL.md` and trigger automaticall
 ## Operating mode
 
 The user drives discovery and decisions. Don't propose stacks, scopes, or design choices unprompted. When they signal "go" or "do it", execute against their stated intent without re-litigating earlier decisions.
+
+## Knowledge Graph (graphify)
+
+- `graphify-out/` holds a prebuilt code graph (gitignored). For architecture/relationship questions ("what calls X", "what imports Y", impact of a change), query it before grepping: `graphify query "<question>"`, `graphify path "A" "B"`, `graphify explain "X"`, `graphify affected "X"`.
+- After large refactors run `graphify update .` (local AST, no LLM) to refresh it. If `graphify-out/` is missing, fall back to normal search -- don't rebuild unasked.
