@@ -13,6 +13,7 @@
  */
 import sharp from "sharp";
 import { VARIANT_WIDTHS as WIDTHS } from "../image-base";
+import { MAX_IMAGE_PIXELS, validateImageBuffer } from "./image-upload";
 import { deleteObjects, uploadObject } from "./r2";
 
 const AVIF_OPTS = { quality: 60, effort: 4, chromaSubsampling: "4:2:0" } as const;
@@ -47,7 +48,7 @@ const PALETTE_SAMPLE_GRID = 8;
 const MIN_PALETTE_SIZE = 3;
 
 export async function extractPalette(master: Buffer, count = 5): Promise<string[]> {
-	const { data } = await sharp(master, { failOn: "none" })
+	const { data } = await sharp(master, { failOn: "error", limitInputPixels: MAX_IMAGE_PIXELS })
 		.rotate()
 		.resize(PALETTE_SAMPLE_GRID, PALETTE_SAMPLE_GRID, { fit: "fill" })
 		.removeAlpha()
@@ -99,37 +100,46 @@ export async function processImageVariants(
 	keyBase: string,
 	master: Buffer,
 ): Promise<{ keys: string[]; aspectRatio: number }> {
-	const meta = await sharp(master, { failOn: "none" }).rotate().metadata();
+	await validateImageBuffer(master);
+	const sharpOptions = { failOn: "error" as const, limitInputPixels: MAX_IMAGE_PIXELS };
+	const meta = await sharp(master, sharpOptions).rotate().metadata();
 	const aspectRatio = meta.width && meta.height ? meta.width / meta.height : 0.75;
 
 	const keys: string[] = [];
 	const put = async (key: string, buf: Buffer, type: string) => {
-		await uploadObject(key, buf, type);
+		// Track before sending so an ambiguous network failure still attempts
+		// cleanup for an object that may have reached R2.
 		keys.push(key);
+		await uploadObject(key, buf, type);
 	};
 
-	for (const w of WIDTHS) {
-		const resized = sharp(master, { failOn: "none" })
+	try {
+		for (const w of WIDTHS) {
+			const resized = sharp(master, sharpOptions)
+				.rotate()
+				.withMetadata({ orientation: undefined })
+				.resize({ width: w, withoutEnlargement: true });
+			const [avif, webp, jpg] = await Promise.all([
+				resized.clone().avif(AVIF_OPTS).toBuffer(),
+				resized.clone().webp(WEBP_OPTS).toBuffer(),
+				resized.clone().jpeg(JPEG_OPTS).toBuffer(),
+			]);
+			await put(`${keyBase}-${w}.avif`, avif, "image/avif");
+			await put(`${keyBase}-${w}.webp`, webp, "image/webp");
+			await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
+		}
+
+		// Master-width mozjpeg fallback (the bare <img src>).
+		const masterJpg = await sharp(master, sharpOptions)
 			.rotate()
 			.withMetadata({ orientation: undefined })
-			.resize({ width: w, withoutEnlargement: true });
-		const [avif, webp, jpg] = await Promise.all([
-			resized.clone().avif(AVIF_OPTS).toBuffer(),
-			resized.clone().webp(WEBP_OPTS).toBuffer(),
-			resized.clone().jpeg(JPEG_OPTS).toBuffer(),
-		]);
-		await put(`${keyBase}-${w}.avif`, avif, "image/avif");
-		await put(`${keyBase}-${w}.webp`, webp, "image/webp");
-		await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
+			.jpeg(JPEG_OPTS)
+			.toBuffer();
+		await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
+	} catch (error) {
+		await deleteObjects(keys).catch(() => {});
+		throw error;
 	}
-
-	// Master-width mozjpeg fallback (the bare <img src>).
-	const masterJpg = await sharp(master, { failOn: "none" })
-		.rotate()
-		.withMetadata({ orientation: undefined })
-		.jpeg(JPEG_OPTS)
-		.toBuffer();
-	await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
 
 	return { keys, aspectRatio };
 }
@@ -145,8 +155,8 @@ function variantKeys(keyBase: string): string[] {
 
 /** Generate + upload all variants for one master image buffer. */
 export async function processArtworkImage(slug: string, master: Buffer): Promise<ProcessedImage> {
-	const { keys, aspectRatio } = await processImageVariants(`artworks/${slug}`, master);
 	const palette = await extractPalette(master);
+	const { keys, aspectRatio } = await processImageVariants(`artworks/${slug}`, master);
 	return { keys, aspectRatio, palette };
 }
 

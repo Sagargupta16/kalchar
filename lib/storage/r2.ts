@@ -31,11 +31,9 @@ const r2 = new S3Client({
 /**
  * Cache-Control for uploaded objects. A meaningful max-age lets repeat
  * WhatsApp/IG visitors and page-to-page navigation reuse variants instead of
- * re-validating every AVIF, but deliberately NOT `immutable`: this is the
- * shared writer for artwork/event/profile images, and the replace-image and
- * profile-photo flows reuse the same key. `immutable` would pin a stale image
- * at the edge for up to a year after a replace; `must-revalidate` past the day
- * lets a replaced key refresh with one conditional request.
+ * re-validating every AVIF. It is deliberately not `immutable` because the
+ * bulk seed path can regenerate stable artwork keys. Versioned admin
+ * replacements still avoid mixed old and new variants at the edge.
  */
 const UPLOAD_CACHE_CONTROL = "public, max-age=86400, must-revalidate";
 

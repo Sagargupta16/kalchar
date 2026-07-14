@@ -16,8 +16,10 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
 import { leads } from "@/lib/db/schema";
+import { createFixedWindowRateLimiter } from "@/lib/fixed-window-rate-limit";
 import type { LeadStatus } from "@/lib/types";
 import { formString, requireMaintainer } from "./_helpers";
 
@@ -25,24 +27,23 @@ import { formString, requireMaintainer } from "./_helpers";
 const MAX_BRIEF = 4000;
 const MAX_SHORT = 200;
 
-/**
- * Coarse in-memory rate limit: at most N submits per window per warm instance.
- * ponytail: a global counter, not per-IP -- serverless gives no stable client
- * key without extra plumbing, and this only needs to blunt a naive flood. If a
- * determined spammer becomes a real problem, swap for a Turnstile check.
- */
+/** Best-effort per-client rate limit for each warm serverless instance. */
 const RATE_MAX = 5;
 const RATE_WINDOW_MS = 60_000;
-let windowStart = 0;
-let windowCount = 0;
+const RATE_MAX_CLIENTS = 1000;
+const rateLimited = createFixedWindowRateLimiter({
+	limit: RATE_MAX,
+	windowMs: RATE_WINDOW_MS,
+	maxKeys: RATE_MAX_CLIENTS,
+});
 
-function rateLimited(now: number): boolean {
-	if (now - windowStart > RATE_WINDOW_MS) {
-		windowStart = now;
-		windowCount = 0;
-	}
-	windowCount += 1;
-	return windowCount > RATE_MAX;
+async function clientKey(): Promise<string> {
+	const requestHeaders = await headers();
+	const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+	const realIp = requestHeaders.get("x-real-ip")?.trim();
+	const address = forwarded || realIp;
+	if (address) return address.slice(0, MAX_SHORT);
+	return `unknown:${(requestHeaders.get("user-agent") ?? "client").slice(0, MAX_SHORT)}`;
 }
 
 /**
@@ -53,7 +54,7 @@ function rateLimited(now: number): boolean {
 export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 	try {
 		if (formString(formData, "website").trim()) return { ok: false }; // honeypot tripped
-		if (rateLimited(Date.now())) return { ok: false };
+		if (rateLimited(await clientKey())) return { ok: false };
 
 		const brief = formString(formData, "brief").trim().slice(0, MAX_BRIEF);
 		if (!brief) return { ok: false };
