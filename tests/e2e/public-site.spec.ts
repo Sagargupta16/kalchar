@@ -100,15 +100,20 @@ test("hero stays complete when R2 artwork requests fail", async ({ page }) => {
 		.toBe(true);
 
 	// The delayed shuffle must not replace the working pair with blank plates.
-	await page.waitForTimeout(1_000);
-	expect(
-		await plateImages.evaluateAll((images) =>
-			images.every(
-				(image) =>
-					image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+	await expect(hero.locator("[data-shuffle-status]")).toHaveAttribute(
+		"data-shuffle-status",
+		/^(applied|skipped)$/,
+	);
+	await expect
+		.poll(() =>
+			plateImages.evaluateAll((images) =>
+				images.every(
+					(image) =>
+						image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+				),
 			),
-		),
-	).toBe(true);
+		)
+		.toBe(true);
 });
 
 test("hero shuffle keeps both tilted plates decoded", async ({ page }) => {
@@ -131,15 +136,20 @@ test("hero shuffle keeps both tilted plates decoded", async ({ page }) => {
 			)
 			.toBe(true);
 
-		await page.waitForTimeout(1_000);
-		expect(
-			await plateImages.evaluateAll((images) =>
-				images.every(
-					(image) =>
-						image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+		await expect(page.locator("[data-shuffle-status]")).toHaveAttribute(
+			"data-shuffle-status",
+			"applied",
+		);
+		await expect
+			.poll(() =>
+				plateImages.evaluateAll((images) =>
+					images.every(
+						(image) =>
+							image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+					),
 				),
-			),
-		).toBe(true);
+			)
+			.toBe(true);
 
 		for (const plate of await page.locator(".hero-plate").all()) {
 			await expect(plate).not.toHaveCSS("transform", "none");
@@ -147,30 +157,30 @@ test("hero shuffle keeps both tilted plates decoded", async ({ page }) => {
 	}
 });
 
-test("mobile navigation and header controls meet touch target minimums", async ({
-	page,
-	isMobile,
-}) => {
-	test.skip(!isMobile, "Mobile-only behavior");
-	await page.goto("/");
+test(
+	"mobile navigation and header controls meet touch target minimums",
+	{ tag: "@mobile" },
+	async ({ page }) => {
+		await page.goto("/");
 
-	const menu = page.getByRole("button", { name: "Open menu" });
-	await expect(menu).toBeVisible();
-	const menuBox = await menu.boundingBox();
-	expect(menuBox?.width).toBeGreaterThanOrEqual(44);
-	expect(menuBox?.height).toBeGreaterThanOrEqual(44);
+		const menu = page.getByRole("button", { name: "Open menu" });
+		await expect(menu).toBeVisible();
+		const menuBox = await menu.boundingBox();
+		expect(menuBox?.width).toBeGreaterThanOrEqual(44);
+		expect(menuBox?.height).toBeGreaterThanOrEqual(44);
 
-	const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
-	await expect(themeButtons).toHaveCount(2);
-	for (const button of await themeButtons.all()) {
-		const box = await button.boundingBox();
-		expect(box?.width).toBeGreaterThanOrEqual(44);
-		expect(box?.height).toBeGreaterThanOrEqual(44);
-	}
+		const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
+		await expect(themeButtons).toHaveCount(2);
+		for (const button of await themeButtons.all()) {
+			const box = await button.boundingBox();
+			expect(box?.width).toBeGreaterThanOrEqual(44);
+			expect(box?.height).toBeGreaterThanOrEqual(44);
+		}
 
-	await menu.click();
-	await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();
-});
+		await menu.click();
+		await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();
+	},
+);
 
 test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await page.goto("/work/");
@@ -181,13 +191,16 @@ test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await expect(style).toHaveAttribute("aria-pressed", "true");
 });
 
-test("touch layouts hide the hover-only zoom hint", async ({ page, isMobile }) => {
-	test.skip(!isMobile, "Touch-only behavior");
-	await page.goto("/work/");
-	await page.locator("main a[aria-label]").first().click();
-	await expect(page.getByRole("dialog")).toBeVisible();
-	await expect(page.getByText("Hover to zoom")).toBeHidden();
-});
+test(
+	"touch layouts hide the hover-only zoom hint",
+	{ tag: "@mobile" },
+	async ({ page }) => {
+		await page.goto("/work/");
+		await page.locator("main a[aria-label]").first().click();
+		await expect(page.getByRole("dialog")).toBeVisible();
+		await expect(page.getByText("Hover to zoom")).toBeHidden();
+	},
+);
 
 test.describe("reduced motion", () => {
 	test.use({ reducedMotion: "reduce" });

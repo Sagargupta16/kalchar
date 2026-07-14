@@ -25,8 +25,6 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 	const [hasImage, setHasImage] = useState(Boolean(imageKey));
 	const [intro, setIntro] = useState(showHomeIntro);
 	const [fileName, setFileName] = useState<string | null>(null);
-	// Cache-bust the preview after a re-upload (same key, new bytes).
-	const [stamp, setStamp] = useState(0);
 
 	const onUpload = (form: HTMLFormElement) => {
 		const fd = new FormData(form);
@@ -37,7 +35,6 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 			() => {
 				setHasImage(true);
 				setFileName(null);
-				setStamp((s) => s + 1);
 				form.reset();
 			},
 		);
@@ -62,7 +59,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 		run(() => setShowHomeIntro(next));
 	};
 
-	const previewSrc = hasImage ? `${IMAGE_ORIGIN}/profile/artist-400.webp?v=${stamp}` : null;
+	const previewSrc = hasImage && imageKey ? `${IMAGE_ORIGIN}/${imageKey}-400.webp` : null;
 
 	return (
 		<div className="space-y-8">

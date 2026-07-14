@@ -155,6 +155,7 @@ function variantKeys(keyBase: string): string[] {
 
 /** Generate + upload all variants for one master image buffer. */
 export async function processArtworkImage(slug: string, master: Buffer): Promise<ProcessedImage> {
+	await validateImageBuffer(master);
 	const palette = await extractPalette(master);
 	const { keys, aspectRatio } = await processImageVariants(`artworks/${slug}`, master);
 	return { keys, aspectRatio, palette };

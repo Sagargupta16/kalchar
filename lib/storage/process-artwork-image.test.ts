@@ -9,7 +9,7 @@ const r2 = vi.hoisted(() => ({
 vi.mock("../image-base", () => ({ VARIANT_WIDTHS: [400] }));
 vi.mock("./r2", () => r2);
 
-import { processImageVariants } from "./process-artwork-image";
+import { processArtworkImage, processImageVariants } from "./process-artwork-image";
 
 describe("processImageVariants", () => {
 	beforeEach(() => {
@@ -31,5 +31,14 @@ describe("processImageVariants", () => {
 			"artworks/test-400.avif",
 			"artworks/test-400.webp",
 		]);
+	});
+
+	it("rejects invalid artwork bytes with a controlled validation error", async () => {
+		const invalidImage = Buffer.from("not an image");
+
+		await expect(processArtworkImage("invalid", invalidImage)).rejects.toThrow(
+			"Image could not be decoded or exceeds the pixel limit.",
+		);
+		expect(r2.uploadObject).not.toHaveBeenCalled();
 	});
 });

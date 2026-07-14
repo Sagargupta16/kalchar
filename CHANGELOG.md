@@ -11,7 +11,9 @@ Hero image reliability follow-up.
 - Browser-facing artwork URLs now use a same-origin `/media` rewrite, preventing privacy-focused browsers from blocking the public R2 hostname.
 - Artwork rendering falls back to the checked-in master when a proxied request fails, and hero shuffles wait for both replacement images to decode before switching.
 - The hero description renders in full immediately instead of exposing a partially completed character entrance.
+- Artwork uploads now return controlled validation errors before palette extraction, and the admin profile preview follows the stored versioned image key.
 - Desktop and mobile browser coverage now blocks direct R2 artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+- Hero browser checks synchronize on the completed shuffle state, while mobile-only checks run only in the mobile Playwright project without skipped tests.
 - Local setup guidance now documents the exact Google OAuth callback required when port 3001 is used because port 3000 is occupied.
 
 ## 1.34.0 (2026-07-14)

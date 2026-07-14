@@ -21,6 +21,7 @@ export default defineConfig({
 	projects: [
 		{
 			name: "desktop-chromium",
+			grepInvert: /@mobile/,
 			use: { ...devices["Desktop Chrome"], channel: localChannel },
 		},
 		{
