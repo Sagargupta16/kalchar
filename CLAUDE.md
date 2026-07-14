@@ -119,7 +119,8 @@ drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
   migrate-json-to-db.ts   pnpm db:seed -- JSON -> Neon rows
   migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
-.github/workflows/        ci.yml (lint+typecheck+test+build). deploy.yml = retired Pages fallback (manual-only)
+.github/workflows/        ci.yml (full verify) + health.yml (scheduled checks);
+                          deploy.yml = retired Pages fallback (manual-only)
 docs/                     engineering docs (index in docs/README.md):
   ARCHITECTURE.md         full system diagram + flows (entry point)
   DATABASE.md             Neon/Drizzle schema, seam, migrations

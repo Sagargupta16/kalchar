@@ -18,6 +18,8 @@ pnpm dev          # http://localhost:3000  (needs .env.local -- see .env.example
 pnpm build        # next build
 pnpm typecheck
 pnpm lint
+pnpm test         # unit tests
+pnpm test:e2e     # production browser + accessibility checks on port 3001
 pnpm format
 ```
 
@@ -39,9 +41,9 @@ pnpm db:images    # upload public/artworks/ image variants to R2
 | [`auth.ts`](auth.ts), [`proxy.ts`](proxy.ts) | Auth.js config + `/admin` route protection (`proxy.ts` is the Next 16 rename of `middleware.ts`). |
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
 | [`public/`](public/) | Master artwork JPGs (R2 regenerate source, not served at runtime), logo, `robots.txt`. |
-| [`scripts/`](scripts/) | `migrate-json-to-db.ts` (seed), `migrate-images-to-r2.ts` (upload variants). |
-| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md). Index: [docs/README.md](docs/README.md). |
-| [`.github/workflows/`](.github/workflows/) | `ci.yml` (lint + typecheck + build). `deploy.yml` is a retired GitHub Pages fallback (manual-only). |
+| [`scripts/`](scripts/) | Database/image migration helpers and the production health check. |
+| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md). Index: [docs/README.md](docs/README.md). |
+| [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers. `health.yml` checks production daily. `deploy.yml` is the manual Pages recovery path. |
 
 ## Deploy
 

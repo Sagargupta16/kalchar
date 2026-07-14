@@ -1,6 +1,6 @@
 {
 	"name": "kalchar-by-megha",
-	"version": "1.33.4",
+	"version": "1.34.0",
 	"private": true,
 	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
@@ -18,6 +18,9 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"test:e2e": "playwright test",
+		"test:all": "pnpm test && pnpm test:e2e",
+		"health": "node scripts/health-check.mjs",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
@@ -25,43 +28,38 @@
 		"db:images": "tsx --env-file=.env.local scripts/migrate-images-to-r2.ts"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1062.0",
+		"@aws-sdk/client-s3": "^3.1086.0",
 		"@neondatabase/serverless": "^1.1.0",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.45.2",
-		"lenis": "^1.3.4",
-		"lucide-react": "^1.17.0",
-		"motion": "^12.0.0",
-		"next": "^16.2.7",
+		"lenis": "^1.3.25",
+		"lucide-react": "^1.24.0",
+		"motion": "^12.42.2",
+		"next": "^16.2.10",
 		"next-auth": "5.0.0-beta.31",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"react-icons": "^5.6.0",
+		"react-icons": "^5.7.0",
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.16",
-		"@tailwindcss/postcss": "^4.0.0",
+		"@axe-core/playwright": "^4.12.1",
+		"@biomejs/biome": "^2.5.3",
+		"@playwright/test": "^1.61.1",
+		"@tailwindcss/postcss": "^4.3.2",
 		"@types/node": "^22.19.19",
-		"@types/react": "^19.2.16",
+		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.0.0",
 		"dotenv": "^17.4.2",
 		"drizzle-kit": "^0.31.10",
-		"playwright": "^1.60.0",
-		"postcss": "^8.5.0",
-		"sharp": "^0.34.0",
-		"tailwindcss": "^4.0.0",
-		"tsx": "^4.22.4",
+		"postcss": "^8.5.19",
+		"sharp": "^0.35.3",
+		"tailwindcss": "^4.3.2",
+		"tsx": "^4.23.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.9"
-	},
-	"pnpm": {
-		"overrides": {
-			"postcss@<8.5.10": ">=8.5.10",
-			"esbuild": ">=0.28.1"
-		}
+		"vitest": "^4.1.10"
 	}
 }

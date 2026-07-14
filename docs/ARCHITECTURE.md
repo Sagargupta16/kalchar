@@ -1,6 +1,6 @@
 # System Architecture
 
-How [kalchar.co.in](https://kalchar.co.in/) is built and runs. This is the entry point; deeper topics live in [DATABASE.md](DATABASE.md), [AUTH.md](AUTH.md), [IMAGES.md](IMAGES.md), [DEPLOYMENT.md](DEPLOYMENT.md), and [DEVELOPMENT.md](DEVELOPMENT.md).
+How [kalchar.co.in](https://kalchar.co.in/) is built and runs. This is the entry point; deeper topics live in [DATABASE.md](DATABASE.md), [AUTH.md](AUTH.md), [IMAGES.md](IMAGES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [DEVELOPMENT.md](DEVELOPMENT.md), and [OPERATIONS.md](OPERATIONS.md).
 
 ## Overview
 
@@ -67,7 +67,7 @@ flowchart TB
 | Database | Neon Postgres + Drizzle ORM | serverless, region in `DATABASE_URL` |
 | Image storage | Cloudflare R2 (S3 API) | free egress, public bucket URL |
 | Auth | Auth.js v5 + Google OAuth | allowlist in `maintainers` table |
-| Tooling | Biome 2, pnpm 10, Node 22 | |
+| Tooling | Biome 2, Vitest 4, Playwright 1, pnpm 10, Node 22 | |
 
 ## Application layers
 
@@ -178,7 +178,7 @@ components/               home/ gallery/ events/ about/ layout/ motion/ decor/ u
 auth.ts, proxy.ts         Auth.js config + /admin gate
 lib/
   data.ts                 the catalog seam
-  db/                     schema.ts (7 tables) + client.ts (neon-http + Drizzle)
+  db/                     schema.ts (9 tables) + client.ts (neon-http + Drizzle)
   storage/                r2.ts + process-artwork-image.ts
   maintainers.ts          admin allowlist
   image-base.ts           R2 image URL base

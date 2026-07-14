@@ -83,8 +83,12 @@ Every script from [package.json](../package.json), what it runs, and when you re
 | `pnpm lint:fix` | `biome check --write` | Apply Biome's safe lint fixes and formatting in place. |
 | `pnpm format` | `biome format --write` | Format only (no lint rules), in place. |
 | `pnpm typecheck` | `tsc --noEmit` | Strict TypeScript check, no emit. Run before a PR alongside lint. |
-| `pnpm db:push` | `drizzle-kit push` | Push the Drizzle schema straight to Neon (no migration files). The fast path for dev/preview. |
-| `pnpm db:generate` | `drizzle-kit generate` | Generate SQL migration files from schema changes. Use when you want a versioned migration instead of a push. |
+| `pnpm test` | `vitest run` | Unit tests for domain helpers, validation, rate limiting, and storage compensation. |
+| `pnpm test:e2e` | `playwright test` | Desktop and mobile Chromium checks, including axe accessibility scans. Uses port 3001 by default. |
+| `pnpm test:all` | unit + browser suites | Full automated test pass after a production build. |
+| `pnpm health` | `node scripts/health-check.mjs` | Check production HTML, sitemap, catalog feed, and logo responses. |
+| `pnpm db:push` | `drizzle-kit push` | Push schema directly to a disposable local database only. |
+| `pnpm db:generate` | `drizzle-kit generate` | Generate the reviewable SQL migration required for a schema change. |
 | `pnpm db:migrate` | `drizzle-kit migrate` | Apply the generated migration files to the database. |
 | `pnpm db:seed` | `tsx --env-file=.env.local scripts/migrate-json-to-db.ts` | Seed catalog rows from `data/artworks.json` into Neon. One-time per environment. |
 | `pnpm db:images` | `tsx --env-file=.env.local scripts/migrate-images-to-r2.ts` | Generate + upload artwork image variants from `public/artworks/` to R2. One-time per environment. |
@@ -157,7 +161,7 @@ The loop for a typical contribution. The directory map is in [ARCHITECTURE.md](A
 flowchart TB
     branch["git switch -c feat/topic<br/>(off dev)"]
     edit["Edit code<br/>(respect the seams)"]
-    verify{"pnpm typecheck<br/>+ pnpm lint<br/>+ pnpm build"}
+    verify{"pnpm typecheck + lint<br/>+ test + build + test:e2e"}
     fix["pnpm lint:fix<br/>+ fix types"]
     log["Update CHANGELOG.md<br/>+ bump version"]
     pr["Open PR into dev"]
@@ -170,4 +174,4 @@ flowchart TB
     style pr fill:#10b981,color:#fff,stroke:#34d399
 ```
 
-Local verification mirrors CI (`ci.yml` runs lint + typecheck + build). Do not claim a change works on types/lint alone -- run `pnpm dev` and exercise the actual page or admin flow before opening the PR. See [DEPLOYMENT.md](DEPLOYMENT.md) for what happens after merge (`dev` -> Vercel preview, `main` -> production at kalchar.co.in).
+Local verification mirrors CI: lint, typecheck, unit tests, build, and Playwright browser tests. Do not claim a change works on types/lint alone. Run the built app and exercise the actual page or admin flow before opening the PR. See [DEPLOYMENT.md](DEPLOYMENT.md) for what happens after merge.

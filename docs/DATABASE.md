@@ -1,6 +1,6 @@
 # Database
 
-The catalog (artworks, workshops), community events, the editable lookups (categories, custom-order presets), singleton site settings, and the admin allowlist (maintainers) live in Neon serverless Postgres, accessed through Drizzle ORM. This doc covers the connection, the seven-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in [app/admin/actions.ts](../app/admin/actions.ts), and the migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
+The catalog, events, editable lookups, singleton settings, admin allowlist, custom-order leads, and testimonials live in Neon serverless Postgres through Drizzle ORM. This doc covers the connection, the nine-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in `app/admin/`, and migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
 
 ## Overview
 
@@ -30,7 +30,7 @@ It uses the **neon-http** driver on purpose: it is the fastest path for single, 
 
 ## Schema
 
-Seven tables, all defined in [lib/db/schema.ts](../lib/db/schema.ts). `artworks` and `workshops` are independent (each keyed by `slug`); `events` is a community-activity entity keyed by a UUID `id` with an ordered `images` jsonb array of R2 key-bases (first = cover); `settings` is a small key-value store for singleton site settings (artist profile image key, home-intro toggle); `categories` and `order_presets` are editable lookups; `maintainers` has a soft self-reference where `addedBy` points at the `email` of the maintainer who added the row (nullable for the root seed, never enforced as an FK). No hard foreign keys -- `artworks.style` matches `categories.name` by value, kept in sync by the rename action.
+Nine tables are defined in [lib/db/schema.ts](../lib/db/schema.ts): `artworks`, `workshops`, `events`, `settings`, `order_presets`, `categories`, `maintainers`, `leads`, and `testimonials`. Event rows carry an ordered `images` array of R2 key-bases. Leads hold the minimum custom-order brief needed for follow-up. Testimonials can soft-link to an artwork slug. No hard foreign keys are used; category and artwork renames are kept together by one atomic Neon batch.
 
 ```mermaid
 %%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
@@ -134,7 +134,11 @@ The custom-order form's dropdown options. One row per option, discriminated by `
 | `label` | `text` | not null | The option text shown in the dropdown. |
 | `order` | `integer` | not null | Sort key within the kind. |
 
-Drizzle infers select/insert types off these tables: `ArtworkRow`/`ArtworkInsert`, `WorkshopRow`/`WorkshopInsert`, `CategoryRow`/`CategoryInsert`, `OrderPresetRow`/`OrderPresetInsert`, `MaintainerRow`/`MaintainerInsert` (`lib/db/schema.ts:97`).
+Drizzle infers select/insert types for all nine tables at the end of `lib/db/schema.ts`.
+
+### Integrity constraints
+
+Migration `drizzle/0002_slow_sprite.sql` adds database checks for valid lifecycle values, positive prices, positive dimensions and order values, valid preset and lead kinds, and non-blank required text. Application validation remains the first line of feedback, while Postgres prevents invalid rows from bypassing the admin UI.
 
 ## The data seam
 
@@ -203,9 +207,9 @@ Mutations are server actions: catalog + lookups + roster in [app/admin/actions.t
 | `setFeatured(slug, featured)` | `update` featured | Toggles hero/rail inclusion. |
 | `updateArtworkMeta(slug, fields)` | `update` free-text fields | `title`, `description`, `medium`, `dimensions`, `year`. |
 | `createArtwork(formData)` | `insert` new row | Slugifies the title, processes the image, computes `order`. |
-| `deleteArtwork(slug)` | `delete` row + R2 variants | Deletes the row, then `deleteArtworkImages(slug)`. |
+| `deleteArtwork(slug)` | row delete + R2 cleanup | Removes the database row first, then attempts cleanup of the stored image variants. |
 
-`createArtwork` does the most work: it slugifies the title via `slugify()` in `_helpers.ts` (Unicode-aware -- keeps letters/digits in any script including Devanagari, collapses the rest to `-`, 64-char cap), rejects a duplicate slug, runs `processArtworkImage` to derive `aspectRatio`, assigns the sort key inside the INSERT via `nextOrderSql` (`coalesce(max("order"),0)+1`, so concurrent creates can't collide), sets `status` to `available` when a valid price is provided (else `archive`), and cleans up the already-uploaded R2 variants if the row insert fails. The maintainer-roster actions (`inviteMaintainer`, `revokeMaintainer`) go through [lib/maintainers.ts](../lib/maintainers.ts) rather than touching `artworks`.
+`createArtwork` slugifies the title, rejects duplicates, validates the upload and numeric fields, runs `processArtworkImage`, and inserts the row. `nextOrderSql` avoids an application-side read round-trip, but concurrent inserts can still share a display order. Every catalog query therefore uses the row id or slug as a deterministic secondary sort key. Uploaded objects are removed if the row insert fails.
 
 ## Migrations and commands
 
@@ -223,7 +227,7 @@ pnpm db:seed       # tsx scripts/migrate-json-to-db.ts: JSON -> Neon rows
 pnpm db:images     # tsx scripts/migrate-images-to-r2.ts: upload image variants (see IMAGES.md)
 ```
 
-Use `db:push` for rapid local iteration on the schema; use `db:generate` + `db:migrate` when you want versioned SQL files committed under `./drizzle`.
+Every schema change must include a generated SQL migration under `drizzle/`. CI rejects a pull request that changes `lib/db/schema.ts` without one. Use `db:push` only for disposable local databases; use `db:generate`, review the SQL, and apply `db:migrate` for shared environments. See [OPERATIONS.md](OPERATIONS.md) for backup and rollback steps.
 
 ### Seeding
 
