@@ -1,6 +1,6 @@
 # Deployment
 
-Kalchar is one hybrid Next.js 16 application on Vercel. Public pages are statically generated from Neon at build time. Admin pages, Auth.js, and server actions run dynamically. Images are served directly from Cloudflare R2.
+Kalchar is one hybrid Next.js 16 application on Vercel. Public pages are statically generated from Neon at build time. Admin pages, Auth.js, and server actions run dynamically. Browser image paths are rewritten through the app origin to Cloudflare R2.
 
 ## Environments
 

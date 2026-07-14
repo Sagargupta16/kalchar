@@ -20,5 +20,7 @@ interface ArtImageProps {
 }
 
 export function ArtImage({ src, ...rest }: Readonly<ArtImageProps>) {
-	return <ResponsiveImage keyBase={`artworks/${artworkImageKey(src)}`} {...rest} />;
+	return (
+		<ResponsiveImage keyBase={`artworks/${artworkImageKey(src)}`} fallbackSrc={src} {...rest} />
+	);
 }

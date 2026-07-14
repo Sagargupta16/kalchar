@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { artworkBrowserImageUrl } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
 
 const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
@@ -35,6 +36,15 @@ function rand(): number {
 
 function randIn(min: number, max: number): number {
 	return min + rand() * (max - min);
+}
+
+function preloadArtwork(artwork: Artwork): Promise<boolean> {
+	return new Promise((resolve) => {
+		const image = new globalThis.Image();
+		image.onload = () => resolve(true);
+		image.onerror = () => resolve(false);
+		image.src = artworkBrowserImageUrl(artwork.image, 800, "avif");
+	});
 }
 
 /**
@@ -71,6 +81,7 @@ export function HeroPlates({
 		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (pool.length < 1) return;
 
+		let cancelled = false;
 		// Delay the shuffle so the LCP front plate paints first.
 		const timer = globalThis.setTimeout(() => {
 			const fi = Math.floor(rand() * pool.length);
@@ -80,14 +91,24 @@ export function HeroPlates({
 				bi = Math.floor(rand() * pool.length);
 			}
 			const flip = rand() > 0.5;
-			setFront(pool[fi] ?? defaultFront);
-			setBack(bi >= 0 ? pool[bi] : undefined);
-			setFrontTilt(randIn(3, 7) * (flip ? 1 : -1));
-			setBackTilt(randIn(3, 7) * (flip ? -1 : 1));
-			setShuffled(true);
+			const nextFront = pool[fi] ?? defaultFront;
+			const nextBack = bi >= 0 ? pool[bi] : undefined;
+			const candidates = nextBack ? [nextFront, nextBack] : [nextFront];
+
+			void Promise.all(candidates.map(preloadArtwork)).then((loaded) => {
+				if (cancelled || loaded.some((didLoad) => !didLoad)) return;
+				setFront(nextFront);
+				setBack(nextBack);
+				setFrontTilt(randIn(3, 7) * (flip ? 1 : -1));
+				setBackTilt(randIn(3, 7) * (flip ? -1 : 1));
+				setShuffled(true);
+			});
 		}, SHUFFLE_DELAY_MS);
 
-		return () => globalThis.clearTimeout(timer);
+		return () => {
+			cancelled = true;
+			globalThis.clearTimeout(timer);
+		};
 	}, [pool, defaultFront]);
 
 	const handleClick = (e: React.MouseEvent) => {

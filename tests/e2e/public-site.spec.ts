@@ -72,6 +72,81 @@ test("configuration failures are not presented as allowlist rejections", async (
 	await expect(page.getByText("isn't on the maintainer list")).toHaveCount(0);
 });
 
+test("hero stays complete when R2 artwork requests fail", async ({ page }) => {
+	await page.route(/https:\/\/[^/]+\.r2\.dev\/artworks\//, (route) => route.abort("failed"));
+	const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+	expect(response?.ok()).toBe(true);
+
+	const hero = page.locator("main section").first();
+	const description = hero.locator(".t-lead");
+	await expect(description).toBeVisible();
+	await expect(description).not.toBeEmpty();
+	await expect(description.locator(".split-char")).toHaveCount(0);
+
+	const plateImages = hero.locator(".hero-plate img");
+	await expect(plateImages).toHaveCount(2);
+	await expect
+		.poll(() =>
+			plateImages.evaluateAll((images) =>
+				images.every(
+					(image) =>
+						image instanceof HTMLImageElement &&
+						image.complete &&
+						image.naturalWidth > 0 &&
+						new URL(image.currentSrc).origin === globalThis.location.origin,
+				),
+			),
+		)
+		.toBe(true);
+
+	// The delayed shuffle must not replace the working pair with blank plates.
+	await page.waitForTimeout(1_000);
+	expect(
+		await plateImages.evaluateAll((images) =>
+			images.every(
+				(image) =>
+					image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+			),
+		),
+	).toBe(true);
+});
+
+test("hero shuffle keeps both tilted plates decoded", async ({ page }) => {
+	for (let attempt = 0; attempt < 6; attempt += 1) {
+		await page.goto("/", { waitUntil: "domcontentloaded" });
+		const plateImages = page.locator(".hero-plate img");
+		await expect(plateImages).toHaveCount(2);
+
+		await expect
+			.poll(() =>
+				plateImages.evaluateAll((images) =>
+					images.every(
+						(image) =>
+							image instanceof HTMLImageElement &&
+							image.complete &&
+							image.naturalWidth > 0 &&
+							new URL(image.currentSrc).origin === globalThis.location.origin,
+					),
+				),
+			)
+			.toBe(true);
+
+		await page.waitForTimeout(1_000);
+		expect(
+			await plateImages.evaluateAll((images) =>
+				images.every(
+					(image) =>
+						image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+				),
+			),
+		).toBe(true);
+
+		for (const plate of await page.locator(".hero-plate").all()) {
+			await expect(plate).not.toHaveCSS("transform", "none");
+		}
+	}
+});
+
 test("mobile navigation and header controls meet touch target minimums", async ({
 	page,
 	isMobile,
@@ -117,7 +192,7 @@ test("touch layouts hide the hover-only zoom hint", async ({ page, isMobile }) =
 test.describe("reduced motion", () => {
 	test.use({ reducedMotion: "reduce" });
 
-	test("flattens hero plates and keeps split words intact", async ({ page }) => {
+	test("flattens hero plates and keeps the description visible", async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");
 		expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
@@ -127,10 +202,8 @@ test.describe("reduced motion", () => {
 		await expect(plate).toBeVisible();
 		await expect(plate).toHaveCSS("transform", "none");
 
-		const words = page.locator("[data-split-word]");
-		expect(await words.count()).toBeGreaterThan(3);
-		for (const word of await words.all()) {
-			await expect(word).toHaveCSS("white-space", "nowrap");
-		}
+		const description = page.locator("main section").first().locator(".t-lead");
+		await expect(description).toBeVisible();
+		await expect(description).not.toBeEmpty();
 	});
 });

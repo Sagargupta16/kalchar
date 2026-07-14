@@ -1,6 +1,6 @@
 import { Image, Package, ShoppingBag, Star } from "lucide-react";
 import { getAllArtworks, getCategoryNames } from "@/lib/data";
-import { artworkImageUrl } from "@/lib/image-base";
+import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { ArtworkGrid } from "./_components/artwork-grid";
 import { ArtworkRow } from "./_components/artwork-row";
 import { UploadForm } from "./_components/upload-form";
@@ -52,7 +52,7 @@ export default async function AdminDashboard() {
 						status: a.status ?? "archive",
 						featured: a.featured,
 						priceInr: a.priceInr,
-						thumb: artworkImageUrl(a.image, 400, "webp"),
+						thumb: artworkBrowserImageUrl(a.image, 400, "webp"),
 					}))}
 				/>
 			</section>
@@ -70,7 +70,7 @@ export default async function AdminDashboard() {
 						<ArtworkRow
 							key={art.slug}
 							art={art}
-							thumb={artworkImageUrl(art.image, 400, "webp")}
+							thumb={artworkBrowserImageUrl(art.image, 400, "webp")}
 							categories={categoryNames}
 						/>
 					))}

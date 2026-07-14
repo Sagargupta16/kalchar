@@ -320,19 +320,6 @@ body {
   }
 }
 
-.split-char {
-  opacity: 0;
-  transform: translateY(6px);
-  animation: split-char-in var(--duration-base) var(--ease-out) forwards;
-}
-
-@keyframes split-char-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .flare-after::after {
   content: "";
   display: block;
@@ -364,12 +351,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .reveal-up {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
-  .split-char {
     opacity: 1;
     transform: none;
     animation: none;

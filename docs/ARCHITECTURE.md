@@ -44,8 +44,8 @@ flowchart TB
     act -->|sharp variants + put| r2
     api <-->|login + allowlist check| google
     api --> neon
-    pub -. "&lt;picture&gt; srcset" .-> r2
-    adm -. thumbnails .-> r2
+    pub -. "same-origin /media rewrite" .-> r2
+    adm -. "same-origin thumbnails" .-> r2
 
     style visitor fill:#6366f1,color:#fff,stroke:#818cf8
     style admin fill:#6366f1,color:#fff,stroke:#818cf8
@@ -164,7 +164,7 @@ Public pages are **statically generated** -- at build time, `generateStaticParam
 
 ## Request lifecycles
 
-**Visitor views the gallery** -> edge serves the pre-rendered page -> each artwork `<picture>` srcset resolves to the R2 public URL ([lib/image-base.ts](../lib/image-base.ts)) -> images stream from Cloudflare's CDN. No server/DB at request time.
+**Visitor views the gallery** -> edge serves the pre-rendered page -> each artwork `<picture>` uses a same-origin `/media` URL ([lib/image-base.ts](../lib/image-base.ts)) -> the Next rewrite proxies the fixed variant from Cloudflare R2. No database round-trip occurs at request time.
 
 **Maintainer signs in** -> [proxy.ts](../proxy.ts) catches an unauthenticated `/admin` request -> redirects to Google via [`/api/auth`](../app/api/auth/[...nextauth]/route.ts) -> the `signIn` callback ([auth.ts](../auth.ts)) checks the email against the `maintainers` table -> only listed emails get a session. Full sequence in [AUTH.md](AUTH.md).
 
@@ -186,7 +186,7 @@ lib/
 data/
   site.json               brand/nav/copy (runtime)
   artworks.json           original seed source
-public/artworks/          master JPGs (R2 regenerate source, not served at runtime)
+public/artworks/          master JPGs (R2 regenerate source + final artwork fallback)
 scripts/
   migrate-json-to-db.ts   pnpm db:seed
   migrate-images-to-r2.ts pnpm db:images

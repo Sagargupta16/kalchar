@@ -124,7 +124,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 **Architecture (the seams).**
 
 - **Catalog reads go through [lib/data.ts](../lib/data.ts) only.** Never query Neon or `import data/*.json` anywhere else. The async getters map DB rows to the UI types. `getSite()` stays synchronous because `app/layout.tsx` consumes it at module top-level where `await` cannot reach.
-- **Image URLs come from [lib/image-base.ts](../lib/image-base.ts)** (`ARTWORK_IMAGE_BASE`). The `<picture>` srcset, lightbox, and OG metadata all read it.
+- **Image URLs come from [lib/image-base.ts](../lib/image-base.ts).** Browser surfaces use the same-origin `ARTWORK_IMAGE_BASE`; external metadata and server operations use the absolute R2 builders.
 - **Admin mutations are server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts` (shared helpers in `app/admin/_helpers.ts`). Each one re-checks the maintainer session before touching Neon or R2.
 - **URLs come from `lib/site-config.ts`** (`siteConfig.url` / `prodUrl`). One source.
 - **500-line file ceiling.** Split before committing -- extract a sub-component, lift styles, or pull data into JSON.

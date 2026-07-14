@@ -12,7 +12,6 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
-import { IMAGE_ORIGIN } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
@@ -20,17 +19,6 @@ import "./globals.css";
 
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
-
-// Origin of the R2 public base, for a preconnect hint. IMAGE_ORIGIN is the
-// validated base URL (via clientEnv); reduce it to the bare origin. Tolerant
-// on the off chance it isn't a parseable URL -- the preconnect is optional.
-const imageOrigin = (() => {
-	try {
-		return new URL(IMAGE_ORIGIN).origin;
-	} catch {
-		return "";
-	}
-})();
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
@@ -101,7 +89,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
-				{imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
 				<script
 					type="application/ld+json"
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.34.1 (2026-07-14)
+
+Hero image reliability follow-up.
+
+### Fixed
+
+- Browser-facing artwork URLs now use a same-origin `/media` rewrite, preventing privacy-focused browsers from blocking the public R2 hostname.
+- Artwork rendering falls back to the checked-in master when a proxied request fails, and hero shuffles wait for both replacement images to decode before switching.
+- The hero description renders in full immediately instead of exposing a partially completed character entrance.
+- Desktop and mobile browser coverage now blocks direct R2 artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+
 ## 1.34.0 (2026-07-14)
 
 Full reliability, accessibility, test, and operations pass.

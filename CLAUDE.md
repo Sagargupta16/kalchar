@@ -64,7 +64,7 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 - **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
 - **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
-- **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`; `IMAGE_ORIGIN` = the bare R2 origin (events store full key-bases). The gallery `<picture>` srcset, lightbox, and OG metadata read it. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
+- **Images via `lib/image-base.ts`.** Browser surfaces use same-origin `ARTWORK_IMAGE_BASE` / `IMAGE_ORIGIN` paths that `next.config.mjs` rewrites to R2. External metadata and server operations use the absolute `R2_*` exports. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it with a checked-in master fallback. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
 - **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, custom-order leads in `app/admin/lead-actions.ts`, testimonials in `app/admin/testimonial-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
@@ -107,13 +107,13 @@ lib/
   storage/                r2.ts + process-artwork-image.ts (processImageVariants shared
                           by artworks + events; sharp variants -> R2)
   maintainers.ts          admin allowlist (list/add/remove, root-protected)
-  image-base.ts           ARTWORK_IMAGE_BASE + IMAGE_ORIGIN (R2 public URL)
+  image-base.ts           same-origin browser paths + absolute R2 URL builders
   types.ts, utils.ts, whatsapp.ts, site-config.ts, hooks/
 data/
   site.json               brand/nav/copy, read at runtime
   artworks.json           original seed source (DB is live source of truth)
 public/
-  artworks/               21 master JPGs -- R2 regenerate source, NOT served at runtime
+  artworks/               21 master JPGs -- R2 regenerate source + final fallback
   logo.jpg, logo-180.png, robots.txt
 drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/

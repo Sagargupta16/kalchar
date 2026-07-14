@@ -40,7 +40,7 @@ pnpm db:images    # upload public/artworks/ image variants to R2
 | [`lib/`](lib/) | `data.ts` (the seam), `db/` (Drizzle schema + client), `storage/` (R2 + image processing), `maintainers.ts`, `image-base.ts`, `types.ts`, `whatsapp.ts`, `site-config.ts`, hooks. |
 | [`auth.ts`](auth.ts), [`proxy.ts`](proxy.ts) | Auth.js config + `/admin` route protection (`proxy.ts` is the Next 16 rename of `middleware.ts`). |
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
-| [`public/`](public/) | Master artwork JPGs (R2 regenerate source, not served at runtime), logo, `robots.txt`. |
+| [`public/`](public/) | Master artwork JPGs (R2 regenerate source and final fallback), logo, `robots.txt`. |
 | [`scripts/`](scripts/) | Database/image migration helpers and the production health check. |
 | [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md). Index: [docs/README.md](docs/README.md). |
 | [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers. `health.yml` checks production daily. `deploy.yml` is the manual Pages recovery path. |

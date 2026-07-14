@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
-import { ARTWORK_IMAGE_BASE, artworkImageKey } from "@/lib/image-base";
+import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
 import { readImageUpload } from "@/lib/storage/image-upload";
 import {
@@ -198,7 +198,7 @@ export async function regeneratePalette(slug: string): Promise<void> {
 		.from(artworks)
 		.where(eq(artworks.slug, slug));
 	if (!row) throw new Error("Artwork not found.");
-	const res = await fetch(`${ARTWORK_IMAGE_BASE}/${artworkImageKey(row.image)}.jpg`);
+	const res = await fetch(`${R2_ARTWORK_IMAGE_BASE}/${artworkImageKey(row.image)}.jpg`);
 	if (!res.ok) throw new Error("Could not fetch the master image.");
 	const buffer = Buffer.from(await res.arrayBuffer());
 	const palette = await extractPalette(buffer);

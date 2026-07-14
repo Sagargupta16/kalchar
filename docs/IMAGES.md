@@ -1,6 +1,6 @@
 # Images and Storage
 
-Catalog, event, and profile images are processed by one sharp pipeline and stored in Cloudflare R2. Public pages serve fixed variants directly from R2 through native `<picture>` elements, with no runtime image transformation.
+Catalog, event, and profile images are processed by one sharp pipeline and stored in Cloudflare R2. Public pages serve fixed variants through the same-origin `/media/*` rewrite and native `<picture>` elements, with no runtime image transformation.
 
 ## Configuration
 
@@ -11,9 +11,9 @@ Catalog, event, and profile images are processed by one sharp pipeline and store
 | `R2_SECRET_ACCESS_KEY` | server | R2 credential |
 | `R2_BUCKET` | server | target bucket, default `kalchar-artworks` |
 | `R2_PUBLIC_BASE_URL` | server | public object origin |
-| `NEXT_PUBLIC_IMAGE_BASE_URL` | browser | same public origin, compiled into image URLs |
+| `NEXT_PUBLIC_IMAGE_BASE_URL` | shared | R2 public origin used by the server rewrite and absolute metadata URLs |
 
-`lib/env.ts` validates values lazily. `lib/image-base.ts` is the single URL builder for artwork variants. Event and profile rows store a complete key-base and use `IMAGE_ORIGIN`.
+`lib/env.ts` validates values lazily. `lib/image-base.ts` is the single URL builder for artwork variants. Browser rendering uses `/media`, which `next.config.mjs` rewrites to the configured R2 origin. External metadata and server-side operations use the absolute `R2_*` exports. Event and profile rows store a complete key-base and use `IMAGE_ORIGIN`.
 
 ## Object contract
 
@@ -29,7 +29,7 @@ Catalog, event, and profile images are processed by one sharp pipeline and store
 
 Artwork key-bases start with `artworks/`. Event key-bases are `events/<event-id>/<image-id>`. Profile replacements use `profile/artist-<image-id>`. Every image has 13 objects.
 
-The master fallback is a normalized mozjpeg, not the original upload. Seeded source masters remain under `public/artworks/` so their variants can be regenerated.
+The R2 master fallback is a normalized mozjpeg, not the original upload. Seeded source masters remain under `public/artworks/` so their variants can be regenerated and used as a final same-origin fallback if a proxied artwork request fails.
 
 ## Upload validation
 
@@ -75,7 +75,7 @@ This ordering keeps Neon as the source of truth and avoids leaving a live row th
 
 ## Serving
 
-`ResponsiveImage` builds AVIF, WebP, and JPEG `srcset` values and lets the browser choose the first supported format and smallest suitable width. `ArtImage` adapts a stored artwork filename to that generic key-base component.
+`ResponsiveImage` builds same-origin AVIF, WebP, and JPEG `srcset` values and lets the browser choose the first supported format and smallest suitable width. Next rewrites those paths to R2, so privacy-focused browsers never request the R2 hostname directly. `ArtImage` adapts a stored artwork filename to that generic key-base component and provides the checked-in master as a final fallback.
 
 Priority images load eagerly with high fetch priority. Other images use lazy loading and a short decode settle. Reduced-motion visitors skip the settle. A failed image renders an accessible placeholder instead of a broken browser icon.
 
