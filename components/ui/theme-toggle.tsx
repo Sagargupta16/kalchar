@@ -73,7 +73,7 @@ export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 			<div
 				aria-hidden="true"
 				className={cn(
-					"inline-flex h-9 w-[4.5rem] rounded-full border border-line bg-bg-soft",
+					"inline-flex h-12 w-24 rounded-full border border-line bg-bg-soft",
 					className,
 				)}
 			/>
@@ -99,7 +99,7 @@ export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 						title={`${label} theme`}
 						onClick={() => setTheme(value)}
 						className={cn(
-							"inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+							"inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
 							active ? "bg-bg text-ink shadow-e1 ring-1 ring-line" : "text-muted hover:text-ink",
 						)}
 					>

@@ -1,18 +1,19 @@
 import { ChevronDown } from "lucide-react";
-import type { Metadata } from "next";
 import { Reveal } from "@/components/motion/reveal";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 
 const site = getSite();
 const trust = site.trust;
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: trust?.title ?? "FAQ",
-	description: trust?.lead,
-};
+	description: trust?.lead ?? site.brand.description,
+	path: "/trust/",
+});
 
 /**
  * Trust / FAQ page: how buying an original over WhatsApp works, shipping, care,

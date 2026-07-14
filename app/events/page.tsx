@@ -1,5 +1,4 @@
 import { ArrowRight, CalendarDays, Pin } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { EventGallery } from "@/components/events/event-gallery";
 import { Reveal } from "@/components/motion/reveal";
@@ -8,13 +7,15 @@ import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getAllEvents } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import { cn, formatEventDate } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "Events",
 	description:
 		"Workshops held, exhibitions, classes, and community gatherings with Megha Seth and Kalchar.",
-};
+	path: "/events/",
+});
 
 /** Reveal stagger: each event waits index * step, capped so later ones aren't slow. */
 const STAGGER_STEP_MS = 80;

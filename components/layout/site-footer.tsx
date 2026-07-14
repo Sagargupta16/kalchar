@@ -118,7 +118,7 @@ export function SiteFooter() {
 									return (
 										<li key={item.href}>
 											<Link
-												className="group -mx-2 flex items-center gap-3 rounded-(--radius-md) px-2 py-2 text-sm text-ink transition-colors duration-(--duration-base) ease-(--ease-out) hover:bg-bg/60"
+												className="group -mx-2 flex min-h-11 items-center gap-3 rounded-(--radius-md) px-2 py-2 text-sm text-ink transition-colors duration-(--duration-base) ease-(--ease-out) hover:bg-bg/60"
 												href={item.href.startsWith("#") ? `/${item.href.slice(1)}` : item.href}
 											>
 												<span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-bg-soft text-muted ring-1 ring-line transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent group-hover:ring-accent/60">
@@ -193,13 +193,16 @@ export function SiteFooter() {
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
 					<div className="flex items-center gap-3">
-						<Link href="/trust" className="transition-colors hover:text-accent">
+						<Link
+							href="/trust"
+							className="inline-flex min-h-11 items-center transition-colors hover:text-accent"
+						>
 							FAQ
 						</Link>
 						<span aria-hidden="true" className="h-3 w-px bg-line" />
 						<Link
 							href="/admin"
-							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
+							className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-accent"
 						>
 							<Lock size={11} aria-hidden="true" />
 							Admin
@@ -212,7 +215,7 @@ export function SiteFooter() {
 									href={developer.instagram}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
+									className="inline-flex min-h-11 items-center underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
 								>
 									{developer.name}
 								</a>

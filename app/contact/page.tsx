@@ -1,5 +1,4 @@
 import { ArrowRight, BookOpen, MessageCircle, QrCode } from "lucide-react";
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
@@ -11,14 +10,16 @@ import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import type { ContactChannel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "Contact",
 	description:
 		"Get in touch about folk-art commissions, workshops, and prints by Megha Seth. WhatsApp, Instagram, YouTube, or email.",
-};
+	path: "/contact/",
+});
 
 export default function ContactPage() {
 	const { contact, sections } = getSite();

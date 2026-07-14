@@ -7,6 +7,8 @@ import { updateEventMeta } from "../event-actions";
 import { adminBtnPrimary, adminField } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 
+const SAVED_CONFIRMATION_MS = 2000;
+
 /** Inline editor for an event's text fields (title, date, category, description). */
 export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 	const { pending, err, run } = useAdminAction();
@@ -27,7 +29,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				}),
 			() => {
 				setSaved(true);
-				setTimeout(() => setSaved(false), 2000);
+				setTimeout(() => setSaved(false), SAVED_CONFIRMATION_MS);
 			},
 		);
 

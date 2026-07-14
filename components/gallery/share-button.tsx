@@ -4,6 +4,8 @@ import { Check, Share2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 
+const COPIED_CONFIRMATION_MS = 2000;
+
 /**
  * Share control for an artwork. Uses the native share sheet
  * (navigator.share) when available -- the dominant mobile case, and the whole
@@ -38,7 +40,7 @@ export function ShareButton({
 			try {
 				await navigator.clipboard.writeText(shareUrl);
 				setCopied(true);
-				setTimeout(() => setCopied(false), 2000);
+				setTimeout(() => setCopied(false), COPIED_CONFIRMATION_MS);
 			} catch {
 				// Clipboard blocked -- nothing more to do silently.
 			}

@@ -55,7 +55,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	return (
 		<div className="space-y-3">
 			<p className="text-xs font-medium text-muted">
-				Photos ({images.length}) — drag to reorder, the first is the cover
+				Photos ({images.length}), drag to reorder. The first is the cover.
 			</p>
 
 			{images.length > 0 ? (

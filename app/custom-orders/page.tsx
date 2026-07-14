@@ -1,5 +1,4 @@
 import { Brush, Clock, MessageCircle } from "lucide-react";
-import type { Metadata } from "next";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -16,13 +15,15 @@ import {
 	getSite,
 	getStyleSamples,
 } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "Custom orders",
 	description:
 		"Order a custom painting in Madhubani, Pichwai, Lippan, Gond, Texture, or Mixed Media. Send a brief and we'll get back to you on WhatsApp.",
-};
+	path: "/custom-orders/",
+});
 
 interface CustomOrdersSection {
 	eyebrow?: string;

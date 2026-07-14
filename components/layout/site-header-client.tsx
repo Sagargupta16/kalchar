@@ -23,6 +23,11 @@ const NAV: NavItem[] = [
 ];
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
+const NAV_INDICATOR_SPRING = { type: "spring", stiffness: 400, damping: 30 } as const;
+const MOBILE_DRAWER_TRANSITION = {
+	duration: 0.25,
+	ease: [0.16, 1, 0.3, 1],
+} as const;
 
 interface Props {
 	latinPrefix: string;
@@ -106,7 +111,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 				{/* Brand mark */}
 				<Link
 					href="/"
-					className="group flex items-center gap-2.5 transition-colors hover:text-accent"
+					className="group flex min-h-11 items-center gap-2.5 transition-colors hover:text-accent"
 					aria-label="Home"
 				>
 					<Image
@@ -137,7 +142,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 											href={item.href}
 											aria-current={active ? "page" : undefined}
 											className={cn(
-												"relative py-1 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors",
+												"relative inline-flex min-h-11 items-center text-xs uppercase tracking-[var(--tracking-meta)] transition-colors",
 												active ? "text-accent" : "text-muted hover:text-ink",
 											)}
 										>
@@ -148,7 +153,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 												aria-hidden="true"
 												layoutId="nav-indicator"
 												className="pointer-events-none absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-accent"
-												transition={{ type: "spring", stiffness: 400, damping: 30 }}
+												transition={NAV_INDICATOR_SPRING}
 											/>
 										) : null}
 									</li>
@@ -159,7 +164,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 					<Link
 						href={CONTACT.href}
 						className={cn(
-							"inline-flex h-9 items-center rounded-full px-4 text-xs uppercase tracking-[var(--tracking-meta)] font-medium transition-all duration-(--duration-base) ease-(--ease-out) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+							"inline-flex h-11 items-center rounded-full px-4 text-xs uppercase tracking-[var(--tracking-meta)] font-medium transition-all duration-(--duration-base) ease-(--ease-out) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
 							isActive(CONTACT.href)
 								? "bg-accent text-bg"
 								: "border border-accent/60 text-accent hover:bg-accent hover:text-bg",
@@ -179,7 +184,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 						aria-expanded={open}
 						aria-controls="mobile-menu"
 						aria-label={open ? "Close menu" : "Open menu"}
-						className="inline-flex h-10 w-10 items-center justify-center rounded-(--radius-sm) text-ink transition-colors hover:bg-bg-soft hover:text-accent"
+						className="inline-flex h-11 w-11 items-center justify-center rounded-(--radius-sm) text-ink transition-colors hover:bg-bg-soft hover:text-accent"
 					>
 						{open ? <X size={20} /> : <Menu size={20} />}
 					</button>
@@ -194,7 +199,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: "auto", opacity: 1 }}
 						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+						transition={MOBILE_DRAWER_TRANSITION}
 						className="overflow-hidden md:hidden"
 					>
 						<nav

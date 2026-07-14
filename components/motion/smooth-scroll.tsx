@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 /** Fallback delay before loading Lenis when requestIdleCallback is absent. */
 const IDLE_FALLBACK_DELAY_MS = 200;
+const SMOOTH_SCROLL_DURATION_SECONDS = 1.1;
 
 export function SmoothScroll() {
 	useEffect(() => {
@@ -20,7 +21,7 @@ export function SmoothScroll() {
 				const { default: Lenis } = await import("lenis");
 				if (cancelled) return;
 				const lenis = new Lenis({
-					duration: 1.1,
+					duration: SMOOTH_SCROLL_DURATION_SECONDS,
 					easing: (t: number) => Math.min(1, 1.001 - 2 ** (-10 * t)),
 					touchMultiplier: 0,
 				});

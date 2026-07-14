@@ -35,6 +35,7 @@ interface ResponsiveImageProps {
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
 const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
+const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-items-center bg-bg-soft text-muted";
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
 	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
@@ -66,12 +67,16 @@ export function ResponsiveImage({
 	}
 
 	if (failed) {
+		if (!alt) {
+			return (
+				<div aria-hidden="true" className={FALLBACK_CLASS_NAME}>
+					<ImageOff size={28} />
+				</div>
+			);
+		}
+
 		return (
-			<div
-				role="img"
-				aria-label={alt}
-				className="absolute inset-0 grid place-items-center bg-bg-soft text-muted"
-			>
+			<div role="img" aria-label={alt} className={FALLBACK_CLASS_NAME}>
 				<ImageOff size={28} aria-hidden="true" />
 			</div>
 		);

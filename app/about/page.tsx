@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ArtistAvatar } from "@/components/about/artist-avatar";
 import { Reveal } from "@/components/motion/reveal";
@@ -9,13 +8,15 @@ import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSetting, getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "About",
 	description:
 		"On preserving folk traditions through practice. Madhubani, Pichwai, Lippan and Gond painting by Megha Seth.",
-};
+	path: "/about/",
+});
 
 interface AboutSection {
 	eyebrow?: string;
@@ -51,26 +52,21 @@ export default async function AboutPage() {
 
 							{about.pullQuote ? (
 								<Reveal delayMs={280}>
-									<blockquote className="relative mt-12 mb-6 pl-8 sm:pl-12">
+									<blockquote className="relative mt-12 mb-6 border-l-2 border-(--section-accent) pl-8 sm:pl-12">
 										<span
 											aria-hidden="true"
 											className="t-display pointer-events-none absolute -top-5 left-0 select-none text-6xl leading-none text-(--section-accent) opacity-25"
 										>
 											&ldquo;
 										</span>
-										<p className="t-display text-2xl text-(--section-accent) sm:text-3xl">
-											{about.pullQuote}
-										</p>
+										<p className="t-display text-2xl text-ink sm:text-3xl">{about.pullQuote}</p>
 									</blockquote>
 								</Reveal>
 							) : null}
 
 							<Reveal delayMs={360}>
 								<p className="mt-2 text-right" aria-hidden="true">
-									<span
-										lang="hi"
-										className="font-devanagari text-3xl text-(--section-accent) opacity-60"
-									>
+									<span lang="hi" className="font-devanagari text-3xl text-ink-soft">
 										इति
 									</span>
 								</p>
