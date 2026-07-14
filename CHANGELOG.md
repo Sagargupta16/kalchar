@@ -12,6 +12,7 @@ Hero image reliability follow-up.
 - Artwork rendering falls back to the checked-in master when a proxied request fails, and hero shuffles wait for both replacement images to decode before switching.
 - The hero description renders in full immediately instead of exposing a partially completed character entrance.
 - Desktop and mobile browser coverage now blocks direct R2 artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+- Local setup guidance now documents the exact Google OAuth callback required when port 3001 is used because port 3000 is occupied.
 
 ## 1.34.0 (2026-07-14)
 

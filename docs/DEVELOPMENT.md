@@ -48,6 +48,7 @@ pnpm db:images
 
 # 6. Run the dev server.
 pnpm dev          # http://localhost:3000
+pnpm dev --port 3001  # alternate when 3000 is occupied; register the matching OAuth callback
 ```
 
 Steps 3 to 5 are one-time per environment (or when the schema, seed data, or master images change). After the first run, day-to-day work is just `pnpm dev`. `AUTH_SECRET` is generated with `npx auth secret` (noted in [.env.example](../.env.example)); the admin allowlist is not an env var -- it is the `maintainers` table, seeded with the root account and editable from `/admin/maintainers`.

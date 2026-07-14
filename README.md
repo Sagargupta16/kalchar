@@ -15,6 +15,7 @@ Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/adm
 ```sh
 pnpm install
 pnpm dev          # http://localhost:3000  (needs .env.local -- see .env.example)
+pnpm dev --port 3001  # alternate port; Google OAuth must allow the matching callback
 pnpm build        # next build
 pnpm typecheck
 pnpm lint
