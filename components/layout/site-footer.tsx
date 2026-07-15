@@ -88,7 +88,11 @@ export function SiteFooter() {
 				<div className="grid gap-10 py-14 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto] md:gap-16 sm:py-16">
 					{/* Brand */}
 					<Reveal as="div" delayMs={0} className="sm:col-span-2 md:col-span-1">
-						<Link href="/" aria-label="Home" className="group inline-flex items-baseline gap-2">
+						<Link
+							href="/"
+							aria-label="Home"
+							className="group inline-flex min-h-11 items-center gap-2"
+						>
 							<span className="t-display text-3xl leading-none tracking-[var(--tracking-tight)] sm:text-[2rem]">
 								<span className="not-italic transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent">
 									{brand.headline.latinPrefix}
@@ -118,7 +122,7 @@ export function SiteFooter() {
 									return (
 										<li key={item.href}>
 											<Link
-												className="group -mx-2 flex items-center gap-3 rounded-(--radius-md) px-2 py-2 text-sm text-ink transition-colors duration-(--duration-base) ease-(--ease-out) hover:bg-bg/60"
+												className="group -mx-2 flex min-h-11 items-center gap-3 rounded-(--radius-md) px-2 py-2 text-sm text-ink transition-colors duration-(--duration-base) ease-(--ease-out) hover:bg-bg/60"
 												href={item.href.startsWith("#") ? `/${item.href.slice(1)}` : item.href}
 											>
 												<span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-bg-soft text-muted ring-1 ring-line transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent group-hover:ring-accent/60">
@@ -193,13 +197,16 @@ export function SiteFooter() {
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
 					<div className="flex items-center gap-3">
-						<Link href="/trust" className="transition-colors hover:text-accent">
+						<Link
+							href="/trust"
+							className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-accent"
+						>
 							FAQ
 						</Link>
 						<span aria-hidden="true" className="h-3 w-px bg-line" />
 						<Link
 							href="/admin"
-							className="inline-flex items-center gap-1.5 transition-colors hover:text-accent"
+							className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-accent"
 						>
 							<Lock size={11} aria-hidden="true" />
 							Admin
@@ -212,7 +219,7 @@ export function SiteFooter() {
 									href={developer.instagram}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
+									className="inline-flex min-h-11 items-center underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
 								>
 									{developer.name}
 								</a>

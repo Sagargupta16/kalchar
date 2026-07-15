@@ -1,4 +1,5 @@
 import { getAllArtworks, getAllCategories } from "@/lib/data";
+import { AdminPageHeader } from "../_components/admin-page-header";
 import { CategoryManager } from "../_components/category-manager";
 
 export default async function AdminCategoriesPage() {
@@ -12,14 +13,10 @@ export default async function AdminCategoriesPage() {
 
 	return (
 		<div className="max-w-2xl space-y-6">
-			<section>
-				<h2 className="text-sm font-semibold">Categories</h2>
-				<p className="mt-1 text-xs text-muted">
-					The art styles a piece can belong to. They drive the gallery filter, the custom-order
-					style picker, and the hero chips. Drag to reorder. A category in use can&rsquo;t be
-					deleted until its pieces are reassigned.
-				</p>
-			</section>
+			<AdminPageHeader
+				title="Categories"
+				description="The art styles a piece can belong to. They drive the gallery filter, the custom-order style picker, and the hero chips. Drag to reorder. A category in use can't be deleted until its pieces are reassigned."
+			/>
 			<CategoryManager categories={[...cats]} usage={usage} />
 		</div>
 	);

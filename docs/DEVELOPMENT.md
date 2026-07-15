@@ -48,6 +48,7 @@ pnpm db:images
 
 # 6. Run the dev server.
 pnpm dev          # http://localhost:3000
+pnpm dev --port 3001  # alternate when 3000 is occupied; register the matching OAuth callback
 ```
 
 Steps 3 to 5 are one-time per environment (or when the schema, seed data, or master images change). After the first run, day-to-day work is just `pnpm dev`. `AUTH_SECRET` is generated with `npx auth secret` (noted in [.env.example](../.env.example)); the admin allowlist is not an env var -- it is the `maintainers` table, seeded with the root account and editable from `/admin/maintainers`.
@@ -83,8 +84,12 @@ Every script from [package.json](../package.json), what it runs, and when you re
 | `pnpm lint:fix` | `biome check --write` | Apply Biome's safe lint fixes and formatting in place. |
 | `pnpm format` | `biome format --write` | Format only (no lint rules), in place. |
 | `pnpm typecheck` | `tsc --noEmit` | Strict TypeScript check, no emit. Run before a PR alongside lint. |
-| `pnpm db:push` | `drizzle-kit push` | Push the Drizzle schema straight to Neon (no migration files). The fast path for dev/preview. |
-| `pnpm db:generate` | `drizzle-kit generate` | Generate SQL migration files from schema changes. Use when you want a versioned migration instead of a push. |
+| `pnpm test` | `vitest run` | Unit tests for domain helpers, validation, rate limiting, and storage compensation. |
+| `pnpm test:e2e` | `playwright test` | Desktop and mobile Chromium checks, including axe accessibility scans. Uses port 3001 by default. |
+| `pnpm test:all` | unit + browser suites | Full automated test pass after a production build. |
+| `pnpm health` | `node scripts/health-check.mjs` | Check production HTML, sitemap, catalog feed, and logo responses. |
+| `pnpm db:push` | `drizzle-kit push` | Push schema directly to a disposable local database only. |
+| `pnpm db:generate` | `drizzle-kit generate` | Generate the reviewable SQL migration required for a schema change. |
 | `pnpm db:migrate` | `drizzle-kit migrate` | Apply the generated migration files to the database. |
 | `pnpm db:seed` | `tsx --env-file=.env.local scripts/migrate-json-to-db.ts` | Seed catalog rows from `data/artworks.json` into Neon. One-time per environment. |
 | `pnpm db:images` | `tsx --env-file=.env.local scripts/migrate-images-to-r2.ts` | Generate + upload artwork image variants from `public/artworks/` to R2. One-time per environment. |
@@ -120,7 +125,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 **Architecture (the seams).**
 
 - **Catalog reads go through [lib/data.ts](../lib/data.ts) only.** Never query Neon or `import data/*.json` anywhere else. The async getters map DB rows to the UI types. `getSite()` stays synchronous because `app/layout.tsx` consumes it at module top-level where `await` cannot reach.
-- **Image URLs come from [lib/image-base.ts](../lib/image-base.ts)** (`ARTWORK_IMAGE_BASE`). The `<picture>` srcset, lightbox, and OG metadata all read it.
+- **Image URLs come from [lib/image-base.ts](../lib/image-base.ts).** Browser surfaces use the same-origin `ARTWORK_IMAGE_BASE`; external metadata and server operations use the absolute R2 builders.
 - **Admin mutations are server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts` (shared helpers in `app/admin/_helpers.ts`). Each one re-checks the maintainer session before touching Neon or R2.
 - **URLs come from `lib/site-config.ts`** (`siteConfig.url` / `prodUrl`). One source.
 - **500-line file ceiling.** Split before committing -- extract a sub-component, lift styles, or pull data into JSON.
@@ -130,7 +135,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 
 - **Mobile-first.** Most traffic is WhatsApp / Instagram link-taps on phones. Design for phone width first, then scale up.
 - **Reduced-motion safe.** Handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config cannot reach (raw `useSpring`, animated SVG `rx/ry`). MEMORY.md "Motion exclusions" is the source of truth for the policy.
-- **No raw hex / rgb in components.** All color flows through CSS custom properties. The only exceptions: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars do not resolve there).
+- **No raw hex / rgb in components.** Browser-rendered color flows through CSS custom properties. The only exceptions are `data/artworks.json` palette arrays, SVG data URIs, and pre-CSS/server image outputs that import the named constants in `lib/server-brand-colors.ts`.
 - **No magic timings.** Use the named tokens (`--duration-fast/base/slow`, `--ease-out-soft/glide/spring`).
 - **Consistent corner radius.** `rounded-md` on every surface (cards, panels, fields, buttons, image plates). Pills and the theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents.** about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock; hero + Selected Work inherit global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
@@ -157,7 +162,7 @@ The loop for a typical contribution. The directory map is in [ARCHITECTURE.md](A
 flowchart TB
     branch["git switch -c feat/topic<br/>(off dev)"]
     edit["Edit code<br/>(respect the seams)"]
-    verify{"pnpm typecheck<br/>+ pnpm lint<br/>+ pnpm build"}
+    verify{"pnpm typecheck + lint<br/>+ test + build + test:e2e"}
     fix["pnpm lint:fix<br/>+ fix types"]
     log["Update CHANGELOG.md<br/>+ bump version"]
     pr["Open PR into dev"]
@@ -170,4 +175,4 @@ flowchart TB
     style pr fill:#10b981,color:#fff,stroke:#34d399
 ```
 
-Local verification mirrors CI (`ci.yml` runs lint + typecheck + build). Do not claim a change works on types/lint alone -- run `pnpm dev` and exercise the actual page or admin flow before opening the PR. See [DEPLOYMENT.md](DEPLOYMENT.md) for what happens after merge (`dev` -> Vercel preview, `main` -> production at kalchar.co.in).
+Local verification mirrors CI: lint, typecheck, unit tests, build, and Playwright browser tests. Do not claim a change works on types/lint alone. Run the built app and exercise the actual page or admin flow before opening the PR. See [DEPLOYMENT.md](DEPLOYMENT.md) for what happens after merge.

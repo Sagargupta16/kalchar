@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { ARTWORK_IMAGE_BASE, artworkImageKey } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
@@ -22,11 +22,11 @@ import { ShareButton } from "./share-button";
 
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
-
-function deriveSlug(image: string): string {
-	const file = image.split("/").pop() ?? "";
-	return file.replace(/\.[^.]+$/, "");
-}
+const LIGHTBOX_FADE_SECONDS = 0.2;
+const LIGHTBOX_PANEL_SPRING = { type: "spring", damping: 28, stiffness: 340 } as const;
+const LIGHTBOX_ZOOM_SPRING = { type: "spring", stiffness: 200, damping: 25 } as const;
+const MOBILE_PRELOAD_WIDTH = 800;
+const DESKTOP_PRELOAD_WIDTH = 1600;
 
 export function ArtworkLightbox() {
 	const {
@@ -90,7 +90,11 @@ export function ArtworkLightbox() {
 		if (!isOpen || !activeArtwork || artworksList.length < 2) return;
 		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
 			?.saveData;
-		if (saveData) return;
+		const reduceMotion = globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		if (saveData || reduceMotion) return;
+		const preloadWidth = globalThis.matchMedia("(max-width: 767px)").matches
+			? MOBILE_PRELOAD_WIDTH
+			: DESKTOP_PRELOAD_WIDTH;
 		const i = artworksList.findIndex((a) => a.slug === activeArtwork.slug);
 		if (i === -1) return;
 		const neighbours = [
@@ -100,7 +104,7 @@ export function ArtworkLightbox() {
 		for (const n of neighbours) {
 			if (!n) continue;
 			const img = new Image();
-			img.src = `${ARTWORK_IMAGE_BASE}/${deriveSlug(n.image)}-1600.avif`;
+			img.src = `${ARTWORK_IMAGE_BASE}/${artworkImageKey(n.image)}-${preloadWidth}.avif`;
 		}
 	}, [isOpen, activeArtwork, artworksList]);
 
@@ -141,7 +145,7 @@ export function ArtworkLightbox() {
 				<LightboxContent
 					key="lightbox"
 					artwork={activeArtwork}
-					slug={deriveSlug(activeArtwork.image)}
+					slug={artworkImageKey(activeArtwork.image)}
 					hasSiblings={artworksList.length > 1}
 					whatsappPhone={whatsappPhone}
 					zoom={zoom}
@@ -229,7 +233,7 @@ function LightboxContent({
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
-			transition={{ duration: 0.2 }}
+			transition={{ duration: LIGHTBOX_FADE_SECONDS }}
 			className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-md focus:outline-none md:p-8"
 		>
 			<button
@@ -254,7 +258,7 @@ function LightboxContent({
 				initial={{ opacity: 0, scale: 0.96, y: 12 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.96, y: 12 }}
-				transition={{ type: "spring", damping: 28, stiffness: 340 }}
+				transition={LIGHTBOX_PANEL_SPRING}
 				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-lg) border border-line bg-bg shadow-e5 md:grid-cols-12"
 			>
 				{/* Image panel */}
@@ -294,11 +298,11 @@ function LightboxContent({
 								className="h-full w-full object-cover select-none"
 								style={{ transformOrigin: `${panPos.x}% ${panPos.y}%` }}
 								animate={{ scale: zoom ? 1.8 : 1 }}
-								transition={{ type: "spring", stiffness: 200, damping: 25 }}
+								transition={LIGHTBOX_ZOOM_SPRING}
 							/>
 						</picture>
 
-						<div className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white backdrop-blur-sm opacity-60">
+						<div className="pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white opacity-60 backdrop-blur-sm [@media(hover:hover)_and_(pointer:fine)]:inline-flex">
 							<ZoomIn size={11} aria-hidden="true" />
 							<span className="hidden sm:inline">Hover to zoom</span>
 						</div>

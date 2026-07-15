@@ -1,5 +1,4 @@
 import { ArrowRight, BookOpen } from "lucide-react";
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { WorkFilter } from "@/components/gallery/work-filter";
 import { Reveal } from "@/components/motion/reveal";
@@ -8,13 +7,15 @@ import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getAllArtworks, getCategoryNames, getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "Artwork",
 	description:
 		"Selected paintings across Madhubani, Pichwai, Lippan, Gond, Texture, and Mixed Media.",
-};
+	path: "/work/",
+});
 
 export default async function WorkPage() {
 	const [all, styles] = await Promise.all([getAllArtworks(), getCategoryNames()]);

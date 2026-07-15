@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 const MAX_INLINE = 6;
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
+const LIGHTBOX_FADE_SECONDS = 0.2;
+const LIGHTBOX_PANEL_SPRING = { type: "spring", damping: 28, stiffness: 340 } as const;
 
 interface EventGalleryProps {
 	images: string[];
@@ -199,7 +201,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
-					transition={{ duration: 0.2 }}
+					transition={{ duration: LIGHTBOX_FADE_SECONDS }}
 					className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-md focus:outline-none md:p-8"
 				>
 					<button
@@ -221,7 +223,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 						initial={{ opacity: 0, scale: 0.96, y: 12 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
 						exit={{ opacity: 0, scale: 0.96, y: 12 }}
-						transition={{ type: "spring", damping: 28, stiffness: 340 }}
+						transition={LIGHTBOX_PANEL_SPRING}
 						onTouchStart={onTouchStart}
 						onTouchEnd={onTouchEnd}
 						className="relative z-10 m-0 flex w-full max-w-5xl flex-col items-center"

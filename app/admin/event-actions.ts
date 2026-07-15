@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { events, settings } from "@/lib/db/schema";
+import { readImageUpload } from "@/lib/storage/image-upload";
 import {
 	deleteEventImages,
 	processEventImage,
@@ -29,12 +30,14 @@ function revalidateEvents(id?: string) {
 
 /** Read every "image" file from FormData (the multi-file picker uses one name). */
 function formImages(formData: FormData): File[] {
-	return formData.getAll("images").filter((v): v is File => v instanceof File && v.size > 0);
+	const files = formData.getAll("images").filter((v): v is File => v instanceof File && v.size > 0);
+	if (files.length > 12) throw new Error("Upload at most 12 images at a time.");
+	return files;
 }
 
 /** Process one uploaded photo for an event, returning its stored R2 key-base. */
 async function uploadEventPhoto(eventId: string, file: File): Promise<string> {
-	const buffer = Buffer.from(await file.arrayBuffer());
+	const buffer = await readImageUpload(file);
 	return processEventImage(eventId, randomUUID(), buffer);
 }
 
@@ -70,8 +73,7 @@ export async function createEvent(formData: FormData): Promise<{ id: string }> {
 			category: formString(formData, "category").trim() || null,
 			images,
 			featured: false,
-			// Computed inside the INSERT so two concurrent creates can't mint the
-			// same order (no read-then-write window).
+			// Computed in the INSERT to avoid an extra application round-trip.
 			order: nextOrderSql(events),
 		});
 	} catch (err) {
@@ -136,9 +138,13 @@ export async function removeEventImage(id: string, keyBase: string): Promise<voi
 	await requireMaintainer();
 	const [row] = await db.select().from(events).where(eq(events.id, id));
 	if (!row) throw new Error("Event not found.");
-	const next = (row.images ?? []).filter((k) => k !== keyBase);
+	const current = row.images ?? [];
+	if (!current.includes(keyBase)) throw new Error("Event image not found.");
+	const next = current.filter((k) => k !== keyBase);
 	await db.update(events).set({ images: next }).where(eq(events.id, id));
-	await deleteEventImages([keyBase]);
+	await deleteEventImages([keyBase]).catch((error) => {
+		console.error("Event image cleanup failed after removal.", error);
+	});
 	revalidateEvents(id);
 }
 
@@ -147,11 +153,15 @@ export async function reorderEventImages(id: string, keyBases: string[]): Promis
 	await requireMaintainer();
 	const [row] = await db.select().from(events).where(eq(events.id, id));
 	if (!row) throw new Error("Event not found.");
-	// Keep only key-bases that still belong to this event (guard against a stale
-	// client list), preserving the order the client sent.
-	const owned = new Set(row.images ?? []);
-	const next = keyBases.filter((k) => owned.has(k));
-	await db.update(events).set({ images: next }).where(eq(events.id, id));
+	const current = row.images ?? [];
+	const owned = new Set(current);
+	const requested = new Set(keyBases);
+	const isExactPermutation =
+		keyBases.length === current.length &&
+		requested.size === current.length &&
+		keyBases.every((keyBase) => owned.has(keyBase));
+	if (!isExactPermutation) throw new Error("Photo list changed. Refresh and try again.");
+	await db.update(events).set({ images: keyBases }).where(eq(events.id, id));
 	revalidateEvents(id);
 }
 
@@ -172,7 +182,9 @@ export async function deleteEvent(id: string): Promise<void> {
 	const [row] = await db.select().from(events).where(eq(events.id, id));
 	if (!row) return;
 	await db.delete(events).where(eq(events.id, id));
-	await deleteEventImages(row.images ?? []);
+	await deleteEventImages(row.images ?? []).catch((error) => {
+		console.error("Event image cleanup failed after deletion.", error);
+	});
 	revalidateEvents(id);
 }
 
@@ -189,22 +201,37 @@ export async function setProfileImage(formData: FormData): Promise<void> {
 	await requireMaintainer();
 	const file = formData.get("image");
 	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
-	const buffer = Buffer.from(await file.arrayBuffer());
-	// Stable key so a re-upload overwrites the same variants (no orphans).
-	const keyBase = "profile/artist";
+	const buffer = await readImageUpload(file);
+	const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
+	const oldKeyBase = typeof current?.value === "string" ? current.value : undefined;
+	const keyBase = `profile/artist-${randomUUID()}`;
 	await processImageVariants(keyBase, buffer);
-	await db
-		.insert(settings)
-		.values({ key: "profileImage", value: keyBase })
-		.onConflictDoUpdate({ target: settings.key, set: { value: keyBase } });
+	try {
+		await db
+			.insert(settings)
+			.values({ key: "profileImage", value: keyBase })
+			.onConflictDoUpdate({ target: settings.key, set: { value: keyBase } });
+	} catch (error) {
+		await deleteEventImages([keyBase]).catch(() => {});
+		throw error;
+	}
+	if (oldKeyBase) {
+		await deleteEventImages([oldKeyBase]).catch((error) => {
+			console.error("Profile image cleanup failed after replacement.", error);
+		});
+	}
 	revalidateProfile();
 }
 
 /** Remove the artist profile photo (reverts About to the monogram fallback). */
 export async function clearProfileImage(): Promise<void> {
 	await requireMaintainer();
-	await deleteEventImages(["profile/artist"]);
+	const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
+	const keyBase = typeof current?.value === "string" ? current.value : "profile/artist";
 	await db.delete(settings).where(eq(settings.key, "profileImage"));
+	await deleteEventImages([keyBase]).catch((error) => {
+		console.error("Profile image cleanup failed after removal.", error);
+	});
 	revalidateProfile();
 }
 

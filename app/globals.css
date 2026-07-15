@@ -30,7 +30,7 @@
   --color-bg-muted: oklch(0.91 0.018 78);
   --color-ink: oklch(0.18 0.022 60);
   --color-ink-soft: oklch(0.32 0.02 60);
-  --color-muted: oklch(0.46 0.018 60);
+  --color-muted: oklch(0.43 0.018 60);
   --color-line: oklch(0.87 0.022 75);
   --color-line-soft: oklch(0.92 0.015 78);
   --color-accent: oklch(0.55 0.165 40);
@@ -41,7 +41,7 @@
   --color-marigold: oklch(0.72 0.16 75);
   --color-pichwai: oklch(0.45 0.1 165);
   --color-vermillion: oklch(0.55 0.18 35);
-  --color-peacock: oklch(0.5 0.1 220);
+  --color-peacock: oklch(0.46 0.1 220);
   --color-ruby: oklch(0.55 0.2 25);
 
   /* Metallic accents */
@@ -250,6 +250,26 @@ body {
 
 /* ─── ANIMATION CLASSES ─── */
 
+/* Native scroll-driven progress avoids a JS scroll listener and updates on the
+   compositor. Browsers without scroll timelines simply hide the enhancement. */
+.scroll-progress-bar {
+  transform: scaleX(0);
+  animation: scroll-progress linear both;
+  animation-timeline: scroll(root block);
+}
+
+@keyframes scroll-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .scroll-progress-bar {
+    display: none;
+  }
+}
+
 /* Home hero artwork plates -- smooth ease when the random shuffle changes
    the tilt angle on reload. Reduced motion flattens to the resting tilt. */
 .hero-plate {
@@ -320,19 +340,6 @@ body {
   }
 }
 
-.split-char {
-  opacity: 0;
-  transform: translateY(6px);
-  animation: split-char-in var(--duration-base) var(--ease-out) forwards;
-}
-
-@keyframes split-char-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .flare-after::after {
   content: "";
   display: block;
@@ -369,19 +376,12 @@ body {
     animation: none;
   }
 
-  .split-char {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
   .flare-after::after {
     animation: none;
     width: var(--flare-w, 100%);
   }
 
-  /* No tilt transition; the hero stays at its server-rendered resting angle
-     and the JS shuffle is skipped entirely (gated in hero-plates.tsx). */
+  /* Keep the static gallery composition, but skip all plate transitions. */
   .hero-plate {
     transition: none;
   }
@@ -391,6 +391,11 @@ body {
     animation: none;
   }
   .page-enter {
+    animation: none;
+  }
+
+  .scroll-progress-bar {
+    display: none;
     animation: none;
   }
 

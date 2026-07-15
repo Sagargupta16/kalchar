@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
+import { artworkImageKey } from "@/lib/image-base";
 
 /**
  * Image component for catalog artwork. A thin wrapper over ResponsiveImage that
@@ -18,12 +19,8 @@ interface ArtImageProps {
 	maxWidth?: 400 | 800 | 1200 | 1600;
 }
 
-function deriveSlug(src: string): string {
-	// "/artworks/radha-krishna.jpg" -> "radha-krishna"
-	const file = src.split("/").pop() ?? "";
-	return file.replace(/\.[^.]+$/, "");
-}
-
 export function ArtImage({ src, ...rest }: Readonly<ArtImageProps>) {
-	return <ResponsiveImage keyBase={`artworks/${deriveSlug(src)}`} {...rest} />;
+	return (
+		<ResponsiveImage keyBase={`artworks/${artworkImageKey(src)}`} fallbackSrc={src} {...rest} />
+	);
 }

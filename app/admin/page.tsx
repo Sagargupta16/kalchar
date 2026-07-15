@@ -1,6 +1,7 @@
 import { Image, Package, ShoppingBag, Star } from "lucide-react";
 import { getAllArtworks, getCategoryNames } from "@/lib/data";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { artworkBrowserImageUrl } from "@/lib/image-base";
+import { AdminPageHeader } from "./_components/admin-page-header";
 import { ArtworkGrid } from "./_components/artwork-grid";
 import { ArtworkRow } from "./_components/artwork-row";
 import { UploadForm } from "./_components/upload-form";
@@ -13,14 +14,10 @@ export default async function AdminDashboard() {
 
 	return (
 		<div className="space-y-8">
-			{/* Page intro -- matches the shared header block every other admin route
-			    opens with, so the dashboard doesn't jump straight into stat cards. */}
-			<section>
-				<h2 className="text-sm font-semibold">Pieces</h2>
-				<p className="mt-1 text-xs text-muted">
-					Your catalog at a glance, plus add, reorder, and manage each piece.
-				</p>
-			</section>
+			<AdminPageHeader
+				title="Pieces"
+				description="Your catalog at a glance, plus add, reorder, and manage each piece."
+			/>
 
 			{/* Stats */}
 			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -52,7 +49,7 @@ export default async function AdminDashboard() {
 						status: a.status ?? "archive",
 						featured: a.featured,
 						priceInr: a.priceInr,
-						thumb: `${ARTWORK_IMAGE_BASE}/${a.slug}-400.webp`,
+						thumb: artworkBrowserImageUrl(a.image, 400, "webp"),
 					}))}
 				/>
 			</section>
@@ -70,7 +67,7 @@ export default async function AdminDashboard() {
 						<ArtworkRow
 							key={art.slug}
 							art={art}
-							thumb={`${ARTWORK_IMAGE_BASE}/${art.slug}-400.webp`}
+							thumb={artworkBrowserImageUrl(art.image, 400, "webp")}
 							categories={categoryNames}
 						/>
 					))}

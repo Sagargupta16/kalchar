@@ -19,12 +19,17 @@ import { clientEnv } from "./env";
 
 const r2Base = clientEnv.imageBaseUrl.replace(/\/$/, "");
 
-/** Base URL for artwork variants: the R2 public origin + "/artworks". */
-export const ARTWORK_IMAGE_BASE = `${r2Base}/artworks`;
+/** Absolute R2 origin for server-side fetches and external metadata. */
+export const R2_IMAGE_ORIGIN = r2Base;
 
-/** R2 public origin. Event images store their full key-base, so they prefix
- * with the bare origin (the "events/..." path is part of the stored key). */
-export const IMAGE_ORIGIN = r2Base;
+/** Absolute R2 artwork base for server-side fetches and external metadata. */
+export const R2_ARTWORK_IMAGE_BASE = `${R2_IMAGE_ORIGIN}/artworks`;
+
+/** Same-origin browser path proxied to R2 by next.config.mjs. */
+export const IMAGE_ORIGIN = "/media";
+
+/** Same-origin browser artwork base used by galleries and lightboxes. */
+export const ARTWORK_IMAGE_BASE = `${IMAGE_ORIGIN}/artworks`;
 
 /**
  * Width tiers emitted by the sharp pipeline -- the single source of truth.
@@ -33,6 +38,29 @@ export const IMAGE_ORIGIN = r2Base;
  * hint) import this, so the set is changed in exactly one place.
  */
 export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
+
+/** Derive the stable R2 key segment from a stored artwork filename. */
+export function artworkImageKey(image: string): string {
+	return image.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+}
+
+/** Build one absolute artwork variant URL from its stored image filename. */
+export function artworkImageUrl(
+	image: string,
+	width: (typeof VARIANT_WIDTHS)[number],
+	extension: "avif" | "webp" | "jpg",
+): string {
+	return `${R2_ARTWORK_IMAGE_BASE}/${artworkImageKey(image)}-${width}.${extension}`;
+}
+
+/** Build one same-origin artwork URL for browser rendering and preloading. */
+export function artworkBrowserImageUrl(
+	image: string,
+	width: (typeof VARIANT_WIDTHS)[number],
+	extension: "avif" | "webp" | "jpg",
+): string {
+	return `${ARTWORK_IMAGE_BASE}/${artworkImageKey(image)}-${width}.${extension}`;
+}
 
 /**
  * Build an AVIF srcset string for an artwork slug, for use in a
@@ -48,8 +76,7 @@ export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
  * ArtImage `maxWidth` on the same element.
  */
 export function artworkPreloadSrcset(image: string, maxWidth?: number): string {
-	const slug = image.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
 	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
-		.map((w) => `${ARTWORK_IMAGE_BASE}/${slug}-${w}.avif ${w}w`)
+		.map((w) => `${artworkBrowserImageUrl(image, w, "avif")} ${w}w`)
 		.join(", ");
 }

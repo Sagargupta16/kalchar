@@ -2,15 +2,11 @@ name: Deploy to GitHub Pages
 
 # DORMANT FALLBACK (Phase 2). The site moved to Vercel (kalchar.co.in serves
 # the dynamic Next app: DB + admin + auth, which Pages can't host). This Pages
-# workflow no longer runs on push -- `main` is now the dynamic app and would
-# fail a static export. Kept as a manual-only escape hatch: if Vercel ever
-# needs to be rolled back, re-add `output: "export"` and run this by hand to
-# republish the last static build to Pages.
+# workflow no longer runs on push. Before using it, re-add `output: "export"`
+# and verify that the intended recovery build is compatible with static hosting.
 on:
   workflow_dispatch:
 
-# Least-privilege default for GITHUB_TOKEN; each job re-declares exactly what it
-# needs (build reads the repo, deploy writes Pages + an OIDC token).
 permissions:
   contents: read
 
@@ -44,9 +40,6 @@ jobs:
         run: pnpm build
 
       - name: Add CNAME to export
-        # Next.js static export writes to `out/`. Copy the apex domain config so
-        # GitHub Pages serves the build at kalchar.co.in instead of the default
-        # *.github.io URL.
         run: cp public/CNAME out/CNAME
 
       - name: Upload Pages artifact

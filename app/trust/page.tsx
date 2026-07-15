@@ -1,18 +1,19 @@
 import { ChevronDown } from "lucide-react";
-import type { Metadata } from "next";
 import { Reveal } from "@/components/motion/reveal";
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 
 const site = getSite();
 const trust = site.trust;
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: trust?.title ?? "FAQ",
-	description: trust?.lead,
-};
+	description: trust?.lead ?? site.brand.description,
+	path: "/trust/",
+});
 
 /**
  * Trust / FAQ page: how buying an original over WhatsApp works, shipping, care,
@@ -65,8 +66,8 @@ export default function TrustPage() {
 					<div className="mx-auto mt-12 max-w-2xl divide-y divide-line border-y border-line">
 						{trust.faqs.map((faq, i) => (
 							<Reveal key={faq.question} delayMs={Math.min(i, 5) * 60}>
-								<details className="group py-4">
-									<summary className="flex cursor-pointer items-center justify-between gap-4 text-left text-base font-medium text-ink [&::-webkit-details-marker]:hidden">
+								<details className="group">
+									<summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-4 text-left text-base font-medium text-ink [&::-webkit-details-marker]:hidden">
 										{faq.question}
 										<ChevronDown
 											size={18}
@@ -74,7 +75,7 @@ export default function TrustPage() {
 											className="shrink-0 text-muted transition-transform duration-(--duration-base) ease-(--ease-out) group-open:rotate-180"
 										/>
 									</summary>
-									<p className="mt-3 text-sm leading-relaxed text-muted">{faq.answer}</p>
+									<p className="pb-4 text-sm leading-relaxed text-muted">{faq.answer}</p>
 								</details>
 							</Reveal>
 						))}

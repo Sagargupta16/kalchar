@@ -49,6 +49,9 @@ desktop.ini
 .eslintcache
 .turbo/
 .playwright-mcp/
+.playwright/
+playwright-report/
+test-results/
 .sonar/
 
 # Claude / per-user (never commit)

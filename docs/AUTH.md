@@ -239,10 +239,11 @@ The allowlist is deliberately **not** an env var -- it is the `maintainers` tabl
 
 In the Google Cloud Console, create an OAuth 2.0 client (Web application) and configure two lists:
 
-1. **Authorized JavaScript origins** -- the bare domain(s) the app runs on, for example `https://kalchar.co.in` and the relevant Vercel preview origin.
+1. **Authorized JavaScript origins** -- the bare domain(s) the app runs on, for example `https://kalchar.co.in`, the relevant Vercel preview origin, and each local origin used for admin sign-in (`http://localhost:3000` or `http://localhost:3001`).
 2. **Authorized redirect URIs** -- the full callback path `/api/auth/callback/google` for **every** deploy origin that signs users in:
    - `https://kalchar.co.in/api/auth/callback/google` (production)
    - `https://<preview>.vercel.app/api/auth/callback/google` (Vercel preview)
-   - `http://localhost:3000/api/auth/callback/google` (local dev)
+   - `http://localhost:3000/api/auth/callback/google` (default local dev)
+   - `http://localhost:3001/api/auth/callback/google` (local dev when port 3000 is occupied)
 
-The classic failure is `redirect_uri_mismatch`: Google refuses the callback because the deploy URL hitting it is not in the Authorized redirect URIs list. When a new preview/prod origin starts serving `/admin`, add its callback URL here first. Where these secrets and OAuth settings are provisioned per environment is covered in [DEPLOYMENT.md](DEPLOYMENT.md).
+The classic failure is `redirect_uri_mismatch`: Google refuses the callback because the exact origin and port hitting it are not in the Authorized redirect URIs list. When a new local, preview, or production origin starts serving `/admin`, add its callback URL first. Where these secrets and OAuth settings are provisioned per environment is covered in [DEPLOYMENT.md](DEPLOYMENT.md).

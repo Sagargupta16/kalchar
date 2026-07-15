@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { HeroPlates } from "@/components/home/hero-plates";
 import { Reveal } from "@/components/motion/reveal";
-import { SplitText } from "@/components/motion/split-text";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -79,9 +78,7 @@ export function Hero({
 							</span>
 						</Reveal>
 
-						<p className="t-lead mt-6 max-w-xl">
-							<SplitText text={site.brand.description} startDelayMs={400} />
-						</p>
+						<p className="t-lead mt-6 max-w-xl">{site.brand.description}</p>
 
 						{/* Style chips */}
 						<Reveal eager delayMs={180}>

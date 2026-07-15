@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth, signOut } from "@/auth";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { isMaintainer } from "@/lib/maintainers";
 import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
 import { ConfirmProvider } from "./_components/confirm-dialog";
@@ -24,24 +25,24 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 	return (
 		<ConfirmProvider>
 			<div className="min-h-dvh bg-bg-soft">
-				{/* Top bar */}
-				<header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
-					<div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) py-3">
-						<div className="flex items-center gap-6">
-							<Link href="/admin" className="flex items-center gap-2">
-								<div className="grid h-8 w-8 place-items-center rounded-(--radius-sm) bg-accent text-bg">
-									<Settings size={14} />
-								</div>
-								<span className="text-sm font-semibold">Admin</span>
-							</Link>
-							<AdminNavDesktop />
-						</div>
+				<header className="sticky top-0 z-40 border-b border-line bg-bg/95 backdrop-blur-md">
+					<div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) py-2.5">
+						<Link
+							href="/admin"
+							className="flex min-h-11 items-center gap-2.5 rounded-(--radius-sm) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+						>
+							<span className="grid h-9 w-9 place-items-center rounded-(--radius-sm) bg-accent text-bg">
+								<Settings size={16} aria-hidden="true" />
+							</span>
+							<span className="text-sm font-semibold">Kalchar Admin</span>
+						</Link>
 						<div className="flex items-center gap-2.5">
+							<ThemeToggle compact />
 							<span
 								role="img"
 								title={email}
 								aria-label={`Signed in as ${email}`}
-								className="grid h-8 w-8 place-items-center rounded-full bg-bg-muted text-[0.65rem] font-semibold uppercase tracking-wide text-ink ring-1 ring-line"
+								className="grid h-9 w-9 place-items-center rounded-full bg-bg-muted text-xs font-semibold uppercase text-ink ring-1 ring-line"
 							>
 								{initials(email)}
 							</span>
@@ -53,21 +54,27 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 							>
 								<button
 									type="submit"
-									className="inline-flex h-8 items-center gap-1.5 rounded-(--radius-sm) border border-line bg-bg px-3 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
+									aria-label="Sign out"
+									title="Sign out"
+									className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-(--radius-sm) border border-line bg-bg px-3 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 								>
-									<LogOut size={12} />
-									<span>Sign out</span>
+									<LogOut size={14} aria-hidden="true" />
+									<span className="hidden sm:inline">Sign out</span>
 								</button>
 							</form>
 						</div>
 					</div>
+					<div className="hidden border-t border-line/70 xl:block">
+						<div className="mx-auto max-w-6xl px-(--container-px)">
+							<AdminNavDesktop />
+						</div>
+					</div>
 				</header>
 
-				{/* Content. Extra bottom padding on mobile so the fixed tab bar
-			    never covers the last row of content. */}
-				<main className="mx-auto max-w-6xl px-(--container-px) pt-8 pb-24 md:pb-8">{children}</main>
+				<main className="mx-auto max-w-6xl px-(--container-px) pt-6 pb-28 sm:pt-8 xl:pb-10">
+					{children}
+				</main>
 
-				{/* Mobile bottom tab bar */}
 				<AdminNavMobile />
 			</div>
 		</ConfirmProvider>

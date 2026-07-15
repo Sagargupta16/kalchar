@@ -15,6 +15,13 @@
       "when": 1782978129563,
       "tag": "0001_lazy_toad_men",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784001532373,
+      "tag": "0002_slow_sprite",
+      "breakpoints": true
     }
   ]
 }

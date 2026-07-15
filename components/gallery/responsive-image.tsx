@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 interface ResponsiveImageProps {
 	/** R2 key-base without extension, e.g. "artworks/radha-krishna". */
 	keyBase: string;
+	/** Optional same-origin image used when the R2 request fails. */
+	fallbackSrc?: string;
 	alt: string;
 	className?: string;
 	/** Marks the image LCP-critical: eager fetch, high priority. */
@@ -35,6 +37,8 @@ interface ResponsiveImageProps {
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
 const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
+const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-items-center bg-bg-soft text-muted";
+type ImageSource = "remote" | "fallback" | "failed";
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
 	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
@@ -44,13 +48,14 @@ function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: n
 
 export function ResponsiveImage({
 	keyBase,
+	fallbackSrc,
 	alt,
 	className,
 	priority = false,
 	sizes,
 	maxWidth,
 }: Readonly<ResponsiveImageProps>) {
-	const [failed, setFailed] = useState(false);
+	const [imageSource, setImageSource] = useState<ImageSource>("remote");
 	const [loaded, setLoaded] = useState(false);
 	const reduceMotion = usePrefersReducedMotion();
 
@@ -61,17 +66,40 @@ export function ResponsiveImage({
 	const [seenKeyBase, setSeenKeyBase] = useState(keyBase);
 	if (seenKeyBase !== keyBase) {
 		setSeenKeyBase(keyBase);
-		setFailed(false);
+		setImageSource("remote");
 		setLoaded(false);
 	}
+	const activeSource = seenKeyBase === keyBase ? imageSource : "remote";
+	const handleError = () => {
+		setLoaded(false);
+		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
+	};
+	const settle = (el: HTMLImageElement | null) => {
+		if (!el) return;
+		if (el.complete && el.naturalWidth > 0) {
+			setLoaded(true);
+			return;
+		}
 
-	if (failed) {
+		// Picture source selection can still be pending when the ref attaches.
+		// Recheck next frame to catch only failures that predate hydration.
+		globalThis.requestAnimationFrame(() => {
+			if (!el.isConnected || !el.complete) return;
+			if (el.naturalWidth > 0) setLoaded(true);
+			else handleError();
+		});
+	};
+	if (activeSource === "failed") {
+		if (!alt) {
+			return (
+				<div aria-hidden="true" className={FALLBACK_CLASS_NAME}>
+					<ImageOff size={28} aria-hidden="true" />
+				</div>
+			);
+		}
+
 		return (
-			<div
-				role="img"
-				aria-label={alt}
-				className="absolute inset-0 grid place-items-center bg-bg-soft text-muted"
-			>
+			<div role="img" aria-label={alt} className={FALLBACK_CLASS_NAME}>
 				<ImageOff size={28} aria-hidden="true" />
 			</div>
 		);
@@ -81,34 +109,39 @@ export function ResponsiveImage({
 	// decodes. Priority (LCP) images and reduced-motion users skip it. The hidden
 	// state is an INLINE opacity:0 so the no-JS <noscript> net in layout.tsx
 	// unhides it for crawlers -- the same contract Reveal relies on.
-	const animate = !priority && !reduceMotion;
-	const settle = (el: HTMLImageElement | null) => {
-		if (el?.complete) setLoaded(true);
-	};
+	const isFallback = activeSource === "fallback";
+	const animate = !isFallback && !priority && !reduceMotion;
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
 	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
+	const image = (
+		// biome-ignore lint/performance/noImgElement: native picture sources provide the R2 format and width selection
+		<img
+			key={`${keyBase}:${activeSource}`}
+			ref={settle}
+			src={isFallback ? fallbackSrc : `${IMAGE_ORIGIN}/${keyBase}.jpg`}
+			alt={alt}
+			loading={priority ? "eager" : "lazy"}
+			decoding={priority ? "sync" : "async"}
+			fetchPriority={priority ? "high" : "auto"}
+			onLoad={() => setLoaded(true)}
+			onError={handleError}
+			style={settleStyle}
+			className={cn(
+				imgClass,
+				animate &&
+					"transition-[opacity,transform,filter] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
+			)}
+		/>
+	);
+
+	if (isFallback) return image;
 
 	return (
 		<picture>
 			<source type="image/avif" srcSet={buildSrcset(keyBase, "avif", maxWidth)} sizes={sizes} />
 			<source type="image/webp" srcSet={buildSrcset(keyBase, "webp", maxWidth)} sizes={sizes} />
 			<source type="image/jpeg" srcSet={buildSrcset(keyBase, "jpg", maxWidth)} sizes={sizes} />
-			<img
-				ref={settle}
-				src={`${IMAGE_ORIGIN}/${keyBase}.jpg`}
-				alt={alt}
-				loading={priority ? "eager" : "lazy"}
-				decoding={priority ? "sync" : "async"}
-				fetchPriority={priority ? "high" : "auto"}
-				onLoad={() => setLoaded(true)}
-				onError={() => setFailed(true)}
-				style={settleStyle}
-				className={cn(
-					imgClass,
-					animate &&
-						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
-				)}
-			/>
+			{image}
 		</picture>
 	);
 }

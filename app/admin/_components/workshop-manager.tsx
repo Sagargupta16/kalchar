@@ -6,7 +6,13 @@ import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createWorkshop, deleteWorkshop, reorderWorkshops, updateWorkshop } from "../actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import {
+	adminBtn,
+	adminBtnPrimary,
+	adminField,
+	adminIconBtnDestructive,
+	adminLabel,
+} from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
@@ -112,25 +118,42 @@ function CreateWorkshopForm({
 		>
 			<p className="mb-3 text-xs font-medium text-muted">Add a workshop</p>
 			<div className="grid gap-3 sm:grid-cols-2">
-				<input name="title" placeholder="Title *" required className={adminField} />
-				<input
-					name="durationHours"
-					type="number"
-					step="0.5"
-					min="0"
-					placeholder="Duration (hours)"
-					className={adminField}
-				/>
-				<textarea
-					name="blurb"
-					placeholder="Blurb *"
-					rows={2}
-					required
-					className={`${adminField} sm:col-span-2`}
-				/>
+				<div className={adminLabel}>
+					<label htmlFor="new-workshop-title">Title *</label>
+					<input
+						id="new-workshop-title"
+						name="title"
+						placeholder="e.g. Gond painting"
+						required
+						className={adminField}
+					/>
+				</div>
+				<div className={adminLabel}>
+					<label htmlFor="new-workshop-duration">Duration (hours)</label>
+					<input
+						id="new-workshop-duration"
+						name="durationHours"
+						type="number"
+						step="0.5"
+						min="0"
+						placeholder="e.g. 2"
+						className={adminField}
+					/>
+				</div>
+				<div className={`${adminLabel} sm:col-span-2`}>
+					<label htmlFor="new-workshop-blurb">Description *</label>
+					<textarea
+						id="new-workshop-blurb"
+						name="blurb"
+						placeholder="What participants will make and learn"
+						rows={3}
+						required
+						className={adminField}
+					/>
+				</div>
 			</div>
 			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
-				<Plus size={14} />
+				<Plus size={14} aria-hidden="true" />
 				Add workshop
 			</button>
 		</form>
@@ -156,7 +179,7 @@ function WorkshopItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-3">
-				<span className="cursor-grab text-muted active:cursor-grabbing">
+				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
 					<GripVertical size={16} />
 				</span>
 				<div className="min-w-0 flex-1">
@@ -166,16 +189,21 @@ function WorkshopItem({
 				{workshop.durationHours ? (
 					<span className="t-meta shrink-0 text-[0.65rem]">{workshop.durationHours}h</span>
 				) : null}
-				<button type="button" onClick={() => setEditing(true)} className={`${adminBtn} px-2 py-1`}>
+				<button
+					type="button"
+					onClick={() => setEditing(true)}
+					className={`${adminBtn} min-w-11 px-2 py-1`}
+				>
 					Edit
 				</button>
 				<button
 					type="button"
 					disabled={pending}
 					onClick={onDelete}
-					className={`${adminBtnDestructive} px-2 py-1`}
+					aria-label={`Delete ${workshop.title}`}
+					className={adminIconBtnDestructive}
 				>
-					<Trash2 size={12} />
+					<Trash2 size={14} aria-hidden="true" />
 				</button>
 			</div>
 		);
@@ -183,29 +211,38 @@ function WorkshopItem({
 
 	return (
 		<div className="space-y-2 p-3">
-			<input
-				value={title}
-				onChange={(e) => setTitle(e.target.value)}
-				className={`${adminField} w-full`}
-				placeholder="Title"
-			/>
-			<textarea
-				value={blurb}
-				onChange={(e) => setBlurb(e.target.value)}
-				rows={2}
-				className={`${adminField} w-full`}
-				placeholder="Blurb"
-			/>
-			<div className="flex items-center gap-2">
+			<div className={adminLabel}>
+				<label htmlFor={`workshop-title-${workshop.slug}`}>Title</label>
 				<input
-					value={duration}
-					onChange={(e) => setDuration(e.target.value)}
-					type="number"
-					step="0.5"
-					min="0"
-					placeholder="Hours"
-					className={`${adminField} w-28`}
+					id={`workshop-title-${workshop.slug}`}
+					value={title}
+					onChange={(e) => setTitle(e.target.value)}
+					className={`${adminField} w-full`}
 				/>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor={`workshop-blurb-${workshop.slug}`}>Description</label>
+				<textarea
+					id={`workshop-blurb-${workshop.slug}`}
+					value={blurb}
+					onChange={(e) => setBlurb(e.target.value)}
+					rows={3}
+					className={`${adminField} w-full`}
+				/>
+			</div>
+			<div className="flex items-center gap-2">
+				<div className={`${adminLabel} mr-auto`}>
+					<label htmlFor={`workshop-duration-${workshop.slug}`}>Hours</label>
+					<input
+						id={`workshop-duration-${workshop.slug}`}
+						value={duration}
+						onChange={(e) => setDuration(e.target.value)}
+						type="number"
+						step="0.5"
+						min="0"
+						className={`${adminField} w-24`}
+					/>
+				</div>
 				<button
 					type="button"
 					disabled={pending}
@@ -221,7 +258,7 @@ function WorkshopItem({
 					}}
 					className={`${adminBtnPrimary} px-3 py-1.5`}
 				>
-					<Check size={14} />
+					<Check size={14} aria-hidden="true" />
 					Save
 				</button>
 				<button
@@ -234,7 +271,7 @@ function WorkshopItem({
 					}}
 					className={`${adminBtn} px-3 py-1.5`}
 				>
-					<X size={14} />
+					<X size={14} aria-hidden="true" />
 					Cancel
 				</button>
 			</div>

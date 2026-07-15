@@ -27,11 +27,9 @@ export async function requireMaintainer(): Promise<string> {
 }
 
 /**
- * `max("order") + 1` computed inside the INSERT itself, so appending a row
- * doesn't read-then-write across two round-trips (the TOCTOU window where two
- * concurrent creates mint the same order). One statement, evaluated by
- * Postgres at insert time. Use this for creates; `getNextOrder` remains for
- * the preset flow, which needs the concrete number in JS for its id.
+ * `max("order") + 1` computed inside the INSERT avoids an application-side
+ * read round-trip. Concurrent inserts can still receive the same display
+ * order, so every read adds a deterministic primary-key tie-breaker.
  */
 export function nextOrderSql(table: PgTable): SQL<number> {
 	return sql<number>`(select coalesce(max("order"), 0) + 1 from ${table})`;

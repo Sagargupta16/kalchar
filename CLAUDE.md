@@ -32,6 +32,7 @@ DNS at GoDaddy: `@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`.
 
 ```sh
 pnpm dev          # http://localhost:3000  (needs .env.local for DB/R2/auth)
+pnpm dev --port 3001  # alternate port; Google OAuth must allow its exact callback
 pnpm build        # next build
 pnpm typecheck
 pnpm lint
@@ -53,10 +54,10 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 ### Visual / motion
 
 - **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
-- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). This is a deliberate repo exception to the global "no reduced-motion" rule (public a11y-sensitive art site; confirmed by Sagar 2026-07-07). **MEMORY.md "Motion exclusions" + "Reduced motion" rows are the source of truth for this policy; if files disagree, MEMORY.md wins.**
+- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, and image-safe hero plate transitions. Essential hero copy renders in full immediately. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). This is a deliberate repo exception to the global "no reduced-motion" rule (public a11y-sensitive art site; confirmed by Sagar 2026-07-07). **MEMORY.md "Motion exclusions" + "Reduced motion" rows are the source of truth for this policy; if files disagree, MEMORY.md wins.**
 - **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
-- **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
+- **No raw hex / rgb in components.** All browser-rendered color uses CSS custom properties. Exceptions: `data/artworks.json` palette arrays, SVG data URIs, and pre-CSS/server image outputs that import the named constants in `lib/server-brand-colors.ts`.
 - **No magic timings.** Use named tokens (`--duration-fast/base/slow/enter`, `--ease-out/in-out/spring`).
 
 ### Architecture
@@ -64,7 +65,7 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 - **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
 - **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
-- **Images via `lib/image-base.ts`.** `ARTWORK_IMAGE_BASE` = R2 public URL + `/artworks`; `IMAGE_ORIGIN` = the bare R2 origin (events store full key-bases). The gallery `<picture>` srcset, lightbox, and OG metadata read it. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
+- **Images via `lib/image-base.ts`.** Browser surfaces use same-origin `ARTWORK_IMAGE_BASE` / `IMAGE_ORIGIN` paths that `next.config.mjs` rewrites to R2. External metadata and server operations use the absolute `R2_*` exports. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it with a checked-in master fallback. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
 - **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, custom-order leads in `app/admin/lead-actions.ts`, testimonials in `app/admin/testimonial-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
@@ -107,19 +108,20 @@ lib/
   storage/                r2.ts + process-artwork-image.ts (processImageVariants shared
                           by artworks + events; sharp variants -> R2)
   maintainers.ts          admin allowlist (list/add/remove, root-protected)
-  image-base.ts           ARTWORK_IMAGE_BASE + IMAGE_ORIGIN (R2 public URL)
+  image-base.ts           same-origin browser paths + absolute R2 URL builders
   types.ts, utils.ts, whatsapp.ts, site-config.ts, hooks/
 data/
   site.json               brand/nav/copy, read at runtime
   artworks.json           original seed source (DB is live source of truth)
 public/
-  artworks/               21 master JPGs -- R2 regenerate source, NOT served at runtime
+  artworks/               21 master JPGs -- R2 regenerate source + final fallback
   logo.jpg, logo-180.png, robots.txt
 drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
   migrate-json-to-db.ts   pnpm db:seed -- JSON -> Neon rows
   migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
-.github/workflows/        ci.yml (lint+typecheck+test+build). deploy.yml = retired Pages fallback (manual-only)
+.github/workflows/        ci.yml (full verify) + health.yml (scheduled checks);
+                          deploy.yml = retired Pages fallback (manual-only)
 docs/                     engineering docs (index in docs/README.md):
   ARCHITECTURE.md         full system diagram + flows (entry point)
   DATABASE.md             Neon/Drizzle schema, seam, migrations

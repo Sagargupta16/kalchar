@@ -16,7 +16,7 @@ import {
 	getSite,
 	getTestimonialsForArtwork,
 } from "@/lib/data";
-import { ARTWORK_IMAGE_BASE, artworkPreloadSrcset } from "@/lib/image-base";
+import { artworkImageUrl, artworkPreloadSrcset } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
@@ -46,7 +46,7 @@ function artworkAlt(art: Pick<Artwork, "title" | "style" | "medium">): string {
  * <script type="application/ld+json">) mirrors app/layout.tsx.
  */
 function artworkJsonLd(art: Artwork): Record<string, unknown> {
-	const image = `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`;
+	const image = artworkImageUrl(art.image, OG_IMAGE_WIDTH, "webp");
 	const offer = isPositivePrice(art.priceInr)
 		? {
 				"@type": "Offer",
@@ -95,15 +95,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	return {
 		title: art.title,
 		description: art.description ?? artworkAlt(art),
+		alternates: {
+			canonical: `/work/${art.slug}/`,
+		},
 		openGraph: {
+			title: art.title,
+			description: art.description ?? artworkAlt(art),
+			url: `/work/${art.slug}/`,
 			images: [
 				{
-					url: `${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`,
+					url: artworkImageUrl(art.image, OG_IMAGE_WIDTH, "webp"),
 					width: OG_IMAGE_WIDTH,
 					height: ogHeight,
 					alt: artworkAlt(art),
 				},
 			],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: art.title,
+			description: art.description ?? artworkAlt(art),
+			images: [artworkImageUrl(art.image, OG_IMAGE_WIDTH, "webp")],
 		},
 		// og:type=product + product:price:* make a priced piece unfurl as a
 		// Product Rich Pin. Emitted via `other` so the tags sit alongside the
@@ -178,7 +190,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<Reveal eager>
 				<Link
 					href="/work"
-					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
+					className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
 				>
 					<ArrowLeft size={14} aria-hidden="true" />
 					Back to artwork
@@ -298,7 +310,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 								<ShareButton title={art.title} url={`${siteConfig.url}/work/${art.slug}/`} />
 								<Link
 									href={`/work?style=${encodeURIComponent(art.style)}`}
-									className="inline-flex min-h-10 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
+									className="inline-flex min-h-11 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
 								>
 									See more {art.style}
 									<ArrowRight size={13} aria-hidden="true" />
