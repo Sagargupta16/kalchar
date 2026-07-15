@@ -31,7 +31,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    name: verify and browser test
+    # Display name is pinned to the required status check in the "main
+    # protection" ruleset -- rename both together or merges to main block.
+    name: lint, typecheck and build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

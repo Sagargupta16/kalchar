@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.34.2 (2026-07-15)
+
+CI-only fix; no app change.
+
+### Fixed
+
+- The verify job's display name is restored to `lint, typecheck and build`, the exact status-check context the `main protection` ruleset requires; the v1.34.0 rename left merges to main blocked with all checks green. The job itself is unchanged (it still runs lint, typecheck, unit tests, build, and the browser + accessibility suite), and a comment now pins the name to the ruleset so the pair can only be renamed together.
+
 ## 1.34.1 (2026-07-14)
 
 Hero image reliability and interface quality follow-up.
