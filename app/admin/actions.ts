@@ -9,19 +9,23 @@
  * mutations touch the roster. All revalidate the affected paths so the public
  * gallery and the admin list reflect changes immediately.
  */
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
+import { readImageUpload } from "@/lib/storage/image-upload";
 import {
 	deleteArtworkImages,
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
-import type { OrderPresetKind } from "@/lib/types";
+import type { ArtworkStatus, OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
+
+const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold"]);
 
 function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
@@ -40,65 +44,93 @@ function revalidateWorkshops() {
 	revalidatePath("/admin/workshops");
 }
 
-/** Set or clear a piece's price (clearing reverts it to archive via the seam). */
-export async function setPrice(slug: string, priceInr: number | null): Promise<void> {
-	await requireMaintainer();
-	await db
-		.update(artworks)
-		.set({ priceInr, status: priceInr === null ? "archive" : "available" })
-		.where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Set lifecycle status explicitly (archive / available / sold). */
-export async function setStatus(
-	slug: string,
-	status: "archive" | "available" | "sold",
-): Promise<void> {
-	await requireMaintainer();
-	await db.update(artworks).set({ status }).where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Toggle featured (hero/rail inclusion). */
-export async function setFeatured(slug: string, featured: boolean): Promise<void> {
-	await requireMaintainer();
-	await db.update(artworks).set({ featured }).where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Update editable artwork fields (everything except slug, image, order). */
-export async function updateArtworkMeta(
+/** Validate and commit all editable artwork fields in one atomic update. */
+export async function updateArtwork(
 	slug: string,
 	fields: {
-		title?: string;
-		style?: string;
-		description?: string | null;
-		medium?: string;
-		dimensions?: string | null;
-		year?: number | null;
+		title: string;
+		style: string;
+		description: string | null;
+		medium: string;
+		dimensions: string | null;
+		year: number | null;
+		priceInr: number | null;
+		status: ArtworkStatus;
+		featured: boolean;
 	},
 ): Promise<void> {
 	await requireMaintainer();
-	await db.update(artworks).set(fields).where(eq(artworks.slug, slug));
+	const title = fields.title.trim();
+	const style = fields.style.trim();
+	const medium = fields.medium.trim();
+	if (!title || !style || !medium) {
+		throw new Error("Title, category, and medium are required.");
+	}
+	if (fields.year !== null && (!Number.isInteger(fields.year) || fields.year <= 0)) {
+		throw new Error("Year must be a positive whole number.");
+	}
+	if (fields.priceInr !== null && (!Number.isInteger(fields.priceInr) || fields.priceInr <= 0)) {
+		throw new Error("Price must be a positive whole number.");
+	}
+	if (!ARTWORK_STATUSES.has(fields.status)) {
+		throw new Error("Choose a valid artwork status.");
+	}
+	if (typeof fields.featured !== "boolean") {
+		throw new Error("Featured must be true or false.");
+	}
+
+	const updated = await db
+		.update(artworks)
+		.set({
+			title,
+			style,
+			medium,
+			description: fields.description?.trim() || null,
+			dimensions: fields.dimensions?.trim() || null,
+			year: fields.year,
+			priceInr: fields.priceInr,
+			status: fields.status,
+			featured: fields.featured,
+		})
+		.where(eq(artworks.slug, slug))
+		.returning({ slug: artworks.slug });
+	if (updated.length === 0) throw new Error("Artwork not found.");
 	revalidateCatalog(slug);
 }
 
-/**
- * Replace an artwork's image: re-run the sharp/R2 pipeline for the SAME slug
- * (overwrites the existing variants), refresh the stored aspectRatio + palette.
- * The slug and DB row are unchanged, so URLs and metadata survive.
- */
+/** Replace an artwork image using a new key, then retire the old variants. */
 export async function replaceArtworkImage(slug: string, formData: FormData): Promise<void> {
 	await requireMaintainer();
+	const [row] = await db
+		.select({ image: artworks.image })
+		.from(artworks)
+		.where(eq(artworks.slug, slug));
+	if (!row) throw new Error("Artwork not found.");
+
 	const file = formData.get("image");
 	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
-	const buffer = Buffer.from(await file.arrayBuffer());
-	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
-	await db
-		.update(artworks)
-		.set({ aspectRatio, palette: palette.length > 0 ? palette : null })
-		.where(eq(artworks.slug, slug));
+	const buffer = await readImageUpload(file);
+	const nextImageKey = `${slug}-${randomUUID()}`;
+	const { aspectRatio, palette } = await processArtworkImage(nextImageKey, buffer);
+	try {
+		const updated = await db
+			.update(artworks)
+			.set({
+				image: `${nextImageKey}.jpg`,
+				aspectRatio,
+				palette: palette.length > 0 ? palette : null,
+			})
+			.where(eq(artworks.slug, slug))
+			.returning({ slug: artworks.slug });
+		if (updated.length === 0) throw new Error("Artwork no longer exists.");
+	} catch (error) {
+		await deleteArtworkImages(nextImageKey).catch(() => {});
+		throw error;
+	}
+
+	await deleteArtworkImages(artworkImageKey(row.image)).catch((error) => {
+		console.error("Artwork image cleanup failed after replacement.", error);
+	});
 	revalidateCatalog(slug);
 }
 
@@ -123,13 +155,19 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 		.where(eq(artworks.slug, slug));
 	if (existing.length > 0) throw new Error(`An artwork with slug "${slug}" already exists.`);
 
-	const buffer = Buffer.from(await file.arrayBuffer());
-	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
-
 	const priceRaw = formData.get("priceInr");
-	const priceInr = priceRaw ? Number(priceRaw) : null;
+	const priceInr = typeof priceRaw === "string" && priceRaw.trim() ? Number(priceRaw) : null;
 	const yearRaw = formData.get("year");
-	const year = yearRaw ? Number(yearRaw) : null;
+	const year = typeof yearRaw === "string" && yearRaw.trim() ? Number(yearRaw) : null;
+	if (priceInr !== null && (!Number.isInteger(priceInr) || priceInr <= 0)) {
+		throw new Error("Price must be a positive whole number.");
+	}
+	if (year !== null && (!Number.isInteger(year) || year <= 0)) {
+		throw new Error("Year must be a positive whole number.");
+	}
+
+	const buffer = await readImageUpload(file);
+	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
 
 	try {
 		await db.insert(artworks).values({
@@ -139,16 +177,16 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 			medium,
 			image: `${slug}.jpg`,
 			aspectRatio,
-			// Computed inside the INSERT so two concurrent creates can't mint the
-			// same order (no read-then-write window).
+			// Computed in the INSERT to avoid an extra application round-trip.
+			// Read queries include a stable secondary key for concurrent ties.
 			order: nextOrderSql(artworks),
 			featured: false,
 			description: formString(formData, "description").trim() || null,
 			dimensions: formString(formData, "dimensions").trim() || null,
-			year: year && !Number.isNaN(year) ? year : null,
+			year,
 			palette: palette.length > 0 ? palette : null,
-			priceInr: priceInr && !Number.isNaN(priceInr) ? priceInr : null,
-			status: priceInr && !Number.isNaN(priceInr) ? "available" : "archive",
+			priceInr,
+			status: priceInr ? "available" : "archive",
 		});
 	} catch (err) {
 		// The variants were already uploaded; if the row insert fails (concurrent
@@ -164,7 +202,12 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 /** Re-sample the palette for a piece from its stored master image in R2. */
 export async function regeneratePalette(slug: string): Promise<void> {
 	await requireMaintainer();
-	const res = await fetch(`${ARTWORK_IMAGE_BASE}/${slug}.jpg`);
+	const [row] = await db
+		.select({ image: artworks.image })
+		.from(artworks)
+		.where(eq(artworks.slug, slug));
+	if (!row) throw new Error("Artwork not found.");
+	const res = await fetch(`${R2_ARTWORK_IMAGE_BASE}/${artworkImageKey(row.image)}.jpg`);
 	if (!res.ok) throw new Error("Could not fetch the master image.");
 	const buffer = Buffer.from(await res.arrayBuffer());
 	const palette = await extractPalette(buffer);
@@ -178,22 +221,30 @@ export async function regeneratePalette(slug: string): Promise<void> {
 /** Reorder artworks by providing the new slug sequence. */
 export async function reorderArtworks(slugs: string[]): Promise<void> {
 	await requireMaintainer();
-	await Promise.all(
-		slugs.map((slug, i) =>
-			db
-				.update(artworks)
-				.set({ order: i + 1 })
-				.where(eq(artworks.slug, slug)),
-		),
+	const queries = slugs.map((slug, i) =>
+		db
+			.update(artworks)
+			.set({ order: i + 1 })
+			.where(eq(artworks.slug, slug)),
 	);
+	if (queries.length > 0) {
+		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
+	}
 	revalidateCatalog();
 }
 
 /** Delete an artwork row + all its R2 image variants. */
 export async function deleteArtwork(slug: string): Promise<void> {
 	await requireMaintainer();
+	const [row] = await db
+		.select({ image: artworks.image })
+		.from(artworks)
+		.where(eq(artworks.slug, slug));
+	if (!row) return;
 	await db.delete(artworks).where(eq(artworks.slug, slug));
-	await deleteArtworkImages(slug);
+	await deleteArtworkImages(artworkImageKey(row.image)).catch((error) => {
+		console.error("Artwork image cleanup failed after deletion.", error);
+	});
 	revalidateCatalog(slug);
 }
 
@@ -218,12 +269,15 @@ export async function createWorkshop(formData: FormData): Promise<{ slug: string
 
 	const durationRaw = formString(formData, "durationHours");
 	const durationHours = durationRaw ? Number(durationRaw) : null;
+	if (durationHours !== null && (!Number.isFinite(durationHours) || durationHours <= 0)) {
+		throw new Error("Duration must be a positive number.");
+	}
 
 	await db.insert(workshops).values({
 		slug,
 		title,
 		blurb,
-		durationHours: durationHours && !Number.isNaN(durationHours) ? durationHours : null,
+		durationHours,
 		order: nextOrderSql(workshops),
 	});
 
@@ -244,14 +298,15 @@ export async function updateWorkshop(
 /** Reorder workshops by providing the new slug sequence. */
 export async function reorderWorkshops(slugs: string[]): Promise<void> {
 	await requireMaintainer();
-	await Promise.all(
-		slugs.map((slug, i) =>
-			db
-				.update(workshops)
-				.set({ order: i + 1 })
-				.where(eq(workshops.slug, slug)),
-		),
+	const queries = slugs.map((slug, i) =>
+		db
+			.update(workshops)
+			.set({ order: i + 1 })
+			.where(eq(workshops.slug, slug)),
 	);
+	if (queries.length > 0) {
+		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
+	}
 	revalidateWorkshops();
 }
 
@@ -297,14 +352,15 @@ export async function updateOrderPreset(id: string, label: string): Promise<void
 /** Reorder presets within a kind by providing the new id sequence. */
 export async function reorderOrderPresets(ids: string[]): Promise<void> {
 	await requireMaintainer();
-	await Promise.all(
-		ids.map((id, i) =>
-			db
-				.update(orderPresets)
-				.set({ order: i + 1 })
-				.where(eq(orderPresets.id, id)),
-		),
+	const queries = ids.map((id, i) =>
+		db
+			.update(orderPresets)
+			.set({ order: i + 1 })
+			.where(eq(orderPresets.id, id)),
 	);
+	if (queries.length > 0) {
+		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
+	}
 	revalidateOrderPresets();
 }
 
@@ -352,22 +408,25 @@ export async function renameCategory(id: string, name: string): Promise<void> {
 	const [row] = await db.select().from(categories).where(eq(categories.id, id));
 	if (!row) throw new Error("Category not found.");
 	if (row.name === trimmed) return;
-	await db.update(categories).set({ name: trimmed }).where(eq(categories.id, id));
-	await db.update(artworks).set({ style: trimmed }).where(eq(artworks.style, row.name));
+	await db.batch([
+		db.update(categories).set({ name: trimmed }).where(eq(categories.id, id)),
+		db.update(artworks).set({ style: trimmed }).where(eq(artworks.style, row.name)),
+	]);
 	revalidateCategories();
 }
 
 /** Reorder categories by providing the new id sequence. */
 export async function reorderCategories(ids: string[]): Promise<void> {
 	await requireMaintainer();
-	await Promise.all(
-		ids.map((id, i) =>
-			db
-				.update(categories)
-				.set({ order: i + 1 })
-				.where(eq(categories.id, id)),
-		),
+	const queries = ids.map((id, i) =>
+		db
+			.update(categories)
+			.set({ order: i + 1 })
+			.where(eq(categories.id, id)),
 	);
+	if (queries.length > 0) {
+		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
+	}
 	revalidateCategories();
 }
 

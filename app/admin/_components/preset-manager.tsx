@@ -11,7 +11,14 @@ import {
 	updateOrderPreset,
 } from "../actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import {
+	adminBtn,
+	adminBtnPrimary,
+	adminField,
+	adminIconBtn,
+	adminIconBtnDestructive,
+	adminIconBtnPrimary,
+} from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -146,6 +153,7 @@ function PresetGroup({
 				<input
 					value={newLabel}
 					onChange={(e) => setNewLabel(e.target.value)}
+					aria-label={`New ${title.toLowerCase()} option`}
 					placeholder={hint}
 					className={`${adminField} flex-1`}
 				/>
@@ -177,20 +185,25 @@ function PresetItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-2.5">
-				<span className="cursor-grab text-muted active:cursor-grabbing">
+				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
 					<GripVertical size={14} />
 				</span>
 				<span className="flex-1 truncate text-sm">{preset.label}</span>
-				<button type="button" onClick={() => setEditing(true)} className={`${adminBtn} px-2 py-1`}>
+				<button
+					type="button"
+					onClick={() => setEditing(true)}
+					className={`${adminBtn} min-w-11 px-2 py-1`}
+				>
 					Edit
 				</button>
 				<button
 					type="button"
 					disabled={pending}
 					onClick={onDelete}
-					className={`${adminBtnDestructive} px-2 py-1`}
+					aria-label={`Delete ${preset.label}`}
+					className={adminIconBtnDestructive}
 				>
-					<Trash2 size={12} />
+					<Trash2 size={14} aria-hidden="true" />
 				</button>
 			</div>
 		);
@@ -201,6 +214,7 @@ function PresetItem({
 			<input
 				value={label}
 				onChange={(e) => setLabel(e.target.value)}
+				aria-label={`Edit ${preset.label}`}
 				className={`${adminField} flex-1`}
 				// biome-ignore lint/a11y/noAutofocus: focus the field the user just chose to edit
 				autoFocus
@@ -212,9 +226,10 @@ function PresetItem({
 					onSave(label.trim());
 					setEditing(false);
 				}}
-				className={`${adminBtnPrimary} px-2.5 py-1.5`}
+				aria-label={`Save ${preset.label}`}
+				className={adminIconBtnPrimary}
 			>
-				<Check size={14} />
+				<Check size={14} aria-hidden="true" />
 			</button>
 			<button
 				type="button"
@@ -222,9 +237,10 @@ function PresetItem({
 					setLabel(preset.label);
 					setEditing(false);
 				}}
-				className={`${adminBtn} px-2.5 py-1.5`}
+				aria-label={`Cancel editing ${preset.label}`}
+				className={adminIconBtn}
 			>
-				<X size={14} />
+				<X size={14} aria-hidden="true" />
 			</button>
 		</div>
 	);

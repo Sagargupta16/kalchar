@@ -17,12 +17,17 @@ export const metadata: Metadata = {
 	robots: { index: false, follow: false },
 };
 
-export default async function AccessDeniedPage() {
+interface AccessDeniedPageProps {
+	searchParams: Promise<{ error?: string }>;
+}
+
+export default async function AccessDeniedPage({ searchParams }: Readonly<AccessDeniedPageProps>) {
+	const { error } = await searchParams;
+	const isConfigurationError = error === "Configuration";
 	const { brand } = getSite();
-	const rootEmail = await getRootMaintainerEmail();
-	const mailto = rootEmail
-		? `mailto:${rootEmail}?subject=${encodeURIComponent("Maintainer access request")}`
-		: null;
+	const rootEmail = await getRootMaintainerEmail().catch(() => null);
+	const subject = isConfigurationError ? "Admin sign-in issue" : "Maintainer access request";
+	const mailto = rootEmail ? `mailto:${rootEmail}?subject=${encodeURIComponent(subject)}` : null;
 
 	return (
 		<main className="grid min-h-dvh place-items-center px-(--container-px) py-16">
@@ -41,10 +46,13 @@ export default async function AccessDeniedPage() {
 					<Lock size={22} aria-hidden="true" />
 				</div>
 
-				<h1 className="t-display mt-6 text-2xl sm:text-3xl">Access not granted</h1>
+				<h1 className="t-display mt-6 text-2xl sm:text-3xl">
+					{isConfigurationError ? "Sign-in unavailable" : "Access not granted"}
+				</h1>
 				<p className="t-lead mt-3 text-sm">
-					This Google account isn&rsquo;t on the maintainer list, so it can&rsquo;t open the admin
-					panel. If you should have access, ask the site owner to add you.
+					{isConfigurationError
+						? "The site could not verify maintainer access because an authentication service is unavailable. Try again shortly or report the issue to the site owner."
+						: "This Google account isn’t on the maintainer list, so it can’t open the admin panel. If you should have access, ask the site owner to add you."}
 				</p>
 
 				{mailto ? (
@@ -53,7 +61,7 @@ export default async function AccessDeniedPage() {
 						className="mt-6 inline-flex items-center gap-2 rounded-(--radius-sm) border border-line bg-bg px-4 py-2.5 text-sm text-ink transition-colors hover:border-accent hover:text-accent"
 					>
 						<GmailIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-						Request access from {rootEmail}
+						{isConfigurationError ? "Report issue to" : "Request access from"} {rootEmail}
 					</a>
 				) : null}
 
@@ -62,7 +70,7 @@ export default async function AccessDeniedPage() {
 						Back to site
 					</Link>
 					<Link href="/login" className={buttonVariants({ variant: "ghost" })}>
-						Try a different account
+						{isConfigurationError ? "Try sign-in again" : "Try a different account"}
 					</Link>
 				</div>
 			</div>

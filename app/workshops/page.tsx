@@ -1,5 +1,4 @@
 import { Clock, MessageCircle } from "lucide-react";
-import type { Metadata } from "next";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,13 +7,15 @@ import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getAllWorkshops, getSite } from "@/lib/data";
+import { createPageMetadata } from "@/lib/page-metadata";
 import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
 	title: "Workshops",
 	description:
 		"Hands-on folk-art sessions for individuals, schools, communities, and corporate groups.",
-};
+	path: "/workshops/",
+});
 
 /** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
 const STAGGER_STEP_MS = 60;

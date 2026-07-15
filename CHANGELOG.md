@@ -2,6 +2,64 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.34.2 (2026-07-15)
+
+CI-only fix; no app change.
+
+### Fixed
+
+- The verify job's display name is restored to `lint, typecheck and build`, the exact status-check context the `main protection` ruleset requires; the v1.34.0 rename left merges to main blocked with all checks green. The job itself is unchanged (it still runs lint, typecheck, unit tests, build, and the browser + accessibility suite), and a comment now pins the name to the ruleset so the pair can only be renamed together.
+
+## 1.34.1 (2026-07-14)
+
+Hero image reliability and interface quality follow-up.
+
+### Changed
+
+- The admin workspace now uses consistent page headings, labeled fields, accessible icon controls, 44px touch targets, a grouped desktop navigation, a compact mobile tool menu, aligned loading states, and an admin theme control.
+- Artwork edits now validate and commit metadata, price, status, and featured state in one update, while the mobile admin tool menu moves keyboard focus into the opened panel and restores it on close.
+- Public gallery filters, detail actions, footer links, FAQ rows, and contact links now meet the mobile touch-target minimum, and artwork guidance no longer assumes a hover-capable device.
+- The public header keeps the compact navigation through tablet widths so controls stay visible and retain their full touch targets.
+- Scroll progress now uses a CSS scroll timeline, while the public header and back-to-top visibility thresholds use intersection observers instead of scroll polling.
+
+### Fixed
+
+- Browser-facing artwork URLs now use a same-origin `/media` rewrite, preventing privacy-focused browsers from blocking the public R2 hostname.
+- Artwork rendering detects failures that happen before hydration and falls back to the checked-in master, while hero shuffles wait for both replacement images to decode before switching.
+- The home hero always keeps two distinct tilted artwork plates, including when only one piece is featured or reduced motion is enabled.
+- The hero description renders in full immediately instead of exposing a partially completed character entrance.
+- Artwork uploads now return controlled validation errors before palette extraction, and the admin profile preview follows the stored versioned image key.
+- Desktop and mobile browser coverage now blocks same-origin artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+- Browser coverage serves local media fixtures and waits for explicit page readiness, removing external image-host timing from the test result.
+- Hero browser checks synchronize on the completed shuffle state, while mobile-only checks run only in the mobile Playwright project without skipped tests.
+- Local setup guidance now documents the exact Google OAuth callback required when port 3001 is used because port 3000 is occupied.
+
+## 1.34.0 (2026-07-14)
+
+Full reliability, accessibility, test, and operations pass.
+
+### Added
+
+- Database checks for valid statuses, positive numeric fields, and non-blank required content, with a committed Drizzle migration.
+- Upload limits for file type, encoded size, decoded pixels, and actual image format.
+- Vitest coverage for upload validation, per-client rate limiting, and R2 rollback behavior.
+- Desktop and mobile Playwright coverage with axe accessibility scans, overflow checks, reduced-motion assertions, touch targets, navigation, filters, and lightbox behavior.
+- Pinned Gitleaks CI scanning, migration drift protection, and a scheduled production health workflow.
+- Operations guidance for migrations, backup/restore drills, image recovery, lead retention, monitoring, and incidents.
+
+### Changed
+
+- Artwork and profile replacements now use versioned image keys, switch the database reference only after upload, and clean old variants afterward.
+- Partial image uploads roll back attempted R2 objects; destructive actions remove database references first and treat unreachable R2 cleanup as recoverable maintenance.
+- Event photo mutations reject stale or foreign image keys, and artwork replacement verifies the row update before retiring old variants.
+- Catalog reads use deterministic secondary ordering, reorder and category updates use Neon batches, and lead throttling is bounded per client.
+- Hero copy wraps by word, reduced-motion reveals and plates render without transitions, mobile header controls meet the 44px target, and hover-only lightbox hints stay hidden on touch.
+- Artwork metadata, social cards, structured data, admin thumbnails, and the commerce feed now derive image URLs from the stored image key.
+- Route-specific canonical and social metadata now identify the page being shared instead of inheriting the home URL and title.
+- Authentication service failures no longer appear as incorrect maintainer allowlist rejections.
+- Package overrides moved to `pnpm-workspace.yaml`; the manual GitHub Pages recovery workflow remains available as documented.
+- Runtime and tooling dependencies were updated to their latest Node 22 and Next.js 16 compatible releases.
+
 ## 1.33.4 (2026-07-08)
 
 Docs + branch hygiene. No app code, no behavior change.

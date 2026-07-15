@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -16,6 +17,8 @@ interface RevealProps {
 
 const DIR = { up: "Y", down: "Y", left: "X", right: "X" } as const;
 const SIGN = { up: 1, down: -1, left: 1, right: -1 } as const;
+const REVEAL_DURATION_SECONDS = 0.5;
+const REVEAL_EASE = [0.16, 1, 0.3, 1] as const;
 
 export function Reveal({
 	children,
@@ -26,6 +29,12 @@ export function Reveal({
 	direction = "up",
 	distance = 20,
 }: Readonly<RevealProps>) {
+	const reduceMotion = usePrefersReducedMotion();
+	if (reduceMotion) {
+		const Tag = as;
+		return <Tag className={className}>{children}</Tag>;
+	}
+
 	if (eager) {
 		const Tag = as;
 		return (
@@ -43,13 +52,14 @@ export function Reveal({
 
 	return (
 		<Tag
+			data-motion-reveal
 			className={className}
 			initial={initial}
 			whileInView={animate}
 			viewport={{ once: true, margin: "0px 0px -80px 0px" }}
 			transition={{
-				duration: 0.5,
-				ease: [0.16, 1, 0.3, 1],
+				duration: REVEAL_DURATION_SECONDS,
+				ease: REVEAL_EASE,
 				delay: delayMs / 1000,
 			}}
 		>

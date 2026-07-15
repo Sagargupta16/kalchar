@@ -6,10 +6,12 @@
  * `trailingSlash: true` keeps the canonical `/work/` URL shape the site has
  * always used (preserves links + SEO from the earlier static era).
  *
- * `images.unoptimized: true` -- the gallery serves artwork from Cloudflare R2
- * via a hand-rolled <picture> (lib/image-base.ts), not next/image, so Next's
- * image optimizer is intentionally off.
+ * Browser image requests use the same-origin `/media/*` rewrite below. This
+ * keeps privacy-focused browsers from blocking the public R2 hostname while
+ * preserving the hand-rolled responsive <picture> pipeline.
  */
+
+const imageBaseUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.replace(/\/$/, "");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -19,6 +21,15 @@ const nextConfig = {
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: false,
+	async rewrites() {
+		if (!imageBaseUrl) return [];
+		return [
+			{
+				source: "/media/:path*",
+				destination: `${imageBaseUrl}/:path*`,
+			},
+		];
+	},
 	experimental: {
 		// Admin image uploads (artwork, multi-photo events, the artist profile)
 		// travel inside the server action's FormData, so the whole batch counts

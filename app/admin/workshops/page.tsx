@@ -1,4 +1,5 @@
 import { getAllWorkshops } from "@/lib/data";
+import { AdminPageHeader } from "../_components/admin-page-header";
 import { WorkshopManager } from "../_components/workshop-manager";
 
 export default async function AdminWorkshopsPage() {
@@ -6,12 +7,10 @@ export default async function AdminWorkshopsPage() {
 
 	return (
 		<div className="max-w-3xl space-y-6">
-			<section>
-				<h2 className="text-sm font-semibold">Workshops</h2>
-				<p className="mt-1 text-xs text-muted">
-					Add, edit, reorder, and remove the sessions shown on the public site. Drag to reorder.
-				</p>
-			</section>
+			<AdminPageHeader
+				title="Workshops"
+				description="Add, edit, reorder, and remove the sessions shown on the public site. Drag to reorder."
+			/>
 			<WorkshopManager workshops={[...workshops]} />
 		</div>
 	);

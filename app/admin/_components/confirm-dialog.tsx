@@ -77,7 +77,7 @@ export function ConfirmProvider({ children }: Readonly<{ children: React.ReactNo
 							<button
 								type="button"
 								onClick={() => settle(false)}
-								className="inline-flex h-10 items-center rounded-(--radius-sm) border border-line bg-bg px-4 text-sm font-medium text-ink transition-colors hover:bg-bg-soft"
+								className="inline-flex min-h-11 items-center rounded-(--radius-sm) border border-line bg-bg px-4 text-sm font-medium text-ink transition-colors hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 							>
 								{state.cancelLabel ?? "Cancel"}
 							</button>
@@ -86,8 +86,8 @@ export function ConfirmProvider({ children }: Readonly<{ children: React.ReactNo
 								onClick={() => settle(true)}
 								className={
 									state.destructive !== false
-										? "inline-flex h-10 items-center rounded-(--radius-sm) bg-ruby px-4 text-sm font-medium text-bg transition-opacity hover:opacity-90"
-										: "inline-flex h-10 items-center rounded-(--radius-sm) bg-accent px-4 text-sm font-medium text-bg transition-opacity hover:opacity-90"
+										? "inline-flex min-h-11 items-center rounded-(--radius-sm) bg-ruby px-4 text-sm font-medium text-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ruby"
+										: "inline-flex min-h-11 items-center rounded-(--radius-sm) bg-accent px-4 text-sm font-medium text-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 								}
 							>
 								{state.confirmLabel ?? "Confirm"}

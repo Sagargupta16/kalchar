@@ -49,6 +49,9 @@ desktop.ini
 .eslintcache
 .turbo/
 .playwright-mcp/
+.playwright/
+playwright-report/
+test-results/
 .sonar/
 
 # Claude / per-user (never commit)
@@ -74,3 +77,6 @@ tmp/
 # Claude local context (untracked)
 .claude/
 MEMORY.md
+
+# graphify knowledge graph artifacts
+graphify-out/

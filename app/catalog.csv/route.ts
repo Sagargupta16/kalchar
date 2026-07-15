@@ -1,5 +1,5 @@
 import { getAvailableArtworks } from "@/lib/data";
-import { ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { artworkImageUrl } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 
 /**
@@ -49,7 +49,7 @@ export async function GET(): Promise<Response> {
 			// Meta wants "<amount> <ISO currency>".
 			`${art.priceInr} INR`,
 			`${siteConfig.url}/work/${art.slug}/`,
-			`${ARTWORK_IMAGE_BASE}/${art.slug}-${OG_IMAGE_WIDTH}.webp`,
+			artworkImageUrl(art.image, OG_IMAGE_WIDTH, "webp"),
 			brand,
 		];
 		return cells.map((c) => csvCell(String(c))).join(",");

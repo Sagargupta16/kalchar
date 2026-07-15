@@ -4,7 +4,7 @@ import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createArtwork } from "../actions";
-import { adminBtnPrimary, adminField } from "./controls";
+import { adminBtnPrimary, adminField, adminLabel } from "./controls";
 
 export function UploadForm({ categories }: Readonly<{ categories: readonly string[] }>) {
 	const router = useRouter();
@@ -32,41 +32,88 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 
 	return (
 		<form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
-			<input name="title" placeholder="Title *" required className={adminField} />
-			<select name="style" required className={adminField} defaultValue="">
-				<option value="" disabled>
-					Category *
-				</option>
-				{categories.map((s) => (
-					<option key={s} value={s}>
-						{s}
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-title">Title *</label>
+				<input
+					id="new-artwork-title"
+					name="title"
+					placeholder="e.g. Lotus garden"
+					required
+					className={adminField}
+				/>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-category">Category *</label>
+				<select
+					id="new-artwork-category"
+					name="style"
+					required
+					className={adminField}
+					defaultValue=""
+				>
+					<option value="" disabled>
+						Select a category
 					</option>
-				))}
-			</select>
-			<input
-				name="medium"
-				placeholder="Medium * (e.g. Natural pigment on handmade paper)"
-				required
-				className={adminField}
-			/>
-			<input name="dimensions" placeholder="Dimensions (e.g. 30 x 40 cm)" className={adminField} />
-			<input
-				name="priceInr"
-				type="number"
-				min="0"
-				placeholder="Price INR (blank = archive)"
-				className={adminField}
-			/>
-			<input name="year" type="number" placeholder="Year" className={adminField} />
-			<textarea
-				name="description"
-				placeholder="Description"
-				rows={2}
-				className={`${adminField} sm:col-span-2`}
-			/>
+					{categories.map((category) => (
+						<option key={category} value={category}>
+							{category}
+						</option>
+					))}
+				</select>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-medium">Medium *</label>
+				<input
+					id="new-artwork-medium"
+					name="medium"
+					placeholder="e.g. Natural pigment on handmade paper"
+					required
+					className={adminField}
+				/>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-dimensions">Dimensions</label>
+				<input
+					id="new-artwork-dimensions"
+					name="dimensions"
+					placeholder="e.g. 30 x 40 cm"
+					className={adminField}
+				/>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-price">Price (INR)</label>
+				<input
+					id="new-artwork-price"
+					name="priceInr"
+					type="number"
+					min="0"
+					placeholder="Blank keeps it archived"
+					className={adminField}
+				/>
+			</div>
+			<div className={adminLabel}>
+				<label htmlFor="new-artwork-year">Year</label>
+				<input
+					id="new-artwork-year"
+					name="year"
+					type="number"
+					placeholder="e.g. 2026"
+					className={adminField}
+				/>
+			</div>
+			<div className={`${adminLabel} sm:col-span-2`}>
+				<label htmlFor="new-artwork-description">Description</label>
+				<textarea
+					id="new-artwork-description"
+					name="description"
+					placeholder="A short note about the piece"
+					rows={3}
+					className={adminField}
+				/>
+			</div>
 			<div className="sm:col-span-2">
 				<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
-					<ImagePlus size={18} />
+					<ImagePlus size={18} aria-hidden="true" />
 					<span>Choose image (JPG, PNG, or WebP)</span>
 					<input
 						name="image"

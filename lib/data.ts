@@ -84,7 +84,7 @@ function toWorkshop(row: WorkshopRow): Workshop {
 
 /** All artworks, sorted by `order` ascending. */
 export async function getAllArtworks(): Promise<readonly Artwork[]> {
-	const rows = await db.select().from(artworks).orderBy(asc(artworks.order));
+	const rows = await db.select().from(artworks).orderBy(asc(artworks.order), asc(artworks.slug));
 	return rows.map(toArtwork);
 }
 
@@ -142,7 +142,10 @@ function toCategory(row: CategoryRow): Category {
 
 /** All categories as full rows (admin list), sorted by `order`. */
 export async function getAllCategories(): Promise<readonly Category[]> {
-	const rows = await db.select().from(categories).orderBy(asc(categories.order));
+	const rows = await db
+		.select()
+		.from(categories)
+		.orderBy(asc(categories.order), asc(categories.id));
 	return rows.map(toCategory);
 }
 
@@ -159,7 +162,7 @@ export async function getCategoryNames(): Promise<ArtStyle[]> {
 
 /** All workshops, sorted by `order` ascending. */
 export async function getAllWorkshops(): Promise<readonly Workshop[]> {
-	const rows = await db.select().from(workshops).orderBy(asc(workshops.order));
+	const rows = await db.select().from(workshops).orderBy(asc(workshops.order), asc(workshops.slug));
 	return rows.map(toWorkshop);
 }
 
@@ -177,7 +180,7 @@ export async function getAllOrderPresets(): Promise<readonly OrderPreset[]> {
 	const rows = await db
 		.select()
 		.from(orderPresets)
-		.orderBy(asc(orderPresets.kind), asc(orderPresets.order));
+		.orderBy(asc(orderPresets.kind), asc(orderPresets.order), asc(orderPresets.id));
 	return rows.map(toOrderPreset);
 }
 
@@ -228,7 +231,7 @@ export async function getAllEvents(): Promise<readonly Event[]> {
 	const rows = await db
 		.select()
 		.from(events)
-		.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order));
+		.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order), asc(events.id));
 	return rows.map(toEvent);
 }
 
@@ -253,7 +256,7 @@ function toLead(row: LeadRow): Lead {
 
 /** All captured custom-order leads, newest first, for the admin queue. */
 export async function getAllLeads(): Promise<readonly Lead[]> {
-	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt));
+	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt), asc(leads.id));
 	return rows.map(toLead);
 }
 
@@ -274,7 +277,7 @@ export async function getAllTestimonials(): Promise<readonly Testimonial[]> {
 	const rows = await db
 		.select()
 		.from(testimonials)
-		.orderBy(desc(testimonials.featured), asc(testimonials.order));
+		.orderBy(desc(testimonials.featured), asc(testimonials.order), asc(testimonials.id));
 	return rows.map(toTestimonial);
 }
 

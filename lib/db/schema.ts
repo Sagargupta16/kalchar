@@ -12,43 +12,79 @@
  * Status is stored explicitly here (Phase 1 derived it from price). The seam
  * keeps the same derive-fallback so older rows without a status still resolve.
  */
-import { boolean, integer, jsonb, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	check,
+	integer,
+	jsonb,
+	pgTable,
+	real,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
-export const artworks = pgTable("artworks", {
-	slug: text("slug").primaryKey(),
-	title: text("title").notNull(),
-	style: text("style").notNull(),
-	medium: text("medium").notNull(),
-	year: integer("year"),
-	dimensions: text("dimensions"),
-	/** width / height, for gallery layout decisions. */
-	aspectRatio: real("aspect_ratio").notNull().default(0.75),
-	featured: boolean("featured").notNull().default(false),
-	/** Sort key, ascending. Lower = earlier in the gallery. */
-	order: integer("order").notNull(),
-	description: text("description"),
-	/**
-	 * Image identifier. Phase 1: filename in public/artworks/. Phase 2: the R2
-	 * object key (the public URL is R2_PUBLIC_BASE_URL + this key). The
-	 * <picture>/srcset contract in art-image.tsx is unchanged; only the base
-	 * URL differs.
-	 */
-	image: text("image").notNull(),
-	/** Sampled palette of 3-5 hex values. */
-	palette: jsonb("palette").$type<string[]>(),
-	/** "archive" | "available" | "sold". */
-	status: text("status").notNull().default("archive"),
-	/** INR. When set, the piece is considered for-sale. */
-	priceInr: integer("price_inr"),
-});
+export const artworks = pgTable(
+	"artworks",
+	{
+		slug: text("slug").primaryKey(),
+		title: text("title").notNull(),
+		style: text("style").notNull(),
+		medium: text("medium").notNull(),
+		year: integer("year"),
+		dimensions: text("dimensions"),
+		/** width / height, for gallery layout decisions. */
+		aspectRatio: real("aspect_ratio").notNull().default(0.75),
+		featured: boolean("featured").notNull().default(false),
+		/** Sort key, ascending. Lower = earlier in the gallery. */
+		order: integer("order").notNull(),
+		description: text("description"),
+		/**
+		 * Image identifier. Phase 1: filename in public/artworks/. Phase 2: the R2
+		 * object key (the public URL is R2_PUBLIC_BASE_URL + this key). The
+		 * <picture>/srcset contract in art-image.tsx is unchanged; only the base
+		 * URL differs.
+		 */
+		image: text("image").notNull(),
+		/** Sampled palette of 3-5 hex values. */
+		palette: jsonb("palette").$type<string[]>(),
+		/** "archive" | "available" | "sold". */
+		status: text("status").notNull().default("archive"),
+		/** INR. When set, the piece is considered for-sale. */
+		priceInr: integer("price_inr"),
+	},
+	(table) => [
+		check("artworks_title_not_blank", sql`length(trim(${table.title})) > 0`),
+		check("artworks_style_not_blank", sql`length(trim(${table.style})) > 0`),
+		check("artworks_medium_not_blank", sql`length(trim(${table.medium})) > 0`),
+		check("artworks_image_not_blank", sql`length(trim(${table.image})) > 0`),
+		check("artworks_aspect_ratio_positive", sql`${table.aspectRatio} > 0`),
+		check("artworks_order_positive", sql`${table.order} > 0`),
+		check("artworks_year_positive", sql`${table.year} is null or ${table.year} > 0`),
+		check("artworks_price_positive", sql`${table.priceInr} is null or ${table.priceInr} > 0`),
+		check("artworks_status_valid", sql`${table.status} in ('archive', 'available', 'sold')`),
+	],
+);
 
-export const workshops = pgTable("workshops", {
-	slug: text("slug").primaryKey(),
-	title: text("title").notNull(),
-	blurb: text("blurb").notNull(),
-	durationHours: real("duration_hours"),
-	order: integer("order").notNull(),
-});
+export const workshops = pgTable(
+	"workshops",
+	{
+		slug: text("slug").primaryKey(),
+		title: text("title").notNull(),
+		blurb: text("blurb").notNull(),
+		durationHours: real("duration_hours"),
+		order: integer("order").notNull(),
+	},
+	(table) => [
+		check("workshops_title_not_blank", sql`length(trim(${table.title})) > 0`),
+		check("workshops_blurb_not_blank", sql`length(trim(${table.blurb})) > 0`),
+		check(
+			"workshops_duration_positive",
+			sql`${table.durationHours} is null or ${table.durationHours} > 0`,
+		),
+		check("workshops_order_positive", sql`${table.order} > 0`),
+	],
+);
 
 /**
  * Community activities: workshops held, classes, exhibitions, meetups. Distinct
@@ -61,21 +97,28 @@ export const workshops = pgTable("workshops", {
  * first entry is the cover. Storing key-bases (not indices) keeps reorder and
  * per-image delete trivial -- no re-indexing.
  */
-export const events = pgTable("events", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	description: text("description"),
-	/** When the event took place. */
-	eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
-	/** Optional grouping label (e.g. "Exhibition", "Workshop", "Meetup"). */
-	category: text("category"),
-	/** Ordered R2 key-bases, one per photo. First is the cover. */
-	images: jsonb("images").$type<string[]>().notNull().default([]),
-	featured: boolean("featured").notNull().default(false),
-	/** Sort key, ascending. Lower = earlier in the list. */
-	order: integer("order").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const events = pgTable(
+	"events",
+	{
+		id: text("id").primaryKey(),
+		title: text("title").notNull(),
+		description: text("description"),
+		/** When the event took place. */
+		eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
+		/** Optional grouping label (e.g. "Exhibition", "Workshop", "Meetup"). */
+		category: text("category"),
+		/** Ordered R2 key-bases, one per photo. First is the cover. */
+		images: jsonb("images").$type<string[]>().notNull().default([]),
+		featured: boolean("featured").notNull().default(false),
+		/** Sort key, ascending. Lower = earlier in the list. */
+		order: integer("order").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		check("events_title_not_blank", sql`length(trim(${table.title})) > 0`),
+		check("events_order_positive", sql`${table.order} > 0`),
+	],
+);
 
 /**
  * Small key-value store for singleton site settings the maintainer can edit
@@ -94,12 +137,20 @@ export const settings = pgTable("settings", {
  * table and a new kind needs no schema change. Editable from /admin so the
  * artist can adjust the choices without a code deploy.
  */
-export const orderPresets = pgTable("order_presets", {
-	id: text("id").primaryKey(),
-	kind: text("kind").notNull(),
-	label: text("label").notNull(),
-	order: integer("order").notNull(),
-});
+export const orderPresets = pgTable(
+	"order_presets",
+	{
+		id: text("id").primaryKey(),
+		kind: text("kind").notNull(),
+		label: text("label").notNull(),
+		order: integer("order").notNull(),
+	},
+	(table) => [
+		check("order_presets_kind_valid", sql`${table.kind} in ('size', 'budget', 'timeline')`),
+		check("order_presets_label_not_blank", sql`length(trim(${table.label})) > 0`),
+		check("order_presets_order_positive", sql`${table.order} > 0`),
+	],
+);
 
 /**
  * Art categories (formerly the fixed "styles" enum in site.json). Editable
@@ -108,11 +159,18 @@ export const orderPresets = pgTable("order_presets", {
  * a category does not orphan rows -- the admin rename action updates matching
  * artworks too (see app/admin/actions.ts).
  */
-export const categories = pgTable("categories", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	order: integer("order").notNull(),
-});
+export const categories = pgTable(
+	"categories",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		order: integer("order").notNull(),
+	},
+	(table) => [
+		check("categories_name_not_blank", sql`length(trim(${table.name})) > 0`),
+		check("categories_order_positive", sql`${table.order} > 0`),
+	],
+);
 
 /**
  * Admin allowlist. Replaces a static ADMIN_EMAILS env var so a logged-in
@@ -122,15 +180,19 @@ export const categories = pgTable("categories", {
  * `isRoot` marks the bootstrap maintainer (sg85207@gmail.com); root rows can't
  * be removed, so the panel can never delete its way into a lockout.
  */
-export const maintainers = pgTable("maintainers", {
-	email: text("email").primaryKey(),
-	name: text("name"),
-	/** True for the seeded bootstrap maintainer; protected from removal. */
-	isRoot: boolean("is_root").notNull().default(false),
-	/** Email of the maintainer who added this one (null for the root seed). */
-	addedBy: text("added_by"),
-	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const maintainers = pgTable(
+	"maintainers",
+	{
+		email: text("email").primaryKey(),
+		name: text("name"),
+		/** True for the seeded bootstrap maintainer; protected from removal. */
+		isRoot: boolean("is_root").notNull().default(false),
+		/** Email of the maintainer who added this one (null for the root seed). */
+		addedBy: text("added_by"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [check("maintainers_email_not_blank", sql`length(trim(${table.email})) > 0`)],
+);
 
 /**
  * Custom-order enquiries, captured before the visitor is handed to WhatsApp.
@@ -145,18 +207,25 @@ export const maintainers = pgTable("maintainers", {
  * Holds buyer-supplied PII (name + free-text brief), so keep it minimal and
  * expose a delete path in admin. `status` drives the /admin/leads queue.
  */
-export const leads = pgTable("leads", {
-	id: text("id").primaryKey(),
-	name: text("name"),
-	style: text("style"),
-	size: text("size"),
-	budget: text("budget"),
-	timeline: text("timeline"),
-	brief: text("brief").notNull(),
-	/** new | contacted | closed -- the maintainer's triage state. */
-	status: text("status").notNull().default("new"),
-	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const leads = pgTable(
+	"leads",
+	{
+		id: text("id").primaryKey(),
+		name: text("name"),
+		style: text("style"),
+		size: text("size"),
+		budget: text("budget"),
+		timeline: text("timeline"),
+		brief: text("brief").notNull(),
+		/** new | contacted | closed -- the maintainer's triage state. */
+		status: text("status").notNull().default("new"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		check("leads_brief_not_blank", sql`length(trim(${table.brief})) > 0`),
+		check("leads_status_valid", sql`${table.status} in ('new', 'contacted', 'closed')`),
+	],
+);
 
 /**
  * Visitor/buyer testimonials -- the durable trust asset a WhatsApp-only seller
@@ -165,18 +234,26 @@ export const leads = pgTable("leads", {
  * detail page; `featured` + `order` control home-page placement. Managed from
  * /admin like workshops/presets.
  */
-export const testimonials = pgTable("testimonials", {
-	id: text("id").primaryKey(),
-	quote: text("quote").notNull(),
-	authorName: text("author_name").notNull(),
-	authorLocation: text("author_location"),
-	/** Optional soft-link to an artwork slug; surfaces the quote on that piece. */
-	artworkSlug: text("artwork_slug"),
-	featured: boolean("featured").notNull().default(false),
-	/** Sort key, ascending. Lower = earlier. */
-	order: integer("order").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const testimonials = pgTable(
+	"testimonials",
+	{
+		id: text("id").primaryKey(),
+		quote: text("quote").notNull(),
+		authorName: text("author_name").notNull(),
+		authorLocation: text("author_location"),
+		/** Optional soft-link to an artwork slug; surfaces the quote on that piece. */
+		artworkSlug: text("artwork_slug"),
+		featured: boolean("featured").notNull().default(false),
+		/** Sort key, ascending. Lower = earlier. */
+		order: integer("order").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		check("testimonials_quote_not_blank", sql`length(trim(${table.quote})) > 0`),
+		check("testimonials_author_name_not_blank", sql`length(trim(${table.authorName})) > 0`),
+		check("testimonials_order_positive", sql`${table.order} > 0`),
+	],
+);
 
 export type ArtworkRow = typeof artworks.$inferSelect;
 export type ArtworkInsert = typeof artworks.$inferInsert;

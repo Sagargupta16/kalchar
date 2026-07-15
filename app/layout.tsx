@@ -12,7 +12,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
-import { IMAGE_ORIGIN } from "@/lib/image-base";
+import { SERVER_BRAND_COLORS } from "@/lib/server-brand-colors";
 import { siteConfig } from "@/lib/site-config";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
@@ -20,17 +20,6 @@ import "./globals.css";
 
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
-
-// Origin of the R2 public base, for a preconnect hint. IMAGE_ORIGIN is the
-// validated base URL (via clientEnv); reduce it to the bare origin. Tolerant
-// on the off chance it isn't a parseable URL -- the preconnect is optional.
-const imageOrigin = (() => {
-	try {
-		return new URL(IMAGE_ORIGIN).origin;
-	} catch {
-		return "";
-	}
-})();
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
@@ -46,13 +35,20 @@ export const metadata: Metadata = {
 		siteName: site.brand.publicName,
 		locale: "en_IN",
 		type: "website",
-		images: [{ url: "/logo.jpg", width: 1254, height: 1254, alt: site.brand.logoAlt }],
+		images: [
+			{
+				url: "/opengraph-image/",
+				width: 1200,
+				height: 630,
+				alt: `${site.brand.publicName}, traditional folk art`,
+			},
+		],
 	},
 	twitter: {
 		card: "summary_large_image",
 		title: site.brand.title,
 		description: site.brand.description,
-		images: ["/logo.jpg"],
+		images: ["/opengraph-image/"],
 	},
 	icons: {
 		icon: "/logo.jpg",
@@ -60,18 +56,11 @@ export const metadata: Metadata = {
 	},
 };
 
-// Browser-chrome theme colors. These mirror --color-bg (light) and the dark
-// ground; keep them in sync with globals.css. They live as literals because
-// viewport metadata is emitted before any stylesheet loads, so CSS custom
-// properties can't resolve here.
-const THEME_COLOR_LIGHT = "#faf8f3";
-const THEME_COLOR_DARK = "#1a1510";
-
 export const viewport: Viewport = {
 	colorScheme: "light dark",
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
-		{ media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
+		{ media: "(prefers-color-scheme: light)", color: SERVER_BRAND_COLORS.paper },
+		{ media: "(prefers-color-scheme: dark)", color: SERVER_BRAND_COLORS.night },
 	],
 	viewportFit: "cover",
 };
@@ -94,7 +83,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 	return (
 		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
-				{imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
 				<script
 					type="application/ld+json"
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
@@ -123,9 +111,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<PaperGrain />
 				<MotionProvider>
 					<LightboxProvider whatsappPhone={whatsappPhone}>
-						<SmoothScroll />
-						<ScrollProgress />
-						<SiteHeader />
+						<HideOnAdmin>
+							<SmoothScroll />
+							<ScrollProgress />
+							<SiteHeader />
+						</HideOnAdmin>
 						<div id="main" className="relative z-10">
 							{children}
 						</div>

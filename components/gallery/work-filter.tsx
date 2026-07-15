@@ -162,7 +162,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 							onClick={() => setActive(f)}
 							aria-pressed={isActive}
 							className={cn(
-								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
+								"min-h-11 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
 								isActive
 									? "border-ink bg-ink text-bg"
 									: "border-line text-muted hover:border-accent hover:text-accent",
@@ -184,7 +184,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 							onClick={() => setActive(AVAILABLE)}
 							aria-pressed={active === AVAILABLE}
 							className={cn(
-								"inline-flex min-h-10 items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
+								"inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
 								active === AVAILABLE
 									? "border-(--color-vermillion) bg-(--color-vermillion) text-bg"
 									: "border-(--color-vermillion)/50 text-(--color-vermillion) hover:bg-(--color-vermillion)/10",

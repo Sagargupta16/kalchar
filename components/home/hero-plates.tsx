@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { artworkBrowserImageUrl } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
 
 const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
@@ -11,6 +12,17 @@ const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 /** Hold the LCP default plate this long before shuffling to a random pair. */
 const SHUFFLE_DELAY_MS = 700;
+const MIN_SHUFFLE_TILT = 3;
+const MAX_SHUFFLE_TILT = 7;
+
+type ShuffleStatus = "pending" | "applied" | "skipped";
+
+interface PreparedShuffle {
+	front: Artwork;
+	back?: Artwork;
+	frontTilt: number;
+	backTilt: number;
+}
 
 interface HeroPlatesProps {
 	/** Featured pieces the hero can shuffle through (full Artwork objects). */
@@ -35,6 +47,38 @@ function rand(): number {
 
 function randIn(min: number, max: number): number {
 	return min + rand() * (max - min);
+}
+
+function preloadArtwork(artwork: Artwork): Promise<boolean> {
+	return new Promise((resolve) => {
+		const image = new globalThis.Image();
+		image.onload = () => resolve(true);
+		image.onerror = () => resolve(false);
+		image.src = artworkBrowserImageUrl(artwork.image, 800, "avif");
+	});
+}
+
+async function prepareShuffle(
+	pool: readonly Artwork[],
+	defaultFront: Artwork,
+): Promise<PreparedShuffle | null> {
+	const frontIndex = Math.floor(rand() * pool.length);
+	const backOffset = pool.length > 1 ? 1 + Math.floor(rand() * (pool.length - 1)) : 0;
+	const backIndex = pool.length > 1 ? (frontIndex + backOffset) % pool.length : -1;
+
+	const front = pool[frontIndex] ?? defaultFront;
+	const back = backIndex >= 0 ? pool[backIndex] : undefined;
+	const candidates = back ? [front, back] : [front];
+	const loaded = await Promise.all(candidates.map(preloadArtwork));
+	if (loaded.includes(false)) return null;
+
+	const flip = rand() > 0.5;
+	return {
+		front,
+		back,
+		frontTilt: randIn(MIN_SHUFFLE_TILT, MAX_SHUFFLE_TILT) * (flip ? 1 : -1),
+		backTilt: randIn(MIN_SHUFFLE_TILT, MAX_SHUFFLE_TILT) * (flip ? -1 : 1),
+	};
 }
 
 /**
@@ -65,29 +109,34 @@ export function HeroPlates({
 	// The first front plate is the LCP, so it preloads with priority. Once we
 	// shuffle, swapped-in images load normally (they are no longer the LCP).
 	const [shuffled, setShuffled] = useState(false);
+	const [shuffleStatus, setShuffleStatus] = useState<ShuffleStatus>("pending");
 
 	useEffect(() => {
 		if (globalThis.window === undefined) return;
 		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (pool.length < 1) return;
 
+		let cancelled = false;
 		// Delay the shuffle so the LCP front plate paints first.
-		const timer = globalThis.setTimeout(() => {
-			const fi = Math.floor(rand() * pool.length);
-			let bi = pool.length > 1 ? Math.floor(rand() * pool.length) : -1;
-			let guard = 0;
-			while (pool.length > 1 && bi === fi && guard++ < 12) {
-				bi = Math.floor(rand() * pool.length);
+		const timer = globalThis.setTimeout(async () => {
+			const next = await prepareShuffle(pool, defaultFront);
+			if (cancelled) return;
+			if (!next) {
+				setShuffleStatus("skipped");
+				return;
 			}
-			const flip = rand() > 0.5;
-			setFront(pool[fi] ?? defaultFront);
-			setBack(bi >= 0 ? pool[bi] : undefined);
-			setFrontTilt(randIn(3, 7) * (flip ? 1 : -1));
-			setBackTilt(randIn(3, 7) * (flip ? -1 : 1));
+			setFront(next.front);
+			setBack(next.back);
+			setFrontTilt(next.frontTilt);
+			setBackTilt(next.backTilt);
 			setShuffled(true);
+			setShuffleStatus("applied");
 		}, SHUFFLE_DELAY_MS);
 
-		return () => globalThis.clearTimeout(timer);
+		return () => {
+			cancelled = true;
+			globalThis.clearTimeout(timer);
+		};
 	}, [pool, defaultFront]);
 
 	const handleClick = (e: React.MouseEvent) => {
@@ -100,7 +149,7 @@ export function HeroPlates({
 	const index = catalogIndex[front.slug] ?? -1;
 
 	return (
-		<div>
+		<div data-shuffle-status={shuffleStatus}>
 			<div className="relative aspect-3/4">
 				{/* Back plate */}
 				{back ? (

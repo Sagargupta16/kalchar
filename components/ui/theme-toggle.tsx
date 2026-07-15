@@ -53,7 +53,10 @@ const MODES: { value: Mode; label: string; Icon: typeof Sun }[] = [
 	{ value: "dark", label: "Dark", Icon: Moon },
 ];
 
-export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
+export function ThemeToggle({
+	className,
+	compact = false,
+}: Readonly<{ className?: string; compact?: boolean }>) {
 	const [mode, setMode] = useState<Mode>("light");
 	const [mounted, setMounted] = useState(false);
 
@@ -73,10 +76,31 @@ export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 			<div
 				aria-hidden="true"
 				className={cn(
-					"inline-flex h-9 w-[4.5rem] rounded-full border border-line bg-bg-soft",
+					compact
+						? "inline-flex h-11 w-11 rounded-full border border-line bg-bg-soft"
+						: "inline-flex h-12 w-24 rounded-full border border-line bg-bg-soft",
 					className,
 				)}
 			/>
+		);
+	}
+
+	if (compact) {
+		const nextMode: Mode = mode === "light" ? "dark" : "light";
+		const NextIcon = nextMode === "dark" ? Moon : Sun;
+		return (
+			<button
+				type="button"
+				onClick={() => setTheme(nextMode)}
+				aria-label={`Switch to ${nextMode} theme`}
+				title={`Switch to ${nextMode} theme`}
+				className={cn(
+					"inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-bg-soft text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+					className,
+				)}
+			>
+				<NextIcon size={15} aria-hidden="true" />
+			</button>
 		);
 	}
 
@@ -99,7 +123,7 @@ export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
 						title={`${label} theme`}
 						onClick={() => setTheme(value)}
 						className={cn(
-							"inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+							"inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
 							active ? "bg-bg text-ink shadow-e1 ring-1 ring-line" : "text-muted hover:text-ink",
 						)}
 					>

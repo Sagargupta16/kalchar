@@ -16,18 +16,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secret-scan:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan repository history
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    # Display name is pinned to the required status check in the "main
+    # protection" ruleset -- rename both together or merges to main block.
     name: lint, typecheck and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -37,6 +55,16 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Migration artifact guard
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep -qx 'lib/db/schema.ts'; then
+            if ! git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep -Eq '^drizzle/[0-9].*\.sql$'; then
+              echo '::error::lib/db/schema.ts changed without a committed SQL migration.'
+              exit 1
+            fi
+          fi
 
       - name: Elevation-token guard
         # The design system routes ALL depth through the tokenized elevation
@@ -64,6 +92,24 @@ jobs:
           # these. Stored as encrypted repo secrets (see docs/DEPLOYMENT.md).
           # NEXT_PUBLIC_IMAGE_BASE_URL is baked into the client bundle's
           # <picture> srcsets.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_IMAGE_BASE_URL: ${{ secrets.NEXT_PUBLIC_IMAGE_BASE_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser and accessibility tests
+        run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_PORT: 3001
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_IMAGE_BASE_URL: ${{ secrets.NEXT_PUBLIC_IMAGE_BASE_URL }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

@@ -3,17 +3,9 @@
 import { ImageUp, Palette, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { Artwork } from "@/lib/types";
+import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { formatInr } from "@/lib/utils";
-import {
-	deleteArtwork,
-	regeneratePalette,
-	replaceArtworkImage,
-	setFeatured,
-	setPrice,
-	setStatus,
-	updateArtworkMeta,
-} from "../actions";
+import { deleteArtwork, regeneratePalette, replaceArtworkImage, updateArtwork } from "../actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { Modal } from "./modal";
@@ -61,9 +53,10 @@ export function ArtworkRow({
 				<button
 					type="button"
 					onClick={() => setEditing(true)}
-					className={`${adminBtn} shrink-0 px-3 py-1.5`}
+					aria-label={`Edit ${art.title}`}
+					className={`${adminBtn} min-w-11 shrink-0 px-3 py-1.5`}
 				>
-					<Pencil size={13} />
+					<Pencil size={13} aria-hidden="true" />
 					<span className="hidden sm:inline">Edit</span>
 				</button>
 			</div>
@@ -94,7 +87,7 @@ function ArtworkEditModal({
 	const [year, setYear] = useState(art.year?.toString() ?? "");
 	const [description, setDescription] = useState(art.description ?? "");
 	const [price, setPriceInput] = useState(art.priceInr?.toString() ?? "");
-	const [status, setStatusInput] = useState(art.status ?? "archive");
+	const [status, setStatusInput] = useState<ArtworkStatus>(art.status ?? "archive");
 	const [featured, setFeaturedInput] = useState(art.featured);
 
 	const styleOptions = categories.includes(art.style) ? categories : [art.style, ...categories];
@@ -116,19 +109,21 @@ function ArtworkEditModal({
 	const handleSaveAll = () => {
 		const parsedYear = year ? Number(year) : null;
 		const parsedPrice = price === "" ? null : Number(price);
-		run(async () => {
-			await updateArtworkMeta(art.slug, {
-				title: title.trim(),
-				style,
-				medium: medium.trim(),
-				dimensions: dimensions.trim() || null,
-				year: parsedYear && !Number.isNaN(parsedYear) ? parsedYear : null,
-				description: description.trim() || null,
-			});
-			await setPrice(art.slug, parsedPrice && !Number.isNaN(parsedPrice) ? parsedPrice : null);
-			await setStatus(art.slug, status as "archive" | "available" | "sold");
-			if (featured !== art.featured) await setFeatured(art.slug, featured);
-		}, "Saved.");
+		run(
+			() =>
+				updateArtwork(art.slug, {
+					title: title.trim(),
+					style,
+					medium: medium.trim(),
+					dimensions: dimensions.trim() || null,
+					year: parsedYear,
+					description: description.trim() || null,
+					priceInr: parsedPrice,
+					status,
+					featured,
+				}),
+			"Saved.",
+		);
 	};
 
 	return (

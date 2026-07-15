@@ -10,7 +10,13 @@ import {
 	setTestimonialFeatured,
 } from "../testimonial-actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnPrimary, adminField, adminIconBtnDestructive } from "./controls";
+import {
+	adminBtn,
+	adminBtnPrimary,
+	adminField,
+	adminIconBtnDestructive,
+	adminLabel,
+} from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -133,18 +139,39 @@ function CreateForm({
 			}}
 			className="space-y-3 rounded-(--radius-md) border border-line bg-bg-soft p-4"
 		>
-			<textarea
-				name="quote"
-				required
-				rows={3}
-				placeholder="What they said"
-				className={cn(adminField, "w-full resize-y")}
-			/>
-			<div className="grid gap-3 sm:grid-cols-2">
-				<input name="authorName" required placeholder="Author name" className={adminField} />
-				<input name="authorLocation" placeholder="Location (optional)" className={adminField} />
+			<div className={adminLabel}>
+				<label htmlFor="new-testimonial-quote">Quote *</label>
+				<textarea
+					id="new-testimonial-quote"
+					name="quote"
+					required
+					rows={3}
+					placeholder="What they said"
+					className={cn(adminField, "w-full resize-y")}
+				/>
 			</div>
-			<label className="block text-xs text-muted" htmlFor="artworkSlug">
+			<div className="grid gap-3 sm:grid-cols-2">
+				<div className={adminLabel}>
+					<label htmlFor="new-testimonial-author">Author name *</label>
+					<input
+						id="new-testimonial-author"
+						name="authorName"
+						required
+						placeholder="e.g. Priya"
+						className={adminField}
+					/>
+				</div>
+				<div className={adminLabel}>
+					<label htmlFor="new-testimonial-location">Location</label>
+					<input
+						id="new-testimonial-location"
+						name="authorLocation"
+						placeholder="e.g. Pune"
+						className={adminField}
+					/>
+				</div>
+			</div>
+			<label className="block text-xs font-medium text-muted" htmlFor="artworkSlug">
 				Link to an artwork (optional)
 			</label>
 			<select
@@ -160,7 +187,7 @@ function CreateForm({
 					</option>
 				))}
 			</select>
-			<label className="flex items-center gap-2 text-sm text-ink">
+			<label className="flex min-h-11 items-center gap-2 text-sm text-ink">
 				<input type="checkbox" name="featured" /> Feature on home page
 			</label>
 			<div className="flex items-center gap-2">
