@@ -66,8 +66,8 @@ export default function TrustPage() {
 					<div className="mx-auto mt-12 max-w-2xl divide-y divide-line border-y border-line">
 						{trust.faqs.map((faq, i) => (
 							<Reveal key={faq.question} delayMs={Math.min(i, 5) * 60}>
-								<details className="group py-4">
-									<summary className="flex cursor-pointer items-center justify-between gap-4 text-left text-base font-medium text-ink [&::-webkit-details-marker]:hidden">
+								<details className="group">
+									<summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-4 text-left text-base font-medium text-ink [&::-webkit-details-marker]:hidden">
 										{faq.question}
 										<ChevronDown
 											size={18}
@@ -75,7 +75,7 @@ export default function TrustPage() {
 											className="shrink-0 text-muted transition-transform duration-(--duration-base) ease-(--ease-out) group-open:rotate-180"
 										/>
 									</summary>
-									<p className="mt-3 text-sm leading-relaxed text-muted">{faq.answer}</p>
+									<p className="pb-4 text-sm leading-relaxed text-muted">{faq.answer}</p>
 								</details>
 							</Reveal>
 						))}

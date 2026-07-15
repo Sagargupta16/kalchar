@@ -80,7 +80,10 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
-						<span className="cursor-grab text-muted hover:text-ink active:cursor-grabbing">
+						<span
+							aria-hidden="true"
+							className="cursor-grab text-muted hover:text-ink active:cursor-grabbing"
+						>
 							<GripVertical size={16} />
 						</span>
 						{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
@@ -103,10 +106,11 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							type="button"
 							disabled={pending}
 							onClick={() => handleDelete(art)}
+							aria-label={`Delete ${art.title}`}
 							title={`Delete ${art.title}`}
 							className={cn(adminIconBtnDestructive, "shrink-0")}
 						>
-							<Trash2 size={13} />
+							<Trash2 size={13} aria-hidden="true" />
 						</button>
 					</li>
 				))}

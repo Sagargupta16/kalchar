@@ -63,14 +63,13 @@ export default async function HomePage() {
 	const selected = all
 		.filter((art) => art.featured && art.slug !== featured?.slug)
 		.slice(0, SELECTED_WORK_COUNT);
-	const heroSecondary = selected[0];
 	const workshopsPreview = allWorkshops.slice(0, WORKSHOPS_PREVIEW_COUNT);
 
-	// Pool the hero can shuffle through on reload: every featured piece (full
-	// Artwork objects, so the lightbox has price/palette/dimensions). Falls back
-	// to the whole catalog if nothing is explicitly featured.
+	// Keep at least two pieces in the hero pool so the layered composition never
+	// collapses when only one catalog row is marked featured.
 	const heroSource = all.filter((a) => a.featured);
-	const heroPool = heroSource.length > 0 ? heroSource : all;
+	const heroPool = heroSource.length >= 2 ? heroSource : all;
+	const heroSecondary = heroPool.find((art) => art.slug !== featured?.slug);
 	// slug -> catalog position, for the hero "N of M" caption.
 	const catalogIndex: Record<string, number> = {};
 	all.forEach((a, i) => {

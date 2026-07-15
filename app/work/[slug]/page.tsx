@@ -190,7 +190,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<Reveal eager>
 				<Link
 					href="/work"
-					className="inline-flex items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
+					className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
 				>
 					<ArrowLeft size={14} aria-hidden="true" />
 					Back to artwork
@@ -310,7 +310,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 								<ShareButton title={art.title} url={`${siteConfig.url}/work/${art.slug}/`} />
 								<Link
 									href={`/work?style=${encodeURIComponent(art.style)}`}
-									className="inline-flex min-h-10 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
+									className="inline-flex min-h-11 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
 								>
 									See more {art.style}
 									<ArrowRight size={13} aria-hidden="true" />

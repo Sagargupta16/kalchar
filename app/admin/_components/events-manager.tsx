@@ -6,7 +6,14 @@ import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createEvent, deleteEvent, setEventFeatured } from "../event-actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import {
+	adminBtn,
+	adminBtnDestructive,
+	adminBtnPrimary,
+	adminField,
+	adminIconBtn,
+	adminLabel,
+} from "./controls";
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
 import { useAdminAction } from "./use-admin-action";
@@ -101,28 +108,42 @@ function CreateEventForm({
 		>
 			<p className="mb-3 text-xs font-medium text-muted">Add an event</p>
 			<div className="grid gap-3 sm:grid-cols-2">
-				<input name="title" placeholder="Title *" required className={adminField} />
-				<input
-					name="eventDate"
-					type="date"
-					required
-					aria-label="Event date"
-					className={adminField}
-				/>
-				<input
-					name="category"
-					placeholder="Category (e.g. Exhibition, Workshop)"
-					className={`${adminField} sm:col-span-2`}
-				/>
-				<textarea
-					name="description"
-					placeholder="Description"
-					rows={2}
-					className={`${adminField} sm:col-span-2`}
-				/>
+				<div className={adminLabel}>
+					<label htmlFor="new-event-title">Title *</label>
+					<input
+						id="new-event-title"
+						name="title"
+						placeholder="e.g. Monsoon exhibition"
+						required
+						className={adminField}
+					/>
+				</div>
+				<div className={adminLabel}>
+					<label htmlFor="new-event-date">Event date *</label>
+					<input id="new-event-date" name="eventDate" type="date" required className={adminField} />
+				</div>
+				<div className={`${adminLabel} sm:col-span-2`}>
+					<label htmlFor="new-event-category">Category</label>
+					<input
+						id="new-event-category"
+						name="category"
+						placeholder="e.g. Exhibition or workshop"
+						className={adminField}
+					/>
+				</div>
+				<div className={`${adminLabel} sm:col-span-2`}>
+					<label htmlFor="new-event-description">Description</label>
+					<textarea
+						id="new-event-description"
+						name="description"
+						placeholder="A short summary of the gathering"
+						rows={3}
+						className={adminField}
+					/>
+				</div>
 				<div className="sm:col-span-2">
 					<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
-						<Plus size={18} />
+						<Plus size={18} aria-hidden="true" />
 						<span>{photoPickerLabel(fileCount)}</span>
 						<input
 							name="images"
@@ -182,20 +203,23 @@ function EventItem({
 					disabled={pending}
 					onClick={onTogglePin}
 					aria-pressed={event.featured}
+					aria-label={event.featured ? "Unpin event" : "Pin event to top"}
 					title={event.featured ? "Pinned to top (tap to unpin)" : "Pin to top"}
 					className={cn(
-						"inline-flex h-8 w-8 items-center justify-center rounded-(--radius-sm) border transition-colors disabled:opacity-50",
-						event.featured
-							? "border-accent text-accent"
-							: "border-line text-muted hover:border-accent hover:text-accent",
+						adminIconBtn,
+						event.featured ? "border-accent text-accent" : "border-line text-muted",
 					)}
 				>
-					<Pin size={14} className={event.featured ? "fill-accent/20" : undefined} />
+					<Pin
+						size={14}
+						aria-hidden="true"
+						className={event.featured ? "fill-accent/20" : undefined}
+					/>
 				</button>
 				<button
 					type="button"
 					onClick={() => setExpanded((v) => !v)}
-					className={`${adminBtn} px-2 py-1`}
+					className={`${adminBtn} min-w-11 px-2 py-1`}
 				>
 					{expanded ? "Close" : "Edit"}
 				</button>
@@ -203,9 +227,10 @@ function EventItem({
 					type="button"
 					disabled={pending}
 					onClick={onDelete}
-					className={`${adminBtnDestructive} px-2 py-1`}
+					aria-label={`Delete ${event.title}`}
+					className={`${adminBtnDestructive} min-w-11 px-2 py-1`}
 				>
-					<Trash2 size={12} />
+					<Trash2 size={14} aria-hidden="true" />
 				</button>
 			</div>
 

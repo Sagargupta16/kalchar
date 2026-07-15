@@ -22,8 +22,10 @@ import {
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
-import type { OrderPresetKind } from "@/lib/types";
+import type { ArtworkStatus, OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
+
+const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold"]);
 
 function revalidateCatalog(slug?: string) {
 	revalidatePath("/");
@@ -42,50 +44,57 @@ function revalidateWorkshops() {
 	revalidatePath("/admin/workshops");
 }
 
-/** Set or clear a piece's price (clearing reverts it to archive via the seam). */
-export async function setPrice(slug: string, priceInr: number | null): Promise<void> {
-	await requireMaintainer();
-	if (priceInr !== null && (!Number.isInteger(priceInr) || priceInr <= 0)) {
-		throw new Error("Price must be a positive whole number.");
-	}
-	await db
-		.update(artworks)
-		.set({ priceInr, status: priceInr === null ? "archive" : "available" })
-		.where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Set lifecycle status explicitly (archive / available / sold). */
-export async function setStatus(
-	slug: string,
-	status: "archive" | "available" | "sold",
-): Promise<void> {
-	await requireMaintainer();
-	await db.update(artworks).set({ status }).where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Toggle featured (hero/rail inclusion). */
-export async function setFeatured(slug: string, featured: boolean): Promise<void> {
-	await requireMaintainer();
-	await db.update(artworks).set({ featured }).where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
-}
-
-/** Update editable artwork fields (everything except slug, image, order). */
-export async function updateArtworkMeta(
+/** Validate and commit all editable artwork fields in one atomic update. */
+export async function updateArtwork(
 	slug: string,
 	fields: {
-		title?: string;
-		style?: string;
-		description?: string | null;
-		medium?: string;
-		dimensions?: string | null;
-		year?: number | null;
+		title: string;
+		style: string;
+		description: string | null;
+		medium: string;
+		dimensions: string | null;
+		year: number | null;
+		priceInr: number | null;
+		status: ArtworkStatus;
+		featured: boolean;
 	},
 ): Promise<void> {
 	await requireMaintainer();
-	await db.update(artworks).set(fields).where(eq(artworks.slug, slug));
+	const title = fields.title.trim();
+	const style = fields.style.trim();
+	const medium = fields.medium.trim();
+	if (!title || !style || !medium) {
+		throw new Error("Title, category, and medium are required.");
+	}
+	if (fields.year !== null && (!Number.isInteger(fields.year) || fields.year <= 0)) {
+		throw new Error("Year must be a positive whole number.");
+	}
+	if (fields.priceInr !== null && (!Number.isInteger(fields.priceInr) || fields.priceInr <= 0)) {
+		throw new Error("Price must be a positive whole number.");
+	}
+	if (!ARTWORK_STATUSES.has(fields.status)) {
+		throw new Error("Choose a valid artwork status.");
+	}
+	if (typeof fields.featured !== "boolean") {
+		throw new Error("Featured must be true or false.");
+	}
+
+	const updated = await db
+		.update(artworks)
+		.set({
+			title,
+			style,
+			medium,
+			description: fields.description?.trim() || null,
+			dimensions: fields.dimensions?.trim() || null,
+			year: fields.year,
+			priceInr: fields.priceInr,
+			status: fields.status,
+			featured: fields.featured,
+		})
+		.where(eq(artworks.slug, slug))
+		.returning({ slug: artworks.slug });
+	if (updated.length === 0) throw new Error("Artwork not found.");
 	revalidateCatalog(slug);
 }
 

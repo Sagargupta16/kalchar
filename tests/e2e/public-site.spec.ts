@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, test } from "@playwright/test";
+
+const MEDIA_FIXTURE = readFileSync(resolve("public/artworks/twin-fish.jpg"));
 
 const PUBLIC_ROUTES = [
 	"/",
@@ -12,6 +16,21 @@ const PUBLIC_ROUTES = [
 	"/trust/",
 ] as const;
 
+async function expectTouchTarget(locator: Locator) {
+	const box = await locator.boundingBox();
+	expect(box?.width).toBeGreaterThanOrEqual(44);
+	expect(box?.height).toBeGreaterThanOrEqual(44);
+}
+
+test.beforeEach(async ({ page }) => {
+	await page.route("**/media/**", (route) =>
+		route.fulfill({
+			body: MEDIA_FIXTURE,
+			contentType: "image/jpeg",
+		}),
+	);
+});
+
 for (const theme of ["light", "dark"] as const) {
 	for (const route of PUBLIC_ROUTES) {
 		test(`${route} passes ${theme} accessibility and overflow checks`, async ({ page }) => {
@@ -21,7 +40,6 @@ for (const theme of ["light", "dark"] as const) {
 			}, theme);
 			const response = await page.goto(route, { waitUntil: "domcontentloaded" });
 			expect(response?.ok()).toBe(true);
-			await page.waitForLoadState("networkidle");
 			await expect(page.getByRole("main")).toHaveCount(1);
 			await expect(page.getByRole("main")).toBeVisible();
 			await page.waitForFunction(
@@ -73,7 +91,8 @@ test("configuration failures are not presented as allowlist rejections", async (
 });
 
 test("hero stays complete when R2 artwork requests fail", async ({ page }) => {
-	await page.route(/https:\/\/[^/]+\.r2\.dev\/artworks\//, (route) => route.abort("failed"));
+	await page.unroute("**/media/**");
+	await page.route("**/media/artworks/**", (route) => route.abort("failed"));
 	const response = await page.goto("/", { waitUntil: "domcontentloaded" });
 	expect(response?.ok()).toBe(true);
 
@@ -165,20 +184,52 @@ test(
 
 		const menu = page.getByRole("button", { name: "Open menu" });
 		await expect(menu).toBeVisible();
-		const menuBox = await menu.boundingBox();
-		expect(menuBox?.width).toBeGreaterThanOrEqual(44);
-		expect(menuBox?.height).toBeGreaterThanOrEqual(44);
+		await expectTouchTarget(menu);
 
 		const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
 		await expect(themeButtons).toHaveCount(2);
 		for (const button of await themeButtons.all()) {
-			const box = await button.boundingBox();
-			expect(box?.width).toBeGreaterThanOrEqual(44);
-			expect(box?.height).toBeGreaterThanOrEqual(44);
+			await expectTouchTarget(button);
 		}
 
 		await menu.click();
 		await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();
+
+		await page.goto("/work/");
+		await expect(page.getByText("Open a piece for a closer look.")).toBeVisible();
+		const filters = page.getByRole("group", { name: "Filter artwork" }).getByRole("button");
+		for (const filter of await filters.all()) {
+			await expectTouchTarget(filter);
+		}
+
+		const footer = page.getByRole("contentinfo");
+		await expectTouchTarget(footer.getByRole("link", { name: "Home" }));
+		await expectTouchTarget(footer.getByRole("link", { name: "FAQ" }));
+
+		await page.goto("/trust/");
+		for (const summary of await page.locator("summary").all()) {
+			await expectTouchTarget(summary);
+		}
+	},
+);
+
+test(
+	"tablet header keeps compact controls visible",
+	{ tag: "@mobile" },
+	async ({ page }) => {
+		await page.setViewportSize({ width: 768, height: 1024 });
+		await page.goto("/");
+
+		await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
+		await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+		const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
+		for (const button of await themeButtons.all()) {
+			await expectTouchTarget(button);
+		}
+		const overflow = await page.evaluate(
+			() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+		);
+		expect(overflow).toBeLessThanOrEqual(1);
 	},
 );
 
@@ -205,15 +256,18 @@ test(
 test.describe("reduced motion", () => {
 	test.use({ reducedMotion: "reduce" });
 
-	test("flattens hero plates and keeps the description visible", async ({ page }) => {
+	test("keeps static tilted hero plates and the description visible", async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");
 		expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
 			true,
 		);
-		const plate = page.locator(".hero-plate").first();
-		await expect(plate).toBeVisible();
-		await expect(plate).toHaveCSS("transform", "none");
+		const plates = page.locator(".hero-plate");
+		await expect(plates).toHaveCount(2);
+		for (const plate of await plates.all()) {
+			await expect(plate).toBeVisible();
+			await expect(plate).not.toHaveCSS("transform", "none");
+		}
 
 		const description = page.locator("main section").first().locator(".t-lead");
 		await expect(description).toBeVisible();

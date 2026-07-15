@@ -2,7 +2,7 @@
 
 import { ArrowUp } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 
 /**
@@ -15,45 +15,42 @@ import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion"
  * bottom-right zone with its own mobile tab bar). Reduced motion -> instant
  * jump and no fade transition.
  */
-/** Reveal the button once the reader is ~90% of a viewport down the page. */
-const REVEAL_VIEWPORT_RATIO = 0.9;
-
 export function BackToTop() {
 	const [visible, setVisible] = useState(false);
+	const thresholdRef = useRef<HTMLSpanElement>(null);
 	const reduceMotion = usePrefersReducedMotion();
 	const pathname = usePathname();
 	const onAdmin = pathname?.startsWith("/admin");
 
 	useEffect(() => {
-		if (onAdmin) return;
-		let ticking = false;
-		function onScroll() {
-			if (ticking) return;
-			ticking = true;
-			requestAnimationFrame(() => {
-				setVisible(globalThis.scrollY > globalThis.innerHeight * REVEAL_VIEWPORT_RATIO);
-				ticking = false;
-			});
-		}
-		onScroll();
-		globalThis.addEventListener("scroll", onScroll, { passive: true });
-		return () => globalThis.removeEventListener("scroll", onScroll);
+		const threshold = thresholdRef.current;
+		if (onAdmin || !threshold) return;
+		const observer = new IntersectionObserver(([entry]) => setVisible(!entry?.isIntersecting));
+		observer.observe(threshold);
+		return () => observer.disconnect();
 	}, [onAdmin]);
 
 	if (onAdmin) return null;
 
 	return (
-		<button
-			type="button"
-			aria-label="Back to top"
-			onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
-			className={`group fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-40 grid h-11 w-11 place-items-center rounded-full border border-line bg-bg/90 text-ink shadow-e4 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-accent hover:text-accent ${
-				visible
-					? "pointer-events-auto translate-y-0 opacity-100"
-					: "pointer-events-none translate-y-2 opacity-0"
-			} ${reduceMotion ? "transition-none" : ""}`}
-		>
-			<ArrowUp size={18} aria-hidden="true" />
-		</button>
+		<>
+			<span
+				ref={thresholdRef}
+				aria-hidden="true"
+				className="pointer-events-none absolute left-0 top-[90vh] h-px w-px"
+			/>
+			<button
+				type="button"
+				aria-label="Back to top"
+				onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
+				className={`group fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-40 grid h-11 w-11 place-items-center rounded-full border border-line bg-bg/90 text-ink shadow-e4 backdrop-blur-md transition-[border-color,color,opacity,transform] duration-(--duration-base) ease-(--ease-out) hover:-translate-y-0.5 hover:border-accent hover:text-accent ${
+					visible
+						? "pointer-events-auto translate-y-0 opacity-100"
+						: "pointer-events-none translate-y-2 opacity-0"
+				} ${reduceMotion ? "transition-none" : ""}`}
+			>
+				<ArrowUp size={18} aria-hidden="true" />
+			</button>
+		</>
 	);
 }

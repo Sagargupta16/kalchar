@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@/lib/types";
 import { updateEventMeta } from "../event-actions";
-import { adminBtnPrimary, adminField } from "./controls";
+import { adminBtnPrimary, adminField, adminLabel } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 
 const SAVED_CONFIRMATION_MS = 2000;
@@ -36,32 +36,44 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 	return (
 		<div className="space-y-2">
 			<div className="grid gap-2 sm:grid-cols-2">
-				<input
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="Title"
-					className={adminField}
-				/>
-				<input
-					type="date"
-					value={date}
-					onChange={(e) => setDate(e.target.value)}
-					aria-label="Event date"
-					className={adminField}
-				/>
-				<input
-					value={category}
-					onChange={(e) => setCategory(e.target.value)}
-					placeholder="Category"
-					className={`${adminField} sm:col-span-2`}
-				/>
-				<textarea
-					value={description}
-					onChange={(e) => setDescription(e.target.value)}
-					rows={2}
-					placeholder="Description"
-					className={`${adminField} sm:col-span-2`}
-				/>
+				<div className={adminLabel}>
+					<label htmlFor={`event-title-${event.id}`}>Title</label>
+					<input
+						id={`event-title-${event.id}`}
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						className={adminField}
+					/>
+				</div>
+				<div className={adminLabel}>
+					<label htmlFor={`event-date-${event.id}`}>Event date</label>
+					<input
+						id={`event-date-${event.id}`}
+						type="date"
+						value={date}
+						onChange={(e) => setDate(e.target.value)}
+						className={adminField}
+					/>
+				</div>
+				<div className={`${adminLabel} sm:col-span-2`}>
+					<label htmlFor={`event-category-${event.id}`}>Category</label>
+					<input
+						id={`event-category-${event.id}`}
+						value={category}
+						onChange={(e) => setCategory(e.target.value)}
+						className={adminField}
+					/>
+				</div>
+				<div className={`${adminLabel} sm:col-span-2`}>
+					<label htmlFor={`event-description-${event.id}`}>Description</label>
+					<textarea
+						id={`event-description-${event.id}`}
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						rows={3}
+						className={adminField}
+					/>
+				</div>
 			</div>
 			<div className="flex items-center gap-2.5">
 				<button
@@ -70,7 +82,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 					onClick={onSave}
 					className={`${adminBtnPrimary} px-3 py-1.5`}
 				>
-					<Check size={14} />
+					<Check size={14} aria-hidden="true" />
 					Save details
 				</button>
 				{saved ? <span className="text-sm text-accent">Saved</span> : null}

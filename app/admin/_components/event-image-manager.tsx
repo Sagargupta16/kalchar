@@ -6,7 +6,7 @@ import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { addEventImages, removeEventImage, reorderEventImages } from "../event-actions";
-import { adminBtn, adminBtnPrimary } from "./controls";
+import { adminBtn, adminBtnPrimary, adminIconBtnDestructive } from "./controls";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -81,7 +81,10 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 									Cover
 								</span>
 							) : null}
-							<span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/50 text-bg">
+							<span
+								aria-hidden="true"
+								className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-ink/60 text-bg"
+							>
 								<GripVertical size={11} />
 							</span>
 							<button
@@ -89,9 +92,12 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 								disabled={pending}
 								onClick={() => handleRemove(keyBase)}
 								aria-label={`Remove photo ${i + 1}`}
-								className="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-ruby text-bg opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
+								className={cn(
+									adminIconBtnDestructive,
+									"absolute bottom-1 right-1 bg-bg/95 shadow-e1",
+								)}
 							>
-								<X size={12} />
+								<X size={15} aria-hidden="true" />
 							</button>
 						</li>
 					))}

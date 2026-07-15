@@ -135,7 +135,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 
 - **Mobile-first.** Most traffic is WhatsApp / Instagram link-taps on phones. Design for phone width first, then scale up.
 - **Reduced-motion safe.** Handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config cannot reach (raw `useSpring`, animated SVG `rx/ry`). MEMORY.md "Motion exclusions" is the source of truth for the policy.
-- **No raw hex / rgb in components.** All color flows through CSS custom properties. The only exceptions: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars do not resolve there).
+- **No raw hex / rgb in components.** Browser-rendered color flows through CSS custom properties. The only exceptions are `data/artworks.json` palette arrays, SVG data URIs, and pre-CSS/server image outputs that import the named constants in `lib/server-brand-colors.ts`.
 - **No magic timings.** Use the named tokens (`--duration-fast/base/slow`, `--ease-out-soft/glide/spring`).
 - **Consistent corner radius.** `rounded-md` on every surface (cards, panels, fields, buttons, image plates). Pills and the theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents.** about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock; hero + Selected Work inherit global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.

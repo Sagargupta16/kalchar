@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { listMaintainers } from "@/lib/maintainers";
+import { AdminPageHeader } from "../_components/admin-page-header";
 import { MaintainerManager } from "../_components/maintainer-manager";
 
 export default async function MaintainersPage() {
@@ -8,12 +9,10 @@ export default async function MaintainersPage() {
 
 	return (
 		<div className="max-w-2xl space-y-6">
-			<section>
-				<h2 className="text-sm font-semibold">Maintainers</h2>
-				<p className="mt-1 text-xs text-muted">
-					Anyone listed here can sign in and manage the catalog. Add by Google email.
-				</p>
-			</section>
+			<AdminPageHeader
+				title="Maintainers"
+				description="Anyone listed here can sign in and manage the catalog. Add by Google email."
+			/>
 			<MaintainerManager
 				roster={roster.map((m) => ({
 					email: m.email,

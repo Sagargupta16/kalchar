@@ -161,7 +161,7 @@ export default function ContactPage() {
 									href={contact.instagramPersonal.url}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="underline underline-offset-3 decoration-line/60 transition-colors hover:text-accent hover:decoration-accent"
+									className="inline-flex min-h-11 items-center underline underline-offset-3 decoration-line/60 transition-colors hover:text-accent hover:decoration-accent"
 								>
 									{contact.instagramPersonal.display}
 								</a>

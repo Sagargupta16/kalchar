@@ -4,6 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AdminLoading() {
 	return (
 		<div className="space-y-8">
+			<div className="space-y-2">
+				<Skeleton className="h-7 w-28" />
+				<Skeleton className="h-4 w-72 max-w-full" />
+			</div>
 			{/* Stat cards */}
 			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 				{[0, 1, 2, 3].map((i) => (

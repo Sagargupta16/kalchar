@@ -250,6 +250,26 @@ body {
 
 /* ─── ANIMATION CLASSES ─── */
 
+/* Native scroll-driven progress avoids a JS scroll listener and updates on the
+   compositor. Browsers without scroll timelines simply hide the enhancement. */
+.scroll-progress-bar {
+  transform: scaleX(0);
+  animation: scroll-progress linear both;
+  animation-timeline: scroll(root block);
+}
+
+@keyframes scroll-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .scroll-progress-bar {
+    display: none;
+  }
+}
+
 /* Home hero artwork plates -- smooth ease when the random shuffle changes
    the tilt angle on reload. Reduced motion flattens to the resting tilt. */
 .hero-plate {
@@ -361,9 +381,8 @@ body {
     width: var(--flare-w, 100%);
   }
 
-  /* Flatten decorative plates and skip their transition. */
+  /* Keep the static gallery composition, but skip all plate transitions. */
   .hero-plate {
-    transform: none !important;
     transition: none;
   }
 
@@ -372,6 +391,11 @@ body {
     animation: none;
   }
   .page-enter {
+    animation: none;
+  }
+
+  .scroll-progress-bar {
+    display: none;
     animation: none;
   }
 

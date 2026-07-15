@@ -141,19 +141,25 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 						type="button"
 						role="switch"
 						aria-checked={intro}
+						aria-label="Show artist intro on home"
 						disabled={pending}
 						onClick={onToggleIntro}
-						className={cn(
-							"relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50",
-							intro ? "bg-accent" : "bg-bg-muted",
-						)}
+						className="grid h-11 w-14 shrink-0 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						<span
+							aria-hidden="true"
 							className={cn(
-								"inline-block h-5 w-5 transform rounded-full bg-bg shadow transition-transform",
-								intro ? "translate-x-5" : "translate-x-0.5",
+								"relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+								intro ? "bg-accent" : "bg-bg-muted",
 							)}
-						/>
+						>
+							<span
+								className={cn(
+									"inline-block h-5 w-5 rounded-full bg-bg shadow transition-transform",
+									intro ? "translate-x-5" : "translate-x-0.5",
+								)}
+							/>
+						</span>
 					</button>
 				</div>
 			</section>

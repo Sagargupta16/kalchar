@@ -70,7 +70,25 @@ export function ResponsiveImage({
 		setLoaded(false);
 	}
 	const activeSource = seenKeyBase === keyBase ? imageSource : "remote";
+	const handleError = () => {
+		setLoaded(false);
+		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
+	};
+	const settle = (el: HTMLImageElement | null) => {
+		if (!el) return;
+		if (el.complete && el.naturalWidth > 0) {
+			setLoaded(true);
+			return;
+		}
 
+		// Picture source selection can still be pending when the ref attaches.
+		// Recheck next frame to catch only failures that predate hydration.
+		globalThis.requestAnimationFrame(() => {
+			if (!el.isConnected || !el.complete) return;
+			if (el.naturalWidth > 0) setLoaded(true);
+			else handleError();
+		});
+	};
 	if (activeSource === "failed") {
 		if (!alt) {
 			return (
@@ -93,15 +111,8 @@ export function ResponsiveImage({
 	// unhides it for crawlers -- the same contract Reveal relies on.
 	const isFallback = activeSource === "fallback";
 	const animate = !isFallback && !priority && !reduceMotion;
-	const settle = (el: HTMLImageElement | null) => {
-		if (el?.complete) setLoaded(true);
-	};
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
 	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
-	const handleError = () => {
-		setLoaded(false);
-		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
-	};
 	const image = (
 		// biome-ignore lint/performance/noImgElement: native picture sources provide the R2 format and width selection
 		<img

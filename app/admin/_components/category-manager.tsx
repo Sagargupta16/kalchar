@@ -6,7 +6,14 @@ import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import {
+	adminBtn,
+	adminBtnPrimary,
+	adminField,
+	adminIconBtn,
+	adminIconBtnDestructive,
+	adminIconBtnPrimary,
+} from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
@@ -66,6 +73,7 @@ export function CategoryManager({
 					<input
 						value={newName}
 						onChange={(e) => setNewName(e.target.value)}
+						aria-label="Category name"
 						placeholder="e.g. Warli, Kalamkari, Tanjore"
 						className={`${adminField} flex-1`}
 					/>
@@ -145,24 +153,29 @@ function CategoryItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-3">
-				<span className="cursor-grab text-muted active:cursor-grabbing">
+				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
 					<GripVertical size={16} />
 				</span>
 				<span className="flex-1 truncate text-sm font-medium">{category.name}</span>
 				<span className="t-meta shrink-0 text-[0.65rem]">
 					{usageCount} {usageCount === 1 ? "piece" : "pieces"}
 				</span>
-				<button type="button" onClick={() => setEditing(true)} className={`${adminBtn} px-2 py-1`}>
+				<button
+					type="button"
+					onClick={() => setEditing(true)}
+					className={`${adminBtn} min-w-11 px-2 py-1`}
+				>
 					Rename
 				</button>
 				<button
 					type="button"
 					disabled={pending || usageCount > 0}
 					onClick={onDelete}
+					aria-label={`Delete ${category.name}`}
 					title={usageCount > 0 ? "Reassign its pieces before deleting" : "Delete category"}
-					className={`${adminBtnDestructive} px-2 py-1`}
+					className={adminIconBtnDestructive}
 				>
-					<Trash2 size={12} />
+					<Trash2 size={14} aria-hidden="true" />
 				</button>
 			</div>
 		);
@@ -173,6 +186,7 @@ function CategoryItem({
 			<input
 				value={name}
 				onChange={(e) => setName(e.target.value)}
+				aria-label={`Rename ${category.name}`}
 				className={`${adminField} flex-1`}
 				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
 				autoFocus
@@ -184,9 +198,10 @@ function CategoryItem({
 					onSave(name.trim());
 					setEditing(false);
 				}}
-				className={`${adminBtnPrimary} px-2.5 py-1.5`}
+				aria-label={`Save ${category.name}`}
+				className={adminIconBtnPrimary}
 			>
-				<Check size={14} />
+				<Check size={14} aria-hidden="true" />
 			</button>
 			<button
 				type="button"
@@ -194,9 +209,10 @@ function CategoryItem({
 					setName(category.name);
 					setEditing(false);
 				}}
-				className={`${adminBtn} px-2.5 py-1.5`}
+				aria-label={`Cancel renaming ${category.name}`}
+				className={adminIconBtn}
 			>
-				<X size={14} />
+				<X size={14} aria-hidden="true" />
 			</button>
 		</div>
 	);

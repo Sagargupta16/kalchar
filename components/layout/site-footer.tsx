@@ -88,7 +88,11 @@ export function SiteFooter() {
 				<div className="grid gap-10 py-14 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto] md:gap-16 sm:py-16">
 					{/* Brand */}
 					<Reveal as="div" delayMs={0} className="sm:col-span-2 md:col-span-1">
-						<Link href="/" aria-label="Home" className="group inline-flex items-baseline gap-2">
+						<Link
+							href="/"
+							aria-label="Home"
+							className="group inline-flex min-h-11 items-center gap-2"
+						>
 							<span className="t-display text-3xl leading-none tracking-[var(--tracking-tight)] sm:text-[2rem]">
 								<span className="not-italic transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent">
 									{brand.headline.latinPrefix}
@@ -195,7 +199,7 @@ export function SiteFooter() {
 					<div className="flex items-center gap-3">
 						<Link
 							href="/trust"
-							className="inline-flex min-h-11 items-center transition-colors hover:text-accent"
+							className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-accent"
 						>
 							FAQ
 						</Link>

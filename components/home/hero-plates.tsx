@@ -14,7 +14,6 @@ const DEFAULT_BACK_TILT = 4;
 const SHUFFLE_DELAY_MS = 700;
 const MIN_SHUFFLE_TILT = 3;
 const MAX_SHUFFLE_TILT = 7;
-const MAX_DISTINCT_PICK_ATTEMPTS = 12;
 
 type ShuffleStatus = "pending" | "applied" | "skipped";
 
@@ -64,11 +63,8 @@ async function prepareShuffle(
 	defaultFront: Artwork,
 ): Promise<PreparedShuffle | null> {
 	const frontIndex = Math.floor(rand() * pool.length);
-	let backIndex = pool.length > 1 ? Math.floor(rand() * pool.length) : -1;
-	let attempts = 0;
-	while (pool.length > 1 && backIndex === frontIndex && attempts++ < MAX_DISTINCT_PICK_ATTEMPTS) {
-		backIndex = Math.floor(rand() * pool.length);
-	}
+	const backOffset = pool.length > 1 ? 1 + Math.floor(rand() * (pool.length - 1)) : 0;
+	const backIndex = pool.length > 1 ? (frontIndex + backOffset) % pool.length : -1;
 
 	const front = pool[frontIndex] ?? defaultFront;
 	const back = backIndex >= 0 ? pool[backIndex] : undefined;

@@ -202,10 +202,7 @@ Mutations are server actions: catalog + lookups + roster in [app/admin/actions.t
 
 | Action | DB effect | Notes |
 | --- | --- | --- |
-| `setPrice(slug, priceInr)` | `update` price + status | `setPrice(null)` clears the price and sets `status` to `archive` (`app/admin/actions.ts:45`). |
-| `setStatus(slug, status)` | `update` status | Explicit `archive` / `available` / `sold`. |
-| `setFeatured(slug, featured)` | `update` featured | Toggles hero/rail inclusion. |
-| `updateArtworkMeta(slug, fields)` | `update` free-text fields | `title`, `description`, `medium`, `dimensions`, `year`. |
+| `updateArtwork(slug, fields)` | one validated `update` | Commits metadata, price, status, and featured state atomically so a failed save cannot leave a partial edit. |
 | `createArtwork(formData)` | `insert` new row | Slugifies the title, processes the image, computes `order`. |
 | `deleteArtwork(slug)` | row delete + R2 cleanup | Removes the database row first, then attempts cleanup of the stored image variants. |
 

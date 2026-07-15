@@ -4,15 +4,25 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## 1.34.1 (2026-07-14)
 
-Hero image reliability follow-up.
+Hero image reliability and interface quality follow-up.
+
+### Changed
+
+- The admin workspace now uses consistent page headings, labeled fields, accessible icon controls, 44px touch targets, a grouped desktop navigation, a compact mobile tool menu, aligned loading states, and an admin theme control.
+- Artwork edits now validate and commit metadata, price, status, and featured state in one update, while the mobile admin tool menu moves keyboard focus into the opened panel and restores it on close.
+- Public gallery filters, detail actions, footer links, FAQ rows, and contact links now meet the mobile touch-target minimum, and artwork guidance no longer assumes a hover-capable device.
+- The public header keeps the compact navigation through tablet widths so controls stay visible and retain their full touch targets.
+- Scroll progress now uses a CSS scroll timeline, while the public header and back-to-top visibility thresholds use intersection observers instead of scroll polling.
 
 ### Fixed
 
 - Browser-facing artwork URLs now use a same-origin `/media` rewrite, preventing privacy-focused browsers from blocking the public R2 hostname.
-- Artwork rendering falls back to the checked-in master when a proxied request fails, and hero shuffles wait for both replacement images to decode before switching.
+- Artwork rendering detects failures that happen before hydration and falls back to the checked-in master, while hero shuffles wait for both replacement images to decode before switching.
+- The home hero always keeps two distinct tilted artwork plates, including when only one piece is featured or reduced motion is enabled.
 - The hero description renders in full immediately instead of exposing a partially completed character entrance.
 - Artwork uploads now return controlled validation errors before palette extraction, and the admin profile preview follows the stored versioned image key.
-- Desktop and mobile browser coverage now blocks direct R2 artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+- Desktop and mobile browser coverage now blocks same-origin artwork requests and repeats randomized hero reloads to catch blank or flattened plates.
+- Browser coverage serves local media fixtures and waits for explicit page readiness, removing external image-host timing from the test result.
 - Hero browser checks synchronize on the completed shuffle state, while mobile-only checks run only in the mobile Playwright project without skipped tests.
 - Local setup guidance now documents the exact Google OAuth callback required when port 3001 is used because port 3000 is occupied.
 
