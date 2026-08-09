@@ -4,3 +4,7 @@ packages:
 overrides:
   "postcss@<8.5.10": ">=8.5.10"
   esbuild: ">=0.28.1"
+  # next ships sharp 0.34.5 as an optional dep for its image optimizer, which
+  # carries the libvips CVE-2026-33327 chain; pin it to the version our own
+  # R2 variant pipeline already uses so only one copy is installed.
+  sharp: "^0.35.3"
