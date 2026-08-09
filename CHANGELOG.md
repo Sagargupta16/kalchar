@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.34.3 (2026-08-09)
+
+Security patch; no app change.
+
+### Security
+
+- Auth.js is updated to `next-auth@5.0.0-beta.32` (`@auth/core@0.41.3`), closing two critical advisories and one high: configuration errors could cause existence based account disclosure, the email normalizer validated addresses before Unicode normalization, and `getToken()` threw an uncaught exception on a malformed token.
+- Next.js is updated to `16.2.11`, closing four high advisories: server side request forgery through rewrites and through Server Actions, a middleware and proxy bypass in App Router applications, and a denial of service in App Router Server Actions.
+- `sharp` is pinned to `^0.35.3` for the whole tree, so the copy Next.js ships for its image optimizer no longer carries the libvips CVE-2026-33327 chain. Our own R2 variant pipeline already used this version, so only one copy is installed now.
+
 ## 1.34.2 (2026-07-15)
 
 CI-only fix; no app change.
