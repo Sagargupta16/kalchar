@@ -7,6 +7,7 @@ import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { addEventImages, removeEventImage, reorderEventImages } from "../event-actions";
 import { adminBtn, adminBtnPrimary, adminIconBtnDestructive } from "./controls";
+import { stageFormImages } from "./stage-image";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -44,7 +45,11 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	const handleAdd = (form: HTMLFormElement) => {
 		const fd = new FormData(form);
 		run(
-			() => addEventImages(event.id, fd),
+			async () => {
+				// Masters go straight to R2; the action receives only their keys.
+				await stageFormImages(fd);
+				await addEventImages(event.id, fd);
+			},
 			() => {
 				form.reset();
 				setFileCount(0);

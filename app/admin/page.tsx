@@ -6,6 +6,13 @@ import { ArtworkGrid } from "./_components/artwork-grid";
 import { ArtworkRow } from "./_components/artwork-row";
 import { UploadForm } from "./_components/upload-form";
 
+/**
+ * Server actions inherit this route's budget. Generating one artwork's variant
+ * set is 13 sharp encodes (4 of them AVIF) plus 13 R2 uploads, which overruns
+ * the platform default on a large master.
+ */
+export const maxDuration = 60;
+
 export default async function AdminDashboard() {
 	const [artworks, categoryNames] = await Promise.all([getAllArtworks(), getCategoryNames()]);
 	const available = artworks.filter((a) => a.status === "available").length;
