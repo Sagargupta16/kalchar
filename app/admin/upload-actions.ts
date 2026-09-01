@@ -13,6 +13,7 @@
  * The ticket is the authorization point: every request re-checks the maintainer
  * session, so an anonymous caller cannot obtain write access to the bucket.
  */
+import { type ActionResult, failure } from "@/lib/action-result";
 import { assertUploadAllowed, stagingKey } from "@/lib/storage/image-upload";
 import { presignUpload } from "@/lib/storage/r2";
 import { requireMaintainer } from "./_helpers";
@@ -24,10 +25,22 @@ export interface UploadTicket {
 	url: string;
 }
 
-/** Issue one presigned PUT for a staged master the browser is about to upload. */
-export async function createUploadTicket(contentType: string, size: number): Promise<UploadTicket> {
-	await requireMaintainer();
-	assertUploadAllowed(contentType, size);
-	const key = stagingKey();
-	return { key, url: await presignUpload(key, contentType, size) };
+/**
+ * Issue one presigned PUT for a staged master the browser is about to upload.
+ * Returns failures as data rather than throwing, so the real reason reaches the
+ * admin UI in production instead of a sanitized digest (see lib/action-result).
+ */
+export async function createUploadTicket(
+	contentType: string,
+	size: number,
+): Promise<ActionResult<UploadTicket>> {
+	try {
+		await requireMaintainer();
+		assertUploadAllowed(contentType, size);
+		const key = stagingKey();
+		return { ok: true, key, url: await presignUpload(key, contentType, size) };
+	} catch (error) {
+		console.error("createUploadTicket failed", error);
+		return failure(error);
+	}
 }

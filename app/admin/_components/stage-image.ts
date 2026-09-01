@@ -7,6 +7,7 @@
  * mutation action, so the image bytes never pass through a server action and
  * never meet Vercel's ~4.5 MB request-body cap.
  */
+import { unwrap } from "@/lib/action-result";
 import { createUploadTicket } from "../upload-actions";
 
 const MAX_IMAGE_MB = 20;
@@ -32,7 +33,9 @@ function assertUsable(file: File): void {
 /** Upload one master to R2 and resolve with its staged key. */
 export async function stageImage(file: File): Promise<string> {
 	assertUsable(file);
-	const { key, url } = await createUploadTicket(file.type.toLowerCase(), file.size);
+	// Re-throw the server's message here: thrown messages survive in the
+	// browser, whereas Next sanitizes anything thrown inside the action.
+	const { key, url } = unwrap(await createUploadTicket(file.type.toLowerCase(), file.size));
 
 	const response = await fetch(url, {
 		method: "PUT",

@@ -12,6 +12,7 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { type ActionResult, failure } from "@/lib/action-result";
 import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
 import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
@@ -98,8 +99,21 @@ export async function updateArtwork(
 	revalidateCatalog(slug);
 }
 
-/** Replace an artwork image using a new key, then retire the old variants. */
-export async function replaceArtworkImage(slug: string, formData: FormData): Promise<void> {
+/**
+ * Replace an artwork image using a new key, then retire the old variants.
+ * Failures come back as data so the real reason survives to the admin UI in
+ * production (see lib/action-result).
+ */
+export async function replaceArtworkImage(slug: string, formData: FormData): Promise<ActionResult> {
+	try {
+		return await replaceArtworkImageUnsafe(slug, formData);
+	} catch (error) {
+		console.error("replaceArtworkImage failed", error);
+		return failure(error);
+	}
+}
+
+async function replaceArtworkImageUnsafe(slug: string, formData: FormData): Promise<ActionResult> {
 	await requireMaintainer();
 	const [row] = await db
 		.select({ image: artworks.image })
@@ -135,10 +149,24 @@ export async function replaceArtworkImage(slug: string, formData: FormData): Pro
 		console.error("Artwork image cleanup failed after replacement.", error);
 	});
 	revalidateCatalog(slug);
+	return { ok: true };
 }
 
-/** Create a new artwork from an uploaded image + metadata (FormData). */
-export async function createArtwork(formData: FormData): Promise<{ slug: string }> {
+/**
+ * Create a new artwork from an uploaded image + metadata (FormData). Failures
+ * come back as data so the real reason survives to the admin UI in production
+ * (see lib/action-result).
+ */
+export async function createArtwork(formData: FormData): Promise<ActionResult<{ slug: string }>> {
+	try {
+		return await createArtworkUnsafe(formData);
+	} catch (error) {
+		console.error("createArtwork failed", error);
+		return failure(error);
+	}
+}
+
+async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ slug: string }>> {
 	await requireMaintainer();
 
 	const title = formString(formData, "title").trim();
@@ -202,7 +230,7 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	}
 
 	revalidateCatalog(slug);
-	return { slug };
+	return { ok: true, slug };
 }
 
 /** Re-sample the palette for a piece from its stored master image in R2. */
