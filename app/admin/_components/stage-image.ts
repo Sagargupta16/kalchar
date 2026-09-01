@@ -1,0 +1,72 @@
+"use client";
+
+/**
+ * Browser side of the presigned upload flow (see app/admin/upload-actions.ts).
+ *
+ * Uploads the chosen master straight to R2 and returns the staged key for the
+ * mutation action, so the image bytes never pass through a server action and
+ * never meet Vercel's ~4.5 MB request-body cap.
+ */
+import { createUploadTicket } from "../upload-actions";
+
+const MAX_IMAGE_MB = 20;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * Check the file locally before asking for a ticket. The server re-validates
+ * both the ticket request and the stored bytes; this exists so an obvious
+ * mistake reads as a clear message instead of a round trip.
+ */
+function assertUsable(file: File): void {
+	if (file.size === 0) throw new Error("That file is empty.");
+	if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+		throw new Error(
+			`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Images must be ${MAX_IMAGE_MB} MB or smaller.`,
+		);
+	}
+	if (!ALLOWED_TYPES.has(file.type.toLowerCase())) {
+		throw new Error(`"${file.name}" must be a JPEG, PNG, or WebP image.`);
+	}
+}
+
+/** Upload one master to R2 and resolve with its staged key. */
+export async function stageImage(file: File): Promise<string> {
+	assertUsable(file);
+	const { key, url } = await createUploadTicket(file.type.toLowerCase(), file.size);
+
+	const response = await fetch(url, {
+		method: "PUT",
+		body: file,
+		// Must match the signed content type, or R2 rejects the signature.
+		headers: { "Content-Type": file.type.toLowerCase() },
+	});
+	if (!response.ok) {
+		throw new Error(`Upload of "${file.name}" failed (${response.status}). Please try again.`);
+	}
+	return key;
+}
+
+/** Upload a batch sequentially so a partial failure reports the file that broke. */
+export async function stageImages(files: readonly File[]): Promise<string[]> {
+	const keys: string[] = [];
+	for (const file of files) keys.push(await stageImage(file));
+	return keys;
+}
+
+/** Max photos one event submission may carry; mirrors the server-side guard. */
+const MAX_BATCH = 12;
+
+/**
+ * Swap a multi-file picker's "images" entries for the staged "imageKeys" the
+ * event actions expect, uploading each master to R2 on the way. Mutates the
+ * FormData in place and returns how many photos were staged.
+ */
+export async function stageFormImages(formData: FormData): Promise<number> {
+	const files = formData.getAll("images").filter((v): v is File => v instanceof File && v.size > 0);
+	formData.delete("images");
+	if (files.length > MAX_BATCH) {
+		throw new Error(`Upload at most ${MAX_BATCH} images at a time.`);
+	}
+	for (const key of await stageImages(files)) formData.append("imageKeys", key);
+	return files.length;
+}

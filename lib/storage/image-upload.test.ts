@@ -1,35 +1,38 @@
-import { File as NodeFile } from "node:buffer";
 import sharp from "sharp";
-import { describe, expect, it, vi } from "vitest";
-import { MAX_IMAGE_BYTES, readImageUpload, validateImageBuffer } from "./image-upload";
+import { describe, expect, it } from "vitest";
+import {
+	assertUploadAllowed,
+	MAX_IMAGE_BYTES,
+	STAGING_PREFIX,
+	stagingKey,
+	validateImageBuffer,
+} from "./image-upload";
 
-describe("readImageUpload", () => {
-	it("accepts a supported non-empty file", async () => {
-		const file = new NodeFile([Buffer.from("jpeg bytes")], "art.jpg", {
-			type: "image/jpeg",
-		}) as unknown as File;
-
-		await expect(readImageUpload(file)).resolves.toEqual(Buffer.from("jpeg bytes"));
+describe("assertUploadAllowed", () => {
+	it("accepts a supported non-empty upload", () => {
+		expect(() => assertUploadAllowed("image/jpeg", 1024)).not.toThrow();
 	});
 
-	it("rejects unsupported MIME types before reading the file", async () => {
-		const file = new NodeFile([Buffer.from("gif")], "art.gif", {
-			type: "image/gif",
-		}) as unknown as File;
-
-		await expect(readImageUpload(file)).rejects.toThrow("JPEG, PNG, or WebP");
+	it("rejects unsupported MIME types before a ticket is issued", () => {
+		expect(() => assertUploadAllowed("image/gif", 1024)).toThrow("JPEG, PNG, or WebP");
 	});
 
-	it("rejects oversized files before buffering them", async () => {
-		const arrayBuffer = vi.fn();
-		const file = {
-			size: MAX_IMAGE_BYTES + 1,
-			type: "image/jpeg",
-			arrayBuffer,
-		} as unknown as File;
+	it("rejects oversized uploads before a ticket is issued", () => {
+		expect(() => assertUploadAllowed("image/jpeg", MAX_IMAGE_BYTES + 1)).toThrow(
+			"20 MB or smaller",
+		);
+	});
 
-		await expect(readImageUpload(file)).rejects.toThrow("20 MB or smaller");
-		expect(arrayBuffer).not.toHaveBeenCalled();
+	it("rejects an empty upload", () => {
+		expect(() => assertUploadAllowed("image/jpeg", 0)).toThrow("image file is required");
+	});
+});
+
+describe("stagingKey", () => {
+	it("confines staged masters to the staging prefix", () => {
+		const key = stagingKey();
+		expect(key.startsWith(STAGING_PREFIX)).toBe(true);
+		expect(key).not.toBe(stagingKey());
 	});
 });
 

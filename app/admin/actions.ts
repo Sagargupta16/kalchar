@@ -16,12 +16,12 @@ import { db } from "@/lib/db/client";
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
 import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
-import { readImageUpload } from "@/lib/storage/image-upload";
 import {
 	deleteArtworkImages,
 	extractPalette,
 	processArtworkImage,
 } from "@/lib/storage/process-artwork-image";
+import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
 import type { ArtworkStatus, OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 
@@ -107,11 +107,14 @@ export async function replaceArtworkImage(slug: string, formData: FormData): Pro
 		.where(eq(artworks.slug, slug));
 	if (!row) throw new Error("Artwork not found.");
 
-	const file = formData.get("image");
-	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
-	const buffer = await readImageUpload(file);
+	const stagedKey = formString(formData, "imageKey").trim();
+	if (!stagedKey) throw new Error("An image file is required.");
+	const buffer = await readStagedImage(stagedKey);
 	const nextImageKey = `${slug}-${randomUUID()}`;
 	const { aspectRatio, palette } = await processArtworkImage(nextImageKey, buffer);
+	await discardStagedImages([stagedKey]).catch((error) => {
+		console.error("Staged upload cleanup failed after replacement.", error);
+	});
 	try {
 		const updated = await db
 			.update(artworks)
@@ -141,10 +144,10 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 	const title = formString(formData, "title").trim();
 	const style = formString(formData, "style").trim();
 	const medium = formString(formData, "medium").trim();
-	const file = formData.get("image");
+	const stagedKey = formString(formData, "imageKey").trim();
 
 	if (!title || !style || !medium) throw new Error("Title, style, and medium are required.");
-	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
+	if (!stagedKey) throw new Error("An image file is required.");
 
 	const slug = slugify(title);
 	if (!slug) throw new Error("Title must contain letters or numbers.");
@@ -166,8 +169,11 @@ export async function createArtwork(formData: FormData): Promise<{ slug: string 
 		throw new Error("Year must be a positive whole number.");
 	}
 
-	const buffer = await readImageUpload(file);
+	const buffer = await readStagedImage(stagedKey);
 	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
+	await discardStagedImages([stagedKey]).catch((error) => {
+		console.error("Staged upload cleanup failed after create.", error);
+	});
 
 	try {
 		await db.insert(artworks).values({

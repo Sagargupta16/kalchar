@@ -31,16 +31,28 @@ Artwork key-bases start with `artworks/`. Event key-bases are `events/<event-id>
 
 The R2 master fallback is a normalized mozjpeg, not the original upload. Seeded source masters remain under `public/artworks/` so their variants can be regenerated and used as a final same-origin fallback if a proxied artwork request fails.
 
+## Upload transport
+
+Image bytes never pass through a server action. Vercel rejects any function request body over roughly 4.5 MB at the edge, returning a 413 the action never observes, and that ceiling is below a single full-resolution phone photo. Raising `serverActions.bodySizeLimit` cannot lift a platform cap, so the admin uploads direct to storage instead:
+
+1. The browser asks `createUploadTicket(contentType, size)` (`app/admin/upload-actions.ts`) for a presigned PUT. That action re-checks the maintainer session, so a ticket is never issued anonymously, and validates the declared type and size.
+2. The ticket points at a `staging/<uuid>` key. `presignUpload` signs the content type and content length, so R2 itself rejects a body that differs from what the ticket covers. Tickets expire after 15 minutes.
+3. The browser PUTs the master straight to R2 (`stageImage` in `app/admin/_components/stage-image.ts`) and submits only the staged key in the form.
+4. The mutation action calls `readStagedImage(key)` (`lib/storage/staged-upload.ts`), which confines the key to the staging prefix, HEADs the object to reject an oversized upload before buffering it, then downloads it for processing.
+5. Once variants exist the staged master is discarded. Leftovers under `staging/` are unreferenced debris, never live records.
+
+A cross-origin PUT requires bucket CORS. `pnpm r2:cors` (`scripts/set-r2-cors.ts`) applies it for the production domains, Vercel previews, and localhost. Without it every upload fails at the preflight.
+
 ## Upload validation
 
-`lib/storage/image-upload.ts` enforces the upload boundary before R2 is touched:
+`lib/storage/image-upload.ts` holds the validation contract, with no R2 dependency so it stays unit-testable:
 
 - JPEG, PNG, and WebP only;
 - maximum encoded size of 20 MB;
 - maximum decoded size of 40 million pixels;
 - decodable dimensions and a real supported input format.
 
-The MIME check gives immediate feedback, while sharp verifies the bytes and limits decompression work. All sharp pipelines use the same pixel cap and fail on decode errors.
+`assertUploadAllowed` gates the ticket on declared metadata, and `validateImageBuffer` then decodes the stored bytes, so a client that lies about type or size still cannot get a disguised file processed. All sharp pipelines use the same pixel cap and fail on decode errors.
 
 ## Processing and rollback
 

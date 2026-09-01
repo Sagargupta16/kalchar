@@ -1,6 +1,6 @@
 {
 	"name": "kalchar-by-megha",
-	"version": "1.34.3",
+	"version": "1.35.0",
 	"private": true,
 	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
@@ -25,10 +25,12 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:seed": "tsx --env-file=.env.local scripts/migrate-json-to-db.ts",
-		"db:images": "tsx --env-file=.env.local scripts/migrate-images-to-r2.ts"
+		"db:images": "tsx --env-file=.env.local scripts/migrate-images-to-r2.ts",
+		"r2:cors": "tsx --env-file=.env.local scripts/set-r2-cors.ts"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1086.0",
+		"@aws-sdk/client-s3": "^3.1123.0",
+		"@aws-sdk/s3-request-presigner": "^3.1123.0",
 		"@neondatabase/serverless": "^1.1.0",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
@@ -43,6 +45,7 @@
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
 		"react-icons": "^5.7.0",
+		"sharp": "^0.35.3",
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
@@ -56,7 +59,6 @@
 		"dotenv": "^17.4.2",
 		"drizzle-kit": "^0.31.10",
 		"postcss": "^8.5.19",
-		"sharp": "^0.35.3",
 		"tailwindcss": "^4.3.2",
 		"tsx": "^4.23.1",
 		"typescript": "^6.0.3",
