@@ -41,7 +41,17 @@ Image bytes never pass through a server action. Vercel rejects any function requ
 4. The mutation action calls `readStagedImage(key)` (`lib/storage/staged-upload.ts`), which confines the key to the staging prefix, HEADs the object to reject an oversized upload before buffering it, then downloads it for processing.
 5. Once variants exist the staged master is discarded. Leftovers under `staging/` are unreferenced debris, never live records.
 
-A cross-origin PUT requires bucket CORS. `pnpm r2:cors` (`scripts/set-r2-cors.ts`) applies it for the production domains, Vercel previews, and localhost. Without it every upload fails at the preflight.
+A cross-origin PUT requires bucket CORS, or every upload fails at the preflight. `pnpm r2:cors` (`scripts/set-r2-cors.ts`) applies the policy for the production domains, Vercel previews, and localhost.
+
+That script needs an R2 API token with Admin Read and Write. The application token is scoped to objects and returns `AccessDenied` on bucket configuration, so either supply an admin token when running it or set the same rule in the Cloudflare dashboard under R2, the bucket, Settings, CORS policy:
+
+| Field | Value |
+| --- | --- |
+| Allowed origins | `https://kalchar.co.in`, `https://www.kalchar.co.in`, `https://*.vercel.app`, `http://localhost:3000`, `http://localhost:3001` |
+| Allowed methods | `PUT` |
+| Allowed headers | `content-type` |
+| Expose headers | `etag` |
+| Max age | `3600` |
 
 ## Upload validation
 

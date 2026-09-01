@@ -10,6 +10,12 @@
  * Run once per bucket, and again whenever the allowed origins change:
  *   pnpm r2:cors
  *
+ * Requires an R2 API token with **Admin Read & Write**. The app's own token is
+ * scoped to objects, so it gets AccessDenied on bucket configuration -- pass an
+ * admin token in the environment for this script, or set the same policy by
+ * hand in the Cloudflare dashboard (R2 -> the bucket -> Settings -> CORS
+ * policy). The rule below is the exact shape to paste there.
+ *
  * Idempotent: PutBucketCors replaces the whole configuration each time.
  */
 import { GetBucketCorsCommand, PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
