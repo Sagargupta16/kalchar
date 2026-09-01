@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createArtwork } from "../actions";
 import { adminBtnPrimary, adminField, adminLabel } from "./controls";
+import { stageImage } from "./stage-image";
 
 export function UploadForm({ categories }: Readonly<{ categories: readonly string[] }>) {
 	const router = useRouter();
@@ -18,8 +19,17 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 		setOk(null);
 		const form = e.currentTarget;
 		const data = new FormData(form);
+		const file = data.get("image");
+		if (!(file instanceof File) || file.size === 0) {
+			setError("Choose an image first.");
+			return;
+		}
 		startTransition(async () => {
 			try {
+				// The master goes straight to R2; only its staged key is submitted,
+				// so the action's body stays under Vercel's request-size cap.
+				data.delete("image");
+				data.set("imageKey", await stageImage(file));
 				const { slug } = await createArtwork(data);
 				setOk(`Added "${slug}". Variants generated.`);
 				form.reset();

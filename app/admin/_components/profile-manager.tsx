@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { clearProfileImage, setProfileImage, setShowHomeIntro } from "../event-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary } from "./controls";
+import { stageImage } from "./stage-image";
 import { useAdminAction } from "./use-admin-action";
 
 interface ProfileManagerProps {
@@ -31,7 +32,12 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 		const file = fd.get("image");
 		if (!(file instanceof File) || file.size === 0) return;
 		run(
-			() => setProfileImage(fd),
+			async () => {
+				// Upload the master to R2 first, then submit just its staged key.
+				fd.delete("image");
+				fd.set("imageKey", await stageImage(file));
+				await setProfileImage(fd);
+			},
 			() => {
 				setHasImage(true);
 				setFileName(null);

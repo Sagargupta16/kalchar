@@ -9,6 +9,7 @@ import { deleteArtwork, regeneratePalette, replaceArtworkImage, updateArtwork } 
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { Modal } from "./modal";
+import { stageImage } from "./stage-image";
 
 export function ArtworkRow({
 	art,
@@ -246,10 +247,16 @@ function ArtworkEditModal({
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
-							run(
-								() => replaceArtworkImage(art.slug, new FormData(e.currentTarget)),
-								"Image replaced.",
-							);
+							const data = new FormData(e.currentTarget);
+							const file = data.get("image");
+							if (!(file instanceof File) || file.size === 0) return;
+							run(async () => {
+								// Stage the master directly to R2 first; the action only
+								// receives its key, keeping the request body small.
+								data.delete("image");
+								data.set("imageKey", await stageImage(file));
+								await replaceArtworkImage(art.slug, data);
+							}, "Image replaced.");
 						}}
 						className="flex flex-wrap items-center gap-3"
 					>

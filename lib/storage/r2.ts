@@ -13,7 +13,14 @@
  * (sharp -> -400/-800/-1200/-1600 .avif/.webp/.jpg) writes sibling keys under
  * the same prefix, preserving the existing filename contract.
  */
-import { DeleteObjectsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+	DeleteObjectsCommand,
+	GetObjectCommand,
+	HeadObjectCommand,
+	PutObjectCommand,
+	S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
 
 const BUCKET = serverEnv.r2Bucket;
@@ -53,6 +60,58 @@ export async function uploadObject(
 		}),
 	);
 	return `${PUBLIC_BASE_URL}/${key}`;
+}
+
+/**
+ * How long a presigned upload URL stays valid. Long enough for a slow phone
+ * connection to finish a full-resolution photo, short enough that a leaked URL
+ * is not a standing write grant.
+ */
+const UPLOAD_URL_TTL_SECONDS = 15 * 60;
+
+/**
+ * Presign a direct browser -> R2 PUT for one staged upload.
+ *
+ * Admin image bytes cannot travel through a server action: Vercel rejects any
+ * function request body over ~4.5 MB at the edge (a 413 the action never sees),
+ * which is smaller than a single phone photo. The browser therefore PUTs the
+ * master straight to R2 and the action receives only the staged key.
+ *
+ * `contentType` and `contentLength` are signed, so R2 itself rejects a body
+ * that does not match what the ticket was issued for.
+ */
+export async function presignUpload(
+	key: string,
+	contentType: string,
+	contentLength: number,
+): Promise<string> {
+	return getSignedUrl(
+		r2,
+		new PutObjectCommand({
+			Bucket: BUCKET,
+			Key: key,
+			ContentType: contentType,
+			ContentLength: contentLength,
+		}),
+		{ expiresIn: UPLOAD_URL_TTL_SECONDS },
+	);
+}
+
+/** Byte size of one object, or null when it does not exist. */
+export async function objectSize(key: string): Promise<number | null> {
+	try {
+		const head = await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+		return head.ContentLength ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/** Download one object into memory. */
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+	const object = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+	if (!object.Body) throw new Error("Uploaded image could not be read back.");
+	return Buffer.from(await object.Body.transformToByteArray());
 }
 
 /** S3 DeleteObjects accepts at most 1000 keys per request; chunk above that. */

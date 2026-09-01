@@ -16,6 +16,7 @@ import {
 } from "./controls";
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
+import { stageFormImages } from "./stage-image";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -48,7 +49,12 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		<div className="space-y-6">
 			<CreateEventForm
 				pending={pending}
-				onCreate={(fd, reset) => run(() => createEvent(fd).then(() => undefined), reset)}
+				onCreate={(fd, reset) =>
+					run(async () => {
+						await stageFormImages(fd);
+						await createEvent(fd);
+					}, reset)
+				}
 			/>
 
 			{err ? <p className="text-sm text-ruby">{err}</p> : null}

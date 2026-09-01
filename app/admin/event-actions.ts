@@ -11,12 +11,12 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { events, settings } from "@/lib/db/schema";
-import { readImageUpload } from "@/lib/storage/image-upload";
 import {
 	deleteEventImages,
 	processEventImage,
 	processImageVariants,
 } from "@/lib/storage/process-artwork-image";
+import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
 import { formString, nextOrderSql, requireMaintainer } from "./_helpers";
 
 // --- Event actions ---
@@ -28,16 +28,22 @@ function revalidateEvents(id?: string) {
 	if (id) revalidatePath(`/events/${id}`);
 }
 
-/** Read every "image" file from FormData (the multi-file picker uses one name). */
-function formImages(formData: FormData): File[] {
-	const files = formData.getAll("images").filter((v): v is File => v instanceof File && v.size > 0);
-	if (files.length > 12) throw new Error("Upload at most 12 images at a time.");
-	return files;
+/**
+ * Read the staged R2 keys the browser uploaded before submitting (the
+ * multi-file picker appends one "imageKeys" entry per photo).
+ */
+function formImageKeys(formData: FormData): string[] {
+	const keys = formData
+		.getAll("imageKeys")
+		.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+		.map((v) => v.trim());
+	if (keys.length > 12) throw new Error("Upload at most 12 images at a time.");
+	return keys;
 }
 
-/** Process one uploaded photo for an event, returning its stored R2 key-base. */
-async function uploadEventPhoto(eventId: string, file: File): Promise<string> {
-	const buffer = await readImageUpload(file);
+/** Process one staged photo for an event, returning its stored R2 key-base. */
+async function uploadEventPhoto(eventId: string, stagedKey: string): Promise<string> {
+	const buffer = await readStagedImage(stagedKey);
 	return processEventImage(eventId, randomUUID(), buffer);
 }
 
@@ -56,13 +62,13 @@ export async function createEvent(formData: FormData): Promise<{ id: string }> {
 	if (!title) throw new Error("Title is required.");
 
 	const id = randomUUID();
-	const files = formImages(formData);
-	// Upload sequentially so a partial failure leaves a contiguous set, and the
+	const stagedKeys = formImageKeys(formData);
+	// Process sequentially so a partial failure leaves a contiguous set, and the
 	// stored order matches the order the maintainer picked them.
 	const images: string[] = [];
 	try {
-		for (const file of files) {
-			images.push(await uploadEventPhoto(id, file));
+		for (const stagedKey of stagedKeys) {
+			images.push(await uploadEventPhoto(id, stagedKey));
 		}
 
 		await db.insert(events).values({
@@ -81,6 +87,10 @@ export async function createEvent(formData: FormData): Promise<{ id: string }> {
 		// (or a later upload) fails -- remove them so R2 doesn't accumulate orphans.
 		if (images.length > 0) await deleteEventImages(images).catch(() => {});
 		throw err;
+	} finally {
+		await discardStagedImages(stagedKeys).catch((error) => {
+			console.error("Staged upload cleanup failed after event create.", error);
+		});
 	}
 
 	revalidateEvents(id);
@@ -116,10 +126,11 @@ export async function addEventImages(id: string, formData: FormData): Promise<vo
 	await requireMaintainer();
 	const [row] = await db.select().from(events).where(eq(events.id, id));
 	if (!row) throw new Error("Event not found.");
+	const stagedKeys = formImageKeys(formData);
 	const added: string[] = [];
 	try {
-		for (const file of formImages(formData)) {
-			added.push(await uploadEventPhoto(id, file));
+		for (const stagedKey of stagedKeys) {
+			added.push(await uploadEventPhoto(id, stagedKey));
 		}
 		if (added.length === 0) return;
 		await db
@@ -129,6 +140,10 @@ export async function addEventImages(id: string, formData: FormData): Promise<vo
 	} catch (err) {
 		if (added.length > 0) await deleteEventImages(added).catch(() => {});
 		throw err;
+	} finally {
+		await discardStagedImages(stagedKeys).catch((error) => {
+			console.error("Staged upload cleanup failed after adding event images.", error);
+		});
 	}
 	revalidateEvents(id);
 }
@@ -199,13 +214,16 @@ function revalidateProfile() {
 /** Upload (or replace) the artist profile photo; stores its R2 key-base. */
 export async function setProfileImage(formData: FormData): Promise<void> {
 	await requireMaintainer();
-	const file = formData.get("image");
-	if (!(file instanceof File) || file.size === 0) throw new Error("An image file is required.");
-	const buffer = await readImageUpload(file);
+	const stagedKey = formString(formData, "imageKey").trim();
+	if (!stagedKey) throw new Error("An image file is required.");
+	const buffer = await readStagedImage(stagedKey);
 	const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
 	const oldKeyBase = typeof current?.value === "string" ? current.value : undefined;
 	const keyBase = `profile/artist-${randomUUID()}`;
 	await processImageVariants(keyBase, buffer);
+	await discardStagedImages([stagedKey]).catch((error) => {
+		console.error("Staged upload cleanup failed after profile image upload.", error);
+	});
 	try {
 		await db
 			.insert(settings)

@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.35.0 (2026-09-01)
+
+Fixes admin image uploads on production. Every upload larger than roughly 4.5 MB, and effectively every multi-photo event batch, was failing: Vercel rejects a function request body over that size at the edge with a 413, so the server action never ran and the size limits the app advertised (20 MB in code, 25 MB in config) were unreachable. Local development has no such cap, which is why it only ever broke live.
+
+### Changed
+
+- **Masters upload straight to R2 from the browser.** The admin now requests a presigned PUT ticket ([app/admin/upload-actions.ts](app/admin/upload-actions.ts)), uploads the file directly to a `staging/<uuid>` key ([stage-image.ts](app/admin/_components/stage-image.ts)), and submits only that key. Image bytes no longer cross the function boundary, so full-resolution photos work regardless of size. All five upload paths moved over: new artwork, artwork image replacement, event creation, adding event photos, and the artist profile photo.
+- **Ticket issuing is the authorization point.** Every ticket re-checks the maintainer session and validates the declared content type and size, and the presigned URL signs both content type and content length so R2 rejects a body that differs from what the ticket covers. Tickets expire after 15 minutes.
+- **Staged masters are read back defensively.** [staged-upload.ts](lib/storage/staged-upload.ts) confines a key to the staging prefix and HEADs the object to reject an oversized upload before buffering it, then discards the master once its variants exist. Validation stayed in [image-upload.ts](lib/storage/image-upload.ts) with no R2 dependency so it remains unit-testable, and `validateImageBuffer` still decodes the stored bytes, so a lying client cannot get a disguised file processed.
+- **`serverActions.bodySizeLimit` removed** from [next.config.mjs](next.config.mjs). It existed only to carry image bytes and could never have lifted the platform cap.
+
+### Fixed
+
+- **sharp moved from `devDependencies` to `dependencies`.** Only runtime server actions import it, and no build step or public route exercises it, so a production-only install would have left the variant pipeline unable to load its module.
+- **Admin upload routes declare `maxDuration = 60`.** One artwork is 13 sharp encodes (4 of them AVIF) plus 13 sequential R2 uploads, and an event batch repeats that per photo, which overran the platform default.
+
+### Added
+
+- **`pnpm r2:cors`** ([scripts/set-r2-cors.ts](scripts/set-r2-cors.ts)) applies the bucket CORS policy that browser PUTs require, for the production domains, Vercel previews, and localhost. Run once per bucket.
+
 ## 1.34.3 (2026-08-09)
 
 Security patch; no app change.

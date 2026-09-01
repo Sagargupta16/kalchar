@@ -2,6 +2,9 @@ import { getAllEvents } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { EventsManager } from "../_components/events-manager";
 
+/** An event batch processes up to 12 masters in one action; see app/admin/page.tsx. */
+export const maxDuration = 60;
+
 export default async function AdminEventsPage() {
 	const events = await getAllEvents();
 
