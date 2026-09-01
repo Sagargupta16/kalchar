@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { isFailure } from "@/lib/action-result";
 
 /** How long the "saved" confirmation badge stays up before auto-dismissing. */
 export const SAVED_BADGE_DURATION_MS = 2000;
@@ -17,17 +18,21 @@ export const SAVED_BADGE_DURATION_MS = 2000;
 export function useAdminAction(): {
 	pending: boolean;
 	err: string | null;
-	run: (fn: () => Promise<void>, after?: () => void) => void;
+	run: (fn: () => Promise<unknown>, after?: () => void) => void;
 } {
 	const router = useRouter();
 	const [pending, startTransition] = useTransition();
 	const [err, setErr] = useState<string | null>(null);
 
-	function run(fn: () => Promise<void>, after?: () => void) {
+	function run(fn: () => Promise<unknown>, after?: () => void) {
 		setErr(null);
 		startTransition(async () => {
 			try {
-				await fn();
+				// Actions return failures as data because Next strips messages from
+				// anything thrown inside one; re-throw here so `err` shows the real
+				// reason. Actions that still return void are unaffected.
+				const result = await fn();
+				if (isFailure(result)) throw new Error(result.message);
 				after?.();
 				router.refresh();
 			} catch (e) {

@@ -23,17 +23,34 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
 
-const BUCKET = serverEnv.r2Bucket;
-const PUBLIC_BASE_URL = serverEnv.r2PublicBaseUrl;
+/**
+ * Everything below is resolved lazily, on first use, and never at module load.
+ *
+ * `serverEnv` getters throw when a variable is missing or malformed (the public
+ * base URL is also parsed with `new URL`). Doing that at module scope made a
+ * config problem unrecoverable: the whole module failed to import, so a server
+ * action that depends on it died before its own try/catch existed, and Next
+ * replaced the cause with the generic "specific message is omitted in
+ * production builds" digest. Resolving inside the call puts the real error
+ * inside the action's error handling, where the message survives.
+ */
+let cachedClient: S3Client | null = null;
 
-const r2 = new S3Client({
-	region: "auto",
-	endpoint: `https://${serverEnv.r2AccountId}.r2.cloudflarestorage.com`,
-	credentials: {
-		accessKeyId: serverEnv.r2AccessKeyId,
-		secretAccessKey: serverEnv.r2SecretAccessKey,
-	},
-});
+function client(): S3Client {
+	if (!cachedClient) {
+		cachedClient = new S3Client({
+			region: "auto",
+			endpoint: `https://${serverEnv.r2AccountId}.r2.cloudflarestorage.com`,
+			credentials: {
+				accessKeyId: serverEnv.r2AccessKeyId,
+				secretAccessKey: serverEnv.r2SecretAccessKey,
+			},
+		});
+	}
+	return cachedClient;
+}
+
+const bucket = () => serverEnv.r2Bucket;
 
 /**
  * Cache-Control for uploaded objects. A meaningful max-age lets repeat
@@ -50,16 +67,16 @@ export async function uploadObject(
 	body: Uint8Array | Buffer,
 	contentType: string,
 ): Promise<string> {
-	await r2.send(
+	await client().send(
 		new PutObjectCommand({
-			Bucket: BUCKET,
+			Bucket: bucket(),
 			Key: key,
 			Body: body,
 			ContentType: contentType,
 			CacheControl: UPLOAD_CACHE_CONTROL,
 		}),
 	);
-	return `${PUBLIC_BASE_URL}/${key}`;
+	return `${serverEnv.r2PublicBaseUrl}/${key}`;
 }
 
 /**
@@ -86,9 +103,9 @@ export async function presignUpload(
 	contentLength: number,
 ): Promise<string> {
 	return getSignedUrl(
-		r2,
+		client(),
 		new PutObjectCommand({
-			Bucket: BUCKET,
+			Bucket: bucket(),
 			Key: key,
 			ContentType: contentType,
 			ContentLength: contentLength,
@@ -100,7 +117,7 @@ export async function presignUpload(
 /** Byte size of one object, or null when it does not exist. */
 export async function objectSize(key: string): Promise<number | null> {
 	try {
-		const head = await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+		const head = await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
 		return head.ContentLength ?? null;
 	} catch {
 		return null;
@@ -109,7 +126,7 @@ export async function objectSize(key: string): Promise<number | null> {
 
 /** Download one object into memory. */
 export async function getObjectBuffer(key: string): Promise<Buffer> {
-	const object = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+	const object = await client().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
 	if (!object.Body) throw new Error("Uploaded image could not be read back.");
 	return Buffer.from(await object.Body.transformToByteArray());
 }
@@ -121,13 +138,11 @@ const DELETE_BATCH_MAX = 1000;
 export async function deleteObjects(keys: string[]): Promise<void> {
 	for (let i = 0; i < keys.length; i += DELETE_BATCH_MAX) {
 		const batch = keys.slice(i, i + DELETE_BATCH_MAX);
-		await r2.send(
+		await client().send(
 			new DeleteObjectsCommand({
-				Bucket: BUCKET,
+				Bucket: bucket(),
 				Delete: { Objects: batch.map((Key) => ({ Key })) },
 			}),
 		);
 	}
 }
-
-export const r2Config = { bucket: BUCKET, publicBaseUrl: PUBLIC_BASE_URL };
