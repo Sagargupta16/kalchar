@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.35.1 (2026-09-01)
+
+### Fixed
+
+- **Admin upload failures now say why.** Next.js replaces any error *thrown* inside a server action with a generic "the specific message is omitted in production builds" digest before the client sees it, so every validation message the admin relied on ("Image must be a JPEG, PNG, or WebP file.") was discarded in production and surfaced as an opaque 500. `createUploadTicket`, `createArtwork`, and `replaceArtworkImage` now return failures as data ([lib/action-result.ts](lib/action-result.ts)) and the browser re-throws the message, where it survives. The existing error UI is unchanged. Failures are also logged server-side for the Vercel log.
+
 ## 1.35.0 (2026-09-01)
 
 Fixes admin image uploads on production. Every upload larger than roughly 4.5 MB, and effectively every multi-photo event batch, was failing: Vercel rejects a function request body over that size at the edge with a 413, so the server action never ran and the size limits the app advertised (20 MB in code, 25 MB in config) were unreachable. Local development has no such cap, which is why it only ever broke live.

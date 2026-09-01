@@ -3,6 +3,7 @@
 import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { unwrap } from "@/lib/action-result";
 import { createArtwork } from "../actions";
 import { adminBtnPrimary, adminField, adminLabel } from "./controls";
 import { stageImage } from "./stage-image";
@@ -30,7 +31,7 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 				// so the action's body stays under Vercel's request-size cap.
 				data.delete("image");
 				data.set("imageKey", await stageImage(file));
-				const { slug } = await createArtwork(data);
+				const { slug } = unwrap(await createArtwork(data));
 				setOk(`Added "${slug}". Variants generated.`);
 				form.reset();
 				router.refresh();
