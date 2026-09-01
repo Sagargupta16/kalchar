@@ -11,10 +11,11 @@
  * Returns the natural aspect ratio (width/height) of the source so the caller
  * can store it on the artwork row for layout.
  */
-import sharp from "sharp";
+
 import { VARIANT_WIDTHS as WIDTHS } from "../image-base";
 import { MAX_IMAGE_PIXELS, validateImageBuffer } from "./image-upload";
 import { deleteObjects, uploadObject } from "./r2";
+import { loadSharp } from "./sharp-loader";
 
 const AVIF_OPTS = { quality: 60, effort: 4, chromaSubsampling: "4:2:0" } as const;
 const WEBP_OPTS = { quality: 72, effort: 4 } as const;
@@ -48,6 +49,7 @@ const PALETTE_SAMPLE_GRID = 8;
 const MIN_PALETTE_SIZE = 3;
 
 export async function extractPalette(master: Buffer, count = 5): Promise<string[]> {
+	const sharp = await loadSharp();
 	const { data } = await sharp(master, { failOn: "error", limitInputPixels: MAX_IMAGE_PIXELS })
 		.rotate()
 		.resize(PALETTE_SAMPLE_GRID, PALETTE_SAMPLE_GRID, { fit: "fill" })
@@ -101,6 +103,7 @@ export async function processImageVariants(
 	master: Buffer,
 ): Promise<{ keys: string[]; aspectRatio: number }> {
 	await validateImageBuffer(master);
+	const sharp = await loadSharp();
 	const sharpOptions = { failOn: "error" as const, limitInputPixels: MAX_IMAGE_PIXELS };
 	const meta = await sharp(master, sharpOptions).rotate().metadata();
 	const aspectRatio = meta.width && meta.height ? meta.width / meta.height : 0.75;

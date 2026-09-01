@@ -39,3 +39,17 @@ export function unwrap<T>(result: ActionResult<T>): Success<T> {
 	if (!result.ok) throw new Error(result.message);
 	return result;
 }
+
+/**
+ * Recognise a failure envelope in an unknown action return value, so the shared
+ * admin transition helper can surface it without every call site opting in.
+ * Actions that still return void are unaffected.
+ */
+export function isFailure(value: unknown): value is Failure {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		(value as { ok?: unknown }).ok === false &&
+		typeof (value as { message?: unknown }).message === "string"
+	);
+}

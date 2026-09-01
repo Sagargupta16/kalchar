@@ -4,7 +4,7 @@ import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { unwrap } from "@/lib/action-result";
-import { createArtwork } from "../actions";
+import { createArtwork } from "../artwork-actions";
 import { adminBtnPrimary, adminField, adminLabel } from "./controls";
 import { stageImage } from "./stage-image";
 

@@ -3,10 +3,15 @@
 import { ImageUp, Palette, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { unwrap } from "@/lib/action-result";
+import { isFailure, unwrap } from "@/lib/action-result";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { formatInr } from "@/lib/utils";
-import { deleteArtwork, regeneratePalette, replaceArtworkImage, updateArtwork } from "../actions";
+import {
+	deleteArtwork,
+	regeneratePalette,
+	replaceArtworkImage,
+	updateArtwork,
+} from "../artwork-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { Modal } from "./modal";
@@ -94,12 +99,15 @@ function ArtworkEditModal({
 
 	const styleOptions = categories.includes(art.style) ? categories : [art.style, ...categories];
 
-	function run(fn: () => Promise<void>, successMsg?: string) {
+	function run(fn: () => Promise<unknown>, successMsg?: string) {
 		setErr(null);
 		setOkMsg(null);
 		startTransition(async () => {
 			try {
-				await fn();
+				// Actions return failures as data (Next strips thrown messages in
+				// production); re-throw so `err` shows the real reason.
+				const result = await fn();
+				if (isFailure(result)) throw new Error(result.message);
 				if (successMsg) setOkMsg(successMsg);
 				router.refresh();
 			} catch (e) {
