@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.35.2 (2026-09-01)
+
+Root-cause fix for the opaque `POST /admin/ 500`. v1.35.1 returned action failures as data, but the error survived it, which proved the throw happened at **module load** rather than inside the action, before any error handling existed.
+
+### Fixed
+
+- **No throwing work at module scope.** [lib/storage/r2.ts](lib/storage/r2.ts) built its `S3Client` and read `serverEnv.r2Bucket` / `r2PublicBaseUrl` at import time, and those getters throw when a variable is missing or malformed (the public base is also parsed with `new URL`). A config problem therefore took the whole module down, so every admin action that touches R2 died before its own try/catch, and Next replaced the cause with the sanitized digest. The client, bucket, and public base are now resolved lazily on first use, inside the action's error handling.
+- **sharp loads lazily too** ([lib/storage/sharp-loader.ts](lib/storage/sharp-loader.ts)). It resolves a platform-specific native binary at import time, so the same module-load failure mode applied. A load failure is now a catchable error that names itself instead of an unfixable-looking 500.
+- **Every artwork action reports its real reason.** `updateArtwork`, `deleteArtwork`, `reorderArtworks`, and `regeneratePalette` join the three wrapped in 1.35.1, and both admin transition helpers ([use-admin-action.ts](app/admin/_components/use-admin-action.ts) and the local one in [artwork-row.tsx](app/admin/_components/artwork-row.tsx)) now recognise a failure envelope generically, so an action reports its message without each call site opting in. Actions still returning void are unaffected.
+- **Removed the unused `r2Config` export**, which existed only to read env at module scope.
+
+### Changed
+
+- **Artwork actions split into [app/admin/artwork-actions.ts](app/admin/artwork-actions.ts)** (335 lines) to stay under the repo's 500-line ceiling; `actions.ts` keeps workshops, presets, categories, and the maintainer roster (245 lines).
+
 ## 1.35.1 (2026-09-01)
 
 ### Fixed

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import sharp, { type Metadata } from "sharp";
+import type { Metadata } from "sharp";
+import { loadSharp } from "./sharp-loader";
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 40_000_000;
@@ -52,6 +53,7 @@ export function assertStagedKey(key: string): void {
  * The same pixel limit is also passed to every sharp pipeline.
  */
 export async function validateImageBuffer(buffer: Buffer): Promise<void> {
+	const sharp = await loadSharp();
 	let metadata: Metadata;
 	try {
 		metadata = await sharp(buffer, {

@@ -4,7 +4,7 @@ import { GripVertical, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn, formatInr } from "@/lib/utils";
-import { deleteArtwork, reorderArtworks } from "../actions";
+import { deleteArtwork, reorderArtworks } from "../artwork-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminIconBtnDestructive } from "./controls";
 import { ReorderBar } from "./reorder-bar";
