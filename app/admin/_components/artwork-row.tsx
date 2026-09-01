@@ -3,6 +3,7 @@
 import { ImageUp, Palette, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { unwrap } from "@/lib/action-result";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { formatInr } from "@/lib/utils";
 import { deleteArtwork, regeneratePalette, replaceArtworkImage, updateArtwork } from "../actions";
@@ -255,7 +256,7 @@ function ArtworkEditModal({
 								// receives its key, keeping the request body small.
 								data.delete("image");
 								data.set("imageKey", await stageImage(file));
-								await replaceArtworkImage(art.slug, data);
+								unwrap(await replaceArtworkImage(art.slug, data));
 							}, "Image replaced.");
 						}}
 						className="flex flex-wrap items-center gap-3"
