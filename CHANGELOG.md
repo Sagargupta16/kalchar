@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.35.3 (2026-09-02)
+
+Security patch; no app change.
+
+### Security
+
+- `postcss` is updated from `8.5.19` to `8.5.26` (Dependabot alert #25, medium, GHSA-fxqj-rqcc-2cmp, fixed in `8.5.23`), and the existing workspace override floor is raised to match so no older copy can re-enter the tree.
+- `nanoid`, which reaches the tree only through postcss, moves from `3.3.16` to `3.3.18` (Dependabot alert #27, high, GHSA-2v37-7h3g-55p8). A new override pins the 3.x line to `>=3.3.18 <4`; nanoid 4+ is ESM-only and postcss requires the CJS 3.x line.
+
 ## 1.35.2 (2026-09-01)
 
 Root-cause fix for the opaque `POST /admin/ 500`. v1.35.1 returned action failures as data, but the error survived it, which proved the throw happened at **module load** rather than inside the action, before any error handling existed.
