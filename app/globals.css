@@ -82,7 +82,7 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ─── LAYOUT TOKENS ─── */
-  --container-px: clamp(1.25rem, 4vw, 2rem);
+  /* --container-px is declared in :root below, not here: see the note there. */
   --section-py: clamp(4rem, 8vw, 6.5rem);
   --content-max: 72rem;  /* 1152px */
   --prose-max: 42rem;    /* 672px */
@@ -133,6 +133,12 @@
    * the elevation tokens so depth reads as warm brown, never flat black. Lives
    * here (not @theme) because it's an oklch component triplet, not a color. */
   --shadow-ink: 0.18 0.022 60;
+  /* Container inline padding. Kept out of @theme on purpose: Tailwind 4 turns
+   * every --container-* theme key into a named size for w-, max-w-, min-w-,
+   * size- and basis-, so a key called "px" shadowed the built-in 1px `w-px`
+   * utility and every hairline separator rendered as a 20 to 32px square.
+   * Consumers read it as px-(--container-px), which resolves from :root. */
+  --container-px: clamp(1.25rem, 4vw, 2rem);
 }
 
 :root.dark {

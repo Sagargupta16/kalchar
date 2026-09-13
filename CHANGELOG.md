@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.38.2 (2026-09-13)
+
+### Fixed
+
+- **Hairline separators rendered as grey squares.** The divider between the style chips and "Available to buy" on `/work`, and the two dividers in the footer, drew as 20 to 32px blocks instead of 1px rules. `--container-px` was declared inside Tailwind's `@theme`, and Tailwind 4 turns every `--container-*` key into a named width for `w-`, `max-w-`, `min-w-`, `size-` and `basis-`, so a key called `px` shadowed the built-in 1px `w-px` utility. The token now lives in `:root`, where `px-(--container-px)` still resolves it ([app/globals.css](app/globals.css)).
 ## 1.38.1 (2026-09-13)
 
 ### Added
