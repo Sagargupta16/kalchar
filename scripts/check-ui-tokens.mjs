@@ -144,6 +144,12 @@ export const PATTERNS = [
 		phase: "warn",
 		message: "Use svh (URL bar)",
 	},
+	{
+		id: "ruby-alpha",
+		re: /\b(?:border|bg|text)-ruby\/\d+/,
+		phase: "warn",
+		message: "Use the opaque ruby-line / ruby-soft tokens instead of alpha over a tinted surface",
+	},
 ];
 
 /** Paths where a pattern is legal: token definitions, deprecated aliases, sanctioned half steps. */

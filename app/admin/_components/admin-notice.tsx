@@ -8,7 +8,7 @@ type NoticeVariant = "error" | "success" | "info";
 const BASE = "flex items-start gap-2 rounded-(--radius-sm) border px-3 py-2 text-sm";
 
 const STYLE: Record<NoticeVariant, string> = {
-	error: "border-ruby/30 bg-ruby/5 text-ruby",
+	error: "border-ruby-line bg-ruby-soft text-ruby",
 	success: "border-accent/30 bg-accent/5 text-accent-text",
 	info: "border-line bg-canvas text-muted",
 };

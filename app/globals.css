@@ -76,6 +76,11 @@
   --color-vermillion: oklch(0.55 0.18 35);
   --color-peacock: oklch(0.46 0.1 220);
   --color-ruby: oklch(0.55 0.2 25);
+  /* Opaque ruby stops for destructive borders and soft fills. Mixed over the
+   * page background at use time, so one declaration serves both themes and
+   * contrast is scored on the real composite instead of an alpha guess. */
+  --color-ruby-line: color-mix(in oklch, var(--color-ruby) 40%, var(--color-bg));
+  --color-ruby-soft: color-mix(in oklch, var(--color-ruby) 10%, var(--color-bg));
 
   /* Metallic accents */
   --color-gold-leaf: oklch(0.76 0.12 85);
