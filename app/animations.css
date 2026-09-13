@@ -1,0 +1,194 @@
+/* Animation classes, editorial typography and the reduced-motion overrides.
+   Split out of app/globals.css (500-line ceiling); globals.css imports this
+   file right after its @theme block, so every token it references exists.
+   Reduced motion is the repo exception (MEMORY "Reduced motion"): motion
+   stays visible by default and only these rules answer the OS preference. */
+
+/* ─── ANIMATION CLASSES ─── */
+
+/* Native scroll-driven progress avoids a JS scroll listener and updates on the
+   compositor. Browsers without scroll timelines simply hide the enhancement. */
+.scroll-progress-bar {
+  transform: scaleX(0);
+  animation: scroll-progress linear both;
+  animation-timeline: scroll(root block);
+}
+
+@keyframes scroll-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .scroll-progress-bar {
+    display: none;
+  }
+}
+
+/* Home hero artwork plates -- smooth ease when the random shuffle changes
+   the tilt angle on reload. Reduced motion flattens to the resting tilt.
+   will-change is only promised while a shuffle is pending, not permanently. */
+.hero-plate {
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+[data-shuffle-status="pending"] .hero-plate {
+  will-change: transform;
+}
+
+/* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
+   route's server data resolves (route loading.tsx files). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-line) 55%, transparent),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Page enter -- a soft fade-up on client-side navigation, applied by
+   app/template.tsx. The first paint is NOT animated (would delay LCP); the
+   template only adds this class after the initial mount. */
+.page-enter {
+  animation: page-enter-in var(--duration-base) var(--ease-out) both;
+}
+
+/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
+   any keyframe, the browser holds it as a computed matrix (even identity,
+   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
+   this wrapper makes it the containing block for every `position: fixed`
+   descendant -- which un-pins the admin mobile tab bar and the reorder bar
+   from the viewport after a client navigation and sends taps to the wrong
+   place. A plain fade has no such side effect. */
+@keyframes page-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes reveal-up-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flare-after::after {
+  content: "";
+  display: block;
+  height: 1px;
+  width: 0;
+  background: var(--color-accent);
+  animation: flare-grow var(--duration-slow) var(--ease-out) 0.6s forwards;
+}
+
+@keyframes flare-grow {
+  to {
+    width: var(--flare-w, 100%);
+  }
+}
+
+/* Chrome's ThemeToggle adds .theme-switching to <html> for two frames around
+   the class flip so every token swaps in one repaint instead of 150ms of
+   staggered transition-colors (insp: beautifului.dev / Freeze transitions). */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* ─── EDITORIAL TYPOGRAPHY ─── */
+
+.drop-cap::first-letter {
+  font-family: var(--font-display);
+  font-style: italic;
+  float: left;
+  font-size: 3.2rem;
+  line-height: 0.85;
+  padding: 0.3rem 0.5rem 0 0;
+  color: var(--section-accent, var(--color-accent));
+}
+
+/* ─── REDUCED MOTION ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  /* Reveal before hydration: usePrefersReducedMotion starts false on the
+     server, so without this every non-eager Reveal sits at opacity 0 until
+     the client catches up. */
+  [data-motion-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .stagger > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Press cue survives as a non-motion state change. */
+  .pressable:active:not(:disabled) {
+    transform: none;
+    filter: brightness(0.92);
+  }
+
+  .flare-after::after {
+    animation: none;
+    width: var(--flare-w, 100%);
+  }
+
+  /* Keep the static gallery composition, but skip all plate transitions. */
+  .hero-plate {
+    transition: none;
+  }
+
+  /* Skeletons stay a static tint (no sweep); page-enter is instant. */
+  .skeleton::after {
+    animation: none;
+  }
+  .page-enter {
+    animation: none;
+  }
+
+  .scroll-progress-bar {
+    display: none;
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

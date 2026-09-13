@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 /**
@@ -16,19 +17,23 @@ import { type ReactNode, useEffect, useState } from "react";
  * the new page in via state.
  *
  * Reduced-motion makes `.page-enter` a no-op (handled in globals.css).
+ *
+ * No fade under /admin (D18): tab-to-tab navigation in a tool is instant.
  */
 let seenFirstMount = false;
 
 export default function Template({ children }: Readonly<{ children: ReactNode }>) {
+	const pathname = usePathname();
+	const isAdmin = pathname.startsWith("/admin");
 	const [animate, setAnimate] = useState(false);
 
 	useEffect(() => {
 		if (seenFirstMount) {
-			setAnimate(true);
+			if (!isAdmin) setAnimate(true);
 		} else {
 			seenFirstMount = true;
 		}
-	}, []);
+	}, [isAdmin]);
 
 	return <div className={animate ? "page-enter" : undefined}>{children}</div>;
 }

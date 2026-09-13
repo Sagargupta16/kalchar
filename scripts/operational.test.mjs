@@ -404,3 +404,42 @@ test("public health rejects successful responses containing invalid image bytes"
 		/recognizable image bytes/,
 	);
 });
+
+test("UI token guard reports violations with file and line and stays quiet on clean trees", async () => {
+	const root = await mkdtemp(join(runDirectory, "ui-guard-"));
+	await mkdir(join(root, "components"), { recursive: true });
+	await writeFile(
+		join(root, "components", "dirty.tsx"),
+		'export const a = "shadow-md";\nexport const b = "transition-all";\nexport const c = "z-[110]";\n',
+	);
+	await writeFile(
+		join(root, "components", "clean.tsx"),
+		'export const ok = "shadow-e1 transition-ui z-nav";\n',
+	);
+
+	const now = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "now"]);
+	assert.equal(now.status, 1, now.stderr);
+	assert.match(now.stderr, /::error file=components\/dirty\.tsx,line=1::raw-shadow/);
+	assert.match(now.stdout, /::warning file=components\/dirty\.tsx,line=2::transition-all/);
+	assert.doesNotMatch(now.stderr + now.stdout, /clean\.tsx/);
+
+	const integration = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "integration"]);
+	assert.equal(integration.status, 1);
+	assert.match(integration.stderr, /line=2::transition-all/);
+	assert.match(integration.stderr, /line=3::arbitrary-z/);
+
+	await unlink(join(root, "components", "dirty.tsx"));
+	const clean = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "integration"]);
+	assert.equal(clean.status, 0, clean.stderr);
+	assert.match(clean.stdout, /0 errors, 0 warnings/);
+
+	const bad = runCli("check-ui-tokens.mjs", ["--root", join(root, "missing")]);
+	assert.equal(bad.status, 2);
+	assert.equal(runCli("check-ui-tokens.mjs", ["--phase", "later"]).status, 2);
+
+	const { scan } = await import("./check-ui-tokens.mjs");
+	assert.equal(
+		scan('className="ring-white/20"', "components/x.tsx", "now").errors[0]?.id,
+		"raw-ring",
+	);
+});
