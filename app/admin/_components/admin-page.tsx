@@ -5,16 +5,16 @@ import { cn } from "@/lib/utils";
 export type AdminPageWidth = "narrow" | "default" | "wide";
 
 /**
- * narrow  = 42rem (672px): categories, presets, profile, maintainers (today max-w-2xl).
- * default = 48rem (768px): events, workshops, testimonials, leads (today max-w-3xl).
- * wide    = the full content measure (72rem via <main>). Kept in the type for a
- *           future wide route; no route uses it in 1.39.0. The dashboard stays on
- *           `default` (D16 + admin-catalog-17: every admin route on one 768px
- *           column; admin-catalog change 6 says the same).
+ * Every admin route spans the full content measure (72rem via <main>), the same
+ * as the dashboard (decisions.md ruling 42: the narrower 672px / 768px columns
+ * left categories, events, workshops, testimonials, enquiries, presets, profile
+ * and maintainers looking unaligned). Pages use the width through layout (form
+ * grids, side-by-side panels), never by shrinking the page. The width prop is
+ * kept so existing call sites compile; every value resolves to full width.
  */
 const WIDTH: Record<AdminPageWidth, string | undefined> = {
-	narrow: "max-w-(--header-max)",
-	default: "max-w-(--prose-max)",
+	narrow: undefined,
+	default: undefined,
 	wide: undefined,
 };
 
