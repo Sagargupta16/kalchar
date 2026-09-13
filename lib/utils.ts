@@ -6,7 +6,22 @@
  * with just `p-6`).
  */
 import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge only knows Tailwind's built-in font sizes, so it filed the
+ * repo's own size tokens (text-h1, text-micro, ...) under text colour and
+ * dropped one of the pair in `cn("text-micro", "text-muted")`. Registering
+ * them as font sizes keeps size and colour independent, and lets a later
+ * size win over an earlier one as expected.
+ */
+const twMerge = extendTailwindMerge({
+	extend: {
+		classGroups: {
+			"font-size": [{ text: ["h1", "h2", "title", "h3", "label", "micro"] }],
+		},
+	},
+});
 
 export function cn(...inputs: ClassValue[]): string {
 	return twMerge(clsx(inputs));

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatEventDate, formatInr } from "./utils";
+import { cn, formatBytes, formatEventDate, formatInr } from "./utils";
+
+describe("cn", () => {
+	it("keeps a custom size token next to a text colour", () => {
+		expect(cn("text-micro", "text-muted")).toBe("text-micro text-muted");
+		expect(cn("text-label text-accent-text")).toBe("text-label text-accent-text");
+	});
+	it("lets a later size win over an earlier one, built-in or custom", () => {
+		expect(cn("text-sm", "text-micro")).toBe("text-micro");
+		expect(cn("text-h3", "text-h1")).toBe("text-h1");
+		expect(cn("text-micro", "text-sm")).toBe("text-sm");
+	});
+});
 
 describe("formatInr", () => {
 	it("formats with the INR label and Indian digit grouping", () => {
