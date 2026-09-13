@@ -58,7 +58,7 @@ export function ArtworkCard({
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
 					sizes={sizes}
-					className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+					className="absolute inset-0 h-full w-full object-cover"
 					priority={priority}
 				/>
 

@@ -36,7 +36,7 @@ interface ResponsiveImageProps {
 }
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
-const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
+const SETTLE_HIDDEN_STYLE = { opacity: 0, transform: "scale(1.02)" } as const;
 const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-content-center gap-2 bg-canvas text-muted";
 type ImageSource = "remote" | "fallback" | "failed";
 
@@ -112,8 +112,9 @@ export function ResponsiveImage({
 		);
 	}
 
-	// Gallery-register settle: the image fades + lifts out of a soft blur as it
-	// decodes. Priority (LCP) images and reduced-motion users skip it. The hidden
+	// Gallery-register settle: the image fades in and settles from 1.02 as it
+	// decodes (opacity + transform only, compositor-safe). Priority (LCP) images
+	// and reduced-motion users skip it. The hidden
 	// state is an INLINE opacity:0 so the no-JS <noscript> net in layout.tsx
 	// unhides it for crawlers -- the same contract Reveal relies on.
 	const isFallback = activeSource === "fallback";
@@ -136,7 +137,7 @@ export function ResponsiveImage({
 			className={cn(
 				imgClass,
 				animate &&
-					"transition-[opacity,transform,filter] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
+					"transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out) motion-reduce:transition-none",
 			)}
 		/>
 	);
