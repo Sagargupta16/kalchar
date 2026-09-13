@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
-import { ViewerDialog } from "@/components/gallery/viewer-dialog";
+import { LightboxIconButton, ViewerDialog } from "@/components/gallery/viewer-dialog";
+import { DUR, EASE_IN, EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,12 +17,15 @@ import { cn } from "@/lib/utils";
  * only the displayed size changes, not the aspect. Up to MAX_INLINE tiles show;
  * a "+N more" overlay on the last opens the lightbox at that point. The lightbox
  * cycles through ALL photos (arrows + keyboard + swipe), arrows shown whenever
- * there's more than one.
+ * there's more than one. Tiles sit on --radius-md (grid plate); only the
+ * lightbox figure uses --radius-lg (D13). The panel grows from the tapped tile
+ * (transform-origin), never from the viewport centre.
  */
 const MAX_INLINE = 6;
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
-const LIGHTBOX_PANEL_SPRING = { type: "spring", damping: 28, stiffness: 340 } as const;
+/** Sibling slide distance (px) when paging inside the lightbox. */
+const SLIDE_PX = 24;
 
 interface EventGalleryProps {
 	images: string[];
@@ -30,6 +34,7 @@ interface EventGalleryProps {
 
 export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 	const [lightboxAt, setLightboxAt] = useState<number | null>(null);
+	const [origin, setOrigin] = useState<string | undefined>(undefined);
 
 	if (images.length === 0) return null;
 
@@ -47,6 +52,15 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 			? "(min-width: 1152px) 1030px, calc(100vw - 96px)"
 			: "(min-width: 1152px) 335px, (min-width: 640px) 30vw, calc((100vw - 90px) / 2)";
 
+	const open = (index: number, tile: HTMLElement) => {
+		// The tile's centre as viewport percentages: the panel scales from here.
+		const rect = tile.getBoundingClientRect();
+		const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+		const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+		setOrigin(`${x.toFixed(1)}% ${y.toFixed(1)}%`);
+		setLightboxAt(index);
+	};
+
 	return (
 		<>
 			<ul className={cn("grid gap-2 sm:gap-3", gridClass)}>
@@ -63,7 +77,7 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 								priority={i === 0}
 								overflow={showOverflow ? overflow : undefined}
 								totalForLabel={showOverflow ? images.length : undefined}
-								onClick={() => setLightboxAt(i)}
+								onOpen={(tile) => open(i, tile)}
 							/>
 						</li>
 					);
@@ -74,6 +88,7 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 				images={images}
 				title={title}
 				index={lightboxAt}
+				origin={origin}
 				onClose={() => setLightboxAt(null)}
 				onIndex={setLightboxAt}
 			/>
@@ -92,7 +107,7 @@ interface PhotoTileProps {
 	overflow?: number;
 	/** Total photo count, for the overflow tile's aria-label. */
 	totalForLabel?: number;
-	onClick: () => void;
+	onOpen: (tile: HTMLElement) => void;
 }
 
 function PhotoTile({
@@ -104,32 +119,33 @@ function PhotoTile({
 	priority = false,
 	overflow,
 	totalForLabel,
-	onClick,
+	onOpen,
 }: Readonly<PhotoTileProps>) {
 	return (
 		<button
 			type="button"
-			onClick={onClick}
+			onClick={(e) => onOpen(e.currentTarget)}
 			aria-label={
 				overflow !== undefined && totalForLabel !== undefined
 					? `View all ${totalForLabel} photos from ${title}`
 					: `View photo ${index + 1} from ${title}`
 			}
 			className={cn(
-				"group relative block w-full overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline transition-[box-shadow] duration-(--duration-base) ease-(--ease-out) hover:shadow-e3 hover:ring-1 hover:ring-(--section-accent) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+				"group relative block w-full overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline transition-ui pressable hover:-translate-y-0.5 hover:shadow-e2-edged hover:ring-1 hover:ring-(--section-accent)",
 				aspect,
 			)}
 		>
+			{/* The frame lifts on hover; the photo itself never scales (no resampled brushwork). */}
 			<ResponsiveImage
 				keyBase={keyBase}
 				alt={`${title}, photo ${index + 1}`}
 				sizes={sizes}
 				priority={priority}
-				className="absolute inset-0 h-full w-full object-contain transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+				className="absolute inset-0 h-full w-full object-contain"
 			/>
 			{overflow === undefined ? null : (
-				<span className="absolute inset-0 grid place-items-center bg-black/55 text-bg backdrop-blur-[1px] transition-colors duration-(--duration-base) group-hover:bg-black/65">
-					<span className="t-display text-2xl sm:text-3xl">+{overflow}</span>
+				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
+					<span className="t-display text-title">+{overflow}</span>
 				</span>
 			)}
 		</button>
@@ -140,32 +156,57 @@ interface EventLightboxProps {
 	images: string[];
 	title: string;
 	index: number | null;
+	/** transform-origin of the panel: the tapped tile's centre in viewport percentages. */
+	origin?: string;
 	onClose: () => void;
 	onIndex: (i: number) => void;
 }
 
-function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<EventLightboxProps>) {
+/** Siblings slide in unison: incoming from the travel side, outgoing the other way, no scale. */
+const SLIDE = {
+	enter: (dir: number) => ({ x: SLIDE_PX * dir, opacity: 0 }),
+	center: { x: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE_OUT } },
+	exit: (dir: number) => ({
+		x: -SLIDE_PX * dir,
+		opacity: 0,
+		transition: { duration: DUR.fast, ease: EASE_IN },
+	}),
+};
+
+function EventLightbox({
+	images,
+	title,
+	index,
+	origin,
+	onClose,
+	onIndex,
+}: Readonly<EventLightboxProps>) {
 	const isOpen = index !== null;
+	const [dir, setDir] = useState<1 | -1>(1);
 
 	const go = useCallback(
-		(dir: 1 | -1) => {
+		(step: 1 | -1) => {
 			if (index === null) return;
-			onIndex((index + dir + images.length) % images.length);
+			setDir(step);
+			onIndex((index + step + images.length) % images.length);
 		},
 		[index, images.length, onIndex],
 	);
 
-	const touchStartX = useRef(0);
+	// Track both axes and only page when the gesture is mostly horizontal, so a
+	// vertical scroll with a little drift never changes the photo.
+	const touchStart = useRef({ x: 0, y: 0 });
 	const onTouchStart = useCallback((e: React.TouchEvent) => {
 		const t = e.touches[0];
-		if (t) touchStartX.current = t.clientX;
+		if (t) touchStart.current = { x: t.clientX, y: t.clientY };
 	}, []);
 	const onTouchEnd = useCallback(
 		(e: React.TouchEvent) => {
 			const t = e.changedTouches[0];
 			if (!t) return;
-			const dx = t.clientX - touchStartX.current;
-			if (Math.abs(dx) > SWIPE_THRESHOLD_PX) go(dx > 0 ? -1 : 1);
+			const dx = t.clientX - touchStart.current.x;
+			const dy = t.clientY - touchStart.current.y;
+			if (Math.abs(dx) > SWIPE_THRESHOLD_PX && Math.abs(dx) > Math.abs(dy)) go(dx > 0 ? -1 : 1);
 		},
 		[go],
 	);
@@ -184,22 +225,40 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 					<motion.figure
 						initial={{ opacity: 0, scale: 0.96, y: 12 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{ opacity: 0, scale: 0.96, y: 12 }}
-						transition={LIGHTBOX_PANEL_SPRING}
+						exit={{
+							opacity: 0,
+							scale: 0.98,
+							y: 8,
+							transition: { duration: DUR.fast, ease: EASE_IN },
+						}}
+						transition={SPRING_PANEL}
+						style={{ transformOrigin: origin }}
 						onTouchStart={onTouchStart}
 						onTouchEnd={onTouchEnd}
-						className="relative z-10 m-0 flex w-full max-w-5xl flex-col items-center"
+						className="relative z-raised m-0 flex w-full max-w-5xl flex-col items-center"
 					>
 						{/* The image sizes to its own ratio (capped by the viewport), so the
 						    whole photo shows uncropped whatever its dimensions. */}
 						<div className="relative flex max-h-[80svh] w-full items-center justify-center">
-							<ResponsiveImage
-								keyBase={images[index] ?? ""}
-								alt={`${title}, photo ${index + 1} of ${images.length}`}
-								sizes="(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)"
-								priority
-								className="max-h-[80svh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-bg-soft object-contain shadow-e5"
-							/>
+							<AnimatePresence mode="popLayout" custom={dir} initial={false}>
+								<motion.div
+									key={index}
+									custom={dir}
+									variants={SLIDE}
+									initial="enter"
+									animate="center"
+									exit="exit"
+									className="flex max-h-[80svh] w-full items-center justify-center"
+								>
+									<ResponsiveImage
+										keyBase={images[index] ?? ""}
+										alt={`${title}, photo ${index + 1} of ${images.length}`}
+										sizes="(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)"
+										priority
+										className="max-h-[80svh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-canvas object-contain shadow-e5"
+									/>
+								</motion.div>
+							</AnimatePresence>
 							{hasMany ? (
 								<>
 									<LightboxNav direction="prev" onClick={() => go(-1)} />
@@ -207,10 +266,10 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 								</>
 							) : null}
 						</div>
-						<figcaption className="mt-3 flex w-full items-center justify-between text-xs text-muted">
-							<span className="t-meta normal-case tracking-normal">{title}</span>
+						<figcaption className="mt-3 flex w-full items-center justify-between gap-3 text-xs text-muted">
+							<span className="min-w-0 truncate">{title}</span>
 							{hasMany ? (
-								<span className="tabular-nums">
+								<span className="shrink-0 tabular-nums">
 									{index + 1} / {images.length}
 								</span>
 							) : null}
@@ -228,16 +287,21 @@ function LightboxNav({
 }: Readonly<{ direction: "prev" | "next"; onClick: () => void }>) {
 	const isPrev = direction === "prev";
 	return (
-		<button
-			type="button"
+		<LightboxIconButton
 			onClick={onClick}
 			aria-label={isPrev ? "Previous photo" : "Next photo"}
 			className={cn(
-				"absolute top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/40 bg-bg/80 text-ink shadow-e2 backdrop-blur transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent",
-				isPrev ? "left-3" : "right-3",
+				"absolute top-1/2 z-raised -translate-y-1/2 pointer-coarse:size-12",
+				isPrev
+					? "left-[max(--spacing(3),var(--spacing-safe-left))]"
+					: "right-[max(--spacing(3),var(--spacing-safe-right))]",
 			)}
 		>
-			{isPrev ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
-		</button>
+			{isPrev ? (
+				<ArrowLeft size={18} aria-hidden="true" />
+			) : (
+				<ArrowRight size={18} aria-hidden="true" />
+			)}
+		</LightboxIconButton>
 	);
 }

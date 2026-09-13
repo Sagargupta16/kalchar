@@ -1,10 +1,13 @@
 "use client";
 
 import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { submitLead } from "@/app/admin/lead-actions";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { IconCircle } from "@/components/ui/icon-circle";
+import { SPRING_ZOOM } from "@/lib/motion";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/whatsapp";
@@ -12,9 +15,11 @@ import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/
 /**
  * Custom-order form.
  *
- * Prepares explicit WhatsApp/email links while saving the brief independently.
- * Persistence status never claims that a message was opened or sent.
- * Catalog presets are supplied by the server through the data seam.
+ * One visible action that says what happens: "Continue to WhatsApp" saves the
+ * brief and, in the same slot, becomes the "Send on WhatsApp" link (focus moves
+ * to it). The save never gates the link; persistence status never claims that a
+ * message was opened or sent. Catalog presets come from the server through the
+ * data seam.
  */
 const MAX_BRIEF_LENGTH = 4000;
 const MAX_CONTACT_LENGTH = 200;
@@ -48,6 +53,13 @@ export function CustomOrderForm({
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
 	const submissionVersion = useRef(0);
+	const whatsappRef = useRef<HTMLAnchorElement>(null);
+
+	// The submit button unmounts once the draft exists; move focus to the link
+	// that took its place so keyboard and screen-reader users are not stranded.
+	useEffect(() => {
+		if (draft) whatsappRef.current?.focus();
+	}, [draft]);
 
 	function readDraft(formData: FormData): CustomOrderDraft | null {
 		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
@@ -101,7 +113,9 @@ export function CustomOrderForm({
 				setSaveStatus("idle");
 				setError(null);
 			}}
-			className="space-y-6"
+			// relative anchors the off-screen honeypot to the form; @container lets
+			// the field pairs split on the form's own width, not the viewport.
+			className="@container relative flex flex-col gap-(--form-gap)"
 			noValidate
 		>
 			{/* Honeypot: hidden from users + assistive tech; bots fill it and the
@@ -132,7 +146,7 @@ export function CustomOrderForm({
 			{/* Visual style picker (replaces the old dropdown). */}
 			<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
 
-			<div className="grid gap-6 sm:grid-cols-2">
+			<div className="grid gap-(--form-gap) @md:grid-cols-2">
 				<SelectField id="size" label="Approx size">
 					<select id="size" name="size" defaultValue="" className={selectClass}>
 						<option value="">No preference</option>
@@ -156,7 +170,7 @@ export function CustomOrderForm({
 				</SelectField>
 			</div>
 
-			<div className="grid gap-6 sm:grid-cols-2">
+			<div className="grid gap-(--form-gap) @md:grid-cols-2">
 				<SelectField id="timeline" label="Timeline">
 					<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
 						<option value="">No specific timeline</option>
@@ -180,7 +194,16 @@ export function CustomOrderForm({
 				</Field>
 			</div>
 
-			<Field id="contact" label="Email or WhatsApp number" optional>
+			<Field
+				id="contact"
+				label="Email or WhatsApp number"
+				optional
+				description={
+					<p id="contact-hint" className="text-sm text-muted">
+						Leave a way for us to reply if you cannot send your message on WhatsApp.
+					</p>
+				}
+			>
 				<input
 					id="contact"
 					name="contact"
@@ -192,20 +215,14 @@ export function CustomOrderForm({
 					placeholder="Where can we reply?"
 					className={inputClass}
 				/>
-				<p id="contact-hint" className="mt-2 text-xs text-muted">
-					Leave a way for us to reply if you cannot send your message on WhatsApp.
-				</p>
 			</Field>
 
 			{/* Reference images are shared in the conversation. */}
-			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft p-3.5">
-				<span
-					className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line"
-					aria-hidden="true"
-				>
+			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-canvas p-4">
+				<IconCircle size="sm">
 					<ImageUp size={14} />
-				</span>
-				<p className="text-xs leading-relaxed text-muted">
+				</IconCircle>
+				<p className="text-sm text-muted">
 					<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
 					can share photos directly on WhatsApp right after you send this brief.
 				</p>
@@ -213,43 +230,43 @@ export function CustomOrderForm({
 
 			<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
 
-			<div className="flex flex-col items-start gap-3">
-				{saveStatus !== "saved" ? (
-					<Button
-						type="submit"
-						variant={draft ? "secondary" : "primary"}
-						size="lg"
-						disabled={saveStatus === "saving"}
-						className="w-full whitespace-normal text-center sm:w-auto"
-					>
-						{getSaveButtonLabel(saveStatus)}
-						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-					</Button>
-				) : null}
+			{/* One primary in one slot: the submit hands over to the WhatsApp link
+			    the moment the draft exists (the save runs alongside, never gating it). */}
+			<div className="mt-(--form-group-gap) flex flex-col items-start gap-3">
 				{whatsappHref ? (
 					<a
+						ref={whatsappRef}
 						href={whatsappHref}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={cn(
-							buttonVariants({ variant: "primary", size: "lg" }),
-							"w-full whitespace-normal text-center sm:w-auto",
-						)}
+						className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full sm:w-auto")}
 					>
 						{submitLabel}
 						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
 					</a>
+				) : (
+					<Button type="submit" size="lg" className="w-full sm:w-auto">
+						Continue to WhatsApp
+						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+					</Button>
+				)}
+				{saveStatus === "failed" ? (
+					<Button type="submit" variant="secondary" className="w-full sm:w-auto">
+						Try saving again
+					</Button>
 				) : null}
-				<p className="text-xs text-muted">
-					Open WhatsApp to review and send your message. If it does not open, use email below.
+				<p className="text-sm text-muted">
+					{whatsappHref
+						? "WhatsApp opens with your message ready to review. If it does not open, send the same message by email."
+						: "We save your brief, then open WhatsApp with the message ready for you to review."}
 				</p>
-				<p className="text-xs text-muted">
+				<p className="text-sm text-muted">
 					We use your brief and contact details only to reply to your enquiry.
 				</p>
 				{mailtoHref ? (
 					<a
 						href={mailtoHref}
-						className="inline-flex items-center gap-2 text-sm text-(--section-accent) underline-offset-4 hover:underline"
+						className="inline-flex min-h-control items-center gap-2 text-sm text-accent-text underline-offset-4 hover:underline"
 					>
 						<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
 					</a>
@@ -260,12 +277,6 @@ export function CustomOrderForm({
 }
 
 /* ----------------------------- helpers ----------------------------- */
-
-function getSaveButtonLabel(saveStatus: SaveStatus): string {
-	if (saveStatus === "saving") return "Saving enquiry...";
-	if (saveStatus === "failed") return "Try saving again";
-	return "Prepare enquiry";
-}
 
 function EnquiryStatus({
 	error,
@@ -285,30 +296,33 @@ function EnquiryStatus({
 				</p>
 			) : null}
 			{saveStatus === "saving" ? (
-				<p className="text-sm text-muted">
-					Saving your enquiry. You can open WhatsApp while it saves.
-				</p>
+				<p className="text-sm text-muted">Saving your brief. You can send it on WhatsApp now.</p>
 			) : null}
 			{saveStatus === "failed" ? (
 				<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
 					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
 					<span>
-						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or email below, or
+						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or by email, or
 						try saving again.
 					</span>
 				</p>
 			) : null}
 			{saveStatus === "saved" && draft ? (
 				<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
-					<span
-						className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
-						aria-hidden="true"
+					{/* The check pops in on the zoom spring (a response to the visitor's tap, no bounce). */}
+					<motion.span
+						initial={{ scale: 0.8 }}
+						animate={{ scale: 1 }}
+						transition={SPRING_ZOOM}
+						className="flex shrink-0"
 					>
-						<Check size={14} />
-					</span>
+						<IconCircle size="sm" className="bg-(--section-accent) text-bg ring-0">
+							<Check size={14} />
+						</IconCircle>
+					</motion.span>
 					<div>
 						<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
-						<p className="mt-1 text-xs text-muted">
+						<p className="mt-1 text-sm text-muted">
 							{draft.contact
 								? "We'll use your contact details to reply. You can also send your message on WhatsApp."
 								: "Send it on WhatsApp or email so we have a way to reply."}
@@ -320,8 +334,10 @@ function EnquiryStatus({
 	);
 }
 
+// D4 field: inset canvas with a 3:1 boundary, 16px text (no iOS zoom), 44px
+// floor. Focus is the global rule (2px accent outline; the border turns accent).
 const inputClass =
-	"block w-full min-h-12 rounded-(--radius-sm) border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";
+	"block w-full min-h-control rounded-(--radius-sm) border border-line-strong bg-canvas px-4 py-3 text-base text-ink transition-ui placeholder:text-muted";
 
 // Selects drop the OS chevron (appearance-none) so they match the cream/ink
 // fields; a lucide chevron is layered in via the SelectField wrapper. Extra
@@ -356,12 +372,15 @@ function Field({
 	label,
 	optional,
 	required,
+	description,
 	children,
 }: Readonly<{
 	id: string;
 	label: string;
 	optional?: boolean;
 	required?: boolean;
+	/** Helper line under the control (outside the underline wrapper). */
+	description?: React.ReactNode;
 	children: React.ReactNode;
 }>) {
 	let hint: React.ReactNode = null;
@@ -371,7 +390,7 @@ function Field({
 		hint = <span className="text-xs text-muted">optional</span>;
 	}
 	return (
-		<div>
+		<div className="grid gap-(--field-label-gap)">
 			<label
 				htmlFor={id}
 				className="flex items-baseline justify-between text-sm font-medium text-ink"
@@ -379,7 +398,12 @@ function Field({
 				<span>{label}</span>
 				{hint}
 			</label>
-			<div className="mt-2">{children}</div>
+			{/* A pigment underline draws under the focused control (additive to the
+			    global outline; compositor-only, nothing repaints). */}
+			<div className="relative after:pointer-events-none after:absolute after:inset-x-2.5 after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:bg-(--section-accent) after:transition-transform focus-within:after:scale-x-100">
+				{children}
+			</div>
+			{description}
 		</div>
 	);
 }

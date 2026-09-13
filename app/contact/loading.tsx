@@ -1,21 +1,24 @@
-import { Container } from "@/components/ui/container";
+import { Section } from "@/components/ui/section";
 import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 
+/** Mirrors the page order: WhatsApp, catalogue, Email, Follow along (QR grid, YouTube), personal, closing. */
 export default function ContactLoading() {
 	return (
 		<main>
-			<Container size="narrow" className="py-(--section-py)">
+			<Section padded size="narrow">
 				<SkeletonHeader />
-				{/* WhatsApp band */}
-				<Skeleton className="mt-10 h-28 w-full rounded-(--radius-md)" />
-				{/* Two IG cards */}
+				<Skeleton className="mt-(--space-block) h-28 rounded-(--radius-md)" />
+				<Skeleton className="mt-4 h-11 w-full sm:w-72" />
+				<Skeleton className="mt-4 h-20 rounded-(--radius-md)" />
+				<Skeleton className="mt-(--space-block) h-3 w-24" />
 				<div className="mt-5 grid gap-4 sm:grid-cols-2">
-					<Skeleton className="h-32 w-full rounded-(--radius-md)" />
-					<Skeleton className="h-32 w-full rounded-(--radius-md)" />
+					<Skeleton className="h-36 rounded-(--radius-md)" />
+					<Skeleton className="h-36 rounded-(--radius-md)" />
 				</div>
-				{/* Email */}
-				<Skeleton className="mt-5 h-16 w-full rounded-(--radius-md)" />
-			</Container>
+				<Skeleton className="mt-4 h-20 rounded-(--radius-md)" />
+				<Skeleton className="mx-auto mt-6 h-4 w-48" />
+				<Skeleton className="mt-(--space-block) h-28 rounded-(--radius-md)" />
+			</Section>
 		</main>
 	);
 }

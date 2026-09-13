@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Sparkles } from "lucide-react";
+import { Brush, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import type { ArtStyle } from "@/lib/types";
@@ -14,7 +14,7 @@ export interface StyleSample {
 interface StylePickerProps {
 	name: string;
 	styles: readonly ArtStyle[];
-	/** style -> representative artwork thumbnail. Missing = text-only chip. */
+	/** style -> representative artwork thumbnail. Missing = brush-glyph plate. */
 	samples: Record<string, StyleSample>;
 }
 
@@ -29,7 +29,7 @@ const OPEN = "" as const;
  * under `name` (the submit logic is unchanged). The first card is an
  * "Open to suggestion" option (empty value), matching the old <select>
  * default. Styles with a catalog thumbnail show the art; the rest fall back
- * to a text chip.
+ * to a brush glyph plate (the name already prints in the label).
  */
 export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps>) {
 	const [selected, setSelected] = useState<string>(OPEN);
@@ -43,7 +43,7 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 			<div
 				role="radiogroup"
 				aria-label="Preferred style"
-				className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3"
+				className="mt-(--field-label-gap) grid grid-cols-2 gap-3 sm:grid-cols-3"
 			>
 				{/* Open to suggestion */}
 				<OptionCard
@@ -53,7 +53,7 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 					checked={selected === OPEN}
 					onSelect={setSelected}
 				>
-					<div className="flex h-full w-full items-center justify-center bg-bg-soft text-(--section-accent)">
+					<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
 						<Sparkles size={22} aria-hidden="true" />
 					</div>
 				</OptionCard>
@@ -78,8 +78,8 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 									className="absolute inset-0 h-full w-full object-cover"
 								/>
 							) : (
-								<div className="flex h-full w-full items-center justify-center bg-bg-soft">
-									<span className="t-display text-lg text-muted">{style}</span>
+								<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
+									<Brush size={22} aria-hidden="true" />
 								</div>
 							)}
 						</OptionCard>
@@ -106,9 +106,11 @@ function OptionCard({
 	children: React.ReactNode;
 }>) {
 	return (
+		// The radio is sr-only, so the global :focus-visible outline would land on a
+		// 1px element; has-focus-visible lifts the same 2px outline onto the card.
 		<label
 			className={cn(
-				"group relative cursor-pointer overflow-hidden rounded-(--radius-md) border bg-bg transition-all duration-(--duration-base) ease-(--ease-out) focus-within:ring-2 focus-within:ring-(--section-accent) focus-within:ring-offset-2 focus-within:ring-offset-bg",
+				"group relative cursor-pointer overflow-hidden rounded-(--radius-md) border bg-surface transition-ui has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
 				checked
 					? "border-(--section-accent) shadow-e2"
 					: "border-line hover:border-(--section-accent)/50 hover:shadow-e1",
@@ -128,7 +130,7 @@ function OptionCard({
 				{/* Selected check */}
 				<span
 					className={cn(
-						"absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity duration-(--duration-fast)",
+						"absolute right-2 top-2 grid size-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity",
 						checked ? "opacity-100" : "opacity-0",
 					)}
 					aria-hidden="true"
@@ -139,7 +141,7 @@ function OptionCard({
 			{/* Label */}
 			<span
 				className={cn(
-					"block px-2.5 py-2 text-xs font-medium transition-colors",
+					"block px-3 py-2 text-sm font-medium transition-colors",
 					checked ? "text-(--section-accent)" : "text-ink",
 				)}
 			>
