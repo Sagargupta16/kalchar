@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { DUR, EASE_OUT, REVEAL_VIEWPORT_MARGIN } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -17,8 +18,6 @@ interface RevealProps {
 
 const DIR = { up: "Y", down: "Y", left: "X", right: "X" } as const;
 const SIGN = { up: 1, down: -1, left: 1, right: -1 } as const;
-const REVEAL_DURATION_SECONDS = 0.5;
-const REVEAL_EASE = [0.16, 1, 0.3, 1] as const;
 
 export function Reveal({
 	children,
@@ -56,12 +55,8 @@ export function Reveal({
 			className={className}
 			initial={initial}
 			whileInView={animate}
-			viewport={{ once: true, margin: "0px 0px -80px 0px" }}
-			transition={{
-				duration: REVEAL_DURATION_SECONDS,
-				ease: REVEAL_EASE,
-				delay: delayMs / 1000,
-			}}
+			viewport={{ once: true, margin: REVEAL_VIEWPORT_MARGIN }}
+			transition={{ duration: DUR.enter, ease: EASE_OUT, delay: delayMs / 1000 }}
 		>
 			{children}
 		</Tag>

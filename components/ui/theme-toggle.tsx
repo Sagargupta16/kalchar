@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SERVER_BRAND_COLORS } from "@/lib/server-brand-colors";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,8 +14,12 @@ import { cn } from "@/lib/utils";
  *
  * Default (nothing stored) is light: the site is a gallery, warm cream is the
  * resting register, and most visitors arrive from a WhatsApp / Instagram tap
- * expecting the bright canvas. We do not follow the OS theme -- the choice is
- * explicit and persisted, so the gallery looks the same each visit.
+ * expecting the bright canvas. DEF1 (decisions.md) keeps this default; the
+ * recommendation to follow prefers-color-scheme is open with Sagar.
+ *
+ * applyMode also rewrites the theme-color meta so the address bar follows the
+ * class, not the OS (chrome-13); the pre-paint script in app/layout.tsx does
+ * the same before hydration.
  *
  * Persistence:
  *   - light -> localStorage.theme = "light", remove .dark
@@ -30,13 +35,27 @@ type Mode = "light" | "dark";
 // Must match the localStorage key read by the pre-paint script in app/layout.tsx.
 const STORAGE_KEY = "theme";
 
+const THEME_COLOR: Record<Mode, string> = {
+	light: SERVER_BRAND_COLORS.paper,
+	dark: SERVER_BRAND_COLORS.night,
+};
+const SWITCHING_CLASS = "theme-switching";
+
 function applyMode(mode: Mode) {
-	document.documentElement.classList.toggle("dark", mode === "dark");
+	const root = document.documentElement;
+	// Freeze every transition for two frames so all tokens swap in one repaint
+	// (the CSS half lives in globals.css, .theme-switching).
+	root.classList.add(SWITCHING_CLASS);
+	root.classList.toggle("dark", mode === "dark");
+	document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[mode]);
 	try {
 		localStorage.setItem(STORAGE_KEY, mode);
 	} catch {
 		/* localStorage unavailable -- ignore */
 	}
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => root.classList.remove(SWITCHING_CLASS));
+	});
 }
 
 function readInitialMode(): Mode {
@@ -63,6 +82,18 @@ export function ThemeToggle({
 	useEffect(() => {
 		setMode(readInitialMode());
 		setMounted(true);
+		// Cross-tab sync: another tab's flip lands here without a reload.
+		const onStorage = (e: StorageEvent) => {
+			if (e.key !== STORAGE_KEY) return;
+			const next: Mode = e.newValue === "dark" ? "dark" : "light";
+			setMode(next);
+			document.documentElement.classList.toggle("dark", next === "dark");
+			document
+				.querySelector('meta[name="theme-color"]')
+				?.setAttribute("content", THEME_COLOR[next]);
+		};
+		addEventListener("storage", onStorage);
+		return () => removeEventListener("storage", onStorage);
 	}, []);
 
 	function setTheme(next: Mode) {
@@ -70,17 +101,28 @@ export function ThemeToggle({
 		applyMode(next);
 	}
 
-	// Pre-mount placeholder keeps layout width stable until we know the mode.
+	// Pre-mount placeholder keeps the box stable until we know the mode. The
+	// compact glyph follows the .dark class the pre-paint script set, so the
+	// header never shows an empty pill.
 	if (!mounted) {
+		if (compact) {
+			return (
+				<span
+					aria-hidden="true"
+					className={cn(
+						"grid size-control place-items-center rounded-full border border-line bg-canvas text-muted",
+						className,
+					)}
+				>
+					<Moon size={16} className="dark:hidden" />
+					<Sun size={16} className="hidden dark:block" />
+				</span>
+			);
+		}
 		return (
 			<div
 				aria-hidden="true"
-				className={cn(
-					compact
-						? "inline-flex h-11 w-11 rounded-full border border-line bg-bg-soft"
-						: "inline-flex h-12 w-24 rounded-full border border-line bg-bg-soft",
-					className,
-				)}
+				className={cn("inline-grid h-12 w-24 rounded-full border border-line bg-canvas", className)}
 			/>
 		);
 	}
@@ -95,11 +137,11 @@ export function ThemeToggle({
 				aria-label={`Switch to ${nextMode} theme`}
 				title={`Switch to ${nextMode} theme`}
 				className={cn(
-					"inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-bg-soft text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+					"grid size-control place-items-center rounded-full border border-line bg-canvas text-muted transition-ui pressable hover:text-ink",
 					className,
 				)}
 			>
-				<NextIcon size={15} aria-hidden="true" />
+				<NextIcon size={16} aria-hidden="true" />
 			</button>
 		);
 	}
@@ -107,7 +149,7 @@ export function ThemeToggle({
 	return (
 		<fieldset
 			className={cn(
-				"inline-flex min-w-0 rounded-full border border-line bg-bg-soft p-0.5",
+				"inline-grid h-12 w-24 grid-cols-2 rounded-full border border-line bg-canvas p-0.5",
 				className,
 			)}
 		>
@@ -123,11 +165,13 @@ export function ThemeToggle({
 						title={`${label} theme`}
 						onClick={() => setTheme(value)}
 						className={cn(
-							"inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-							active ? "bg-bg text-ink shadow-e1 ring-1 ring-line" : "text-muted hover:text-ink",
+							"grid h-full w-full place-items-center rounded-full transition-ui pressable",
+							active
+								? "bg-surface text-ink shadow-e1 ring-1 ring-line"
+								: "text-muted hover:text-ink",
 						)}
 					>
-						<Icon size={14} aria-hidden="true" />
+						<Icon size={16} aria-hidden="true" />
 					</button>
 				);
 			})}

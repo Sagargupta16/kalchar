@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, test } from "@playwright/test";
+import { SERVER_BRAND_COLORS } from "../../lib/server-brand-colors";
 
 const MEDIA_FIXTURE = readFileSync(resolve("public/artworks/twin-fish.jpg"));
 
@@ -186,14 +187,24 @@ test(
 		await expect(menu).toBeVisible();
 		await expectTouchTarget(menu);
 
-		const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
-		await expect(themeButtons).toHaveCount(2);
-		for (const button of await themeButtons.all()) {
-			await expectTouchTarget(button);
-		}
+		const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
+		await expect(themeToggle).toBeVisible();
+		await expectTouchTarget(themeToggle);
 
+		// The drawer floats over the page: #main must not move when it opens (chrome-4).
+		const mainTop = await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
 		await menu.click();
-		await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();
+		const drawer = page.getByRole("navigation", { name: "Primary mobile" });
+		await expect(drawer).toBeVisible();
+		expect(await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top)).toBe(
+			mainTop,
+		);
+		const whatsappRow = drawer.getByRole("link").first();
+		await expect(whatsappRow).toHaveText(/Message on WhatsApp/);
+		await expect(whatsappRow).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
+		await expectTouchTarget(whatsappRow);
+		await page.keyboard.press("Escape");
+		await expect(drawer).toBeHidden();
 
 		await page.goto("/work/");
 		await expect(page.getByText("Open a piece for a closer look.")).toBeVisible();
@@ -222,16 +233,35 @@ test(
 
 		await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
 		await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
-		const themeButtons = page.getByRole("group", { name: "Theme" }).getByRole("button");
-		for (const button of await themeButtons.all()) {
-			await expectTouchTarget(button);
-		}
+		const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
+		await expect(themeToggle).toBeVisible();
+		await expectTouchTarget(themeToggle);
 		const overflow = await page.evaluate(
 			() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
 		);
 		expect(overflow).toBeLessThanOrEqual(1);
 	},
 );
+
+test("header shrinks to one control row after scrolling", { tag: "@mobile" }, async ({ page }) => {
+	await page.goto("/");
+	const header = page.locator("header").first();
+	await page.mouse.wheel(0, 300);
+	await expect
+		.poll(() => header.evaluate((el) => Math.round(el.getBoundingClientRect().height)))
+		.toBe(61);
+});
+
+test("theme toggle drives the browser theme colour", async ({ page }) => {
+	await page.goto("/");
+	const meta = page.locator('meta[name="theme-color"]');
+	await expect(meta).toHaveCount(1);
+	await expect(meta).toHaveAttribute("content", SERVER_BRAND_COLORS.paper);
+	await page.getByRole("button", { name: "Switch to dark theme" }).click();
+	await expect(page.locator("html")).toHaveClass(/dark/);
+	await expect(meta).toHaveAttribute("content", SERVER_BRAND_COLORS.night);
+	expect(await page.evaluate(() => localStorage.getItem("theme"))).toBe("dark");
+});
 
 test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await page.goto("/work/");

@@ -57,13 +57,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-	colorScheme: "light dark",
-	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: SERVER_BRAND_COLORS.paper },
-		{ media: "(prefers-color-scheme: dark)", color: SERVER_BRAND_COLORS.night },
-	],
+	themeColor: SERVER_BRAND_COLORS.paper,
 	viewportFit: "cover",
 };
+
+/**
+ * Pre-paint theme: runs before any module loads (can't import), so the "theme"
+ * key is inlined here; keep it in sync with STORAGE_KEY in theme-toggle.tsx.
+ * The dark theme-color is interpolated at build time from
+ * SERVER_BRAND_COLORS.night so the address bar follows the class, not the OS.
+ */
+const PRE_PAINT_THEME = `(function(){try{if(localStorage.getItem('theme')==='dark'){document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','${SERVER_BRAND_COLORS.night}');}}catch(_){}})();`;
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -88,23 +92,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
-				{/* Pre-paint theme: runs before any module loads (can't import), so the
-				    "theme" key is inlined here -- keep it in sync with STORAGE_KEY in
-				    theme-toggle.tsx. */}
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint theme
-					dangerouslySetInnerHTML={{
-						__html: `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
-					}}
+					dangerouslySetInnerHTML={{ __html: PRE_PAINT_THEME }}
 				/>
 				<noscript>
 					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}`}</style>
 				</noscript>
 			</head>
-			<body className="font-sans">
+			<body>
 				<a
 					href="#main"
-					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-(--radius-sm) focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-bg"
+					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-overlay focus:rounded-(--radius-sm) focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-bg"
 				>
 					Skip to content
 				</a>
@@ -116,7 +115,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 							<ScrollProgress />
 							<SiteHeader />
 						</HideOnAdmin>
-						<div id="main" className="relative z-10">
+						<div id="main" className="relative z-raised">
 							{children}
 						</div>
 						<HideOnAdmin>
