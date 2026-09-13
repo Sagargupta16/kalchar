@@ -242,7 +242,9 @@ test("keyboard boundaries and pending mutations cannot corrupt staged order", as
 	await page.keyboard.press("ArrowDown");
 	await outcome(page, "pending");
 	await page.getByRole("button", { name: "Save order" }).click();
-	await expect(page.getByRole("button", { name: "Saving..." })).toBeDisabled();
+	const saving = page.getByRole("button", { name: "Save order" });
+	await expect(saving).toBeDisabled();
+	await expect(saving).toHaveAttribute("aria-busy", "true");
 	await expect(page.getByRole("button", { name: "Reorder Alpha, position 2 of 3" })).toBeDisabled();
 	await expect(page.getByRole("listitem").first()).toHaveAttribute("draggable", "false");
 	await page.evaluate(() => window.adminTest.release?.());
@@ -369,4 +371,43 @@ test("selecting event photos shows a thumbnail strip with the cover marked", asy
 	await expect(page.getByText(/The first is the cover\./)).toBeVisible();
 	await expect(page.getByText("Cover", { exact: true })).toHaveCount(1);
 	await expect(page.locator("form img")).toHaveCount(2);
+});
+
+for (const reorder of reorderings) {
+	test(`${reorder.view} reorders by the visible Move buttons`, async ({ page }) => {
+		await mountAdmin(page, reorder.view);
+		// Photo labels are positional, so the moved photo reads "photo 2" after the move.
+		const moved = reorder.view === "eventImages" ? "photo 2" : reorder.label;
+		const last = reorder.view === "eventImages" ? "photo 3" : "Charlie";
+		await page.getByRole("button", { name: `Move ${reorder.label} down`, exact: true }).click();
+		await expect(
+			page.getByText(`${reorder.label}, position 2 of 3`, { exact: true }),
+		).toBeAttached();
+		await expect(page.getByRole("button", { name: `Move ${moved} up`, exact: true })).toBeEnabled();
+		await expect(
+			page.getByRole("button", { name: `Move ${last} down`, exact: true }),
+		).toBeDisabled();
+		await outcome(page, "success");
+		const save = page.getByRole("button", { name: /Save (photo )?order/ });
+		await save.click();
+		await expect(save).toHaveCount(0);
+		const lastCall = (await page.evaluate(() => window.adminTest.calls)).at(-1);
+		expect(lastCall?.name).toBe(reorder.action);
+		expect(lastCall?.args.at(-1)).toEqual(reorder.order);
+	});
+}
+
+test("Move buttons are disabled at the ends and while pending", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await expect(page.getByRole("button", { name: "Move Alpha up", exact: true })).toBeDisabled();
+	await expect(page.getByRole("button", { name: "Move Charlie down", exact: true })).toBeDisabled();
+	await page.getByRole("button", { name: "Move Alpha down", exact: true }).click();
+	await outcome(page, "pending");
+	await page.getByRole("button", { name: "Save order" }).click();
+	const moves = page.getByRole("button", { name: /^Move / });
+	await expect(moves).toHaveCount(6);
+	for (const move of await moves.all()) await expect(move).toBeDisabled();
+	await page.evaluate(() => window.adminTest.release?.());
+	await expect(page.getByRole("button", { name: "Save order" })).toHaveCount(0);
+	expect(await page.evaluate(() => window.adminTest.calls.length)).toBe(1);
 });

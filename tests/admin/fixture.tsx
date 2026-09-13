@@ -1,20 +1,37 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AdminNavMobile, type NavCounts } from "../../app/admin/_components/admin-nav";
 import { ArtworkGrid } from "../../app/admin/_components/artwork-grid";
 import { ArtworkRow } from "../../app/admin/_components/artwork-row";
 import { CategoryManager } from "../../app/admin/_components/category-manager";
-import { ConfirmProvider, useConfirm } from "../../app/admin/_components/confirm-dialog";
+import {
+	ConfirmPanel,
+	ConfirmProvider,
+	useConfirm,
+} from "../../app/admin/_components/confirm-dialog";
 import { EventImageManager } from "../../app/admin/_components/event-image-manager";
 import { EventsManager } from "../../app/admin/_components/events-manager";
 import { LeadsManager } from "../../app/admin/_components/leads-manager";
-import { Modal } from "../../app/admin/_components/modal";
+import { Modal, ModalBody, ModalFooter } from "../../app/admin/_components/modal";
 import { PresetManager } from "../../app/admin/_components/preset-manager";
 import { ProfileManager } from "../../app/admin/_components/profile-manager";
+import { InlineReorderControls, ReorderBar } from "../../app/admin/_components/reorder-bar";
 import { TestimonialsManager } from "../../app/admin/_components/testimonials-manager";
+import { UndoBar, useUndo } from "../../app/admin/_components/undo-bar";
 import { UploadForm } from "../../app/admin/_components/upload-form";
+import {
+	useAdminAction,
+	useOptimisticAction,
+} from "../../app/admin/_components/use-admin-action";
 import { WorkshopManager } from "../../app/admin/_components/workshop-manager";
 import type { Artwork, Event } from "../../lib/types";
-import { actionState } from "./mock-actions";
+import {
+	actionState,
+	deleteArtwork,
+	navigate,
+	setArtworkFeatured,
+	setArtworkStatus,
+} from "./mock-actions";
 
 const names = ["Alpha", "Bravo", "Charlie"];
 const thumbnail =
@@ -41,14 +58,32 @@ const event: Event = {
 
 function DialogFixture() {
 	const confirm = useConfirm();
+	const { run } = useAdminAction();
 	const [open, setOpen] = useState(false);
 	const [text, setText] = useState("Unsaved draft");
+	const [result, setResult] = useState<boolean | null>(null);
 	return (
 		<>
 			<button type="button" onClick={() => setOpen(true)}>
 				Open editor
 			</button>
 			<button type="button">Background control</button>
+			<button
+				type="button"
+				onClick={async () => {
+					setResult(
+						await confirm({
+							title: "Delete draft?",
+							body: "This can't be undone.",
+							confirmLabel: "Delete draft",
+							action: () => run(() => deleteArtwork("alpha")),
+						}),
+					);
+				}}
+			>
+				Delete with action
+			</button>
+			{result === null ? null : <output>confirmed: {String(result)}</output>}
 			{open ? (
 				<Modal title="Draft editor" onClose={() => setOpen(false)}>
 					<button type="button" disabled>
@@ -65,6 +100,198 @@ function DialogFixture() {
 					</button>
 				</Modal>
 			) : null}
+		</>
+	);
+}
+
+/** The phone sheet of D14 with its inline confirm step (no second dialog). */
+function SheetFixture() {
+	const { pending, err, run } = useAdminAction();
+	const [open, setOpen] = useState(false);
+	const [step, setStep] = useState<"edit" | "confirmDelete">("edit");
+	const [draft, setDraft] = useState("");
+	const dirty = draft.length > 0;
+	const close = () => {
+		setOpen(false);
+		setStep("edit");
+	};
+	const requestClose = () => {
+		if (step === "confirmDelete") setStep("edit");
+		else close();
+	};
+	return (
+		<>
+			<button type="button" onClick={() => setOpen(true)}>
+				Open sheet
+			</button>
+			{open ? (
+				<Modal
+					placement="sheet"
+					size="lg"
+					title="Edit piece"
+					heading={<span>Alpha</span>}
+					action={step === "edit" && dirty ? <button type="button">Save changes</button> : null}
+					onClose={requestClose}
+				>
+					{step === "edit" ? (
+						<>
+							<ModalBody>
+								<label>
+									Draft <input value={draft} onChange={(e) => setDraft(e.target.value)} />
+								</label>
+								<button type="button" onClick={() => setStep("confirmDelete")}>
+									Delete draft
+								</button>
+							</ModalBody>
+							<ModalFooter>{dirty ? <p>Unsaved changes</p> : <p>No changes yet</p>}</ModalFooter>
+						</>
+					) : (
+						<ModalBody>
+							<ConfirmPanel
+								headingLevel={3}
+								title='Delete "Alpha"?'
+								body="The piece leaves the gallery."
+								confirmLabel="Delete piece"
+								cancelLabel="Keep piece"
+								pending={pending}
+								error={err}
+								onConfirm={async () => {
+									if (await run(() => deleteArtwork("alpha"))) close();
+								}}
+								onCancel={() => setStep("edit")}
+							/>
+						</ModalBody>
+					)}
+				</Modal>
+			) : null}
+		</>
+	);
+}
+
+function NavFixture({ counts }: Readonly<{ counts?: NavCounts }>) {
+	const [taps, setTaps] = useState(0);
+	return (
+		<>
+			<button type="button" onClick={() => setTaps((n) => n + 1)}>
+				Page control
+			</button>
+			<output>{taps}</output>
+			<AdminNavMobile email="megha@example.invalid" counts={counts} />
+		</>
+	);
+}
+
+function useBarState() {
+	const [shown, setShown] = useState(false);
+	const [pending, setPending] = useState(false);
+	const [saved, setSaved] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	return {
+		shown,
+		pending,
+		saved,
+		error,
+		show: () => setShown(true),
+		hide: () => setShown(false),
+		fail: () => setError("Change was rejected."),
+		wait: () => setPending(true),
+		save: () => {
+			setError(null);
+			setPending(false);
+			setSaved(true);
+		},
+	};
+}
+
+function BarsFixture() {
+	const { err, run } = useAdminAction();
+	const bar = useBarState();
+	const inline = useBarState();
+	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
+	return (
+		<>
+			<button type="button" onClick={bar.show}>
+				Show bar
+			</button>
+			<button type="button" onClick={bar.fail}>
+				Set error
+			</button>
+			<button type="button" onClick={bar.wait}>
+				Set pending
+			</button>
+			<button type="button" onClick={bar.save}>
+				Set saved
+			</button>
+			<button type="button" onClick={inline.show}>
+				Show inline
+			</button>
+			<button type="button" onClick={inline.fail}>
+				Set inline error
+			</button>
+			<button type="button" onClick={inline.wait}>
+				Set inline pending
+			</button>
+			<button type="button" onClick={inline.save}>
+				Set inline saved
+			</button>
+			<button
+				type="button"
+				onClick={() =>
+					offerUndo({
+						message: '"Alpha" marked as sold',
+						// The raw mock action: wrapping it in run() here would trip the inFlight guard.
+						action: () => setArtworkStatus("alpha", "available"),
+					})
+				}
+			>
+				Mark Alpha sold
+			</button>
+			{inline.shown ? (
+				<InlineReorderControls
+					pending={inline.pending}
+					saved={inline.saved}
+					error={inline.error}
+					onSave={() => {}}
+					onReset={inline.hide}
+				/>
+			) : null}
+			{bar.shown ? (
+				<ReorderBar
+					label="Gallery order changed"
+					pending={bar.pending}
+					saved={bar.saved}
+					error={bar.error}
+					onSave={() => {}}
+					onReset={bar.hide}
+				/>
+			) : undo ? (
+				<UndoBar
+					message={undo.message}
+					pending={undoPending}
+					error={undoError ? (err ?? undoError) : null}
+					onAction={undoNow}
+					onDismiss={dismissUndo}
+					duration={actionState.undoDuration}
+				/>
+			) : null}
+		</>
+	);
+}
+
+function OptimisticFixture() {
+	const featured = useOptimisticAction(false);
+	return (
+		<>
+			<button
+				type="button"
+				aria-pressed={featured.value}
+				onClick={() =>
+					featured.run(!featured.value, () => setArtworkFeatured("alpha", !featured.value))
+				}
+			>
+				Feature Alpha
+			</button>
+			{featured.err ? <p role="alert">{featured.err}</p> : null}
 		</>
 	);
 }
@@ -129,17 +356,26 @@ const views = {
 		/>
 	),
 	upload: <UploadForm categories={["Gond", "Pichwai"]} />,
-	dialogs: <DialogFixture />,
+	dialogs: (
+		<>
+			<DialogFixture />
+			<SheetFixture />
+		</>
+	),
+	nav: <NavFixture />,
+	navBadged: <NavFixture counts={{ "/admin/leads": 3 }} />,
+	bars: <BarsFixture />,
+	optimistic: <OptimisticFixture />,
 };
 
 declare global {
 	interface Window {
-		adminTest: typeof actionState;
+		adminTest: typeof actionState & { navigate: typeof navigate };
 		mountAdmin: (view: keyof typeof views) => void;
 	}
 }
 
-window.adminTest = actionState;
+window.adminTest = Object.assign(actionState, { navigate });
 const root = createRoot(document.getElementById("fixture")!);
 window.mountAdmin = (view) => {
 	root.render(

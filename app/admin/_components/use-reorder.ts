@@ -8,6 +8,10 @@ import { useCallback, useRef, useState } from "react";
  * array on drop. The caller owns the items array (so it can diff against the
  * server order and show a "Save" affordance); this hook only handles the
  * drag interaction and hands back the new ordering via `onReorder`.
+ *
+ * Drag is the fast path on fine pointers; the single-pointer path (Move
+ * buttons) and the keyboard path both call `move` (ReorderHandle), so this
+ * hook stays the only state machine.
  */
 export function useReorder<T>(
 	items: T[],
@@ -19,7 +23,7 @@ export function useReorder<T>(
 	move: (from: number, to: number) => void;
 	dragProps: (index: number) => {
 		draggable: boolean;
-		onDragStart: () => void;
+		onDragStart: (e: React.DragEvent) => void;
 		onDragOver: (e: React.DragEvent) => void;
 		onDrop: () => void;
 		onDragEnd: () => void;
@@ -59,13 +63,17 @@ export function useReorder<T>(
 	const dragProps = useCallback(
 		(index: number) => ({
 			draggable: !disabled,
-			onDragStart: () => {
+			onDragStart: (event: React.DragEvent) => {
 				if (disabled) return;
+				// Firefox will not start a native drag until something is set on dataTransfer.
+				event.dataTransfer.setData("text/plain", String(index));
+				event.dataTransfer.effectAllowed = "move";
 				dragItem.current = index;
 				setDragging(index);
 			},
-			onDragOver: (e: React.DragEvent) => {
-				e.preventDefault();
+			onDragOver: (event: React.DragEvent) => {
+				event.preventDefault();
+				event.dataTransfer.dropEffect = "move";
 				setOver(index);
 			},
 			onDrop: () => drop(index),
