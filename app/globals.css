@@ -33,7 +33,9 @@
 
 /* ─── TIER 1: PRIMITIVES ─── */
 
-@theme {
+/* `static`: every token is emitted on :root even before a utility uses it, so
+   a role like --color-surface-raised never exists only via its dark remap. */
+@theme static {
   /* Typography families (next/font injects --font-* CSS vars) */
   --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   --font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
