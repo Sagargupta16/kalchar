@@ -2,7 +2,6 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AdminNavMobile, type NavCounts } from "../../app/admin/_components/admin-nav";
 import { ArtworkGrid } from "../../app/admin/_components/artwork-grid";
-import { ArtworkRow } from "../../app/admin/_components/artwork-row";
 import { CategoryManager } from "../../app/admin/_components/category-manager";
 import {
 	ConfirmPanel,
@@ -36,17 +35,30 @@ import {
 const names = ["Alpha", "Bravo", "Charlie"];
 const thumbnail =
 	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'/%3E";
+/** Alpha: not for sale, unpriced; Bravo: available, priced, featured; Charlie: sold, priced. */
+const artworkStates: Array<Pick<Artwork, "status" | "featured" | "priceInr">> = [
+	{ status: "archive", featured: false },
+	{ status: "available", featured: true, priceInr: 12000 },
+	{ status: "sold", featured: false, priceInr: 8000 },
+];
 const artworks: Artwork[] = names.map((title, order) => ({
 	title,
 	slug: title.toLowerCase(),
 	style: "Gond",
 	medium: "Ink",
-	status: "archive",
-	featured: false,
 	aspectRatio: 1,
 	order,
 	image: `${title}.jpg`,
+	...artworkStates[order]!,
 }));
+const artworkItems = artworks.map((art) => ({ art, thumb: thumbnail }));
+const artworkCounts = { all: 3, available: 1, sold: 1, archive: 1, featured: 1 };
+const noPieces = { all: 0, available: 0, sold: 0, archive: 0, featured: 0 };
+const suggestions = {
+	mediums: ["Ink", "Natural pigment on handmade paper"],
+	dimensions: ["30 x 40 cm"],
+	lastUsed: { style: "Gond", medium: "Ink" },
+};
 const event: Event = {
 	id: "event-1",
 	title: "Gathering",
@@ -297,12 +309,16 @@ function OptimisticFixture() {
 }
 
 const views = {
-	artworks: (
+	artworks: <ArtworkGrid items={artworkItems} categories={["Gond"]} counts={artworkCounts} />,
+	artworksEmpty: <ArtworkGrid items={[]} categories={["Gond"]} counts={noPieces} />,
+	artworksFiltered: (
 		<ArtworkGrid
-			artworks={artworks.map((art) => ({ ...art, status: "archive", thumb: thumbnail }))}
+			items={artworkItems}
+			categories={["Gond"]}
+			counts={artworkCounts}
+			initialFilter="sold"
 		/>
 	),
-	artworkEditor: <ArtworkRow art={artworks[0]!} thumb={thumbnail} categories={["Gond"]} />,
 	categories: (
 		<CategoryManager
 			categories={names.map((name, order) => ({ id: name, name, order }))}
@@ -355,7 +371,14 @@ const views = {
 			artworkSlugs={["alpha"]}
 		/>
 	),
-	upload: <UploadForm categories={["Gond", "Pichwai"]} />,
+	upload: <UploadForm categories={["Gond", "Pichwai"]} suggestions={suggestions} />,
+	uploadEmpty: (
+		<UploadForm
+			categories={[]}
+			suggestions={{ mediums: [], dimensions: [], lastUsed: null }}
+			openByDefault
+		/>
+	),
 	dialogs: (
 		<>
 			<DialogFixture />

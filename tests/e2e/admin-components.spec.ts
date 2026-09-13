@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 import { mountAdmin, outcome } from "../admin/browser-fixture";
 
 const removals = [
-	{ view: "artworks", button: "Delete Alpha", confirm: "Delete" },
 	{ view: "categories", button: "Delete Alpha", confirm: "Delete" },
 	{ view: "workshops", button: "Delete Alpha", confirm: "Delete" },
 	{ view: "presets", button: "Delete Alpha", confirm: "Remove" },
@@ -81,22 +80,6 @@ for (const failure of ["failure", "throw"] as const) {
 			);
 		});
 	}
-
-	test(`artwork editor remains open when deletion returns ${failure}`, async ({ page }) => {
-		await mountAdmin(page, "artworkEditor");
-		await outcome(page, failure);
-		await page.getByRole("button", { name: "Edit Alpha" }).click();
-		await page.getByLabel("Title", { exact: true }).fill("Unsaved title");
-		await page.getByRole("button", { name: "Delete piece" }).click();
-		await page
-			.getByRole("dialog", { name: 'Delete "Alpha"?' })
-			.getByRole("button", { name: "Delete", exact: true })
-			.click();
-		await expect(page.getByRole("alert")).toHaveText(message);
-		await expect(page.getByRole("dialog", { name: "Edit piece" })).toBeVisible();
-		await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Unsaved title");
-		await expect(page.getByRole("status")).toHaveCount(0);
-	});
 
 	test(`workshop create preserves fields on ${failure}`, async ({ page }) => {
 		await mountAdmin(page, "workshops");

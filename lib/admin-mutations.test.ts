@@ -4,6 +4,11 @@ import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionResult } from "./action-result";
 
+// artwork-actions imports lib/image-base, which reads the public image origin at import time.
+vi.hoisted(() => {
+	process.env.NEXT_PUBLIC_IMAGE_BASE_URL ??= "https://fixtures.invalid";
+});
+
 const fakes = vi.hoisted(() => ({
 	authorize: vi.fn(),
 	revalidate: vi.fn(),
@@ -33,6 +38,7 @@ import {
 	updateOrderPreset,
 	updateWorkshop,
 } from "@/app/admin/actions";
+import { setArtworkFeatured, setArtworkStatus } from "@/app/admin/artwork-actions";
 import { setLeadStatus } from "@/app/admin/lead-actions";
 import { setTestimonialFeatured } from "@/app/admin/testimonial-actions";
 
@@ -64,6 +70,9 @@ beforeEach(async () => {
 		insert into order_presets (id, kind, label, "order") values
 			('a', 'size', 'Small', 10), ('b', 'size', 'Medium', 20), ('c', 'size', 'Large', 30),
 			('budget-a', 'budget', 'Low budget', 10), ('budget-b', 'budget', 'High budget', 20);
+		insert into artworks (slug, title, style, medium, image, aspect_ratio, "order", featured, status, price_inr) values
+			('a', 'Piece A', 'Category A', 'Ink', 'a.jpg', 1, 10, false, 'available', null),
+			('priced', 'Piece P', 'Category A', 'Ink', 'p.jpg', 1, 20, false, 'available', 12000);
 		insert into leads (id, brief) values ('a', 'A painting enquiry');
 		insert into testimonials (id, quote, author_name, artwork_slug, "order") values
 			('a', 'A treasured piece.', 'Mira', 'a', 1);
@@ -107,6 +116,22 @@ const updates = [
 		message: "Testimonial not found.",
 		path: "/admin/testimonials",
 	},
+	{
+		name: "artwork feature",
+		action: (id: string) => setArtworkFeatured(id, true),
+		query: "select featured as value from artworks where slug = 'a'",
+		value: true,
+		message: "Piece not found.",
+		path: "/admin",
+	},
+	{
+		name: "artwork status",
+		action: (id: string) => setArtworkStatus(id, "sold"),
+		query: "select status as value from artworks where slug = 'a'",
+		value: "sold",
+		message: "Piece not found.",
+		path: "/admin",
+	},
 ];
 
 describe.each(updates)("$name results", ({ action, query, value, message, path }) => {
@@ -130,6 +155,30 @@ describe.each(updates)("$name results", ({ action, query, value, message, path }
 		await expect(action("a")).resolves.toEqual({ ok: false, message: "Not authorized." });
 		expect(fakes.query).not.toHaveBeenCalled();
 		expect(fakes.revalidate).not.toHaveBeenCalled();
+	});
+});
+
+describe("artwork quick status guard", () => {
+	it("refuses Not for sale on a priced piece and explains why", async () => {
+		await expect(setArtworkStatus("priced", "archive")).resolves.toEqual({
+			ok: false,
+			message:
+				"This piece has a price, so it shows as Available. Remove the price in Edit to take it off sale.",
+		});
+		expect(
+			(await database.query("select status from artworks where slug = 'priced'")).rows,
+		).toEqual([{ status: "available" }]);
+		// The guarded UPDATE, then the diagnostic SELECT that tells "priced" from "missing".
+		expect(fakes.query).toHaveBeenCalledTimes(2);
+		expect(fakes.revalidate).not.toHaveBeenCalled();
+	});
+
+	it("allows Not for sale on an unpriced piece", async () => {
+		await expect(setArtworkStatus("a", "archive")).resolves.toEqual({ ok: true });
+		expect((await database.query("select status from artworks where slug = 'a'")).rows).toEqual([
+			{ status: "archive" },
+		]);
+		expect(fakes.revalidate).toHaveBeenCalledWith("/admin");
 	});
 });
 
