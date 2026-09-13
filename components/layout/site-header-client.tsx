@@ -26,8 +26,10 @@ const NAV: NavItem[] = [
 ];
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
+/** The hairline lives on the <li>: an <a> is always the last child of its own <li>, so `last:` there fires on every row. */
+const DRAWER_ITEM = "border-b border-line-soft last:border-b-0";
 const DRAWER_ROW =
-	"-mx-2 flex min-h-12 items-center justify-between rounded-(--radius-sm) border-b border-line-soft px-2 py-3 text-sm transition-colors last:border-b-0 active:bg-canvas";
+	"-mx-2 flex min-h-12 items-center justify-between rounded-(--radius-sm) px-2 py-3 text-sm transition-colors active:bg-canvas";
 
 interface Props {
 	latinPrefix: string;
@@ -218,7 +220,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 									className="border-y border-line bg-surface-raised px-(--container-px) py-2 shadow-e3"
 								>
 									<ul className="flex flex-col">
-										<li>
+										<li className={DRAWER_ITEM}>
 											<a
 												href={whatsappHref}
 												target="_blank"
@@ -235,7 +237,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 										{[...NAV, CONTACT].map((item) => {
 											const active = isActive(item.href);
 											return (
-												<li key={item.href}>
+												<li key={item.href} className={DRAWER_ITEM}>
 													<Link
 														href={item.href}
 														aria-current={active ? "page" : undefined}

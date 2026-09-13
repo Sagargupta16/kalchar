@@ -26,11 +26,20 @@ const VARIANT_MAP: Record<BadgeVariant, string> = {
 	muted: "bg-bg-muted text-muted",
 };
 
+/**
+ * Font size spelled as a typed CSS variable rather than `text-micro`: tailwind-merge does not know
+ * the custom size, reads `text-micro` as a colour and drops it when a variant's `text-ink` /
+ * `text-bg` follows. `text-(length:...)` is parsed as a font-size, so both survive `cn()`.
+ */
+const BADGE_TYPE =
+	"text-(length:--text-micro) leading-(--text-micro--line-height) font-medium uppercase tracking-meta";
+
 export function Badge({ children, variant = "default", className }: Readonly<BadgeProps>) {
 	return (
 		<span
 			className={cn(
-				"inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-micro font-medium uppercase tracking-meta",
+				"inline-flex items-center gap-1 rounded-full px-2.5 py-1",
+				BADGE_TYPE,
 				VARIANT_MAP[variant],
 				className,
 			)}
