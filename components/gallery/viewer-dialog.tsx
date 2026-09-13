@@ -2,10 +2,30 @@
 
 import { X } from "lucide-react";
 import { motion } from "motion/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	type ButtonHTMLAttributes,
+	forwardRef,
+	type ReactNode,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { createPortal } from "react-dom";
+import { DUR } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
-const LIGHTBOX_FADE_SECONDS = 0.2;
+/** Floating icon control over a photo panel: translucent raised surface, hairline
+ *  edge, 44px, press cue, global focus outline. Used for Close and Previous / Next. */
+export const LIGHTBOX_ICON_BUTTON =
+	"grid size-control shrink-0 place-items-center rounded-full border border-line/40 bg-surface-raised/80 text-ink shadow-e2 backdrop-blur transition-ui pressable hover:text-accent-text";
+
+export const LightboxIconButton = forwardRef<
+	HTMLButtonElement,
+	ButtonHTMLAttributes<HTMLButtonElement>
+>(({ className, type = "button", ...props }, ref) => (
+	<button ref={ref} type={type} className={cn(LIGHTBOX_ICON_BUTTON, className)} {...props} />
+));
+LightboxIconButton.displayName = "LightboxIconButton";
 
 interface ViewerDialogProps {
 	children: ReactNode;
@@ -93,8 +113,8 @@ export function ViewerDialog({
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
-			transition={{ duration: LIGHTBOX_FADE_SECONDS }}
-			className="fixed inset-0 m-0 h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-bg/95 p-4 text-ink backdrop-blur-md open:flex backdrop:bg-transparent focus:outline-none md:p-8"
+			transition={{ duration: DUR.fast }}
+			className="fixed inset-0 m-0 h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-bg/95 p-4 text-ink open:flex backdrop:bg-transparent md:p-8"
 		>
 			<button
 				type="button"
@@ -104,15 +124,14 @@ export function ViewerDialog({
 				onClick={onClose}
 				className="absolute inset-0 cursor-zoom-out"
 			/>
-			<button
+			<LightboxIconButton
 				ref={closeRef}
-				type="button"
 				onClick={onClose}
 				aria-label="Close"
-				className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full border border-line bg-bg-soft text-ink shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+				className="absolute right-safe-right top-safe-top z-raised mr-4 mt-4"
 			>
 				<X size={18} aria-hidden="true" />
-			</button>
+			</LightboxIconButton>
 			{children}
 		</motion.dialog>,
 		portalTarget,

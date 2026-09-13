@@ -1,11 +1,11 @@
 "use client";
 
-import { Check } from "lucide-react";
 import Link from "next/link";
 import { ArtImage } from "@/components/gallery/art-image";
+import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
 import { Chromacard } from "@/components/gallery/chromacard";
+import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
-import { Badge } from "@/components/ui/badge";
 import { isPositivePrice } from "@/lib/catalog";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
@@ -15,6 +15,8 @@ interface ArtworkCardProps {
 	priority?: boolean;
 	className?: string;
 	siblings?: readonly Artwork[];
+	/** Image sizes hint; defaults to the 3-column gallery grid's. */
+	sizes?: string;
 }
 
 export function ArtworkCard({
@@ -22,6 +24,7 @@ export function ArtworkCard({
 	priority = false,
 	className,
 	siblings,
+	sizes = GALLERY_CARD_SIZES,
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 
@@ -35,47 +38,42 @@ export function ArtworkCard({
 	const imgSrc = `/artworks/${artwork.image}`;
 	const isAvailable = isPositivePrice(artwork.priceInr);
 	const isSold = artwork.status === "sold";
+	let statusLabel: string | null = null;
+	if (isSold) statusLabel = "sold";
+	else if (isPositivePrice(artwork.priceInr)) {
+		statusLabel = `available, ${formatInr(artwork.priceInr)}`;
+	}
+	const ariaLabel = [artwork.title, artwork.style, statusLabel].filter(Boolean).join(", ");
 
 	return (
 		<Link
 			href={`/work/${artwork.slug}`}
 			onClick={handleClick}
-			className={cn("group block focus-visible:outline-none", className)}
-			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
+			className={cn("group @container block pressable", className)}
+			aria-label={ariaLabel}
 		>
-			{/* Image plate */}
-			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline transition-[box-shadow] duration-(--duration-base) ease-(--ease-out) group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent">
+			{/* Image plate: the grid keeps the confirmed uniform 3:4 crop (D9). */}
+			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline transition-ui group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent)">
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-					sizes="(min-width: 1152px) 350px, (min-width: 1024px) 30vw, calc((100vw - 56px) / 2)"
-					className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+					sizes={sizes}
+					className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
 					priority={priority}
 				/>
 
 				{/* Gold border on hover */}
-				<div className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-gold-leaf/0 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:border-gold-leaf/40" />
+				<div className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-gold-leaf/0 transition-colors group-hover:border-gold-leaf/40" />
 
-				{/* Status badges */}
-				{isAvailable && !isSold ? (
-					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-e1">
-						<Check size={11} className="text-(--section-accent)" />
-						Available
-					</Badge>
-				) : null}
-				{isSold ? (
-					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-e1">
-						Sold
-					</span>
-				) : null}
+				<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
 			</div>
 
-			{/* Meta */}
-			<div className="mt-3 flex items-baseline justify-between gap-2">
-				<h3 className="t-display min-w-0 truncate text-lg leading-tight transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-(--section-accent) sm:text-xl">
+			{/* Caption follows the card width (container query), not the viewport. */}
+			<div className="mt-3 flex flex-col gap-1 @xs:flex-row @xs:items-baseline @xs:justify-between @xs:gap-2">
+				<h3 className="t-display min-w-0 text-balance line-clamp-2 text-h3 transition-colors group-hover:text-(--section-accent)">
 					{artwork.title}
 				</h3>
-				<span className="t-meta shrink-0 whitespace-nowrap">{artwork.style}</span>
+				<span className="t-meta @xs:shrink-0 @xs:whitespace-nowrap">{artwork.style}</span>
 			</div>
 
 			<Chromacard
@@ -86,16 +84,22 @@ export function ArtworkCard({
 			/>
 
 			{artwork.description ? (
-				<p className="mt-2 line-clamp-2 text-sm text-muted">{artwork.description}</p>
-			) : null}
-
-			<p className="mt-1.5 text-xs text-muted">{artwork.medium}</p>
-
-			{isAvailable && typeof artwork.priceInr === "number" ? (
-				<p className="mt-1.5 text-sm font-medium text-ink tabular-nums">
-					{formatInr(artwork.priceInr)}
+				<p className="mt-2 line-clamp-1 text-sm text-muted @xs:line-clamp-2">
+					{artwork.description}
 				</p>
 			) : null}
+
+			<div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+				<p className="min-w-0 text-xs text-muted text-pretty">{artwork.medium}</p>
+				{isAvailable && typeof artwork.priceInr === "number" ? (
+					<p className="ml-auto shrink-0 whitespace-nowrap text-sm font-medium text-ink tabular-nums">
+						{formatInr(artwork.priceInr)}
+					</p>
+				) : null}
+				{!isAvailable && !isSold ? (
+					<p className="ml-auto shrink-0 text-xs text-muted">Not listed for sale</p>
+				) : null}
+			</div>
 		</Link>
 	);
 }

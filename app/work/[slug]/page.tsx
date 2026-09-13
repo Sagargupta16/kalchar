@@ -1,13 +1,17 @@
-import { ArrowLeft, ArrowRight, ImageIcon, MessageCircle, Palette, Ruler } from "lucide-react";
+import { ArrowLeft, Calendar, ImageIcon, Palette, Ruler } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
+import { ArtworkCtaPanel } from "@/components/gallery/artwork-cta-panel";
+import { ArtworkSiblingsNav } from "@/components/gallery/artwork-siblings-nav";
+import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
 import { Chromacard } from "@/components/gallery/chromacard";
-import { ShareButton } from "@/components/gallery/share-button";
+import { EnquiryBar } from "@/components/gallery/enquiry-bar";
 import { Testimonials } from "@/components/home/testimonials";
 import { Reveal } from "@/components/motion/reveal";
-import { buttonVariants } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import {
 	getAllArtworkSlugs,
@@ -17,9 +21,10 @@ import {
 	getTestimonialsForArtwork,
 } from "@/lib/data";
 import { artworkImageUrl, artworkPreloadSrcset } from "@/lib/image-base";
+import { staggerDelay } from "@/lib/motion";
 import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
-import { cn, formatInr } from "@/lib/utils";
+import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 /** sizes hint shared by the detail <img> and its preload link -- must match. */
@@ -136,9 +141,10 @@ function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; n
 /**
  * Artwork detail page.
  *
- * Mobile flow: full-bleed image plate, then title + style, then metadata
- * stack, then description, then a sticky-feeling buy/enquire CTA. Desktop
- * splits left (image) / right (info) at md.
+ * Mobile flow: full-bleed image plate at the piece's own ratio, then title +
+ * style, then metadata stack, then description, then the buy/enquire panel,
+ * with a sticky enquiry bar while the panel is off screen. Desktop splits
+ * left (image) / right (info) at md.
  *
  * Prev/next links derive from sort order so the visitor can sweep through
  * the archive without bouncing back to /work.
@@ -166,7 +172,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 	const cta = getCtaCopy(isAvailable, isSold);
 
 	return (
-		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<Container as="main" className="py-(--section-py)">
 			{/* VisualArtwork structured data for rich results. Escape "<" to
 			    < so an admin-entered title/dimension containing "</script>"
 			    can't break out of the tag (the fields are DB-editable). */}
@@ -190,35 +196,29 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<Reveal eager>
 				<Link
 					href="/work"
-					className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent"
+					className="inline-flex min-h-control items-center gap-2 text-xs uppercase tracking-meta text-muted transition-colors hover:text-accent-text"
 				>
 					<ArrowLeft size={14} aria-hidden="true" />
 					Back to artwork
 				</Link>
 			</Reveal>
 
-			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
-				{/* Image plate */}
+			<div className="mt-(--space-block) grid gap-(--space-block) md:grid-cols-12 md:gap-12">
+				{/* Image plate at the piece's own ratio, whole painting shown (D9). */}
 				<Reveal eager className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-hairline">
+					<div
+						style={{ "--plate-ratio": art.aspectRatio } as CSSProperties}
+						className="relative w-full aspect-(--plate-ratio) overflow-hidden rounded-(--radius-lg) bg-canvas shadow-hairline"
+					>
 						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? artworkAlt(art)}
 							sizes={DETAIL_SIZES}
 							maxWidth={DETAIL_MAX_WIDTH}
 							priority
-							className="absolute inset-0 h-full w-full object-cover"
+							className="absolute inset-0 h-full w-full object-contain"
 						/>
-						{isAvailable && !isSold ? (
-							<span className="absolute left-3.5 top-3.5 z-10 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-e1 backdrop-blur">
-								Available
-							</span>
-						) : null}
-						{isSold ? (
-							<span className="pointer-events-none absolute -left-9 top-4 z-10 w-32 -rotate-45 bg-ruby py-1 text-center text-[0.6rem] font-semibold uppercase tracking-meta text-bg shadow-e1 sm:-left-10 sm:top-5 sm:w-36 sm:text-[0.7rem]">
-								Sold
-							</span>
-						) : null}
+						<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
 					</div>
 				</Reveal>
 
@@ -227,17 +227,17 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					<Reveal eager>
 						<p className="t-eyebrow">{art.style}</p>
 					</Reveal>
-					<Reveal eager delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+					<Reveal eager delayMs={staggerDelay(1)} as="h1" className="t-display mt-3 text-h1">
 						{art.title}
 					</Reveal>
 
 					{art.description ? (
-						<Reveal delayMs={140}>
-							<p className="t-lead mt-5">{art.description}</p>
+						<Reveal delayMs={staggerDelay(2)}>
+							<p className="t-lead mt-4">{art.description}</p>
 						</Reveal>
 					) : null}
 
-					<Reveal delayMs={200}>
+					<Reveal delayMs={staggerDelay(3)}>
 						<dl className="mt-8 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 text-sm">
 							<dt className="t-meta normal-case tracking-normal">
 								<span className="inline-flex items-center gap-1.5">
@@ -247,7 +247,11 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 							<dd>{art.medium}</dd>
 							{art.year ? (
 								<>
-									<dt className="t-meta normal-case tracking-normal">Year</dt>
+									<dt className="t-meta normal-case tracking-normal">
+										<span className="inline-flex items-center gap-1.5">
+											<Calendar size={13} aria-hidden="true" /> Year
+										</span>
+									</dt>
 									<dd>{art.year}</dd>
 								</>
 							) : null}
@@ -265,7 +269,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					</Reveal>
 
 					{art.palette && art.palette.length > 0 ? (
-						<Reveal delayMs={240}>
+						<Reveal delayMs={staggerDelay(4)}>
 							<div className="mt-6">
 								<p className="t-meta inline-flex items-center gap-1.5 normal-case tracking-normal">
 									<Palette size={13} aria-hidden="true" /> Palette
@@ -279,44 +283,15 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 						</Reveal>
 					) : null}
 
-					<Reveal delayMs={260}>
-						<div className="mt-10 rounded-(--radius-md) border border-line bg-bg-soft p-5 sm:p-6">
-							{typeof art.priceInr === "number" ? (
-								<div className="mb-4 flex items-baseline justify-between gap-3">
-									<span className="t-meta normal-case tracking-normal text-muted">Price</span>
-									<span className="t-display text-2xl tabular-nums text-(--section-accent) sm:text-3xl">
-										{formatInr(art.priceInr)}
-									</span>
-								</div>
-							) : null}
-							{/* Honest scarcity: every piece is a single physical original, so
-							    say so plainly on an available piece. No timers, no fake stock. */}
-							{isAvailable && !isSold ? (
-								<p className="mb-4 text-xs text-muted">
-									One of a kind, the only original. Not a print.
-								</p>
-							) : null}
-							<a
-								href={whatsappLink}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}
-							>
-								<MessageCircle size={16} aria-hidden="true" />
-								{cta.label}
-							</a>
-							<p className="mt-3 text-xs text-muted">{cta.note}</p>
-							<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
-								<ShareButton title={art.title} url={`${siteConfig.url}/work/${art.slug}/`} />
-								<Link
-									href={`/work?style=${encodeURIComponent(art.style)}`}
-									className="inline-flex min-h-11 items-center gap-1.5 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent"
-								>
-									See more {art.style}
-									<ArrowRight size={13} aria-hidden="true" />
-								</Link>
-							</div>
-						</div>
+					<Reveal delayMs={staggerDelay(4)}>
+						<ArtworkCtaPanel
+							art={art}
+							whatsappLink={whatsappLink}
+							cta={cta}
+							isAvailable={isAvailable}
+							isSold={isSold}
+							whatsappDisplay={contact.whatsapp.display}
+						/>
 					</Reveal>
 				</div>
 			</div>
@@ -330,50 +305,15 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 				</div>
 			) : null}
 
-			{/* Prev / next */}
-			{(prev || next) && (
-				<nav
-					aria-label="Browse other works"
-					className="mt-20 grid gap-6 border-t border-line pt-8 sm:grid-cols-2"
-				>
-					{prev ? (
-						<Link
-							href={`/work/${prev.slug}`}
-							className="group flex items-center gap-3 text-left transition-colors hover:text-accent"
-						>
-							<ArrowLeft
-								size={16}
-								aria-hidden="true"
-								className="text-muted transition-colors group-hover:text-accent"
-							/>
-							<span>
-								<span className="t-meta block">Previous</span>
-								<span className="t-display text-lg">{prev.title}</span>
-							</span>
-						</Link>
-					) : (
-						<span aria-hidden="true" />
-					)}
-					{next ? (
-						<Link
-							href={`/work/${next.slug}`}
-							className="group flex items-center justify-end gap-3 text-right transition-colors hover:text-accent"
-						>
-							<span>
-								<span className="t-meta block">Next</span>
-								<span className="t-display text-lg">{next.title}</span>
-							</span>
-							<ArrowRight
-								size={16}
-								aria-hidden="true"
-								className="text-muted transition-colors group-hover:text-accent"
-							/>
-						</Link>
-					) : (
-						<span aria-hidden="true" />
-					)}
-				</nav>
-			)}
-		</main>
+			<ArtworkSiblingsNav prev={prev} next={next} flush={testimonials.length > 0} />
+
+			{/* Phone-only sticky enquiry bar; hides while #enquire or the page end is on screen. */}
+			<EnquiryBar
+				price={typeof art.priceInr === "number" ? formatInr(art.priceInr) : undefined}
+				href={whatsappLink}
+				label={cta.label}
+				watchId="enquire"
+			/>
+		</Container>
 	);
 }

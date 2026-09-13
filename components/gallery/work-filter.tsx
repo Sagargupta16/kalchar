@@ -1,12 +1,16 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { Palette, ShoppingBag } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { EAGER_CARD_COUNT, GalleryGrid } from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Reveal } from "@/components/motion/reveal";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { isForSale } from "@/lib/catalog";
+import { staggerDelay } from "@/lib/motion";
 import type { ArtStyle, Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +40,10 @@ const AVAILABLE = "Available to buy" as const;
 // ArtStyle is `string`, the sentinels would be absorbed into the union, so the
 // type is just `string` and the ALL/AVAILABLE consts carry the intent.
 type Filter = ArtStyle;
-/** Reveal stagger: each card waits index * step, capped so later cards aren't slow. */
-const STAGGER_STEP_MS = 60;
-const STAGGER_MAX_INDEX = 5;
+
+/** One pill recipe for both axes; state colours are appended per pill. */
+const PILL =
+	"inline-flex min-h-control shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-ui pressable";
 
 /**
  * Resolve the active filter from the URL: `?view=available` -> the buy lens,
@@ -84,14 +89,32 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		return items.filter((i) => i.style === active);
 	}, [active, items]);
 
+	// Deep link: bring the active pill into the rail's visible box (scrolls the
+	// rail only, never the page, so ?style=Gond from a detail page lands at y=0).
+	const railRef = useRef<HTMLFieldSetElement>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-run whenever the active pill changes
+	useEffect(() => {
+		const rail = railRef.current;
+		if (!rail || rail.scrollWidth <= rail.clientWidth) return;
+		const activePill = rail.querySelector<HTMLElement>("[data-active]");
+		if (!activePill) return;
+		rail.scrollTo({
+			left: Math.max(0, activePill.offsetLeft - rail.offsetLeft - 16),
+			behavior: "auto",
+		});
+	}, [active]);
+
 	// --- Shareable deep-link <-> lightbox binding ---
 	// `?piece=<slug>` opens that artwork's modal on load, so a shared link lands
-	// the recipient straight on the piece. As the modal opens / navigates /
-	// closes, we keep the param in sync (replace, no history spam) so the address
-	// bar always holds a copy-able link to whatever is on screen.
-	const { isOpen, activeArtwork, openLightbox } = useLightbox();
+	// the recipient straight on the piece. The first open PUSHES a history entry
+	// so the browser back button closes the modal (Android WebViews have no
+	// CloseWatcher); moving between pieces replaces; closing pops our entry.
+	const { isOpen, activeArtwork, openLightbox, closeLightbox } = useLightbox();
 	const pieceParam = searchParams.get("piece");
 	const openedFromUrl = useRef<string | null>(null);
+	const pushedRef = useRef(false);
+	/** True once the address bar has caught up with the open piece. */
+	const urlSynced = useRef(false);
 
 	// Open from the URL once per distinct ?piece= value (guard against re-opening
 	// after the user closes the modal on the same param).
@@ -103,22 +126,49 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		openLightbox(match, items);
 	}, [pieceParam, items, openLightbox]);
 
-	// Reflect the lightbox state back into the URL: the active slug while open,
-	// nothing when closed. Preserves any active style/view filter param.
+	// Lightbox state <-> URL. Open: push once, then replace while navigating.
+	// The URL losing ?piece= while we are open means the back button fired, so
+	// close. Closed: pop the entry we pushed, or replace when the visitor arrived
+	// on ?piece= directly and there is nothing of ours to pop.
 	useEffect(() => {
 		const params = new URLSearchParams(searchParams.toString());
+		const urlPiece = params.get("piece");
 		if (isOpen && activeArtwork) {
-			if (params.get("piece") === activeArtwork.slug) return;
+			if (urlPiece === activeArtwork.slug) {
+				urlSynced.current = true;
+				return;
+			}
+			if (!urlPiece && urlSynced.current) {
+				urlSynced.current = false;
+				pushedRef.current = false;
+				openedFromUrl.current = null;
+				closeLightbox();
+				return;
+			}
+			const hadPiece = urlPiece !== null;
 			params.set("piece", activeArtwork.slug);
 			openedFromUrl.current = activeArtwork.slug;
-		} else {
-			if (!params.has("piece")) return;
-			params.delete("piece");
-			openedFromUrl.current = null;
+			const url = `${pathname}?${params.toString()}`;
+			if (hadPiece || pushedRef.current) {
+				router.replace(url, { scroll: false });
+			} else {
+				pushedRef.current = true;
+				router.push(url, { scroll: false });
+			}
+			return;
 		}
+		urlSynced.current = false;
+		if (!urlPiece) return;
+		openedFromUrl.current = null;
+		if (pushedRef.current) {
+			pushedRef.current = false;
+			router.back();
+			return;
+		}
+		params.delete("piece");
 		const qs = params.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-	}, [isOpen, activeArtwork, searchParams, router, pathname]);
+	}, [isOpen, activeArtwork, searchParams, router, pathname, closeLightbox]);
 
 	const styleFilters: Filter[] = [ALL, ...styles];
 
@@ -135,7 +185,13 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	return (
 		<>
 			<h2 className="sr-only">Gallery</h2>
-			<fieldset className="flex flex-wrap items-center gap-2 border-0 p-0 m-0 min-w-0">
+			{/* Single-row horizontal rail on phones (a half-cut last pill is the swipe
+			    cue), wrapping from sm. py-1 -my-1 gives the focus outline room inside
+			    the clipping scroller without moving the rhythm. */}
+			<fieldset
+				ref={railRef}
+				className="m-0 -mx-(--container-px) -my-1 flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 px-(--container-px) py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0"
+			>
 				<legend className="sr-only">Filter artwork</legend>
 				{styleFilters.map((f) => {
 					const isActive = f === active;
@@ -145,11 +201,12 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 							type="button"
 							onClick={() => setActive(f)}
 							aria-pressed={isActive}
+							data-active={isActive || undefined}
 							className={cn(
-								"min-h-11 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
+								PILL,
 								isActive
 									? "border-ink bg-ink text-bg"
-									: "border-line text-muted hover:border-accent hover:text-accent",
+									: "border-line text-muted hover:border-accent hover:text-accent-text",
 							)}
 						>
 							{f}
@@ -162,13 +219,14 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 				    nothing is for sale, so the row never offers an empty filter. */}
 				{forSaleCount > 0 ? (
 					<>
-						<span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
+						<span aria-hidden="true" className="mx-1 hidden h-5 w-px bg-line sm:block" />
 						<button
 							type="button"
 							onClick={() => setActive(AVAILABLE)}
 							aria-pressed={active === AVAILABLE}
+							data-active={active === AVAILABLE || undefined}
 							className={cn(
-								"inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-[var(--tracking-meta)] transition-colors duration-(--duration-base) ease-(--ease-out)",
+								PILL,
 								active === AVAILABLE
 									? "border-(--color-vermillion) bg-(--color-vermillion) text-bg"
 									: "border-(--color-vermillion)/50 text-(--color-vermillion) hover:bg-(--color-vermillion)/10",
@@ -182,24 +240,38 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 				) : null}
 			</fieldset>
 
-			<p className="sr-only" aria-live="polite">
+			<p className="t-meta mt-4" aria-live="polite" aria-atomic="true">
 				{statusMessage}
 			</p>
 
 			{visible.length > 0 ? (
-				<ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
+				<GalleryGrid className="mt-(--space-block)">
 					{visible.map((art, i) => (
-						<Reveal
-							key={art.slug}
-							as="li"
-							delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
-						>
+						<Reveal key={art.slug} as="li" eager={i < EAGER_CARD_COUNT} delayMs={staggerDelay(i)}>
 							<ArtworkCard artwork={art} siblings={visible} priority={i < 3} />
 						</Reveal>
 					))}
-				</ul>
+				</GalleryGrid>
 			) : (
-				<p className="mt-12 text-sm text-muted">No pieces in this style yet.</p>
+				<EmptyState
+					className="mt-(--space-block)"
+					icon={<Palette size={24} aria-hidden="true" />}
+					title={active === AVAILABLE ? "Nothing for sale right now" : "Nothing in this style yet"}
+					body={
+						active === AVAILABLE
+							? "Every piece has found a home. Ask us about a commission any time."
+							: "Try another tradition, or see every piece."
+					}
+					action={
+						<button
+							type="button"
+							onClick={() => setActive(ALL)}
+							className={buttonVariants({ variant: "secondary" })}
+						>
+							Show all pieces
+						</button>
+					}
+				/>
 			)}
 		</>
 	);

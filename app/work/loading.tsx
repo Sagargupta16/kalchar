@@ -1,33 +1,33 @@
-import { Container } from "@/components/ui/container";
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
+import { Section } from "@/components/ui/section";
 import { Skeleton, SkeletonCard, SkeletonHeader } from "@/components/ui/skeleton";
 
+/** Structural twin of app/work/page.tsx + WorkFilter so the swap shifts nothing. */
 export default function WorkLoading() {
 	return (
-		<main>
-			<section className="border-b border-line bg-bg-soft">
-				<Container className="py-(--section-py)">
-					<SkeletonHeader />
-					<Skeleton className="mt-6 h-3 w-16" />
-				</Container>
-			</section>
-			<section>
-				<Container className="py-(--section-py)">
-					{/* Filter pills */}
-					<div className="flex flex-wrap gap-2">
-						{[0, 1, 2, 3, 4, 5, 6].map((i) => (
-							<Skeleton key={i} className="h-10 w-20 rounded-full" />
-						))}
-					</div>
-					{/* Grid */}
-					<ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
-						{[0, 1, 2, 3, 4, 5].map((i) => (
-							<li key={i}>
-								<SkeletonCard />
-							</li>
-						))}
-					</ul>
-				</Container>
-			</section>
+		<main role="status" aria-busy="true">
+			<span className="sr-only">Loading</span>
+			<Section background="canvas" borderBottom padded>
+				<SkeletonHeader />
+				<Skeleton className="mt-6 h-3 w-16" />
+			</Section>
+			<Section padded containerClassName="pt-(--space-block)">
+				{/* Filter pill rail */}
+				<div className="flex gap-2 overflow-hidden">
+					{[0, 1, 2, 3, 4, 5, 6].map((i) => (
+						<Skeleton key={i} className="h-control w-20 shrink-0 rounded-full" />
+					))}
+				</div>
+				{/* Visible result count */}
+				<Skeleton className="mt-4 h-3 w-40" />
+				<GalleryGrid className="mt-(--space-block)">
+					{[0, 1, 2, 3, 4, 5].map((i) => (
+						<li key={i}>
+							<SkeletonCard />
+						</li>
+					))}
+				</GalleryGrid>
+			</Section>
 		</main>
 	);
 }

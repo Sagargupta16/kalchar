@@ -18,10 +18,11 @@ interface ChromacardProps {
 	/** Optional className passed through to the root strip. */
 	className?: string;
 	/**
-	 * When true, the strip grows from 8px to 10px tall whenever an ancestor
-	 * with the Tailwind `group` class is hovered. Used by the gallery card
-	 * to choreograph a subtle bloom alongside the plate lift; the artwork
-	 * detail page leaves it off so the static palette caption doesn't move.
+	 * When true, the strip scales from 8px to 10px tall (scale-y 1.25, a
+	 * compositor-only transform) whenever an ancestor with the Tailwind
+	 * `group` class is hovered. Used by the gallery card to choreograph a
+	 * subtle bloom alongside the plate lift; the artwork detail page leaves it
+	 * off so the static palette caption doesn't move.
 	 */
 	groupHoverBloom?: boolean;
 }
@@ -39,8 +40,7 @@ export function Chromacard({
 			aria-label={ariaLabel}
 			className={cn(
 				"flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50",
-				groupHoverBloom &&
-					"transition-[height] duration-(--duration-base) ease-(--ease-out) group-hover:h-2.5",
+				groupHoverBloom && "origin-center transition-transform group-hover:scale-y-125",
 				className,
 			)}
 		>

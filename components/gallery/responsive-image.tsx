@@ -37,7 +37,7 @@ interface ResponsiveImageProps {
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
 const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
-const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-items-center bg-bg-soft text-muted";
+const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-content-center gap-2 bg-canvas text-muted";
 type ImageSource = "remote" | "fallback" | "failed";
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
@@ -90,17 +90,24 @@ export function ResponsiveImage({
 		});
 	};
 	if (activeSource === "failed") {
+		// The caption is visual only: the labelled branch already names the image.
+		const caption = (
+			<>
+				<ImageOff className="mx-auto size-7 md:size-9" aria-hidden="true" />
+				<span className="t-meta">Image unavailable</span>
+			</>
+		);
 		if (!alt) {
 			return (
 				<div aria-hidden="true" className={FALLBACK_CLASS_NAME}>
-					<ImageOff size={28} aria-hidden="true" />
+					{caption}
 				</div>
 			);
 		}
 
 		return (
 			<div role="img" aria-label={alt} className={FALLBACK_CLASS_NAME}>
-				<ImageOff size={28} aria-hidden="true" />
+				{caption}
 			</div>
 		);
 	}
