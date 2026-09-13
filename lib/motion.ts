@@ -3,10 +3,16 @@
  * tokens in app/globals.css directly (transition-ui, pressable, stagger);
  * lib/motion.test.ts asserts these numbers equal those tokens.
  *
- * Travel contract: instant = press-in; fast = controls; base = dialogs, sheets,
- * header shrink, hover lifts; enter and slow = public reveals and hero plates
- * only. Nothing under /admin runs longer than base. Springs are for responses
- * to a gesture the viewer just made (open, zoom, indicator), never entrances.
+ * Travel contract: instant = press-in; fast = controls (hover, press, colour,
+ * lifts); base = dialogs, sheets, header shrink, image settle; enter and slow =
+ * public reveals and hero plates only. Nothing under /admin runs longer than
+ * base. Springs are for responses to a gesture the viewer just made (open,
+ * zoom, indicator, reflow), never entrances the viewer did not trigger and
+ * never exits. Exits are tweens at DUR.fast with EASE_IN; entrances use
+ * EASE_OUT or, when the viewer caused them, a spring. Never add whileTap to an
+ * element that also carries a CSS hover transform (pressable +
+ * hover:-translate-y-*): if a node needs Motion gestures, Motion owns every
+ * transform on that node.
  */
 export const DUR = {
 	instant: 0.1,
@@ -20,6 +26,10 @@ export const DUR = {
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 /** Mirrors --ease-in-out (reorder neighbour shift, theme icon). */
 export const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const;
+/** Mirrors --ease-in. Exits only: enter with EASE_OUT, leave with EASE_IN at DUR.fast. */
+export const EASE_IN = [0.7, 0, 0.84, 0] as const;
+/** Mirrors --ease-sheet (iOS sheet curve, Vaul). CSS sheets use the token; Motion sheets use SPRING_SHEET. */
+export const EASE_SHEET = [0.32, 0.72, 0, 1] as const;
 
 /** Lightbox and sheet panels (was duplicated in artwork-lightbox.tsx:28 and event-gallery.tsx:24). */
 export const SPRING_PANEL = { type: "spring", damping: 28, stiffness: 340 } as const;
@@ -27,6 +37,10 @@ export const SPRING_PANEL = { type: "spring", damping: 28, stiffness: 340 } as c
 export const SPRING_ZOOM = { type: "spring", stiffness: 200, damping: 25 } as const;
 /** Sliding active indicator in the site header and admin nav (site-header-client.tsx:26). */
 export const SPRING_INDICATOR = { type: "spring", stiffness: 400, damping: 30 } as const;
+/** Grid reflow after a filter tap (layout="position" on gallery items). */
+export const SPRING_LAYOUT = { type: "spring", stiffness: 300, damping: 30 } as const;
+/** Motion-driven sheets and drag-dismiss releases: lands in DUR.base, inherits finger velocity, no bounce. */
+export const SPRING_SHEET = { type: "spring", visualDuration: DUR.base, bounce: 0 } as const;
 
 /** Press cue for whileTap; matches the pressable utility. */
 export const PRESS_SCALE = 0.97;
@@ -38,5 +52,35 @@ export function staggerDelay(index: number): number {
 	return Math.min(Math.max(index, 0), STAGGER.maxIndex) * STAGGER.stepMs;
 }
 
+/**
+ * Per-row stagger for artwork grids: the first `eager` cards stagger by index
+ * (CSS eager path); later cards ripple within their own row as it scrolls in
+ * instead of all waiting the cap.
+ */
+export function gridStaggerDelay(index: number, eager = 6, cols = 3): number {
+	return staggerDelay(index < eager ? index : index % cols);
+}
+
 /** Reveal viewport margin shared by Reveal and any whileInView list. */
 export const REVEAL_VIEWPORT_MARGIN = "0px 0px -80px 0px";
+/** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. */
+export const REVEAL_DISTANCE = { block: 20, item: 12 } as const;
+
+/** Pointer tilt on art plates (TiltPlate). 3deg, not portfolio-react's 4: a painting must not read as warped. */
+export const TILT_MAX_DEG = 3;
+export const TILT_PERSPECTIVE_PX = 800;
+
+/** Drag dismissal thresholds (Vaul CLOSE_THRESHOLD 0.25 and VELOCITY_THRESHOLD 0.4 px/ms; Motion reports px/s). */
+export const DRAG_CLOSE_FRACTION = 0.25;
+export const DRAG_VELOCITY_PX_S = 400;
+
+/** Pending indicators: show after PENDING_SHOW_MS, stay at least PENDING_MIN_MS (Vercel guidelines). */
+export const PENDING_SHOW_MS = 200;
+export const PENDING_MIN_MS = 300;
+/** Undo bar hold (D26: 6 seconds). */
+export const UNDO_HOLD_MS = 6000;
+
+/** Hero shuffle hold before the preloaded plate swap (hero-plates.tsx). */
+export const HERO_SHUFFLE_DELAY_MS = 700;
+/** Lenis root options for desktop fine pointers (smooth-scroll.tsx). 1.1s on purpose: not a UI response, so the 300ms ceiling does not apply. */
+export const SMOOTH_SCROLL = { durationSeconds: 1.1, idleFallbackMs: 200 } as const;

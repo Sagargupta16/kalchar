@@ -22,8 +22,8 @@
  * scrim is always text-bg dark:text-ink.
  *
  * TRAVEL CONTRACT: instant 100 = press-in; fast 150 = controls (hover, press,
- * colour); base 300 = dialogs, sheets, header shrink, hover lifts; enter 400
- * and slow 500 = public reveals and hero plates only. Nothing under /admin
+ * colour, lifts); base 300 = dialogs, sheets, header shrink, image settle;
+ * enter 400 and slow 500 = public reveals and hero plates only. Nothing under /admin
  * runs longer than base. Never transition-all: use transition-ui or a bare
  * transition-colors (both inherit fast / ease-out). JS mirror: lib/motion.ts
  * (lib/motion.test.ts locks parity).
@@ -144,19 +144,21 @@
   --header-h-shrunk: calc(var(--spacing-control) + 1rem + 1px);
 
   /* ─── MOTION TOKENS ─── */
-  /* Travel contract: instant 100 = press-in; fast 150 = controls (hover,
-     press, colour); base 300 = dialogs, sheets, header shrink, hover lifts;
-     enter 400 and slow 500 = public reveals and hero plates only. Nothing
-     under /admin runs longer than base. Never transition-all. JS mirror:
-     lib/motion.ts (lib/motion.test.ts locks parity). */
+  /* Travel contract (see the header): instant = press-in; fast = controls and
+     lifts; base = dialogs, sheets, header shrink, image settle; enter and slow =
+     public reveals and hero plates. JS mirror lib/motion.ts (test-locked). */
   --duration-instant: 100ms; /* the pressable press-in rung */
   --duration-fast: 150ms;
   --duration-base: 300ms;
   --duration-enter: 400ms;
   --duration-slow: 500ms;
+  --duration-shimmer: 1400ms; /* skeleton sweep loop (animations.css) */
+  --delay-flare: 600ms; /* flare-after start (animations.css) */
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* every entrance and gesture response */
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0); /* exits only; enter with --ease-out */
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* drag reorder: neighbours shift; theme icon */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* CSS sheets at --duration-base (admin Modal sheet, BottomBar) */
   /* Step for the stagger utility; lib/motion.ts STAGGER.stepMs mirrors it. */
   --stagger-step: 60ms;
   /* Every bare transition-colors / -opacity / -transform inherits these, so
@@ -182,41 +184,42 @@
   --radius-full: 9999px; /* pills, avatars */
 
   /* ─── ELEVATION ─────────────────────────────────────────────────────
-   * A small, layered shadow scale. Shadows are tinted with --shadow-ink
-   * (the warm ink triplet, defined in :root) via oklch() alpha, not black,
-   * so they read as sunlit-paper depth on the cream ground rather than gray
-   * murk. Role map: hairline = every resting frame edge; e1 = resting card;
-   * e2 = card hover / small popover; e3 = header-on-scroll / dropdown;
-   * e4 = back-to-top FAB / lightbox chrome; e5 = modal / lightbox panel.
-   * Dark mode swaps drop-shadow (invisible on 0.14 ground) for an inset top
-   * highlight + deeper ambient shadow -- remapped in :root.dark below.
-   * Keep resting art plates at hairline only; the art is the hero. */
-  --shadow-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.07);
+   * Warm-ink layered scale. Role map: hairline = every resting frame edge;
+   * e1 = resting card, primary Button; e2 = card / plate / Button hover, small
+   * popover; e3 = header-on-scroll, dropdown, back-to-top at rest, hero front
+   * plate; e4 = back-to-top hover, lightbox chrome, More sheet; e5 = modal /
+   * lightbox panel. Hover lifts one level, never two; resting art plates stay
+   * at hairline (the art is the hero). Bare var(--elev-*) on purpose: Tailwind
+   * inlines @theme shadow values, so only an indirection lets :root.dark remap
+   * them. Lists + numbers: app/elevation.css. */
+  --shadow-hairline: var(--elev-hairline);
   --shadow-e0: none;
-  --shadow-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.07), 0 1px 1px -0.5px oklch(var(--shadow-ink) / 0.05);
-  --shadow-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.06), 0 3px 6px -1px oklch(var(--shadow-ink) / 0.07), 0 6px 10px -2px oklch(var(--shadow-ink) / 0.05);
-  --shadow-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.06), 0 8px 14px -3px oklch(var(--shadow-ink) / 0.08), 0 16px 24px -6px oklch(var(--shadow-ink) / 0.06);
-  --shadow-e4: 0 2px 4px oklch(var(--shadow-ink) / 0.05), 0 10px 16px -3px oklch(var(--shadow-ink) / 0.07), 0 22px 32px -8px oklch(var(--shadow-ink) / 0.08), 0 36px 48px -12px oklch(var(--shadow-ink) / 0.06);
-  --shadow-e5: 0 4px 8px oklch(var(--shadow-ink) / 0.06), 0 14px 24px -6px oklch(var(--shadow-ink) / 0.09), 0 30px 44px -10px oklch(var(--shadow-ink) / 0.10), 0 56px 72px -16px oklch(var(--shadow-ink) / 0.08);
-  /* Edge + lift in one utility (shadow-e1-edged). Two shadow-* utilities on
-     one element collapse to whichever Tailwind emits later, so never stack
-     them; both parts remap in dark automatically. */
-  --shadow-e1-edged: var(--shadow-hairline), var(--shadow-e1);
-  --shadow-e2-edged: var(--shadow-hairline), var(--shadow-e2);
-  --shadow-e3-edged: var(--shadow-hairline), var(--shadow-e3);
+  --shadow-e1: var(--elev-e1);
+  --shadow-e2: var(--elev-e2);
+  --shadow-e3: var(--elev-e3);
+  --shadow-e4: var(--elev-e4);
+  --shadow-e5: var(--elev-e5);
+  /* Edge + lift in one utility (shadow-e1-edged): two shadow-* utilities on one
+     element collapse to whichever Tailwind emits later, so never stack them. */
+  --shadow-e1-edged: var(--elev-hairline), var(--elev-e1);
+  --shadow-e2-edged: var(--elev-hairline), var(--elev-e2);
+  --shadow-e3-edged: var(--elev-hairline), var(--elev-e3);
 
   /* ─── Z SCALE ─── */
   /* raised = chips over images, dialog-internal controls; sticky = ReorderBar;
      nav = headers, tab bar, back-to-top, More-sheet scrim (a later sibling of
-     the nav); overlay = More sheet, skip link, scroll progress, lightbox chrome. */
+     the nav); overlay = More sheet, skip link, scroll progress, lightbox chrome.
+     Shadows are bound to the band so a lower band never out-shadows a higher
+     one: raised hairline to e2; sticky e0 + border; nav e3 to e4; overlay e4 to e5. */
   --z-index-raised: 10;
   --z-index-sticky: 30;
   --z-index-nav: 40;
   --z-index-overlay: 50;
 }
 
-/* Animation classes, editorial type, reduced motion (500-line ceiling split). */
+/* 500-line ceiling splits: animations + reduced motion; --elev-* lists + elevate-*. */
 @import "./animations.css";
+@import "./elevation.css";
 
 /* ─── ROOT TOKENS (plain custom properties, no utilities) ─── */
 
@@ -251,6 +254,10 @@
   --card-pad: 1rem;
   --card-pad-lg: 1.5rem;
   --card-pad-compact: 0.75rem;
+  /* Reveal travel (.reveal-up, Reveal default; items travel less). lib/motion.ts
+     REVEAL_DISTANCE mirrors both (test-locked). */
+  --reveal-travel: 20px;
+  --reveal-travel-item: 12px;
 
   /* DEPRECATED aliases: integration deletes all four. */
   --space-3: 0.75rem; /* admin-nav.tsx More-sheet offset; use --space-tight */
@@ -297,17 +304,6 @@
   --color-peacock: oklch(0.65 0.09 220);
   --color-ruby: oklch(0.65 0.18 28);
   --color-gold-leaf: oklch(0.82 0.13 88);
-
-  /* Dark elevation: drop-shadows vanish on the 0.14 ground, so depth becomes a
-   * faint inset top highlight (catches light like a raised surface) plus a
-   * deeper ambient shadow. Pair with the canvas/surface/surface-raised ramp
-   * (lighter = higher). Hairline flips to a light edge. */
-  --shadow-hairline: 0 0 0 1px oklch(1 0 0 / 0.07);
-  --shadow-e1: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.4);
-  --shadow-e2: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 8px -2px oklch(0 0 0 / 0.5);
-  --shadow-e3: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 10px 20px -6px oklch(0 0 0 / 0.55);
-  --shadow-e4: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 18px 32px -10px oklch(0 0 0 / 0.6);
-  --shadow-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 28px 52px -12px oklch(0 0 0 / 0.7);
 }
 
 /* ─── BASE ─── */

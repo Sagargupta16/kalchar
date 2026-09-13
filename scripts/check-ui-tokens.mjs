@@ -43,9 +43,40 @@ export const PATTERNS = [
 	},
 	{
 		id: "stacked-shadow",
-		re: /shadow-e[0-9] shadow-hairline|shadow-hairline shadow-e[0-9]/,
+		// Two unprefixed shadow utilities side by side; `shadow-e1 hover:shadow-e2` is a lift, not a stack.
+		re: /(?<![\w:-])shadow-(?:e\d|hairline)\s+shadow-(?:e\d|hairline)\b/,
 		phase: "integration",
 		message: "Two shadow utilities collapse; use shadow-eN-edged",
+	},
+	{
+		id: "literal-stagger",
+		re: /delayMs=\{\d/,
+		phase: "integration",
+		message: "Use staggerDelay(i) or gridStaggerDelay(i) from lib/motion.ts (D27)",
+	},
+	{
+		id: "literal-spring",
+		re: /\b(?:stiffness|damping):\s*\d/,
+		phase: "integration",
+		message: "Springs live in lib/motion.ts (SPRING_PANEL / ZOOM / INDICATOR / LAYOUT / SHEET)",
+	},
+	{
+		id: "image-zoom",
+		re: /\bscale-\[1\./,
+		phase: "integration",
+		message: "Never scale the artwork; lift the frame (elevate-e2 + hover:-translate-y-0.5)",
+	},
+	{
+		id: "layout-transition",
+		re: /\btransition-\[(?:width|height|padding|top|left)/,
+		phase: "integration",
+		message: "Animate transform or opacity, never a layout property",
+	},
+	{
+		id: "animated-blur",
+		re: /(?<!backdrop-)filter:\s*"?blur/,
+		phase: "integration",
+		message: "Never animate into or out of a blur; apply backdrop-blur statically",
 	},
 	{
 		id: "transition-all",
@@ -162,6 +193,8 @@ export const ALLOW = [
 	// The transition-ui comment names the forbidden utility.
 	{ id: "transition-all", path: GLOBALS },
 	{ id: "template-controls", path: CONTROLS },
+	// The five spring definitions.
+	{ id: "literal-spring", path: "lib/motion.ts" },
 	// px-2.5 on pills and adminBtnSm; mt-0.5 is the notice icon's optical alignment.
 	{ id: "half-step", path: CONTROLS },
 	{ id: "half-step", path: "components/ui/badge.tsx" },

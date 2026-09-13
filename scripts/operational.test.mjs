@@ -410,7 +410,15 @@ test("UI token guard reports violations with file and line and stays quiet on cl
 	await mkdir(join(root, "components"), { recursive: true });
 	await writeFile(
 		join(root, "components", "dirty.tsx"),
-		'export const a = "shadow-md";\nexport const b = "transition-all";\nexport const c = "z-[110]";\n',
+		[
+			'export const a = "shadow-md";',
+			'export const b = "transition-all";',
+			'export const c = "z-[110]";',
+			"export const d = <Reveal delayMs={120} />;",
+			"export const e = { stiffness: 300, damping: 30 };",
+			'export const f = "shadow-e2 shadow-hairline";',
+			"",
+		].join("\n"),
 	);
 	await writeFile(
 		join(root, "components", "clean.tsx"),
@@ -427,6 +435,9 @@ test("UI token guard reports violations with file and line and stays quiet on cl
 	assert.equal(integration.status, 1);
 	assert.match(integration.stderr, /line=2::transition-all/);
 	assert.match(integration.stderr, /line=3::arbitrary-z/);
+	assert.match(integration.stderr, /line=4::literal-stagger/);
+	assert.match(integration.stderr, /line=5::literal-spring/);
+	assert.match(integration.stderr, /line=6::stacked-shadow/);
 
 	await unlink(join(root, "components", "dirty.tsx"));
 	const clean = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "integration"]);
@@ -441,5 +452,15 @@ test("UI token guard reports violations with file and line and stays quiet on cl
 	assert.equal(
 		scan('className="ring-white/20"', "components/x.tsx", "now").errors[0]?.id,
 		"raw-ring",
+	);
+	// A resting shadow plus a hover lift is not a stack; the spring definitions are allowed in lib/motion.ts.
+	assert.equal(
+		scan('className="shadow-e1 hover:shadow-e2"', "components/x.tsx", "integration").errors.length,
+		0,
+	);
+	assert.equal(scan("stiffness: 340", "lib/motion.ts", "integration").errors.length, 0);
+	assert.equal(
+		scan("stiffness: 340", "components/x.tsx", "integration").errors[0]?.id,
+		"literal-spring",
 	);
 });

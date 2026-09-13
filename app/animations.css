@@ -55,7 +55,7 @@
     color-mix(in oklch, var(--color-line) 55%, transparent),
     transparent
   );
-  animation: skeleton-sweep 1.4s ease-in-out infinite;
+  animation: skeleton-sweep var(--duration-shimmer) ease-in-out infinite;
 }
 
 @keyframes skeleton-sweep {
@@ -89,7 +89,7 @@
 
 .reveal-up {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(var(--reveal-travel));
   animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
 }
 
@@ -100,18 +100,116 @@
   }
 }
 
+/* Hero flare line: grows on scaleX from the left (transform, never width, so
+   the document does not shift) once the hero copy has landed (--delay-flare). */
 .flare-after::after {
   content: "";
   display: block;
   height: 1px;
-  width: 0;
+  width: var(--flare-w, 100%);
   background: var(--color-accent);
-  animation: flare-grow var(--duration-slow) var(--ease-out) 0.6s forwards;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: flare-grow var(--duration-slow) var(--ease-out) var(--delay-flare) forwards;
 }
 
 @keyframes flare-grow {
   to {
-    width: var(--flare-w, 100%);
+    transform: scaleX(1);
+  }
+}
+
+/* Plate unveil for artwork grids: the image is already at final size, only the
+   visible region grows (clip-path), so the painting is never resampled. Reveal
+   variant="plate" applies it on the eager path; never on the hero (LCP). */
+.reveal-plate {
+  clip-path: inset(0 0 100% 0);
+  animation: reveal-plate-in var(--duration-slow) var(--ease-out) both;
+}
+
+@keyframes reveal-plate-in {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/* Theme toggle icon-in: the new glyph rotates into place. First consumer of
+   --ease-in-out (the toggle re-keys the icon on every mode change). */
+.theme-icon-in {
+  animation: theme-icon-in var(--duration-base) var(--ease-in-out) both;
+}
+
+@keyframes theme-icon-in {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
+}
+
+/* Gold-leaf sheen: one soft-light pass of gold across a plate frame on group
+   hover, or a slow loop where the caller sets data-sheen="loop" (period from
+   --sheen-every). Allowed by the house rules ("gold-leaf shimmer" on the
+   work). The host needs position: relative and overflow: hidden. */
+.gold-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: soft-light;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    color-mix(in oklch, var(--color-gold-leaf) 35%, transparent) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+}
+
+.group:hover .gold-sheen::after,
+.gold-sheen[data-sheen="loop"]::after {
+  animation: gold-sheen var(--duration-slow) var(--ease-in-out) both;
+}
+
+.gold-sheen[data-sheen="loop"]::after {
+  animation-iteration-count: infinite;
+  animation-duration: var(--sheen-every, 6s);
+  animation-timing-function: linear;
+}
+
+@keyframes gold-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Section header rule: AccentRule draws from the left once the eyebrow and
+   title have risen (stagger steps 0 and 1; the rule is step 2). */
+.rule-draw {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: rule-draw var(--duration-enter) var(--ease-out) both;
+  animation-delay: calc(2 * var(--stagger-step));
+}
+
+@keyframes rule-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Admin notice enter: opacity only. No transform inside position: relative
+   panels, and admin motion is feedback, not decoration. */
+.notice-in {
+  animation: notice-in var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
   }
 }
 
@@ -167,7 +265,40 @@
 
   .flare-after::after {
     animation: none;
-    width: var(--flare-w, 100%);
+    transform: none;
+  }
+
+  /* Lifts snap, colours and shadows still ease: the state change stays
+     visible without travel. transition-transform loses its tween entirely. */
+  .transition-ui {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+  }
+  .transition-transform {
+    transition-property: none;
+  }
+
+  /* New motion classes: the element is simply present. The sheen selectors
+     repeat the hover and loop forms so they outrank the animating rules. */
+  .reveal-plate {
+    clip-path: none;
+    animation: none;
+  }
+  .theme-icon-in,
+  .notice-in,
+  .group:hover .gold-sheen::after,
+  .gold-sheen[data-sheen="loop"]::after {
+    animation: none;
+  }
+  .rule-draw {
+    transform: none;
+    animation: none;
+  }
+
+  /* @starting-style enters and discrete exits (dialogs, bottom bars) are cuts. */
+  dialog,
+  dialog::backdrop,
+  [data-bottom-bar] {
+    transition: none;
   }
 
   /* Keep the static gallery composition, but skip all plate transitions. */

@@ -1,0 +1,81 @@
+/* Elevation lists and the elevate-* hover utility. Split out of
+   app/globals.css (500-line ceiling); globals.css imports this file right
+   after its @theme block, whose --shadow-* tokens are bare var(--elev-*)
+   references into these lists. Tailwind inlines @theme shadow values into
+   each utility, so the lists have to live on :root / :root.dark as plain
+   custom properties for the dark remap to reach every shadow-e1..e5 call
+   site (verified by compile probe, 2026-09-13).
+
+   Scale: six levels plus a hairline, one light source straight above (x
+   offset 0), offsets roughly doubling per layer, blur 1.3x to 2x the y
+   offset, negative spread only on the far layers. Every light layer is tinted
+   with --shadow-ink (the warm ink triplet in globals.css :root) through
+   oklch(var(--shadow-ink) / a), so depth reads as sunlit paper, never gray
+   murk. Per-layer alpha never exceeds 0.10 on the cream ground; chroma stays
+   at or below 0.025 or the tint reads as a glow. */
+
+/* ─── LIGHT: y / blur / spread / alpha per layer ─── */
+:root {
+  --elev-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.07);
+  /* e1: 1/2/0/0.07, 1/1/-0.5/0.05 */
+  --elev-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.07), 0 1px 1px -0.5px oklch(var(--shadow-ink) / 0.05);
+  /* e2: 1/2/0/0.06, 3/6/-1/0.07, 6/10/-2/0.05 */
+  --elev-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.06), 0 3px 6px -1px oklch(var(--shadow-ink) / 0.07), 0 6px 10px -2px oklch(var(--shadow-ink) / 0.05);
+  /* e3: 2/4/0/0.06, 8/14/-3/0.08, 16/24/-6/0.06 */
+  --elev-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.06), 0 8px 14px -3px oklch(var(--shadow-ink) / 0.08), 0 16px 24px -6px oklch(var(--shadow-ink) / 0.06);
+  /* e4: 2/4/0/0.05, 10/16/-3/0.07, 22/32/-8/0.08, 36/48/-12/0.06 */
+  --elev-e4: 0 2px 4px oklch(var(--shadow-ink) / 0.05), 0 10px 16px -3px oklch(var(--shadow-ink) / 0.07), 0 22px 32px -8px oklch(var(--shadow-ink) / 0.08), 0 36px 48px -12px oklch(var(--shadow-ink) / 0.06);
+  /* e5: 4/8/0/0.06, 14/24/-6/0.09, 30/44/-10/0.10, 56/72/-16/0.08 */
+  --elev-e5: 0 4px 8px oklch(var(--shadow-ink) / 0.06), 0 14px 24px -6px oklch(var(--shadow-ink) / 0.09), 0 30px 44px -10px oklch(var(--shadow-ink) / 0.10), 0 56px 72px -16px oklch(var(--shadow-ink) / 0.08);
+}
+
+/* ─── DARK: surface roles carry depth, not heavier shadows ─── */
+/* Drop-shadows vanish on the 0.14 ground, so depth becomes (1) the
+   canvas / surface / surface-raised ramp (lighter = higher), (2) a faint inset
+   top highlight plus the 0.10 light hairline, (3) a dark ambient layer that is
+   present but not relied on. e2 and e3 keep a contact layer so a hovered card
+   still reads as touching the page. Ambient layers stay oklch(0 0 0 / a): the
+   warm tint is not perceptible on 0.14 and the warmth comes from the surface
+   ramp and the ink hairline. Never lift the canvas to make shadows show. */
+:root.dark {
+  --elev-hairline: 0 0 0 1px oklch(1 0 0 / 0.1);
+  --elev-e1: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.4);
+  --elev-e2: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.35), 0 4px 8px -2px oklch(0 0 0 / 0.5);
+  --elev-e3: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 2px 4px oklch(0 0 0 / 0.4), 0 10px 20px -6px oklch(0 0 0 / 0.55);
+  --elev-e4: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 18px 32px -10px oklch(0 0 0 / 0.6);
+  --elev-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 28px 52px -12px oklch(0 0 0 / 0.7);
+}
+
+/* ─── HOVER LIFT FOR SURFACES ─── */
+/* The raised shadow is painted once on ::after at opacity 0 and crossfaded in
+   (compositor only), while the element keeps its resting shadow-e1 /
+   shadow-hairline. Tweening a three or four layer box-shadow repaints the
+   whole card every frame; on the plate grid at 390 that is 21 tiles. Controls
+   (Button) keep tweening box-shadow via transition-ui; their area is small.
+   Pair with hover:-translate-y-0.5 and transition-ui (elevate-e2 on cards and
+   plates, elevate-e3 where e3 is the hover rung). Needs isolation so
+   z-index: -1 stays inside the card instead of falling behind <main>.
+   Reduced motion: the fade still runs (opacity is allowed); only the
+   translate is dropped (animations.css reduced block strips it from
+   transition-ui). */
+@utility elevate-* {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    box-shadow: --value(--shadow- *);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+    pointer-events: none;
+  }
+  &:hover::after,
+  &:focus-visible::after,
+  &:where(.group:hover *)::after,
+  &:where(.group:focus-visible *)::after {
+    opacity: 1;
+  }
+}

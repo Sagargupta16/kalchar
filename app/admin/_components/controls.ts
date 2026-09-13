@@ -59,3 +59,16 @@ export const adminRow = "rounded-(--radius-sm) border border-line bg-surface p-3
 export const adminRowInset = "rounded-(--radius-sm) border border-line bg-canvas p-3 transition-ui";
 export const adminFilePicker = `flex min-h-control cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-ui hover:border-accent hover:text-accent-text has-disabled:pointer-events-none has-disabled:opacity-50 ${FOCUS_WITHIN}`;
 export const adminThumb = "shrink-0 rounded-(--radius-sm) object-cover shadow-hairline";
+
+/**
+ * role="switch" track: the button carries aria-checked and `group`, the thumb
+ * is a child span. The track recolours through transition-colors while the
+ * thumb slides 18px on translate through transition-ui (fast, ease-out), so
+ * both land in the same frame; reduced motion snaps the thumb and keeps the
+ * colour ease. min-h-0 cancels the coarse-pointer 44px floor on the 24px
+ * track; the ::before hit area restores the 44px target around it.
+ */
+export const adminSwitch =
+	"group relative inline-flex h-6 min-h-0 w-11 shrink-0 items-center rounded-full border border-line bg-canvas transition-colors pressable aria-checked:border-accent aria-checked:bg-accent before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-['']";
+export const adminSwitchThumb =
+	"block size-5 translate-x-0.5 rounded-full bg-surface shadow-e1 transition-ui group-aria-checked:translate-x-5";
