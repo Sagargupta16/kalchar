@@ -79,6 +79,7 @@ export function UploadForm({
 	const [price, setPrice] = useState("");
 	const [year, setYear] = useState("");
 	const [progress, setProgress] = useState<UploadProgressState | null>(null);
+	const formRef = useRef<HTMLFormElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const titleRef = useRef<HTMLInputElement>(null);
 
@@ -93,9 +94,16 @@ export function UploadForm({
 		return () => query.removeEventListener("change", sync);
 	}, []);
 
+	// K3: the picker takes focus without the page jumping. The form is taller than a phone
+	// viewport, so "off-screen" is judged by its top edge (where the picker sits).
 	useEffect(() => {
 		if (!open || !focusPicker) return;
-		inputRef.current?.focus();
+		inputRef.current?.focus({ preventScroll: true });
+		const form = formRef.current;
+		if (form) {
+			const { top } = form.getBoundingClientRect();
+			if (top < 0 || top > window.innerHeight) form.scrollIntoView({ block: "nearest" });
+		}
 		setFocusPicker(false);
 	}, [open, focusPicker]);
 
@@ -172,7 +180,12 @@ export function UploadForm({
 	}
 
 	return (
-		<form id={id} onSubmit={onSubmit} className="mt-4 grid gap-(--form-gap) @lg/add:grid-cols-2">
+		<form
+			ref={formRef}
+			id={id}
+			onSubmit={onSubmit}
+			className="mt-4 grid gap-(--form-gap) starting:translate-y-2 starting:opacity-0 @lg/add:grid-cols-2 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)"
+		>
 			<fieldset disabled={pending} className="contents">
 				<legend className={LEGEND}>Photo</legend>
 				<div className="grid gap-3 @lg/add:col-span-2">
