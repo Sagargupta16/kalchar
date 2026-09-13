@@ -115,6 +115,8 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const pushedRef = useRef(false);
 	/** True once the address bar has caught up with the open piece. */
 	const urlSynced = useRef(false);
+	/** Slug whose open from the URL has been requested but not yet rendered. */
+	const pendingOpen = useRef<string | null>(null);
 
 	// Open from the URL once per distinct ?piece= value (guard against re-opening
 	// after the user closes the modal on the same param).
@@ -123,6 +125,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		const match = items.find((i) => i.slug === pieceParam);
 		if (!match) return;
 		openedFromUrl.current = pieceParam;
+		pendingOpen.current = pieceParam;
 		openLightbox(match, items);
 	}, [pieceParam, items, openLightbox]);
 
@@ -134,6 +137,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		const params = new URLSearchParams(searchParams.toString());
 		const urlPiece = params.get("piece");
 		if (isOpen && activeArtwork) {
+			pendingOpen.current = null;
 			if (urlPiece === activeArtwork.slug) {
 				urlSynced.current = true;
 				return;
@@ -157,6 +161,10 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			}
 			return;
 		}
+		// An open from this ?piece= is in flight (the open-from-URL effect fired in
+		// this same commit, e.g. browser Forward after Back): leave the URL alone or
+		// the replace() below would close the lightbox the moment it opens.
+		if (urlPiece && pendingOpen.current === urlPiece) return;
 		urlSynced.current = false;
 		if (!urlPiece) return;
 		openedFromUrl.current = null;
@@ -186,11 +194,12 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		<>
 			<h2 className="sr-only">Gallery</h2>
 			{/* Single-row horizontal rail on phones (a half-cut last pill is the swipe
-			    cue), wrapping from sm. py-1 -my-1 gives the focus outline room inside
-			    the clipping scroller without moving the rhythm. */}
+			    cue), wrapping from sm. py-1.5 -my-1.5 gives the pill focus outline
+			    (2px at a 3px offset on rounded-full) room inside the clipping scroller
+			    without moving the rhythm. */}
 			<fieldset
 				ref={railRef}
-				className="m-0 -mx-(--container-px) -my-1 flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 px-(--container-px) py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0"
+				className="m-0 -mx-(--container-px) -my-1.5 flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 px-(--container-px) py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0"
 			>
 				<legend className="sr-only">Filter artwork</legend>
 				{styleFilters.map((f) => {

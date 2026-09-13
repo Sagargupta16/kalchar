@@ -15,32 +15,51 @@ interface EnquiryBarProps {
 	watchId: string;
 }
 
+/** Root margin that extends the end sentinel's observer root far above the viewport, so
+ *  "intersecting" means "the sentinel is on screen or has been scrolled past". */
+const END_REACHED_ROOT_MARGIN = "100000px 0px 0px 0px";
+
 /** Phone-only sticky enquiry bar (md:hidden). Visible while the in-column CTA panel is
  *  outside the viewport and the page end has not been reached; carries the SAME
  *  wa.me link as the panel, never a scroll-to. Publishes its height as --fixed-bar-h
  *  on <html> so the back-to-top control can move above it (chrome handover). */
 export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarProps>) {
 	const [panelVisible, setPanelVisible] = useState(true);
-	const [endVisible, setEndVisible] = useState(false);
+	const [endReached, setEndReached] = useState(false);
 	const endRef = useRef<HTMLSpanElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
 	const reduceMotion = usePrefersReducedMotion();
-	const visible = !panelVisible && !endVisible;
+	const visible = !panelVisible && !endReached;
 
+	// The panel sits inside a Reveal, which swaps its wrapper element when the
+	// reduced-motion preference resolves after hydration; that remounts the panel
+	// node, so re-resolve it whenever the preference changes.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reduceMotion re-runs the lookup after the Reveal remount
 	useEffect(() => {
 		const panel = document.getElementById(watchId);
 		const end = endRef.current;
 		if (!panel || !end) return;
-		const observer = new IntersectionObserver((entries) => {
-			for (const entry of entries) {
-				if (entry.target === panel) setPanelVisible(entry.isIntersecting);
-				else setEndVisible(entry.isIntersecting);
-			}
+		const panelObserver = new IntersectionObserver(([entry]) => {
+			if (entry) setPanelVisible(entry.isIntersecting);
 		});
-		observer.observe(panel);
-		observer.observe(end);
-		return () => observer.disconnect();
-	}, [watchId]);
+		// The end counts as reached from the moment the sentinel enters the viewport
+		// until it drops back below the fold, so the bar stays hidden over the footer.
+		// The root is stretched far above the viewport for that: the observer only
+		// fires on crossings, so a plain root misses a jump from above the sentinel
+		// straight to the page bottom.
+		const endObserver = new IntersectionObserver(
+			([entry]) => {
+				if (entry) setEndReached(entry.isIntersecting);
+			},
+			{ rootMargin: END_REACHED_ROOT_MARGIN },
+		);
+		panelObserver.observe(panel);
+		endObserver.observe(end);
+		return () => {
+			panelObserver.disconnect();
+			endObserver.disconnect();
+		};
+	}, [watchId, reduceMotion]);
 
 	useEffect(() => {
 		const root = document.documentElement;

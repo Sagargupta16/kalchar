@@ -54,6 +54,8 @@ export function ArtworkCard({
 		>
 			{/* Image plate: the grid keeps the confirmed uniform 3:4 crop (D9). */}
 			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline transition-ui group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent)">
+				{/* No hover zoom on the painting (motion addendum G1: the frame moves,
+				    the image stays at scale 1.0; the token guard's image-zoom rule bans it). */}
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}

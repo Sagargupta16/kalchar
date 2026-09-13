@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
@@ -69,18 +69,20 @@ export function ArtworkCtaPanel({
 					.
 				</p>
 			) : null}
+			{/* Share and See more share one row wherever they fit (px-4 and no arrow
+			    glyph keep the pair inside the md:col-span-5 panel at 1280 for every
+			    style name); on phones they wrap to two full-width rows. */}
 			<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
-				<ShareButton title={art.title} url={`${siteConfig.url}/work/${art.slug}/`} />
+				<ShareButton
+					title={art.title}
+					url={`${siteConfig.url}/work/${art.slug}/`}
+					className="flex-auto px-4"
+				/>
 				<Link
 					href={`/work?style=${encodeURIComponent(art.style)}`}
-					className={cn(buttonVariants({ variant: "ghost" }), "group")}
+					className={cn(buttonVariants({ variant: "ghost" }), "flex-auto px-4")}
 				>
 					See more {art.style}
-					<ArrowRight
-						size={13}
-						aria-hidden="true"
-						className="transition-transform group-hover:translate-x-1"
-					/>
 				</Link>
 			</div>
 		</section>
