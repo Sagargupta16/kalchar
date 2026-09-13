@@ -94,8 +94,11 @@ function useIsActive() {
 	};
 }
 
+// transition-ui, not transition-colors: Tailwind's transition-colors also animates
+// outline-color, so the focus outline faded in from the muted text colour instead of
+// appearing in accent at once. transition-ui lists its properties explicitly.
 const DESKTOP_LINK =
-	"relative isolate inline-flex min-h-control items-center gap-1.5 whitespace-nowrap rounded-(--radius-sm) px-3 text-sm font-medium transition-colors pressable";
+	"relative isolate inline-flex min-h-control items-center gap-1.5 whitespace-nowrap rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable";
 
 /** Desktop horizontal nav, grouped with separators between clusters. */
 export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {}) {
@@ -148,7 +151,7 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 }
 
 const TAB_CELL =
-	"relative isolate flex h-full w-full flex-col items-center justify-center gap-1 rounded-(--radius-sm) px-1 font-medium transition-colors pressable focus-visible:-outline-offset-2";
+	"relative isolate flex h-full w-full flex-col items-center justify-center gap-1 rounded-(--radius-sm) px-1 font-medium transition-ui pressable focus-visible:-outline-offset-2";
 // text-label sits on the label span, not in TAB_CELL: tailwind-merge does not know the
 // custom size token and would drop it next to the cell's text colour inside cn().
 const TAB_LABEL = "text-label";
@@ -316,7 +319,7 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 													onClick={() => setMoreOpen(false)}
 													aria-current={active ? "page" : undefined}
 													className={cn(
-														"flex min-h-12 items-center gap-2 rounded-(--radius-sm) px-3 text-sm font-medium transition-colors pressable",
+														"flex min-h-12 items-center gap-2 rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable",
 														active ? "bg-canvas text-accent-text" : "text-ink hover:bg-canvas",
 													)}
 												>

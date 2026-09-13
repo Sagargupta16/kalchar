@@ -27,6 +27,14 @@ interface AdminPageHeaderProps {
 	actions?: ReactNode;
 }
 
+/**
+ * Alignment rule 1 (one left edge per page): the header sits inside the same
+ * --card-pad inset the panels below it use, so the h1 lines up with every
+ * panel title, row title and form label (the panel's 1px border is the only
+ * remaining delta). The actions slot ends at the panels' content edge (rule 2).
+ */
+const HEADER_INSET = "px-(--card-pad)";
+
 export function AdminPageHeader({
 	title,
 	description,
@@ -34,7 +42,12 @@ export function AdminPageHeader({
 	actions,
 }: Readonly<AdminPageHeaderProps>) {
 	return (
-		<header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+		<header
+			className={cn(
+				"flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+				HEADER_INSET,
+			)}
+		>
 			<div className="min-w-0 max-w-(--header-max)">
 				<h1 className="t-heading text-xl text-ink sm:text-2xl">{title}</h1>
 				{description ? (
@@ -75,9 +88,13 @@ export function AdminPage({
 	);
 }
 
-/** The header shape at rest; sized by chrome's compact SkeletonHeader (D17). */
+/** The header shape at rest; sized by chrome's compact SkeletonHeader (D17), on the header's inset so nothing shifts on resolve. */
 export function AdminPageHeaderSkeleton() {
-	return <SkeletonHeader compact />;
+	return (
+		<div className={HEADER_INSET}>
+			<SkeletonHeader compact />
+		</div>
+	);
 }
 
 /**
