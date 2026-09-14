@@ -49,7 +49,10 @@ export function LightboxSidebar({
 
 	return (
 		<div className="flex flex-col p-(--card-pad) md:col-span-4 md:min-h-0 md:overflow-y-auto">
+			{/* Hidden chrome goes inert with the fade so the expand button leaves
+			    the tab order, not just the paint. */}
 			<div
+				inert={chromeHidden || undefined}
 				className={cn("transition-ui md:flex-1", chromeHidden && "pointer-events-none opacity-0")}
 			>
 				{/* The visual counters are chrome (aria-hidden); one sr-only live

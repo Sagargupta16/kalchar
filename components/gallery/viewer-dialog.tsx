@@ -112,6 +112,9 @@ export function ViewerDialog({
 						(control) =>
 							control.tabIndex >= 0 &&
 							!control.matches(":disabled") &&
+							// Inert chrome (hidden by the lightbox single-tap toggle) is
+							// invisible but keeps client rects; skip it like the browser does.
+							!control.closest("[inert]") &&
 							control.getClientRects().length > 0,
 					);
 					const first = controls[0];
