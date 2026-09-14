@@ -3,6 +3,7 @@
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { KachniRule } from "@/components/decor/kachni-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 
@@ -28,7 +29,8 @@ export default function GlobalError({
 			<main className="mx-auto flex min-h-[60svh] max-w-(--header-max) flex-col items-center justify-center px-(--container-px) py-(--section-py) text-center">
 				<AlertCircle size={24} aria-hidden="true" className="mb-4 text-ruby" />
 				<p className="t-eyebrow">Something went wrong</p>
-				<h1 className="t-display mt-3 text-h1">We hit a snag</h1>
+				<KachniRule form="short" className="mt-2" />
+				<h1 className="t-headline mt-3 text-display-sm">We hit a snag</h1>
 				<p className="t-lead mt-4">
 					The page ran into an unexpected error. Refresh, or head back to the gallery.
 				</p>

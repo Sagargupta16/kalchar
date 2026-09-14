@@ -199,10 +199,33 @@ test(
 		expect(await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top)).toBe(
 			mainTop,
 		);
-		const whatsappRow = drawer.getByRole("link").first();
-		await expect(whatsappRow).toHaveText(/Message on WhatsApp/);
+
+		// Full-height index panel (visual-direction 2.12): the sheet covers the
+		// small-viewport height and opening it never moves #main.
+		const panel = page.locator("#mobile-menu");
+		const panelBox = await panel.boundingBox();
+		const viewport = page.viewportSize();
+		expect(panelBox?.height).toBeGreaterThanOrEqual((viewport?.height ?? 0) - 1);
+
+		// Six numbered destinations, each row at least 56px tall with a tabular index.
+		const rows = drawer.getByRole("link");
+		await expect(rows).toHaveCount(6);
+		await expect(rows.first()).toHaveText(/Artwork/);
+		await expect(drawer.getByText("01", { exact: true })).toBeVisible();
+		await expect(drawer.getByText("06", { exact: true })).toBeVisible();
+		for (const row of await rows.all()) {
+			const box = await row.boundingBox();
+			expect(box?.height).toBeGreaterThanOrEqual(56);
+		}
+
+		// The WhatsApp action keeps its content but moves to a pinned full-width
+		// primary at the panel bottom, at least 48px tall.
+		const whatsappRow = panel.getByRole("link", { name: /Message on WhatsApp/ });
 		await expect(whatsappRow).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
-		await expectTouchTarget(whatsappRow);
+		const whatsappBox = await whatsappRow.boundingBox();
+		expect(whatsappBox?.height).toBeGreaterThanOrEqual(48);
+		if (!panelBox || !whatsappBox) throw new Error("drawer boxes missing");
+		expect(whatsappBox.y).toBeGreaterThan(panelBox.y + panelBox.height / 2);
 		await page.keyboard.press("Escape");
 		await expect(drawer).toBeHidden();
 
@@ -243,9 +266,13 @@ test(
 	},
 );
 
-test("header shrinks to one control row after scrolling", { tag: "@mobile" }, async ({ page }) => {
+test("header keeps one 61px control row before and after scrolling", { tag: "@mobile" }, async ({ page }) => {
 	await page.goto("/");
 	const header = page.locator("header").first();
+	// One padding in both states (motion addendum C5): the bar never animates layout.
+	await expect
+		.poll(() => header.evaluate((el) => Math.round(el.getBoundingClientRect().height)))
+		.toBe(61);
 	await page.mouse.wheel(0, 300);
 	await expect
 		.poll(() => header.evaluate((el) => Math.round(el.getBoundingClientRect().height)))
@@ -271,6 +298,25 @@ test("back to top yields to the footer bottom bar", async ({ page }) => {
 	await expect(page.getByRole("contentinfo").getByRole("link", { name: "FAQ" })).toBeInViewport();
 	await page.mouse.wheel(0, -400);
 	await expect(fab).toHaveCSS("opacity", "1");
+});
+
+test("floating WhatsApp disc follows the route policy", async ({ page }) => {
+	await page.goto("/");
+	const fab = page.locator("[data-enquire-fab]");
+	await expect(fab).toHaveCount(1);
+	await expect(fab).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
+	await expect(fab).toHaveCSS("opacity", "0");
+	// Past one viewport the disc fades in (visual-direction 2.14).
+	await page.evaluate(() => globalThis.scrollTo(0, globalThis.innerHeight * 2));
+	await expect(fab).toHaveCSS("opacity", "1");
+	// While the footer channel row is on screen it yields.
+	await page.evaluate(() => globalThis.scrollTo(0, document.documentElement.scrollHeight));
+	await expect(fab).toHaveCSS("opacity", "0");
+	// The contact page and the commission form own their action: never mounted.
+	await page.goto("/contact/");
+	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
+	await page.goto("/custom-orders/");
+	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
 });
 
 test("gallery filter state is reflected in the URL", async ({ page }) => {
