@@ -1,38 +1,70 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useRef, useState } from "react";
+import { AnimatePresence, motion, type PanInfo, useMotionValue } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BinduMark } from "@/components/decor/bindu-mark";
+import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { LightboxIconButton, ViewerDialog } from "@/components/gallery/viewer-dialog";
-import { DUR, EASE_IN, EASE_OUT, SPRING_PANEL } from "@/lib/motion";
+import { Reveal } from "@/components/motion/reveal";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
+import {
+	DRAG_CLOSE_FRACTION,
+	DRAG_VELOCITY_PX_S,
+	DUR,
+	EASE_IN,
+	EASE_OUT,
+	gridStaggerDelay,
+	SPRING_PANEL,
+} from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /**
  * Inline photo grid for one event, with an image-only lightbox.
  *
- * Instagram-profile style: a uniform square grid (2 cols on phones, 3 from sm
- * up). Each tile shows the WHOLE image (object-contain on a soft ground), never
- * cropped -- this is an art portfolio, so the artist's framing is preserved;
- * only the displayed size changes, not the aspect. Up to MAX_INLINE tiles show;
- * a "+N more" overlay on the last opens the lightbox at that point. The lightbox
- * cycles through ALL photos (arrows + keyboard + swipe), arrows shown whenever
- * there's more than one. Tiles sit on --radius-md (grid plate); only the
- * lightbox figure uses --radius-lg (D13). The panel grows from the tapped tile
- * (transform-origin), never from the viewport centre.
+ * The grid is the photo recap of a dated exhibition record (visual-direction
+ * 2.6): uncropped square tiles on PlateFrame (no gold at rest), the plate
+ * unveil clipped INSIDE the frame so the hover lift and shadow are never
+ * cropped, up to MAX_INLINE tiles inline and a "+N more" overlay on the last.
+ *
+ * The lightbox mirrors the gallery's v2 room (2.4): the deep-ink scrim, the
+ * Motion drag that pages with the finger and dismisses downward while the
+ * scrim tracks progress, the same counter and arrow chrome, and the caption
+ * as scrim wall text with the Gond bindu mark. No sidebar, no palette glow,
+ * no buy bar (this is documentation, not commerce). Paging loops only with
+ * 3 or more photos; a single photo hides arrows and paging entirely.
  */
 const MAX_INLINE = 6;
-/** Minimum horizontal travel (px) before a touch counts as a swipe. */
-const SWIPE_THRESHOLD_PX = 50;
 /** Sibling slide distance (px) when paging inside the lightbox. */
 const SLIDE_PX = 24;
+/** Scrim fade factor while a downward dismiss drag is in flight (1.7). */
+const SCRIM_DRAG_FADE = 0.6;
+/** Paging wraps around only from this many photos (2.4). */
+const LOOP_MIN = 3;
+const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
+/** Shared by the displayed photo and neighbour preloads at every viewport. */
+const LIGHTBOX_IMAGE_SIZES =
+	"(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)";
+
+/** AVIF srcset for an event key-base, for `<link rel="preload">` hints. */
+function eventPreloadSrcset(keyBase: string): string {
+	return VARIANT_WIDTHS.map((w) => `${IMAGE_ORIGIN}/${keyBase}-${w}.avif ${w}w`).join(", ");
+}
 
 interface EventGalleryProps {
 	images: string[];
 	title: string;
+	/**
+	 * True on the page's first gallery only: its first tile is the route's
+	 * LCP candidate, so it fetches at high priority and skips the clip unveil
+	 * (performance guard 3), and its siblings unveil eagerly on first paint.
+	 */
+	lead?: boolean;
 }
 
-export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
+export function EventGallery({ images, title, lead = false }: Readonly<EventGalleryProps>) {
 	const [lightboxAt, setLightboxAt] = useState<number | null>(null);
 	const [origin, setOrigin] = useState<string | undefined>(undefined);
 
@@ -74,7 +106,8 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 								index={i}
 								aspect={tileAspect}
 								sizes={tileSizes}
-								priority={i === 0}
+								priority={lead && i === 0}
+								eager={lead}
 								overflow={showOverflow ? overflow : undefined}
 								totalForLabel={showOverflow ? images.length : undefined}
 								onOpen={(tile) => open(i, tile)}
@@ -84,14 +117,19 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 				})}
 			</ul>
 
-			<EventLightbox
-				images={images}
-				title={title}
-				index={lightboxAt}
-				origin={origin}
-				onClose={() => setLightboxAt(null)}
-				onIndex={setLightboxAt}
-			/>
+			<AnimatePresence>
+				{lightboxAt !== null ? (
+					<EventLightbox
+						key="event-lightbox"
+						images={images}
+						title={title}
+						index={lightboxAt}
+						origin={origin}
+						onClose={() => setLightboxAt(null)}
+						onIndex={setLightboxAt}
+					/>
+				) : null}
+			</AnimatePresence>
 		</>
 	);
 }
@@ -102,7 +140,10 @@ interface PhotoTileProps {
 	index: number;
 	aspect: string;
 	sizes: string;
+	/** LCP tile: high-priority fetch, rendered without the clip unveil. */
 	priority?: boolean;
+	/** Unveil on first paint (the lead gallery); later galleries unveil in view. */
+	eager?: boolean;
 	/** When set, render a "+N" overlay (the overflow entry). */
 	overflow?: number;
 	/** Total photo count, for the overflow tile's aria-label. */
@@ -117,10 +158,20 @@ function PhotoTile({
 	aspect,
 	sizes,
 	priority = false,
+	eager = false,
 	overflow,
 	totalForLabel,
 	onOpen,
 }: Readonly<PhotoTileProps>) {
+	const image = (
+		<ResponsiveImage
+			keyBase={keyBase}
+			alt={`${title}, photo ${index + 1}`}
+			sizes={sizes}
+			priority={priority}
+			className="absolute inset-0 h-full w-full object-contain"
+		/>
+	);
 	return (
 		<button
 			type="button"
@@ -130,24 +181,30 @@ function PhotoTile({
 					? `View all ${totalForLabel} photos from ${title}`
 					: `View photo ${index + 1} from ${title}`
 			}
-			className={cn(
-				"group relative block w-full overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline transition-ui pressable hover:-translate-y-0.5 hover:shadow-e2-edged hover:ring-1 hover:ring-(--section-accent)",
-				aspect,
-			)}
+			className="group pressable relative block w-full rounded-(--radius-md)"
 		>
-			{/* The frame lifts on hover; the photo itself never scales (no resampled brushwork). */}
-			<ResponsiveImage
-				keyBase={keyBase}
-				alt={`${title}, photo ${index + 1}`}
-				sizes={sizes}
-				priority={priority}
-				className="absolute inset-0 h-full w-full object-contain"
-			/>
-			{overflow === undefined ? null : (
-				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
-					<span className="t-display text-title">+{overflow}</span>
-				</span>
-			)}
+			{/* The frame lifts on hover (PlateFrame elevate + gold inset); the photo
+			    itself never scales, and the unveil clips inside the frame so the
+			    lift's shadow is never cropped by a lingering clip-path. */}
+			<PlateFrame className={aspect}>
+				{priority ? (
+					image
+				) : (
+					<Reveal
+						variant="plate"
+						eager={eager}
+						delayMs={gridStaggerDelay(index, MAX_INLINE, 3)}
+						className="absolute inset-0"
+					>
+						{image}
+					</Reveal>
+				)}
+				{overflow === undefined ? null : (
+					<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
+						<span className="t-display text-title">+{overflow}</span>
+					</span>
+				)}
+			</PlateFrame>
 		</button>
 	);
 }
@@ -155,24 +212,14 @@ function PhotoTile({
 interface EventLightboxProps {
 	images: string[];
 	title: string;
-	index: number | null;
+	index: number;
 	/** transform-origin of the panel: the tapped tile's centre in viewport percentages. */
 	origin?: string;
 	onClose: () => void;
 	onIndex: (i: number) => void;
 }
 
-/** Siblings slide in unison: incoming from the travel side, outgoing the other way, no scale. */
-const SLIDE = {
-	enter: (dir: number) => ({ x: SLIDE_PX * dir, opacity: 0 }),
-	center: { x: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE_OUT } },
-	exit: (dir: number) => ({
-		x: -SLIDE_PX * dir,
-		opacity: 0,
-		transition: { duration: DUR.fast, ease: EASE_IN },
-	}),
-};
-
+/** The gallery lightbox's room, mirrored for event photos (2.4 events mirror). */
 function EventLightbox({
 	images,
 	title,
@@ -181,103 +228,203 @@ function EventLightbox({
 	onClose,
 	onIndex,
 }: Readonly<EventLightboxProps>) {
-	const isOpen = index !== null;
+	const reduceMotion = usePrefersReducedMotion();
 	const [dir, setDir] = useState<1 | -1>(1);
+	const figureRef = useRef<HTMLDivElement>(null);
+	const scrimOpacity = useMotionValue(1);
+
+	const total = images.length;
+	const hasMany = total > 1;
+	const loops = total >= LOOP_MIN;
+
+	// Coarse = no fine hover pointer; drives the drag paging and dismiss.
+	const [coarse, setCoarse] = useState(false);
+	useEffect(() => {
+		const mql = globalThis.matchMedia(FINE_POINTER_QUERY);
+		setCoarse(!mql.matches);
+		const handler = (e: MediaQueryListEvent) => setCoarse(!e.matches);
+		mql.addEventListener("change", handler);
+		return () => mql.removeEventListener("change", handler);
+	}, []);
 
 	const go = useCallback(
 		(step: 1 | -1) => {
-			if (index === null) return;
+			const next = loops
+				? (index + step + total) % total
+				: Math.min(Math.max(index + step, 0), total - 1);
+			if (next === index) return;
 			setDir(step);
-			onIndex((index + step + images.length) % images.length);
+			onIndex(next);
 		},
-		[index, images.length, onIndex],
+		[index, total, loops, onIndex],
+	);
+	const goFirst = useCallback(() => {
+		if (index === 0) return;
+		setDir(-1);
+		onIndex(0);
+	}, [index, onIndex]);
+	const goLast = useCallback(() => {
+		if (index === total - 1) return;
+		setDir(1);
+		onIndex(total - 1);
+	}, [index, total, onIndex]);
+
+	// Warm one photo behind and two ahead once the current one settles, so
+	// arrow/swipe paging is near-instant. Skipped under Save-Data and reduced
+	// motion (the gallery's contract, mirrored).
+	useEffect(() => {
+		if (!hasMany) return;
+		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+			?.saveData;
+		if (saveData || reduceMotion) return;
+		const neighbours = [
+			images[(index + 1) % total],
+			images[(index + 2) % total],
+			images[(index - 1 + total) % total],
+		];
+		const keys = new Set(neighbours.filter((key): key is string => Boolean(key)));
+		keys.delete(images[index] ?? "");
+		const preloads = [...keys].map((keyBase) => {
+			const link = document.createElement("link");
+			link.rel = "preload";
+			link.as = "image";
+			link.type = "image/avif";
+			link.imageSrcset = eventPreloadSrcset(keyBase);
+			link.imageSizes = LIGHTBOX_IMAGE_SIZES;
+			document.head.append(link);
+			return link;
+		});
+		return () => {
+			for (const preload of preloads) preload.remove();
+		};
+	}, [hasMany, images, index, total, reduceMotion]);
+
+	// Drag: pages horizontally, dismisses downward; the scrim tracks progress.
+	const handleDrag = useCallback(
+		(_event: unknown, info: PanInfo) => {
+			const rect = figureRef.current?.getBoundingClientRect();
+			const height = rect?.height ?? 1;
+			const progress = Math.min(Math.max(info.offset.y / height, 0), 1);
+			scrimOpacity.set(1 - SCRIM_DRAG_FADE * progress);
+		},
+		[scrimOpacity],
+	);
+	const handleDragEnd = useCallback(
+		(_event: unknown, info: PanInfo) => {
+			scrimOpacity.set(1);
+			const rect = figureRef.current?.getBoundingClientRect();
+			const width = rect?.width ?? 1;
+			const height = rect?.height ?? 1;
+			const { offset, velocity } = info;
+			if (
+				hasMany &&
+				(offset.x < -DRAG_CLOSE_FRACTION * width || velocity.x < -DRAG_VELOCITY_PX_S)
+			) {
+				go(1);
+				return;
+			}
+			if (hasMany && (offset.x > DRAG_CLOSE_FRACTION * width || velocity.x > DRAG_VELOCITY_PX_S)) {
+				go(-1);
+				return;
+			}
+			if (offset.y > DRAG_CLOSE_FRACTION * height || velocity.y > DRAG_VELOCITY_PX_S) {
+				onClose();
+			}
+		},
+		[scrimOpacity, hasMany, go, onClose],
 	);
 
-	// Track both axes and only page when the gesture is mostly horizontal, so a
-	// vertical scroll with a little drift never changes the photo.
-	const touchStart = useRef({ x: 0, y: 0 });
-	const onTouchStart = useCallback((e: React.TouchEvent) => {
-		const t = e.touches[0];
-		if (t) touchStart.current = { x: t.clientX, y: t.clientY };
-	}, []);
-	const onTouchEnd = useCallback(
-		(e: React.TouchEvent) => {
-			const t = e.changedTouches[0];
-			if (!t) return;
-			const dx = t.clientX - touchStart.current.x;
-			const dy = t.clientY - touchStart.current.y;
-			if (Math.abs(dx) > SWIPE_THRESHOLD_PX && Math.abs(dx) > Math.abs(dy)) go(dx > 0 ? -1 : 1);
-		},
-		[go],
-	);
+	/** Siblings slide 24px from the travel side; reduced motion crossfades. */
+	const pageVariants = {
+		enter: (d: number) => (reduceMotion ? { opacity: 0 } : { x: SLIDE_PX * d, opacity: 0 }),
+		center: { x: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE_OUT } },
+		exit: (d: number) =>
+			reduceMotion
+				? { opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }
+				: { x: -SLIDE_PX * d, opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } },
+	};
 
-	const hasMany = images.length > 1;
+	const counterText = `${String(index + 1).padStart(2, "0")} / ${total}`;
 
 	return (
-		<AnimatePresence>
-			{isOpen && index !== null ? (
-				<ViewerDialog
-					label={`${title} photos`}
-					onClose={onClose}
-					onNext={hasMany ? () => go(1) : undefined}
-					onPrevious={hasMany ? () => go(-1) : undefined}
-				>
-					<motion.figure
-						initial={{ opacity: 0, scale: 0.96, y: 12 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{
-							opacity: 0,
-							scale: 0.98,
-							y: 8,
-							transition: { duration: DUR.fast, ease: EASE_IN },
-						}}
-						transition={SPRING_PANEL}
-						style={{ transformOrigin: origin }}
-						onTouchStart={onTouchStart}
-						onTouchEnd={onTouchEnd}
-						className="relative z-raised m-0 flex w-full max-w-5xl flex-col items-center"
-					>
-						{/* The image sizes to its own ratio (capped by the viewport), so the
-						    whole photo shows uncropped whatever its dimensions. */}
-						<div className="relative flex max-h-[80svh] w-full items-center justify-center">
-							<AnimatePresence mode="popLayout" custom={dir} initial={false}>
-								<motion.div
-									key={index}
-									custom={dir}
-									variants={SLIDE}
-									initial="enter"
-									animate="center"
-									exit="exit"
-									className="flex max-h-[80svh] w-full items-center justify-center"
-								>
-									<ResponsiveImage
-										keyBase={images[index] ?? ""}
-										alt={`${title}, photo ${index + 1} of ${images.length}`}
-										sizes="(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)"
-										priority
-										className="max-h-[80svh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-canvas object-contain shadow-e5"
-									/>
-								</motion.div>
-							</AnimatePresence>
-							{hasMany ? (
-								<>
-									<LightboxNav direction="prev" onClick={() => go(-1)} />
-									<LightboxNav direction="next" onClick={() => go(1)} />
-								</>
-							) : null}
-						</div>
-						<figcaption className="mt-3 flex w-full items-center justify-between gap-3 text-xs text-muted">
-							<span className="min-w-0 truncate">{title}</span>
-							{hasMany ? (
-								<span className="shrink-0 tabular-nums">
-									{index + 1} / {images.length}
-								</span>
-							) : null}
-						</figcaption>
-					</motion.figure>
-				</ViewerDialog>
-			) : null}
-		</AnimatePresence>
+		<ViewerDialog
+			label={`${title} photos`}
+			onClose={onClose}
+			onNext={hasMany ? () => go(1) : undefined}
+			onPrevious={hasMany ? () => go(-1) : undefined}
+			onFirst={hasMany ? goFirst : undefined}
+			onLast={hasMany ? goLast : undefined}
+			scrimOpacity={scrimOpacity}
+		>
+			<motion.figure
+				initial={{ opacity: 0, scale: 0.96, y: 12 }}
+				animate={{ opacity: 1, scale: 1, y: 0 }}
+				exit={{
+					opacity: 0,
+					scale: 0.98,
+					y: 8,
+					transition: { duration: DUR.fast, ease: EASE_IN },
+				}}
+				transition={SPRING_PANEL}
+				style={{ transformOrigin: origin }}
+				className="relative z-raised m-0 flex w-full max-w-5xl flex-col items-center"
+			>
+				{/* One live region announces paging; the visible counter is chrome. */}
+				{hasMany ? (
+					<p className="sr-only" aria-live="polite" aria-atomic="true">
+						{index + 1} of {total}
+					</p>
+				) : null}
+				<div className="relative flex max-h-[70dvh] w-full items-center justify-center md:max-h-[78dvh]">
+					{hasMany ? (
+						<p
+							aria-hidden="true"
+							className="t-meta absolute left-1 top-1 z-raised tabular-nums text-bg/80 dark:text-ink/80"
+						>
+							{counterText}
+						</p>
+					) : null}
+					<AnimatePresence mode="popLayout" custom={dir} initial={false}>
+						<motion.div
+							key={index}
+							ref={figureRef}
+							custom={dir}
+							variants={pageVariants}
+							initial="enter"
+							animate="center"
+							exit="exit"
+							drag={coarse}
+							dragDirectionLock
+							dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
+							dragElastic={0.2}
+							onDrag={coarse ? handleDrag : undefined}
+							onDragEnd={coarse ? handleDragEnd : undefined}
+							className="flex max-h-[70dvh] w-full items-center justify-center md:max-h-[78dvh]"
+						>
+							<ResponsiveImage
+								keyBase={images[index] ?? ""}
+								alt={`${title}, photo ${index + 1} of ${total}`}
+								sizes={LIGHTBOX_IMAGE_SIZES}
+								priority
+								className="max-h-[70dvh] w-auto max-w-full select-none rounded-(--radius-lg) bg-canvas object-contain shadow-hairline md:max-h-[78dvh]"
+							/>
+						</motion.div>
+					</AnimatePresence>
+					{hasMany ? (
+						<>
+							<LightboxNav direction="prev" onClick={() => go(-1)} />
+							<LightboxNav direction="next" onClick={() => go(1)} />
+						</>
+					) : null}
+				</div>
+				{/* Caption as scrim wall text: the Gond bindu mark, then the event
+				    title in the titled-work voice (2.6 figure captions). */}
+				<figcaption className="mt-3 flex w-full min-w-0 items-center gap-2 text-bg dark:text-ink">
+					<BinduMark className="opacity-80" />
+					<span className="t-display min-w-0 truncate text-h3">{title}</span>
+				</figcaption>
+			</motion.figure>
+		</ViewerDialog>
 	);
 }
 
@@ -291,10 +438,8 @@ function LightboxNav({
 			onClick={onClick}
 			aria-label={isPrev ? "Previous photo" : "Next photo"}
 			className={cn(
-				"absolute top-1/2 z-raised -translate-y-1/2 pointer-coarse:size-12",
-				isPrev
-					? "left-[max(--spacing(3),var(--spacing-safe-left))]"
-					: "right-[max(--spacing(3),var(--spacing-safe-right))]",
+				"absolute bottom-3 z-raised pointer-coarse:size-12 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:border-bg/20 md:bg-bg/10 md:text-bg md:dark:text-ink",
+				isPrev ? "left-3 md:left-safe-left md:ml-3" : "right-3 md:right-safe-right md:mr-3",
 			)}
 		>
 			{isPrev ? (
