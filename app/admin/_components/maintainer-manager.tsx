@@ -13,6 +13,7 @@ import {
 	adminBtnPrimary,
 	adminError,
 	adminField,
+	adminInitialsDisc,
 	adminLabel,
 	adminPanelInset,
 	ICON_MD,
@@ -26,6 +27,17 @@ interface MaintainerView {
 	name: string | null;
 	isRoot: boolean;
 	addedBy: string | null;
+}
+
+/** Up to two initials from the name, else one from the email's local part ("Megha Seth" -> "MS", "root@..." -> "R"). */
+function maintainerInitials(m: MaintainerView): string {
+	const source = m.name?.trim() || m.email.split("@")[0] || m.email;
+	const letters = source
+		.split(/[\s._-]+/)
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((word) => word[0] ?? "");
+	return (letters.join("") || m.email.slice(0, 1)).toUpperCase();
 }
 
 export function MaintainerManager({
@@ -66,8 +78,8 @@ export function MaintainerManager({
 
 	return (
 		<div className="space-y-group">
-			{/* Ruling 42: the add form and the roster are independent panels, side by side from lg. */}
-			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
+			{/* Ruling 42: the add form and the roster are independent panels, side by side from lg (Tier 2g: invite 4, roster 8). */}
+			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:items-start">
 				<form
 					aria-labelledby={`${ids}-title`}
 					className={cn(adminPanelInset, "min-w-0")}
@@ -166,8 +178,16 @@ export function MaintainerManager({
 							.filter(Boolean)
 							.join(", ");
 						return (
-							<li key={m.email} className="flex items-center gap-3 px-4 py-3">
-								<div className="min-w-0 flex-1">
+							// Row anatomy 1.11: leading initials disc (the one people-shape),
+							// min-w-0 body, trailing cluster with Remove behind the divider.
+							<li
+								key={m.email}
+								className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+							>
+								<span aria-hidden="true" className={cn(adminInitialsDisc, "size-11")}>
+									{maintainerInitials(m)}
+								</span>
+								<div className="min-w-0">
 									<p className="truncate text-sm font-medium text-ink">
 										{m.name ?? m.email}
 										{isMe ? (
@@ -179,21 +199,23 @@ export function MaintainerManager({
 									) : null}
 								</div>
 								{m.isRoot ? (
-									<Badge variant="muted" className="shrink-0">
+									<Badge variant="muted" className="h-6 shrink-0">
 										<Shield size={ICON_SM} aria-hidden="true" />
 										Root
 									</Badge>
 								) : (
-									<button
-										type="button"
-										disabled={pending}
-										onClick={() => onRemove(m, isMe)}
-										aria-label={`Remove ${m.email}`}
-										className={cn(adminBtnDestructive, "shrink-0")}
-									>
-										<Trash2 size={ICON_MD} aria-hidden="true" />
-										Remove
-									</button>
+									<span className="ml-4 flex border-l border-line pl-4">
+										<button
+											type="button"
+											disabled={pending}
+											onClick={() => onRemove(m, isMe)}
+											aria-label={`Remove ${m.email}`}
+											className={cn(adminBtnDestructive, "shrink-0")}
+										>
+											<Trash2 size={ICON_MD} aria-hidden="true" />
+											Remove
+										</button>
+									</span>
 								)}
 							</li>
 						);

@@ -15,13 +15,13 @@ import { AdminNotice } from "./admin-notice";
 import { AdminPanel } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
-	adminBtnPrimary,
+	adminChipField,
 	adminError,
 	adminField,
+	adminHelp,
 	adminIconBtn,
 	adminIconBtnDestructive,
 	adminIconBtnPrimary,
-	adminLabel,
 	adminRowInset,
 	ICON_MD,
 } from "./controls";
@@ -44,7 +44,8 @@ const GROUPS: Array<{ kind: OrderPresetKind; title: string; singular: string; hi
 
 export function PresetManager({ presets }: Readonly<{ presets: OrderPreset[] }>) {
 	return (
-		<div className="space-y-group">
+		// Tier 2e: the three groups sit side by side from lg (full-width layout).
+		<div className="grid gap-(--space-group) lg:grid-cols-3 lg:items-start">
 			{GROUPS.map((g) => (
 				<PresetGroup
 					key={g.kind}
@@ -117,6 +118,7 @@ function PresetGroup({
 		<AdminPanel
 			title={title}
 			description={hint}
+			className="min-w-0"
 			action={
 				hasOrderChanges ? (
 					<InlineReorderControls
@@ -181,8 +183,29 @@ function PresetGroup({
 				) : null}
 			</ul>
 
+			{items.length > 0 ? (
+				// Preview strip (Tier 2e): the group's presets in the public chip recipe,
+				// in the staged order, so a preset is never a mystery string. Decorative;
+				// the real list above carries the accessible content.
+				<div aria-hidden="true" className="mt-4">
+					<div className="flex flex-wrap gap-2">
+						{items.map((p) => (
+							<span
+								key={p.id}
+								className="inline-flex h-6 items-center rounded-full border border-line bg-bg px-2.5 text-micro text-ink"
+							>
+								{p.label}
+							</span>
+						))}
+					</div>
+					<p className={cn(adminHelp, "mt-1")}>How the order form shows them</p>
+				</div>
+			) : null}
+
+			{/* Chip-shaped add field (Tier 2e): bare input left, round primary +
+			    inside the pill's right end. The visible label moves to aria-label. */}
 			<form
-				className="mt-4 flex flex-col gap-(--form-gap) sm:flex-row sm:items-end"
+				className={cn(adminChipField, "mt-4")}
 				onSubmit={(e) => {
 					e.preventDefault();
 					const label = newLabel.trim();
@@ -198,30 +221,29 @@ function PresetGroup({
 					);
 				}}
 			>
-				<label htmlFor={fieldId} className={cn(adminLabel, "flex-1")}>
-					New {singular} option
-					<input
-						id={fieldId}
-						value={newLabel}
-						onChange={(e) => {
-							setNewLabel(e.target.value);
-							if (fieldError) setFieldError(null);
-						}}
-						required
-						enterKeyHint="done"
-						autoComplete="off"
-						aria-invalid={fieldError ? true : undefined}
-						aria-describedby={fieldError ? `${fieldId}-error` : undefined}
-						className={adminField}
-					/>
-				</label>
+				<input
+					id={fieldId}
+					value={newLabel}
+					onChange={(e) => {
+						setNewLabel(e.target.value);
+						if (fieldError) setFieldError(null);
+					}}
+					required
+					enterKeyHint="done"
+					autoComplete="off"
+					placeholder={`New ${singular}`}
+					aria-label={`New ${singular} option`}
+					aria-invalid={fieldError ? true : undefined}
+					aria-describedby={fieldError ? `${fieldId}-error` : undefined}
+					className="min-h-10 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
+				/>
 				<button
 					type="submit"
 					disabled={pending}
-					className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+					aria-label={`Add ${singular}`}
+					className={cn(adminIconBtnPrimary, "rounded-full")}
 				>
 					<Plus size={ICON_MD} aria-hidden="true" />
-					Add {singular}
 				</button>
 			</form>
 			{fieldError ? (

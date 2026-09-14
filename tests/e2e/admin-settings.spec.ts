@@ -7,53 +7,9 @@ const fixtureImage = {
 	buffer: Buffer.from("isolated upload fixture"),
 };
 
-test("leads: status chip, sentence-case options and the email reply link", async ({ page }) => {
-	await mountAdmin(page, "leads");
-	const card = page.getByRole("listitem").first();
-	await expect(card.locator("span").filter({ hasText: /^New$/ })).toBeVisible();
-	const labels = await page.getByLabel("Lead status").locator("option").allTextContents();
-	expect(labels).toEqual(["New", "Contacted", "Closed"]);
-	await expect(page.getByRole("link", { name: "Email" })).toHaveAttribute(
-		"href",
-		/^mailto:mira@example\.invalid\?subject=/,
-	);
-	await expect(page.getByRole("link", { name: "Reply on WhatsApp" })).toHaveCount(0);
-});
-
-test("leads: filter chips count the page and the filtered empty state offers Show all", async ({
-	page,
-}) => {
-	await mountAdmin(page, "leads");
-	const group = page.getByRole("group", { name: "Filter enquiries" });
-	for (const name of ["All 1", "New 1", "Contacted 0", "Closed 0"]) {
-		await expect(group.getByRole("button", { name, exact: true })).toBeVisible();
-	}
-	await expect(group.getByRole("button", { name: "All 1", exact: true })).toHaveAttribute(
-		"aria-pressed",
-		"true",
-	);
-	await group.getByRole("button", { name: "Closed 0", exact: true }).click();
-	await expect(page.getByText("No closed enquiries on this page.")).toBeVisible();
-	await page.getByRole("button", { name: "Show all" }).click();
-	await expect(page.getByRole("listitem").first()).toBeVisible();
-});
-
-test("leads: a rejected status change reports inside the card", async ({ page }) => {
-	await mountAdmin(page, "leads");
-	await outcome(page, "failure");
-	await page.getByLabel("Lead status").selectOption("contacted");
-	await expect(page.getByRole("listitem").first().getByRole("alert")).toHaveText(
-		"Change was rejected.",
-	);
-	await expect(page.getByLabel("Lead status")).toHaveValue("new");
-});
-
-test("leads: the timestamp shows date and time", async ({ page }) => {
-	await mountAdmin(page, "leads");
-	// Fixture createdAt "2026-09-01" parses as UTC midnight, 05:30 IST; the
-	// month prefix covers ICU printing "Sep" or "Sept" for en-IN.
-	await expect(page.getByRole("listitem").first()).toContainText(/1 Sep\w* 2026, 05:30 am/);
-});
+// The lead cases moved to admin-leads.spec.ts when the enquiry card became a
+// DM inbox row with its status and reply actions inside the detail sheet
+// (visual-direction-admin Tier 2a).
 
 test("categories: blank submit explains, success confirms, rename submits on Enter", async ({
 	page,
@@ -179,6 +135,11 @@ test("profile: choosing a file shows a preview and a labelled upload button", as
 	// The label never becomes the file name and never relabels while pending.
 	await expect(upload).toHaveText("Upload photo");
 	await expect(page.locator('form[aria-busy="true"]')).toHaveCount(1);
+	// Tier 2f: while the server prepares variants, the progress ring around the
+	// portrait is the progressbar, named by the honest stage label.
+	await expect(
+		page.getByRole("progressbar", { name: "Preparing sizes for phones and desktops" }),
+	).toBeVisible();
 	await outcome(page, "failure");
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(
@@ -220,13 +181,6 @@ const confirms = [
 		keep: "Keep option",
 	},
 	{
-		view: "leads",
-		button: "Delete enquiry from Mira",
-		title: "Delete the enquiry from Mira?",
-		confirm: "Delete enquiry",
-		keep: "Keep enquiry",
-	},
-	{
 		view: "profile",
 		button: "Remove photo",
 		title: "Remove profile photo?",
@@ -250,32 +204,53 @@ for (const c of confirms) {
 	});
 }
 
-test("leads: a status change offers Undo and Undo restores the previous status", async ({
+test("categories and presets: the add control is a chip pill with an icon-only submit", async ({
 	page,
 }) => {
-	await mountAdmin(page, "leads");
+	await mountAdmin(page, "categories");
+	const categoryField = page.getByLabel("Category name");
+	await expect(categoryField).toHaveAttribute("placeholder", "New category");
+	// Icon-only round submit: the accessible name comes from aria-label alone.
+	await expect(page.getByRole("button", { name: "Add category" })).toHaveText("");
+	await mountAdmin(page, "presets");
+	await expect(page.getByLabel("New size option")).toHaveAttribute("placeholder", "New size");
+	await expect(page.getByRole("button", { name: "Add size" })).toHaveText("");
+});
+
+test("presets: the preview strip mirrors the group order through a reorder save", async ({
+	page,
+}) => {
+	await mountAdmin(page, "presets");
+	const strip = page
+		.locator('div[aria-hidden="true"]')
+		.filter({ hasText: "How the order form shows them" });
+	await expect(strip).toHaveCount(1);
+	await expect(strip).toHaveText(/Alpha.*Bravo.*Charlie/);
+	await page.getByRole("button", { name: "Move Alpha down", exact: true }).click();
+	await expect(strip).toHaveText(/Bravo.*Alpha.*Charlie/);
 	await outcome(page, "success");
-	await page.getByLabel("Lead status").selectOption("contacted");
+	await page.getByRole("button", { name: "Save order" }).click();
+	await expect(page.getByRole("button", { name: "Save order" })).toHaveCount(0);
+	await expect(strip).toHaveText(/Bravo.*Alpha.*Charlie/);
+});
+
+test("maintainers: roster rows lead with an initials disc", async ({ page }) => {
+	await mountAdmin(page, "maintainers");
+	const rows = page.getByRole("listitem");
+	// Root has the name "Root" -> "R"; bravo has no name -> "B" from the email.
+	await expect(rows.nth(0).locator('span[aria-hidden="true"]').first()).toHaveText("R");
+	await expect(rows.nth(1).locator('span[aria-hidden="true"]').first()).toHaveText("B");
+});
+
+test("profile: the intro switch offers Undo and Undo restores the value", async ({ page }) => {
+	await mountAdmin(page, "profile");
+	await outcome(page, "success");
+	await page.getByRole("switch", { name: "Show artist intro on home" }).click();
 	const bar = page.locator(".fixed");
-	await expect(bar.getByText("Enquiry from Mira marked contacted")).toBeVisible();
+	await expect(bar.getByText("Home intro shown")).toBeVisible();
 	await bar.getByRole("button", { name: "Undo" }).click();
 	await expect(bar).toHaveCount(0);
-	const afterUndo = (await page.evaluate(() => window.adminTest.calls)).at(-1);
-	expect(afterUndo?.name).toBe("setLeadStatus");
-	expect(afterUndo?.args).toEqual(["lead-1", "new"]);
-	// Dismiss leaves the offer without calling anything. The harness never
-	// refreshes props, so the local status is still "contacted" here.
-	await page.getByLabel("Lead status").selectOption("new");
-	await expect(bar.getByText("Enquiry from Mira marked new")).toBeVisible();
-	const count = await page.evaluate(() => window.adminTest.calls.length);
-	await bar.getByRole("button", { name: "Dismiss" }).click();
-	await expect(bar).toHaveCount(0);
-	expect(await page.evaluate(() => window.adminTest.calls.length)).toBe(count);
-	// A rejected undo reports inside the bar and the bar stays.
-	await page.getByLabel("Lead status").selectOption("closed");
-	await expect(bar.getByText("Enquiry from Mira marked closed")).toBeVisible();
-	await outcome(page, "failure");
-	await bar.getByRole("button", { name: "Undo" }).click();
-	await expect(bar.getByRole("alert")).toHaveText("Change was rejected.");
-	await expect(bar).toHaveCount(1);
+	const last = (await page.evaluate(() => window.adminTest.calls)).at(-1);
+	expect(last?.name).toBe("setShowHomeIntro");
+	expect(last?.args).toEqual([false]);
 });

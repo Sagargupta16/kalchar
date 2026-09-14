@@ -10,13 +10,12 @@ import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
-	adminBtnPrimary,
+	adminChipField,
 	adminError,
 	adminField,
 	adminIconBtn,
 	adminIconBtnDestructive,
 	adminIconBtnPrimary,
-	adminLabel,
 	adminPanelInset,
 	adminRow,
 	ICON_MD,
@@ -109,32 +108,34 @@ export function CategoryManager({
 						title="Add a category"
 						description="The style name as it should read in the gallery filter, for example Warli or Kalamkari."
 					/>
-					<div className="flex flex-col gap-(--form-gap) sm:flex-row sm:items-end">
-						<label htmlFor={`${formId}-name`} className={cn(adminLabel, "flex-1")}>
-							Category name
-							<input
-								id={`${formId}-name`}
-								value={newName}
-								onChange={(e) => {
-									setNewName(e.target.value);
-									if (fieldError) setFieldError(null);
-								}}
-								required
-								autoCapitalize="words"
-								autoComplete="off"
-								enterKeyHint="done"
-								aria-invalid={fieldError ? true : undefined}
-								aria-describedby={fieldError ? `${formId}-error` : undefined}
-								className={adminField}
-							/>
-						</label>
+					{/* Chip-shaped add field (visual-direction-admin Tier 2e): bare input
+					    left, round primary + inside the pill's right end. The visible label
+					    moves to aria-label; the panel header carries the explanation. */}
+					<div className={adminChipField}>
+						<input
+							id={`${formId}-name`}
+							value={newName}
+							onChange={(e) => {
+								setNewName(e.target.value);
+								if (fieldError) setFieldError(null);
+							}}
+							required
+							autoCapitalize="words"
+							autoComplete="off"
+							enterKeyHint="done"
+							placeholder="New category"
+							aria-label="Category name"
+							aria-invalid={fieldError ? true : undefined}
+							aria-describedby={fieldError ? `${formId}-error` : undefined}
+							className="min-h-10 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
+						/>
 						<button
 							type="submit"
 							disabled={pending}
-							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+							aria-label="Add category"
+							className={cn(adminIconBtnPrimary, "rounded-full")}
 						>
 							<Plus size={ICON_MD} aria-hidden="true" />
-							Add category
 						</button>
 					</div>
 					{fieldError ? (
