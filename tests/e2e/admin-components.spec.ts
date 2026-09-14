@@ -3,12 +3,12 @@ import { mountAdmin, outcome } from "../admin/browser-fixture";
 
 const removals = [
 	{ view: "categories", button: "Delete Alpha", confirm: "Delete" },
-	{ view: "workshops", button: "Delete Alpha", confirm: "Delete" },
+	{ view: "workshops", button: "Delete Alpha", confirm: "Delete workshop" },
 	{ view: "presets", button: "Delete Alpha", confirm: "Remove" },
-	{ view: "events", button: "Delete Gathering", confirm: "Delete" },
-	{ view: "eventImages", button: "Remove photo 1" },
+	{ view: "events", button: "Delete Gathering", confirm: "Delete event" },
+	{ view: "eventImages", button: "Remove photo 1", confirm: "Remove photo" },
 	{ view: "leads", button: "Delete lead", confirm: "Delete" },
-	{ view: "testimonials", button: "Delete testimonial", confirm: "Delete" },
+	{ view: "testimonials", button: "Delete testimonial from Mira", confirm: "Delete testimonial" },
 	{ view: "profile", button: "Remove photo", confirm: "Remove" },
 ] as const;
 
@@ -42,8 +42,13 @@ for (const failure of ["failure", "throw"] as const) {
 	});
 
 	for (const toggle of [
-		{ view: "events", label: "Pin event to top", role: "button", attribute: "aria-pressed" },
-		{ view: "testimonials", label: "Feature", role: "button", attribute: "aria-pressed" },
+		{ view: "events", label: "Pin Gathering to top", role: "button", attribute: "aria-pressed" },
+		{
+			view: "testimonials",
+			label: "Feature testimonial from Mira on the home page",
+			role: "button",
+			attribute: "aria-pressed",
+		},
 		{
 			view: "profile",
 			label: "Show artist intro on home",
@@ -64,7 +69,7 @@ for (const failure of ["failure", "throw"] as const) {
 
 	for (const editor of [
 		{ view: "categories", edit: "Rename", input: "Rename Alpha", save: "Save Alpha" },
-		{ view: "workshops", edit: "Edit", input: "Title", save: "Save" },
+		{ view: "workshops", edit: "Edit Alpha", input: "Title *", save: "Save" },
 		{ view: "presets", edit: "Edit", input: "Edit Alpha", save: "Save Alpha" },
 	] as const) {
 		test(`${editor.view} retains the inline draft after ${failure}`, async ({ page }) => {
@@ -75,6 +80,10 @@ for (const failure of ["failure", "throw"] as const) {
 			await row.getByRole("textbox", { name: editor.input, exact: true }).fill("Edited draft");
 			await row.getByRole("button", { name: editor.save, exact: true }).click();
 			await expect(page.getByRole("alert")).toHaveText(message);
+			if (editor.view === "workshops") {
+				// Row-level action state (admin-content C12): the error sits inside the row.
+				await expect(row.getByRole("alert")).toHaveText(message);
+			}
 			await expect(page.getByRole("textbox", { name: editor.input, exact: true })).toHaveValue(
 				"Edited draft",
 			);
@@ -84,6 +93,7 @@ for (const failure of ["failure", "throw"] as const) {
 	test(`workshop create preserves fields on ${failure}`, async ({ page }) => {
 		await mountAdmin(page, "workshops");
 		await outcome(page, failure);
+		await page.getByRole("button", { name: "Add workshop" }).click();
 		await page.getByLabel("Title *", { exact: true }).fill("New workshop");
 		await page.getByLabel("Description *", { exact: true }).fill("Learn a painting technique.");
 		await page.getByRole("button", { name: "Add workshop" }).click();
@@ -97,7 +107,7 @@ for (const failure of ["failure", "throw"] as const) {
 		await page.getByRole("button", { name: "Add testimonial" }).click();
 		await page.getByLabel("Quote *", { exact: true }).fill("A treasured piece.");
 		await page.getByLabel("Author name *", { exact: true }).fill("Ravi");
-		await page.getByRole("button", { name: "Add", exact: true }).click();
+		await page.getByRole("button", { name: "Add testimonial", exact: true }).click();
 		await expect(page.getByRole("alert")).toHaveText(message);
 		await expect(page.getByLabel("Quote *", { exact: true })).toHaveValue("A treasured piece.");
 	});
@@ -105,6 +115,7 @@ for (const failure of ["failure", "throw"] as const) {
 	test(`event creation passes through its ${failure} result`, async ({ page }) => {
 		await mountAdmin(page, "events");
 		await outcome(page, failure);
+		await page.getByRole("button", { name: "Add event" }).click();
 		await page.getByLabel("Title *", { exact: true }).fill("New gathering");
 		await page.getByLabel("Event date *", { exact: true }).fill("2026-10-01");
 		await page.getByRole("button", { name: "Add event" }).click();
@@ -114,7 +125,7 @@ for (const failure of ["failure", "throw"] as const) {
 
 	for (const upload of [
 		{ view: "profile", picker: 'input[name="image"]', button: "Upload" },
-		{ view: "eventImages", picker: 'input[name="images"]', button: "Upload" },
+		{ view: "eventImages", picker: 'input[name="images"]', button: "Upload photos" },
 	] as const) {
 		test(`${upload.view} preserves its selected upload on ${failure}`, async ({ page }) => {
 			await mountAdmin(page, upload.view);
@@ -187,7 +198,7 @@ for (const reorder of reorderings) {
 		await page.keyboard.press("ArrowDown");
 		await expect(page.locator(":focus")).toHaveAttribute("aria-label", /position 2 of 3$/);
 		await expect(page.locator(":focus")).toHaveAttribute("aria-describedby", descriptionId!);
-		const save = page.getByRole("button", { name: /Save (photo )?order/ });
+		const save = page.getByRole("button", { name: "Save order" });
 		await save.click();
 		await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
 		await expect(save).toBeEnabled();
@@ -346,6 +357,7 @@ for (const failure of ["failure", "throw"] as const) {
 
 test("selecting event photos shows a thumbnail strip with the cover marked", async ({ page }) => {
 	await mountAdmin(page, "events");
+	await page.getByRole("button", { name: "Add event" }).click();
 	await page
 		.locator('input[name="images"]')
 		.setInputFiles([fixtureImage("one.jpg"), fixtureImage("two.jpg")]);
@@ -359,19 +371,26 @@ test("selecting event photos shows a thumbnail strip with the cover marked", asy
 for (const reorder of reorderings) {
 	test(`${reorder.view} reorders by the visible Move buttons`, async ({ page }) => {
 		await mountAdmin(page, reorder.view);
-		// Photo labels are positional, so the moved photo reads "photo 2" after the move.
+		// Photo labels are positional, so the moved photo reads "photo 2" after the move;
+		// the photo grid is horizontal, so its Move words are left / right (D25).
 		const moved = reorder.view === "eventImages" ? "photo 2" : reorder.label;
 		const last = reorder.view === "eventImages" ? "photo 3" : "Charlie";
-		await page.getByRole("button", { name: `Move ${reorder.label} down`, exact: true }).click();
+		const [prevWord, nextWord] =
+			reorder.view === "eventImages" ? (["left", "right"] as const) : (["up", "down"] as const);
+		await page
+			.getByRole("button", { name: `Move ${reorder.label} ${nextWord}`, exact: true })
+			.click();
 		await expect(
 			page.getByText(`${reorder.label}, position 2 of 3`, { exact: true }),
 		).toBeAttached();
-		await expect(page.getByRole("button", { name: `Move ${moved} up`, exact: true })).toBeEnabled();
 		await expect(
-			page.getByRole("button", { name: `Move ${last} down`, exact: true }),
+			page.getByRole("button", { name: `Move ${moved} ${prevWord}`, exact: true }),
+		).toBeEnabled();
+		await expect(
+			page.getByRole("button", { name: `Move ${last} ${nextWord}`, exact: true }),
 		).toBeDisabled();
 		await outcome(page, "success");
-		const save = page.getByRole("button", { name: /Save (photo )?order/ });
+		const save = page.getByRole("button", { name: "Save order" });
 		await save.click();
 		await expect(save).toHaveCount(0);
 		const lastCall = (await page.evaluate(() => window.adminTest.calls)).at(-1);

@@ -1,26 +1,35 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { updateEventMeta } from "../event-actions";
-import { adminBtnPrimary, adminField, adminLabel } from "./controls";
-import { useAdminAction } from "./use-admin-action";
-
-const SAVED_CONFIRMATION_MS = 2000;
+import { AdminNotice } from "./admin-notice";
+import { adminBtnPrimary, adminField, adminLabel, ICON_MD } from "./controls";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 
 /** Inline editor for an event's text fields (title, date, category, description). */
-export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
-	const { pending, err, run } = useAdminAction();
+export function EventMetaEditor({
+	event,
+	categories,
+}: Readonly<{ event: Event; categories?: readonly string[] }>) {
+	const { pending, pendingVisible, err, run } = useAdminAction();
 	const [title, setTitle] = useState(event.title);
 	const [date, setDate] = useState(event.eventDate.slice(0, 10));
 	const [category, setCategory] = useState(event.category ?? "");
 	const [description, setDescription] = useState(event.description ?? "");
 	const [saved, setSaved] = useState(false);
+	const [localErr, setLocalErr] = useState<string | null>(null);
 
 	const onSave = () => {
 		setSaved(false);
-		return run(
+		setLocalErr(null);
+		if (!title.trim()) {
+			setLocalErr("Enter a title.");
+			return;
+		}
+		run(
 			() =>
 				updateEventMeta(event.id, {
 					title: title.trim(),
@@ -30,18 +39,21 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				}),
 			() => {
 				setSaved(true);
-				setTimeout(() => setSaved(false), SAVED_CONFIRMATION_MS);
+				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
 
+	const error = localErr ?? err;
+
 	return (
-		<div className="space-y-2">
-			<div className="grid gap-2 sm:grid-cols-2">
+		<div className="grid gap-(--form-gap)">
+			<div className="grid gap-(--form-gap) sm:grid-cols-2">
 				<div className={adminLabel}>
-					<label htmlFor={`event-title-${event.id}`}>Title</label>
+					<label htmlFor={`event-title-${event.id}`}>Title *</label>
 					<input
 						disabled={pending}
+						required
 						id={`event-title-${event.id}`}
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
@@ -49,9 +61,10 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 					/>
 				</div>
 				<div className={adminLabel}>
-					<label htmlFor={`event-date-${event.id}`}>Event date</label>
+					<label htmlFor={`event-date-${event.id}`}>Event date *</label>
 					<input
 						disabled={pending}
+						required
 						id={`event-date-${event.id}`}
 						type="date"
 						value={date}
@@ -59,18 +72,19 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 						className={adminField}
 					/>
 				</div>
-				<div className={`${adminLabel} sm:col-span-2`}>
-					<label htmlFor={`event-category-${event.id}`}>Category</label>
+				<div className={cn(adminLabel, "sm:col-span-2")}>
+					<label htmlFor={`event-category-${event.id}`}>Category (optional)</label>
 					<input
 						disabled={pending}
 						id={`event-category-${event.id}`}
+						list={categories ? "event-categories" : undefined}
 						value={category}
 						onChange={(e) => setCategory(e.target.value)}
 						className={adminField}
 					/>
 				</div>
-				<div className={`${adminLabel} sm:col-span-2`}>
-					<label htmlFor={`event-description-${event.id}`}>Description</label>
+				<div className={cn(adminLabel, "sm:col-span-2")}>
+					<label htmlFor={`event-description-${event.id}`}>Description (optional)</label>
 					<textarea
 						disabled={pending}
 						id={`event-description-${event.id}`}
@@ -81,22 +95,23 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 					/>
 				</div>
 			</div>
-			<div className="flex items-center gap-2.5">
+			<div className="flex items-center gap-2">
 				<button
 					type="button"
 					disabled={pending}
+					aria-busy={pending}
 					onClick={onSave}
-					className={`${adminBtnPrimary} px-3 py-1.5`}
+					className={adminBtnPrimary}
 				>
-					<Check size={14} aria-hidden="true" />
+					{pendingVisible ? (
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+					) : (
+						<Check size={ICON_MD} aria-hidden="true" />
+					)}
 					Save details
 				</button>
-				{saved ? <output className="text-sm text-accent">Saved</output> : null}
-				{err ? (
-					<span role="alert" className="text-sm text-ruby">
-						{err}
-					</span>
-				) : null}
+				{saved ? <AdminNotice variant="success">Saved</AdminNotice> : null}
+				{error ? <AdminNotice variant="error">{error}</AdminNotice> : null}
 			</div>
 		</div>
 	);

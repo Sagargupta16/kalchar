@@ -148,6 +148,52 @@ export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);
 }
 
+/** `{ slug, title, image }` for admin pickers and row meta that must show titles, never slugs. */
+export interface ArtworkTitle {
+	slug: string;
+	title: string;
+	/** Stored image filename; pass to artworkBrowserImageUrl for a thumbnail. */
+	image: string;
+}
+
+/** Every artwork's slug, title and image filename in gallery order (testimonials picker and row). */
+export async function getArtworkTitles(): Promise<readonly ArtworkTitle[]> {
+	return (await getAllArtworks()).map(({ slug, title, image }) => ({ slug, title, image }));
+}
+
+/** Catalog-derived defaults and suggestions for the add-piece form (D30). Medium stays required; the datalist only speeds typing. */
+export interface ArtworkFieldSuggestions {
+	/** Distinct mediums, most used first, then alphabetical. */
+	mediums: readonly string[];
+	/** Distinct non-empty dimensions strings, most used first, then alphabetical. */
+	dimensions: readonly string[];
+	/** Category and medium of the piece with the highest `order` (the one createArtwork appended last), or null on an empty catalog. */
+	lastUsed: { style: string; medium: string } | null;
+}
+
+export async function getArtworkFieldSuggestions(): Promise<ArtworkFieldSuggestions> {
+	const all = await getAllArtworks();
+	const rank = (values: readonly (string | undefined)[]) => {
+		const counts = new Map<string, number>();
+		for (const raw of values) {
+			const value = raw?.trim();
+			if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+		}
+		return [...counts.entries()]
+			.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+			.map(([value]) => value);
+	};
+	const newest = all.reduce<Artwork | undefined>(
+		(best, a) => (!best || a.order > best.order ? a : best),
+		undefined,
+	);
+	return {
+		mediums: rank(all.map((a) => a.medium)),
+		dimensions: rank(all.map((a) => a.dimensions)),
+		lastUsed: newest ? { style: newest.style, medium: newest.medium } : null,
+	};
+}
+
 function toCategory(row: CategoryRow): Category {
 	return { id: row.id, name: row.name, order: row.order };
 }

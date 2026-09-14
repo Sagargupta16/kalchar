@@ -9,7 +9,9 @@
  * call is its own function invocation, so they run in parallel) and finally
  * hands the finished key-bases to createEvent or attachEventPhotos in one
  * ordered write. Sequencing lives in lib/event-photo-batch.ts (pure, tested);
- * this file only wires it to the form data and the server actions.
+ * this file only wires it to the form data and the server actions. The create
+ * form passes the `files` React state as the `images` entries, so anything the
+ * strip removed or reordered is what gets staged.
  */
 import { type ActionResult, isFailure } from "@/lib/action-result";
 import {

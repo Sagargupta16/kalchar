@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllWorkshops } from "@/lib/data";
-import { AdminPageHeader } from "../_components/admin-page-header";
+import { AdminPage } from "../_components/admin-page";
 import { WorkshopManager } from "../_components/workshop-manager";
 
 export default async function AdminWorkshopsPage() {
@@ -8,12 +8,11 @@ export default async function AdminWorkshopsPage() {
 	const workshops = await getAllWorkshops();
 
 	return (
-		<div className="max-w-3xl space-y-6">
-			<AdminPageHeader
-				title="Workshops"
-				description="Add, edit, reorder, and remove the sessions shown on the public site. Drag to reorder."
-			/>
+		<AdminPage
+			title="Workshops"
+			description="The sessions shown on the public workshops page, in this order. Drag a row on a desktop, or use its arrows on a phone, to move it."
+		>
 			<WorkshopManager workshops={[...workshops]} />
-		</div>
+		</AdminPage>
 	);
 }

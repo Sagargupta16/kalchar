@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn, formatBytes, formatEventDate, formatInr } from "./utils";
+import { cn, formatBytes, formatEventDate, formatEventDateShort, formatInr } from "./utils";
 
 describe("cn", () => {
 	it("keeps a custom size token next to a text colour", () => {
@@ -33,6 +33,19 @@ describe("formatEventDate", () => {
 	});
 	it("returns '' for an invalid date instead of 'Invalid Date'", () => {
 		expect(formatEventDate("not-a-date")).toBe("");
+	});
+});
+
+describe("formatEventDateShort", () => {
+	it("formats an ISO date as a short en-IN date", () => {
+		expect(formatEventDateShort("2026-03-12")).toBe("12 Mar 2026");
+	});
+	it("accepts a full ISO timestamp", () => {
+		expect(formatEventDateShort("2026-03-12T10:00:00.000Z")).toBe("12 Mar 2026");
+	});
+	it("returns '' for empty and invalid input", () => {
+		expect(formatEventDateShort("")).toBe("");
+		expect(formatEventDateShort("not-a-date")).toBe("");
 	});
 });
 

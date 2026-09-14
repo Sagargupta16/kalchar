@@ -27,16 +27,27 @@ export function cn(...inputs: ClassValue[]): string {
 	return twMerge(clsx(inputs));
 }
 
+const EVENT_DATE_LOCALE = "en-IN";
+
+function formatIsoDate(iso: string, options: Intl.DateTimeFormatOptions): string {
+	if (!iso) return "";
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return "";
+	return d.toLocaleDateString(EVENT_DATE_LOCALE, options);
+}
+
 /**
  * Format an ISO date string as a human-readable date (e.g. "12 March 2026").
  * Used for event dates. Returns "" for an empty/invalid input so callers can
  * gate on truthiness rather than guarding against "Invalid Date".
  */
 export function formatEventDate(iso: string): string {
-	if (!iso) return "";
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return "";
-	return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+	return formatIsoDate(iso, { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Short form for narrow admin rows: "12 Mar 2026". Same guards as formatEventDate. */
+export function formatEventDateShort(iso: string): string {
+	return formatIsoDate(iso, { day: "numeric", month: "short", year: "numeric" });
 }
 
 /**

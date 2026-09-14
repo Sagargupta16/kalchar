@@ -67,6 +67,23 @@ const event: Event = {
 	featured: false,
 	order: 0,
 };
+/** 40 characters, no photos: exercises the title ellipsis and the empty-thumbnail slot. */
+const secondEvent: Event = {
+	id: "event-2",
+	title: "Monsoon exhibition at the community hall",
+	eventDate: "2026-07-14",
+	images: [],
+	featured: false,
+	order: 1,
+};
+const artworkTitles = [{ slug: "alpha", title: "Alpha", image: "alpha.jpg" }];
+const mira = {
+	id: "testimonial-1",
+	quote: "Beautiful work.",
+	authorName: "Mira",
+	featured: false,
+	order: 0,
+};
 
 function DialogFixture() {
 	const confirm = useConfirm();
@@ -335,12 +352,14 @@ const views = {
 			}))}
 		/>
 	),
+	workshopsEmpty: <WorkshopManager workshops={[]} />,
 	presets: (
 		<PresetManager
 			presets={names.map((label, order) => ({ id: label, label, kind: "size", order }))}
 		/>
 	),
-	events: <EventsManager events={[event]} />,
+	events: <EventsManager events={[event, secondEvent]} />,
+	eventsEmpty: <EventsManager events={[]} />,
 	eventImages: <EventImageManager event={event} />,
 	profile: <ProfileManager showHomeIntro={false} imageKey="profile/artist" />,
 	leads: (
@@ -357,18 +376,12 @@ const views = {
 			]}
 		/>
 	),
-	testimonials: (
+	testimonials: <TestimonialsManager testimonials={[mira]} artworks={artworkTitles} />,
+	testimonialsEmpty: <TestimonialsManager testimonials={[]} artworks={artworkTitles} />,
+	testimonialsLinked: (
 		<TestimonialsManager
-			testimonials={[
-				{
-					id: "testimonial-1",
-					quote: "Beautiful work.",
-					authorName: "Mira",
-					featured: false,
-					order: 0,
-				},
-			]}
-			artworkSlugs={["alpha"]}
+			testimonials={[{ ...mira, artworkSlug: "alpha" }]}
+			artworks={artworkTitles}
 		/>
 	),
 	upload: <UploadForm categories={["Gond", "Pichwai"]} suggestions={suggestions} />,
