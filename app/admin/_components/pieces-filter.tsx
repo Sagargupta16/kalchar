@@ -1,11 +1,22 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { LayoutGrid, Rows3, Search, X } from "lucide-react";
 import { useId } from "react";
 import { artworkStatusLabel } from "@/lib/artwork-status";
 import { cn } from "@/lib/utils";
-import { PIECES_FILTERS, type PiecesFilter as PiecesFilterKey } from "./artwork-list-state";
-import { adminBtn, adminField, adminHelp, adminIconBtnGhost, ICON_MD } from "./controls";
+import {
+	PIECES_FILTERS,
+	type PiecesFilter as PiecesFilterKey,
+	type PiecesView,
+} from "./artwork-list-state";
+import {
+	adminBtn,
+	adminField,
+	adminHelp,
+	adminIconBtn,
+	adminIconBtnGhost,
+	ICON_MD,
+} from "./controls";
 
 const FILTER_LABEL: Record<PiecesFilterKey, string> = {
 	all: "All",
@@ -25,12 +36,15 @@ interface PiecesFilterProps {
 	total: number;
 	/** True while a chip or search narrows the list, which disables reorder. */
 	reorderLocked: boolean;
+	view: PiecesView;
+	onView: (view: PiecesView) => void;
 }
 
 /**
- * Search field, five count chips and a live "Showing N of M" line above the
- * Pieces list. The chip row scrolls sideways on phones so it never becomes a
- * second sticky bar.
+ * Search field, five count chips (the stats, now tappable filters), and the
+ * count line with the grid/list view toggle at its right end. The chip row
+ * scrolls sideways on phones so it never becomes a second sticky bar. In grid
+ * view the count line carries the reorder hint (ordering lives in list view).
  */
 export function PiecesFilter({
 	query,
@@ -41,8 +55,16 @@ export function PiecesFilter({
 	shown,
 	total,
 	reorderLocked,
+	view,
+	onView,
 }: Readonly<PiecesFilterProps>) {
 	const id = useId();
+	const hint =
+		view === "grid"
+			? " Switch to list view to change the order."
+			: reorderLocked
+				? " Show all pieces to change the order."
+				: "";
 	return (
 		<div className="mb-4 grid gap-3">
 			<div className="relative">
@@ -90,10 +112,33 @@ export function PiecesFilter({
 					</button>
 				))}
 			</div>
-			<p role="status" className={adminHelp}>
-				{shown === total ? `${total} pieces` : `Showing ${shown} of ${total} pieces`}
-				{reorderLocked ? " Show all pieces to change the order." : ""}
-			</p>
+			<div className="flex items-center justify-between gap-3">
+				<p role="status" className={adminHelp}>
+					{shown === total ? `${total} pieces` : `Showing ${shown} of ${total} pieces`}
+					{hint}
+				</p>
+				{/* A view preference, not a value: aria-pressed buttons, not the radio Segmented. */}
+				<div className="flex shrink-0 items-center gap-2">
+					<button
+						type="button"
+						aria-pressed={view === "grid"}
+						aria-label="Grid view"
+						onClick={() => onView("grid")}
+						className={adminIconBtn}
+					>
+						<LayoutGrid size={ICON_MD} aria-hidden="true" />
+					</button>
+					<button
+						type="button"
+						aria-pressed={view === "list"}
+						aria-label="List view"
+						onClick={() => onView("list")}
+						className={adminIconBtn}
+					>
+						<Rows3 size={ICON_MD} aria-hidden="true" />
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }

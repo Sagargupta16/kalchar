@@ -2,7 +2,7 @@
 
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Artwork } from "@/lib/types";
+import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { cn, formatBytes } from "@/lib/utils";
 import {
 	deleteArtwork,
@@ -32,7 +32,7 @@ export const DELETE_PIECE_BODY =
 	"The piece leaves the site and the admin list. Its photos stay in storage for recovery. To keep it in the gallery but off sale, set its status to Not for sale instead.";
 
 /** The fields a successful save changed, applied to the row behind the sheet at once. */
-export type ArtworkPatch = Pick<Artwork, "title" | "style" | "medium" | "status" | "featured"> &
+export type ArtworkPatch = Pick<Artwork, "title" | "style" | "medium"> &
 	Partial<Pick<Artwork, "dimensions" | "year" | "description" | "priceInr">>;
 
 type Step = "edit" | "confirmDelete" | "confirmDiscard";
@@ -41,6 +41,13 @@ interface ArtworkEditModalProps {
 	art: Artwork;
 	thumb: string;
 	categories: readonly string[];
+	/** A quick state in flight for this piece (status or featured flip). */
+	quickPending: boolean;
+	/** The last quick state's failure for this piece. */
+	quickError: string | null;
+	/** Quick states apply at once through the grid's optimistic path (D37). */
+	onSetStatus: (status: ArtworkStatus) => void;
+	onSetFeatured: (featured: boolean) => void;
 	onClose: () => void;
 	onSaved: (patch: ArtworkPatch) => void;
 	onDeleted: () => void;
@@ -56,6 +63,10 @@ export function ArtworkEditModal({
 	art,
 	thumb,
 	categories,
+	quickPending,
+	quickError,
+	onSetStatus,
+	onSetFeatured,
 	onClose,
 	onSaved,
 	onDeleted,
@@ -103,7 +114,7 @@ export function ArtworkEditModal({
 			return;
 		}
 		const snapshot = fields;
-		const parsed = parseFields(snapshot);
+		const parsed = parseFields(snapshot, art);
 		return runEdit(
 			() => updateArtwork(art.slug, parsed),
 			"Piece updated",
@@ -117,8 +128,6 @@ export function ArtworkEditModal({
 					year: parsed.year ?? undefined,
 					description: parsed.description ?? undefined,
 					priceInr: parsed.priceInr ?? undefined,
-					status: parsed.status,
-					featured: parsed.featured,
 				});
 			},
 		);
@@ -161,8 +170,9 @@ export function ArtworkEditModal({
 			heading={
 				<span className="flex min-w-0 items-center gap-3">
 					{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
-					<img src={thumb} alt="" className={cn(adminThumb, "size-9")} />
-					<span className="truncate">{art.title}</span>
+					<img src={thumb} alt="" className={cn(adminThumb, "size-8")} />
+					{/* The one display moment inside the tool (1.1). */}
+					<span className="t-display min-w-0 truncate text-base italic">{art.title}</span>
 				</span>
 			}
 			placement="sheet"
@@ -199,7 +209,11 @@ export function ArtworkEditModal({
 						errors={fieldErrors}
 						pending={pending}
 						progress={progress}
+						quickPending={quickPending}
+						quickError={quickError}
 						onChange={update}
+						onSetStatus={onSetStatus}
+						onSetFeatured={onSetFeatured}
 						onRefreshPalette={() => runEdit(() => regeneratePalette(art.slug), "Colours refreshed")}
 						onReplace={handleReplace}
 						onRequestDelete={() => setStep("confirmDelete")}

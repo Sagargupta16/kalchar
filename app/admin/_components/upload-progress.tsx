@@ -9,6 +9,11 @@ export interface UploadProgressState {
 	fraction: number | null;
 }
 
+/** Clamp a fraction into 0..100, or null while the work is unmeasured. */
+function toPercent(fraction: number | null): number | null {
+	return fraction === null ? null : Math.round(Math.min(1, Math.max(0, fraction)) * 100);
+}
+
 /**
  * Slim progress bar for the admin upload flows. Determinate while bytes travel
  * to R2 (the browser knows how many), indeterminate while the server encodes
@@ -17,8 +22,7 @@ export interface UploadProgressState {
  * not every byte chunk; the fill animates transform, never width.
  */
 export function UploadProgress({ state }: Readonly<{ state: UploadProgressState }>) {
-	const percent =
-		state.fraction === null ? null : Math.round(Math.min(1, Math.max(0, state.fraction)) * 100);
+	const percent = toPercent(state.fraction);
 	return (
 		<div className="grid gap-1.5">
 			<div className="flex items-center justify-between gap-3 text-label text-muted">
@@ -43,6 +47,36 @@ export function UploadProgress({ state }: Readonly<{ state: UploadProgressState 
 					/>
 				) : null}
 			</div>
+		</div>
+	);
+}
+
+/**
+ * The photo-edge variant (Tier 1c, 1d): a 4px fill riding the hero's bottom
+ * edge inside a `relative` wrapper. Real bytes drive the transform-scaleX fill
+ * (K1); the variants step keeps the honest skeleton sweep. The caller renders
+ * the stage label below the photo.
+ */
+export function UploadProgressEdge({ state }: Readonly<{ state: UploadProgressState }>) {
+	const percent = toPercent(state.fraction);
+	return (
+		<div
+			role="progressbar"
+			aria-label={state.label}
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={percent ?? undefined}
+			className={cn(
+				"absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-scrim/20",
+				percent === null && "skeleton",
+			)}
+		>
+			{percent !== null ? (
+				<div
+					className="h-full w-full origin-left bg-accent motion-safe:transition-transform"
+					style={{ transform: `scaleX(${percent / 100})` }}
+				/>
+			) : null}
 		</div>
 	);
 }

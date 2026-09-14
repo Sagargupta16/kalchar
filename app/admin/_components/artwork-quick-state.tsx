@@ -1,151 +1,52 @@
 "use client";
 
-import { Check, Star } from "lucide-react";
-import { useId, useState } from "react";
+import { Star } from "lucide-react";
+import { motion } from "motion/react";
 import {
 	ARTWORK_STATUS_OPTIONS,
-	artworkStatusHelp,
 	artworkStatusLabel,
 	quickStateBlockedReason,
 } from "@/lib/artwork-status";
+import { SPRING_INDICATOR } from "@/lib/motion";
 import type { ArtworkStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
-import { adminBtn, adminHelp, adminIconBtn, ICON_MD } from "./controls";
-import { Modal, ModalBody, ModalFooter } from "./modal";
+import { adminIconBtn, ICON_MD } from "./controls";
+import type { SegmentedOption } from "./segmented";
 
-/**
- * The status chip: the same tokens as adminBtn but rounded-full (pills rule)
- * and 14px text (interactive text is never the 11px Badge). One fixed width
- * (min-w-32 fits "Not for sale") so every row's star and Delete line up
- * (alignment rule 2). The dot is a secondary cue; the text always names the state.
- */
-const CHIP =
-	"inline-flex min-h-control min-w-32 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm font-medium text-ink transition-ui pressable hover:border-accent hover:text-accent-text disabled:pointer-events-none disabled:opacity-50";
+// StatusChip and QuickStateSheet are retired (visual-direction-admin Tier 1b,
+// D-A12): the inline Segmented control on rows and in the edit sheet replaces
+// both, one less tap and no dialog.
 
-const DOT: Record<ArtworkStatus, string> = {
-	available: "bg-accent",
-	sold: "bg-ruby",
-	archive: "bg-muted",
+/** Status dot colour per stored state, on the 1.15 status tokens (terracotta is never a status). */
+export const DOT: Record<ArtworkStatus, string> = {
+	available: "bg-status-available",
+	sold: "bg-status-sold",
+	archive: "bg-status-nfs",
 };
 
-interface StatusChipProps {
-	title: string;
-	status: ArtworkStatus;
-	priceInr: number | null | undefined;
-	disabled: boolean;
-	onChange: (status: ArtworkStatus) => void;
-}
-
-/** Row chip that opens the quick-state sheet; choosing an option applies at once (D37). */
-export function StatusChip({
-	title,
-	status,
-	priceInr,
-	disabled,
-	onChange,
-}: Readonly<StatusChipProps>) {
-	const [open, setOpen] = useState(false);
-	return (
-		<>
-			<button
-				type="button"
-				disabled={disabled}
-				aria-haspopup="dialog"
-				aria-expanded={open}
-				aria-label={`Status of ${title}: ${artworkStatusLabel(status)}`}
-				onClick={() => setOpen(true)}
-				className={CHIP}
-			>
-				<span aria-hidden="true" className={cn("size-1.5 rounded-full", DOT[status])} />
-				{artworkStatusLabel(status)}
-			</button>
-			{open ? (
-				<QuickStateSheet
-					title={title}
-					status={status}
-					priceInr={priceInr}
-					onChange={onChange}
-					onClose={() => setOpen(false)}
-				/>
-			) : null}
-		</>
-	);
-}
-
-interface QuickStateSheetProps {
-	title: string;
-	status: ArtworkStatus;
-	priceInr: number | null | undefined;
-	onChange: (status: ArtworkStatus) => void;
-	onClose: () => void;
-}
-
 /**
- * Three 56px option buttons with the public effect under each, the current one
- * pressed with a check, and an explicit Close. No confirmation: the undo bar is
- * the safety net (hig, ux-writing, seller-tools: never confirm reversible toggles).
+ * The three Segmented options for a piece's status (1.8). The archive option's
+ * price guard maps to a disabled segment whose reason renders as the helper
+ * line under the control; the "available without a price" reason stays
+ * advisory and never disables.
  */
-function QuickStateSheet({
-	title,
-	status,
-	priceInr,
-	onChange,
-	onClose,
-}: Readonly<QuickStateSheetProps>) {
-	const ids = useId();
-	return (
-		<Modal title={title} placement="sheet" size="md" onClose={onClose}>
-			<ModalBody>
-				<p className={adminHelp}>Choose how this piece shows on the site.</p>
-				<div role="group" aria-label={`Status of ${title}`} className="mt-4 grid gap-2">
-					{ARTWORK_STATUS_OPTIONS.map((option) => {
-						const blocked = quickStateBlockedReason(option, priceInr);
-						const blocking = option === "archive" && blocked !== null;
-						return (
-							<button
-								key={option}
-								type="button"
-								aria-pressed={option === status}
-								disabled={blocking}
-								aria-labelledby={`${ids}-${option}-label`}
-								aria-describedby={`${ids}-${option}`}
-								onClick={() => {
-									onChange(option);
-									onClose();
-								}}
-								className={cn(adminBtn, "min-h-14 w-full justify-start px-4 text-left")}
-							>
-								<span
-									aria-hidden="true"
-									className={cn("size-1.5 shrink-0 rounded-full", DOT[option])}
-								/>
-								<span className="min-w-0 flex-1">
-									<span id={`${ids}-${option}-label`} className="block">
-										{artworkStatusLabel(option)}
-									</span>
-									{/* mt-0.5 is the same optical alignment exception AdminNotice uses. */}
-									<span
-										id={`${ids}-${option}`}
-										className={cn(adminHelp, "mt-0.5 block font-normal")}
-									>
-										{blocked ?? artworkStatusHelp(option)}
-									</span>
-								</span>
-								{option === status ? (
-									<Check size={ICON_MD} aria-hidden="true" className="shrink-0 text-accent-text" />
-								) : null}
-							</button>
-						);
-					})}
-				</div>
-			</ModalBody>
-			<ModalFooter>
-				<button type="button" onClick={onClose} className={cn(adminBtn, "ml-auto")}>
-					Close
-				</button>
-			</ModalFooter>
-		</Modal>
-	);
+export function useArtworkStatusOptions(
+	priceInr: number | null | undefined,
+): readonly SegmentedOption<ArtworkStatus>[] {
+	return ARTWORK_STATUS_OPTIONS.map((status) => {
+		const blocked = status === "archive" ? quickStateBlockedReason("archive", priceInr) : null;
+		return {
+			value: status,
+			label: artworkStatusLabel(status),
+			dotClass: DOT[status],
+			disabled: blocked !== null,
+			disabledReason: blocked ?? undefined,
+		};
+	});
+}
+
+/** Helper line under the segmented track: NFS names its public effect (D31). */
+export function artworkStatusHelper(status: ArtworkStatus): string | undefined {
+	return status === "archive" ? "Shown in the gallery without a price" : undefined;
 }
 
 interface FeaturedToggleProps {
@@ -156,9 +57,10 @@ interface FeaturedToggleProps {
 }
 
 /**
- * The star. adminIconBtn already renders aria-pressed:border-accent and
- * aria-pressed:text-accent-text, so the pressed state needs no extra class; the
- * label is the verb phrase in both states (the state is aria-pressed).
+ * The row star (1.9): gold-leaf fill when on, a sub-300ms scale pop on the
+ * flip (Motion animate keyed on the pressed state, SPRING_INDICATOR; press-in
+ * comes from pressable). The label stays the verb phrase in both states (the
+ * state is aria-pressed); reduced motion snaps via MotionConfig.
  */
 export function FeaturedToggle({
 	title,
@@ -176,7 +78,15 @@ export function FeaturedToggle({
 			onClick={() => onChange(!featured)}
 			className={adminIconBtn}
 		>
-			<Star size={ICON_MD} aria-hidden="true" className={featured ? "fill-current" : undefined} />
+			<motion.span
+				aria-hidden="true"
+				className="grid"
+				initial={false}
+				animate={featured ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+				transition={SPRING_INDICATOR}
+			>
+				<Star size={ICON_MD} className={featured ? "fill-current text-gold-leaf" : undefined} />
+			</motion.span>
 		</button>
 	);
 }

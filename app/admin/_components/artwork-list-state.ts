@@ -1,7 +1,24 @@
+import { artworkStatusLabel } from "@/lib/artwork-status";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 
 /** The five lenses over the Pieces list; `all` is the only one that allows reorder. */
 export type PiecesFilter = "all" | "available" | "sold" | "archive" | "featured";
+
+/** Grid (paintings-first, the phone default, D-A13) or list (the reorder and caption surface). */
+export type PiecesView = "grid" | "list";
+
+/** localStorage key for the view preference (a personal preference, so not a URL param). */
+export const PIECES_VIEW_KEY = "kalchar:admin-pieces-view";
+
+export function isPiecesView(value: unknown): value is PiecesView {
+	return value === "grid" || value === "list";
+}
+
+/** Accessible name of a grid tile: title, position, featured flag and status in one sentence. */
+export function tileLabel(art: Artwork, index: number): string {
+	const status = artworkStatusLabel(art.status ?? "archive");
+	return `Edit ${art.title}, position ${index + 1}${art.featured ? ", featured" : ""}, ${status}`;
+}
 
 export const PIECES_FILTERS: readonly PiecesFilter[] = [
 	"all",

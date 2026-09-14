@@ -7,7 +7,6 @@ const removals = [
 	{ view: "presets", button: "Delete Alpha", confirm: "Delete option" },
 	{ view: "events", button: "Delete Gathering", confirm: "Delete event" },
 	{ view: "eventImages", button: "Remove photo 1", confirm: "Remove photo" },
-	{ view: "leads", button: "Delete enquiry from Mira", confirm: "Delete enquiry" },
 	{ view: "testimonials", button: "Delete testimonial from Mira", confirm: "Delete testimonial" },
 	{ view: "profile", button: "Remove photo", confirm: "Remove photo" },
 	{ view: "maintainers", button: "Remove bravo@example.invalid", confirm: "Remove maintainer" },
@@ -33,14 +32,8 @@ for (const failure of ["failure", "throw"] as const) {
 		});
 	}
 
-	test(`lead status and return contact survive a ${failure}`, async ({ page }) => {
-		await mountAdmin(page, "leads");
-		await outcome(page, failure);
-		await expect(page.getByText("Contact: mira@example.invalid")).toBeVisible();
-		await page.getByLabel("Lead status").selectOption("contacted");
-		await expect(page.getByRole("alert")).toHaveText(message);
-		await expect(page.getByLabel("Lead status")).toHaveValue("new");
-	});
+	// The lead status and delete failure paths moved to admin-leads.spec.ts:
+	// both now live inside the enquiry sheet (visual-direction-admin Tier 2a).
 
 	for (const toggle of [
 		{ view: "events", label: "Pin Gathering to top", role: "button", attribute: "aria-pressed" },
@@ -185,6 +178,10 @@ for (const reorder of reorderings) {
 		page,
 	}) => {
 		await mountAdmin(page, reorder.view);
+		// Pieces default to the grid view; reorder lives in list view (Tier 1a).
+		if (reorder.view === "artworks") {
+			await page.getByRole("button", { name: "List view" }).click();
+		}
 		const handle = page.getByRole("button", { name: `Reorder ${reorder.label}, position 1 of 3` });
 		await expect(handle).toHaveAccessibleDescription(
 			"Use the up and down arrow keys to move. Home moves to the first position; End moves to the last.",
@@ -219,6 +216,7 @@ for (const reorder of reorderings) {
 
 test("keyboard boundaries and pending mutations cannot corrupt staged order", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await page.getByRole("button", { name: "List view" }).click();
 	await page.getByRole("button", { name: "Reorder Alpha, position 1 of 3" }).focus();
 	await page.keyboard.press("ArrowUp");
 	await expect(page.getByRole("button", { name: "Save order" })).toHaveCount(0);
@@ -247,27 +245,8 @@ test("keyboard boundaries and pending mutations cannot corrupt staged order", as
 	expect(await page.evaluate(() => window.adminTest.calls.length)).toBe(1);
 });
 
-test("deleting the last lead shows an error on failure and an empty state only after success", async ({
-	page,
-}) => {
-	await mountAdmin(page, "leads");
-	const remove = page.getByRole("button", { name: "Delete enquiry from Mira" });
-	await remove.click();
-	await page
-		.getByRole("dialog")
-		.getByRole("button", { name: "Delete enquiry", exact: true })
-		.click();
-	await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
-	await expect(page.getByText("No enquiries on this page.", { exact: false })).toHaveCount(0);
-	await outcome(page, "success");
-	await remove.click();
-	await page
-		.getByRole("dialog")
-		.getByRole("button", { name: "Delete enquiry", exact: true })
-		.click();
-	await expect(page.getByText("No enquiries on this page.", { exact: false })).toBeVisible();
-	await expect(page.getByRole("alert")).toHaveCount(0);
-});
+// "Deleting the last lead" moved to admin-leads.spec.ts: the delete path now
+// lives inside the enquiry sheet (visual-direction-admin Tier 2a).
 
 test("nested dialogs isolate focus, handle Escape once, and restore both triggers", async ({
 	page,
@@ -332,35 +311,18 @@ const fixtureImage = (name: string) => ({
 	buffer: Buffer.from(`isolated upload fixture ${name}`),
 });
 
-test("choosing an image shows it immediately and remove clears it", async ({ page }) => {
+test("choosing an image shows the photo hero immediately", async ({ page }) => {
 	await mountAdmin(page, "upload");
+	await expect(page.getByText("Choose a photo")).toBeVisible();
 	await page.locator('input[name="image"]').setInputFiles(fixtureImage("lotus.jpg"));
-	await expect(page.getByText("lotus.jpg")).toBeVisible();
-	await expect(page.getByText(/ready to upload/)).toBeVisible();
-	await expect(page.getByText("Change image")).toBeVisible();
-	await page.getByRole("button", { name: "Remove selected image" }).click();
-	await expect(page.getByText("lotus.jpg")).toHaveCount(0);
-	await expect(page.getByText("Choose image (JPG, PNG, or WebP)")).toBeVisible();
-	expect(
-		await page.locator('input[name="image"]').evaluate((input: HTMLInputElement) => input.files?.length),
-	).toBe(0);
+	// Attached, not visible: the harness has no CSS and the fixture bytes are not a decodable image.
+	await expect(page.locator("form img")).toBeAttached();
+	await expect(page.getByText("Change photo")).toBeVisible();
+	await expect(page.getByText("Choose a photo")).toHaveCount(0);
 });
 
-for (const failure of ["failure", "throw"] as const) {
-	const message = failure === "failure" ? "Change was rejected." : "Connection interrupted.";
-	test(`adding a piece keeps the preview and reports a ${failure}`, async ({ page }) => {
-		await mountAdmin(page, "upload");
-		await outcome(page, failure);
-		await page.getByLabel("Title *", { exact: true }).fill("Lotus garden");
-		await page.getByLabel("Category *", { exact: true }).selectOption("Gond");
-		await page.getByLabel("Medium *", { exact: true }).fill("Ink");
-		await page.locator('input[name="image"]').setInputFiles(fixtureImage("lotus.jpg"));
-		await page.getByRole("button", { name: "Add piece", exact: true }).click();
-		await expect(page.getByRole("alert")).toHaveText(message);
-		await expect(page.getByText("lotus.jpg")).toBeVisible();
-		await expect(page.getByLabel("Title *", { exact: true })).toHaveValue("Lotus garden");
-	});
-}
+// The add-flow failure and success paths are covered by admin-catalog.spec.ts
+// (the form is the sheet body now; Tier 1c).
 
 test("selecting event photos shows a thumbnail strip with the cover marked", async ({ page }) => {
 	await mountAdmin(page, "events");
@@ -378,6 +340,10 @@ test("selecting event photos shows a thumbnail strip with the cover marked", asy
 for (const reorder of reorderings) {
 	test(`${reorder.view} reorders by the visible Move buttons`, async ({ page }) => {
 		await mountAdmin(page, reorder.view);
+		// Pieces default to the grid view; reorder lives in list view (Tier 1a).
+		if (reorder.view === "artworks") {
+			await page.getByRole("button", { name: "List view" }).click();
+		}
 		// Photo labels are positional, so the moved photo reads "photo 2" after the move;
 		// the photo grid is horizontal, so its Move words are left / right (D25).
 		const moved = reorder.view === "eventImages" ? "photo 2" : reorder.label;
@@ -408,6 +374,7 @@ for (const reorder of reorderings) {
 
 test("Move buttons are disabled at the ends and while pending", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await page.getByRole("button", { name: "List view" }).click();
 	await expect(page.getByRole("button", { name: "Move Alpha up", exact: true })).toBeDisabled();
 	await expect(page.getByRole("button", { name: "Move Charlie down", exact: true })).toBeDisabled();
 	await page.getByRole("button", { name: "Move Alpha down", exact: true }).click();

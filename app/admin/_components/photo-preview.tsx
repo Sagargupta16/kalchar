@@ -23,6 +23,16 @@ function useObjectUrls(files: readonly File[]): string[] {
 	return urls;
 }
 
+/** On-photo chip (Change photo, Retry upload): the tile-badge shape scaled to a 44px target. */
+export const PHOTO_CHIP =
+	"inline-flex min-h-control cursor-pointer items-center rounded-full bg-scrim/80 px-3 py-2 text-sm text-bg transition-ui pressable dark:text-ink";
+
+/** Object URL for one file (the sheet photo hero); undefined until the effect runs and while file is null. */
+export function useObjectUrl(file: File | null): string | undefined {
+	const files = useMemo(() => (file ? [file] : []), [file]);
+	return useObjectUrls(files)[0];
+}
+
 /**
  * The one image a maintainer just picked, shown large enough to recognise with
  * its name and size, so choosing a file visibly did something before "Add piece"

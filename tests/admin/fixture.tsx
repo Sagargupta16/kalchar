@@ -1,4 +1,4 @@
-import { StrictMode, useState } from "react";
+import { type ReactNode, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AddSheetProvider } from "../../app/admin/_components/add-sheet";
 import { AdminNavMobile, type NavCounts } from "../../app/admin/_components/admin-nav";
@@ -26,6 +26,7 @@ import {
 } from "../../app/admin/_components/use-admin-action";
 import { WorkshopManager } from "../../app/admin/_components/workshop-manager";
 import type { Artwork, Event } from "../../lib/types";
+import { leadViews } from "./fixtures/leads";
 import { SegmentedBlockedFixture, SegmentedFixture } from "./fixtures/segmented";
 import {
 	actionState,
@@ -350,16 +351,25 @@ function OptimisticFixture() {
 	);
 }
 
+/** ArtworkGrid and UploadForm consume useAddSheet (empty-state Add, camera-roll pick), so their views mount inside the provider. */
+const withAddSheet = (node: ReactNode) => (
+	<AddSheetProvider categories={["Gond", "Pichwai"]} suggestions={suggestions}>
+		{node}
+	</AddSheetProvider>
+);
+
 const views = {
-	artworks: <ArtworkGrid items={artworkItems} categories={["Gond"]} counts={artworkCounts} />,
-	artworksEmpty: <ArtworkGrid items={[]} categories={["Gond"]} counts={noPieces} />,
-	artworksFiltered: (
+	artworks: withAddSheet(
+		<ArtworkGrid items={artworkItems} categories={["Gond"]} counts={artworkCounts} />,
+	),
+	artworksEmpty: withAddSheet(<ArtworkGrid items={[]} categories={["Gond"]} counts={noPieces} />),
+	artworksFiltered: withAddSheet(
 		<ArtworkGrid
 			items={artworkItems}
 			categories={["Gond"]}
 			counts={artworkCounts}
 			initialFilter="sold"
-		/>
+		/>,
 	),
 	categories: (
 		<CategoryManager
@@ -409,6 +419,7 @@ const views = {
 			]}
 		/>
 	),
+	...leadViews,
 	testimonials: <TestimonialsManager testimonials={[mira]} artworks={artworkTitles} />,
 	testimonialsEmpty: <TestimonialsManager testimonials={[]} artworks={artworkTitles} />,
 	testimonialsLinked: (
@@ -417,13 +428,13 @@ const views = {
 			artworks={artworkTitles}
 		/>
 	),
-	upload: <UploadForm categories={["Gond", "Pichwai"]} suggestions={suggestions} />,
-	uploadEmpty: (
+	upload: withAddSheet(<UploadForm categories={["Gond", "Pichwai"]} suggestions={suggestions} />),
+	uploadEmpty: withAddSheet(
 		<UploadForm
 			categories={[]}
 			suggestions={{ mediums: [], dimensions: [], lastUsed: null }}
 			openByDefault
-		/>
+		/>,
 	),
 	dialogs: (
 		<>

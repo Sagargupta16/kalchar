@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import {
 	type Dispatch,
 	type SetStateAction,
@@ -10,6 +11,7 @@ import {
 } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
+import { artworkStatusLabel } from "@/lib/artwork-status";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,22 +21,28 @@ import {
 	setArtworkFeatured,
 	setArtworkStatus,
 } from "../artwork-actions";
+import { useAddSheet } from "./add-sheet";
 import { AdminNotice } from "./admin-notice";
 import { ArtworkEditModal, type ArtworkPatch, DELETE_PIECE_BODY } from "./artwork-edit-modal";
 import {
 	type ArtworkListItem,
 	applyStagedOrder,
 	type ErrorTarget,
+	isPiecesView,
 	matchesFilter,
 	type OptimisticPatch,
 	type Patch,
+	PIECES_VIEW_KEY,
 	type PiecesFilter,
+	type PiecesView,
 	patchList,
 	STATUS_MESSAGE,
+	tileLabel,
 } from "./artwork-list-state";
+import { DOT } from "./artwork-quick-state";
 import { ArtworkRow } from "./artwork-row";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn } from "./controls";
+import { adminBtn, adminBtnPrimary, adminStatusDot, adminTileBadge } from "./controls";
 import { PiecesFilter as PiecesFilterBar } from "./pieces-filter";
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
@@ -45,6 +53,20 @@ import { useServerSyncedList } from "./use-server-synced-list";
 
 export type { ArtworkListItem, PiecesFilter } from "./artwork-list-state";
 
+/** Crossfade on a view switch: opacity only, fast (Tier 1a motion). */
+const VIEW_FADE =
+	"starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-fast)";
+
+/** First-run primary: the add sheet is the single create entry (D-A5). */
+function AddPieceButton() {
+	const { openPiece } = useAddSheet();
+	return (
+		<button type="button" onClick={openPiece} className={adminBtnPrimary}>
+			Add a piece
+		</button>
+	);
+}
+
 interface ArtworkGridProps {
 	items: ArtworkListItem[];
 	categories: readonly string[];
@@ -53,10 +75,11 @@ interface ArtworkGridProps {
 }
 
 /**
- * The one Pieces list: search and chips, one R6 row per piece, the reorder
- * bar or the undo bar in the bottom slot, and the editor mounted once. Quick
- * states are optimistic and reversible (D26, D37); deletes and the reorder
- * save are not.
+ * The one Pieces surface: search and count chips, the paintings grid (the
+ * phone default, D-A13) or the list rows, the reorder bar or the undo bar in
+ * the bottom slot, and the editor mounted once. Quick states are optimistic
+ * and reversible (D26, D37); deletes and the reorder save are not. Reorder
+ * lives in list view; tiles only browse and edit.
  */
 export function ArtworkGrid({
 	items: initial,
@@ -105,14 +128,38 @@ export function ArtworkGrid({
 	const [query, setQuery] = useState("");
 	const [filter, setFilter] = useState<PiecesFilter>(initialFilter);
 	const [seenInitialFilter, setSeenInitialFilter] = useState(initialFilter);
+	// Grid is the default (D-A13); the stored preference arrives after mount so
+	// the server render never mismatches.
+	const [view, setView] = useState<PiecesView>("grid");
 	if (initialFilter !== seenInitialFilter) {
-		// A stat-card link changes the chip without remounting the grid (staged order survives).
+		// A stat-chip link changes the filter without remounting the grid (staged order survives).
 		setSeenInitialFilter(initialFilter);
 		setFilter(initialFilter);
 	}
 
+	useEffect(() => {
+		// The harness page has an opaque origin where storage access can throw.
+		try {
+			const stored = window.localStorage.getItem(PIECES_VIEW_KEY);
+			if (isPiecesView(stored)) setView(stored);
+		} catch {
+			// No storage: the session keeps the grid default.
+		}
+	}, []);
+
+	const changeView = (next: PiecesView) => {
+		setView(next);
+		try {
+			window.localStorage.setItem(PIECES_VIEW_KEY, next);
+		} catch {
+			// No storage: the preference lives for this page only.
+		}
+	};
+
 	const filtered = filter !== "all" || query.trim() !== "";
-	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending || filtered);
+	// Reorder is a list-view job: tiles never move (D-A11).
+	const reorderLocked = pending || filtered || view === "grid";
+	const { dragging, over, dragProps, move } = useReorder(items, setItems, reorderLocked);
 	const hasChanges = items.some((item, i) => item.art.slug !== baseline[i]?.art.slug);
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
 
@@ -265,6 +312,10 @@ export function ArtworkGrid({
 		.map((item, index) => ({ item, index }))
 		.filter(({ item }) => matchesFilter(item.art, filter, query));
 	const editingItem = editing ? optimistic.find((item) => item.art.slug === editing) : undefined;
+	const stateLabel =
+		filter === "featured" || filter === "all"
+			? "featured"
+			: artworkStatusLabel(filter).toLowerCase();
 
 	return (
 		<>
@@ -278,6 +329,8 @@ export function ArtworkGrid({
 					shown={visible.length}
 					total={optimistic.length}
 					reorderLocked={filtered}
+					view={view}
+					onView={changeView}
 				/>
 			) : null}
 			{notice ? (
@@ -285,39 +338,70 @@ export function ArtworkGrid({
 					{notice}
 				</AdminNotice>
 			) : null}
-			<ul className={cn("space-y-tight", dragging !== null && "select-none")}>
-				{optimistic.length === 0 ? (
-					<EmptyState
-						as="li"
-						variant="compact"
-						voice="tool"
-						title="No pieces yet"
-						body="Add your first piece and it will appear here, ready to reorder and edit."
-						action={
-							<a href="#add-piece" className={adminBtn}>
-								Add a piece
-							</a>
-						}
-					/>
-				) : visible.length === 0 ? (
-					<EmptyState
-						as="li"
-						variant="nested"
-						voice="tool"
-						title="No pieces match"
-						body={
-							query
-								? `Nothing matches "${query}". Try the title or the category.`
-								: "No pieces with this status yet."
-						}
-						action={
-							<button type="button" onClick={resetFilter} className={adminBtn}>
-								Show all pieces
+			{optimistic.length === 0 ? (
+				<EmptyState
+					variant="default"
+					voice="tool"
+					title="No pieces yet"
+					body="Add your first painting to open the gallery."
+					action={<AddPieceButton />}
+				/>
+			) : visible.length === 0 ? (
+				<EmptyState
+					variant="compact"
+					voice="tool"
+					title={query ? `No pieces match "${query}"` : `No ${stateLabel} pieces`}
+					action={
+						<button type="button" onClick={resetFilter} className={adminBtn}>
+							Show all pieces
+						</button>
+					}
+				/>
+			) : view === "grid" ? (
+				<ul
+					key="grid"
+					className={cn("grid grid-cols-3 gap-(--grid-gap-tight) xl:grid-cols-6", VIEW_FADE)}
+				>
+					{visible.map(({ item, index }) => (
+						<li key={item.art.slug} id={`piece-${item.art.slug}`}>
+							<button
+								type="button"
+								onClick={() => setEditing(item.art.slug)}
+								disabled={rowPending(item.art.slug)}
+								aria-label={tileLabel(item.art, index)}
+								className={cn(
+									"group relative block aspect-square w-full overflow-hidden bg-canvas pressable [-webkit-touch-callout:none] disabled:pointer-events-none disabled:opacity-50",
+									highlight === item.art.slug && "ring-2 ring-accent ring-inset",
+								)}
+							>
+								{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
+								<img src={item.thumb} alt="" className="size-full object-cover" />
+								<span aria-hidden="true" className={cn(adminTileBadge, "absolute top-1 left-1")}>
+									{index + 1}
+								</span>
+								<span
+									aria-hidden="true"
+									className={cn(
+										adminStatusDot,
+										"absolute bottom-1.5 left-1.5 size-2.5",
+										DOT[item.art.status ?? "archive"],
+									)}
+								/>
+								{item.art.featured ? (
+									<span className={cn(adminTileBadge, "absolute right-1 bottom-1")}>
+										<Star size={12} aria-hidden="true" className="fill-current text-gold-leaf" />
+									</span>
+								) : null}
 							</button>
-						}
-					/>
-				) : (
-					visible.map(({ item, index }) => (
+						</li>
+					))}
+				</ul>
+			) : (
+				<ul
+					key="list"
+					className={cn("space-y-tight", VIEW_FADE, dragging !== null && "select-none")}
+				>
+					{visible.map(({ item, index }) => (
 						<ArtworkRow
 							key={item.art.slug}
 							art={item.art}
@@ -343,9 +427,9 @@ export function ArtworkGrid({
 							onSetFeatured={(featured) => onSetFeatured(item, featured)}
 							error={rowError(item.art.slug)}
 						/>
-					))
-				)}
-			</ul>
+					))}
+				</ul>
+			)}
 
 			{hasChanges || saved ? (
 				<ReorderBar
@@ -371,6 +455,10 @@ export function ArtworkGrid({
 					art={editingItem.art}
 					thumb={editingItem.thumb}
 					categories={categories}
+					quickPending={rowPending(editingItem.art.slug)}
+					quickError={rowError(editingItem.art.slug)}
+					onSetStatus={(status) => onSetStatus(editingItem, status)}
+					onSetFeatured={(featured) => onSetFeatured(editingItem, featured)}
 					onClose={() => setEditing(null)}
 					onSaved={(patch: ArtworkPatch) => commitPatch(editingItem.art.slug, patch)}
 					onDeleted={() => {

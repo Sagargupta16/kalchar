@@ -1,6 +1,10 @@
-import type { Artwork, ArtworkStatus } from "@/lib/types";
+import type { Artwork } from "@/lib/types";
 
-/** The editor's field state: strings as typed, so the dirty check is a plain comparison. */
+/**
+ * The editor's field state: strings as typed, so the dirty check is a plain
+ * comparison. Status and Featured are NOT here: they apply immediately with
+ * optimistic UI and the Undo toast (D37), independent of Save (Tier 1d).
+ */
 export interface EditorFields {
 	title: string;
 	style: string;
@@ -9,8 +13,6 @@ export interface EditorFields {
 	year: string;
 	description: string;
 	price: string;
-	status: ArtworkStatus;
-	featured: boolean;
 }
 
 export type FieldErrors = Partial<Record<"title" | "style" | "medium" | "price" | "year", string>>;
@@ -24,8 +26,6 @@ export function fieldsFromArtwork(art: Artwork): EditorFields {
 		year: art.year?.toString() ?? "",
 		description: art.description ?? "",
 		price: art.priceInr?.toString() ?? "",
-		status: art.status ?? "archive",
-		featured: art.featured,
 	};
 }
 
@@ -54,8 +54,12 @@ export function validateFields(fields: EditorFields): FieldErrors {
 	return errors;
 }
 
-/** The payload updateArtwork expects. */
-export function parseFields(fields: EditorFields) {
+/**
+ * The payload updateArtwork expects. The action requires status and featured;
+ * they ride along from the live (optimistically patched) artwork, never from
+ * the form.
+ */
+export function parseFields(fields: EditorFields, current: Artwork) {
 	return {
 		title: fields.title.trim(),
 		style: fields.style,
@@ -64,7 +68,7 @@ export function parseFields(fields: EditorFields) {
 		year: fields.year ? Number(fields.year) : null,
 		description: fields.description.trim() || null,
 		priceInr: fields.price === "" ? null : Number(fields.price),
-		status: fields.status,
-		featured: fields.featured,
+		status: current.status ?? "archive",
+		featured: current.featured,
 	};
 }

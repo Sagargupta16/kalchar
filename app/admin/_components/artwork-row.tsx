@@ -6,8 +6,13 @@ import { isForSale } from "@/lib/catalog";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 import { AdminNotice } from "./admin-notice";
-import { FeaturedToggle, StatusChip } from "./artwork-quick-state";
-import { adminIconBtnDestructive, adminRow, adminThumb, ICON_MD } from "./controls";
+import {
+	artworkStatusHelper,
+	FeaturedToggle,
+	useArtworkStatusOptions,
+} from "./artwork-quick-state";
+import { adminIconBtnDestructive, adminRow, adminThumb, adminTileBadge, ICON_MD } from "./controls";
+import { Segmented } from "./segmented";
 
 export interface ArtworkRowProps {
 	art: Artwork;
@@ -32,11 +37,11 @@ export interface ArtworkRowProps {
 }
 
 /**
- * The R6 row (D15): grip, Edit body (thumbnail with its position, title, meta),
- * status chip, Featured toggle, divider, Delete. Reading order and DOM order
- * match. The `@container/row` query decides one line (desktop column) or two
- * (phones); Delete always sits at the far end behind a hairline with 16px of
- * clear space, so a thumb cannot slip from Edit to Delete.
+ * The list-view row (1.11): one grid recipe, grip + Edit body + fixed action
+ * cluster (star, hairline divider, Delete) on line 1, the Segmented status
+ * control full width on line 2. At @xl/row everything joins one line with the
+ * segmented control between the body and the star. Delete always sits at the
+ * far end behind the divider with 16px of clear space (1.10).
  */
 export function ArtworkRow({
 	art,
@@ -54,6 +59,8 @@ export function ArtworkRow({
 	onSetFeatured,
 	error,
 }: Readonly<ArtworkRowProps>) {
+	const statusOptions = useArtworkStatusOptions(art.priceInr);
+	const status = art.status ?? "archive";
 	return (
 		<li
 			id={`piece-${art.slug}`}
@@ -66,72 +73,67 @@ export function ArtworkRow({
 				highlighted && "border-accent",
 			)}
 		>
-			<div className="flex flex-col gap-4 @xl/row:flex-row @xl/row:items-center @xl/row:gap-3">
-				{/* Line 1: grip + Edit body */}
-				<div className="flex min-w-0 flex-1 items-center gap-3">
-					{reorderHandle}
-					<button
-						type="button"
-						onClick={onEdit}
-						disabled={pending}
-						aria-label={`Edit ${art.title}`}
-						className="flex min-h-control min-w-0 flex-1 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text disabled:pointer-events-none disabled:opacity-50"
-					>
-						<span className="relative shrink-0">
-							{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
-							<img src={thumb} alt="" className={cn(adminThumb, "size-14 @xl/row:size-16")} />
-							<span
-								aria-hidden="true"
-								className="absolute top-1 left-1 rounded-full bg-scrim/80 px-1.5 py-0.5 text-micro leading-none tabular-nums text-bg dark:text-ink"
-							>
-								{index + 1}
-							</span>
+			<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 @xl/row:grid-cols-[auto_minmax(0,1fr)_minmax(0,20rem)_auto]">
+				{reorderHandle}
+				<button
+					type="button"
+					onClick={onEdit}
+					disabled={pending}
+					aria-label={`Edit ${art.title}`}
+					className="flex min-h-control min-w-0 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text disabled:pointer-events-none disabled:opacity-50"
+				>
+					<span className="relative shrink-0">
+						{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
+						<img src={thumb} alt="" className={cn(adminThumb, "size-14 @xl/row:size-16")} />
+						<span aria-hidden="true" className={cn(adminTileBadge, "absolute top-1 left-1")}>
+							{index + 1}
 						</span>
-						<span className="min-w-0 flex-1">
-							<span className="block truncate text-sm font-medium text-ink">{art.title}</span>
-							<span className="mt-1 flex items-baseline gap-2 text-label text-muted">
-								<span className="min-w-0 truncate">{art.style}</span>
-								{isForSale(art) ? (
-									<span className="shrink-0 tabular-nums text-ink-soft">
-										{formatInr(art.priceInr as number)}
-									</span>
-								) : null}
-							</span>
-							<span className="sr-only">
-								, position {index + 1}
-								{art.featured ? ", featured" : ""}
-							</span>
+					</span>
+					<span className="min-w-0 flex-1">
+						<span className="block truncate text-sm font-medium text-ink">{art.title}</span>
+						<span className="mt-1 flex items-baseline gap-2 text-label text-muted">
+							<span className="min-w-0 truncate">{art.style}</span>
+							{isForSale(art) ? (
+								<span className="shrink-0 tabular-nums text-ink-soft">
+									{formatInr(art.priceInr as number)}
+								</span>
+							) : null}
 						</span>
-						<Pencil size={ICON_MD} aria-hidden="true" className="shrink-0 text-muted" />
-					</button>
-				</div>
-
-				{/* Line 2 (phone) / trailing cluster (one-line rows) */}
-				<div className="flex items-center gap-2 @xl/row:shrink-0">
-					<StatusChip
-						title={art.title}
-						status={art.status ?? "archive"}
-						priceInr={art.priceInr}
-						disabled={pending}
-						onChange={onSetStatus}
-					/>
+						<span className="sr-only">
+							, position {index + 1}
+							{art.featured ? ", featured" : ""}
+						</span>
+					</span>
+					<Pencil size={ICON_MD} aria-hidden="true" className="shrink-0 text-muted" />
+				</button>
+				{/* Line 2 on phones; joins line 1 between the body and the star at @xl/row. */}
+				<Segmented
+					name={art.slug}
+					label={`Status of ${art.title}`}
+					value={status}
+					options={statusOptions}
+					disabled={pending}
+					helper={artworkStatusHelper(status)}
+					onChange={onSetStatus}
+					className="col-span-3 mt-3 @xl/row:col-span-1 @xl/row:col-start-3 @xl/row:row-start-1 @xl/row:mt-0"
+				/>
+				<div className="col-start-3 row-start-1 flex items-center self-center justify-self-end @xl/row:col-start-4">
 					<FeaturedToggle
 						title={art.title}
 						featured={art.featured}
 						disabled={pending}
 						onChange={onSetFeatured}
 					/>
-					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
-						<button
-							type="button"
-							disabled={pending}
-							onClick={onDelete}
-							aria-label={`Delete ${art.title}`}
-							className={adminIconBtnDestructive}
-						>
-							<Trash2 size={ICON_MD} aria-hidden="true" />
-						</button>
-					</div>
+					<span aria-hidden="true" className="mx-4 h-6 border-l border-line" />
+					<button
+						type="button"
+						disabled={pending}
+						onClick={onDelete}
+						aria-label={`Delete ${art.title}`}
+						className={adminIconBtnDestructive}
+					>
+						<Trash2 size={ICON_MD} aria-hidden="true" />
+					</button>
 				</div>
 			</div>
 			{error ? (

@@ -8,11 +8,15 @@ const failures = [
 ] as const;
 
 const rowOf = (page: Page, title: string) =>
-	page.getByRole("listitem").filter({ has: page.getByRole("button", { name: `Edit ${title}` }) });
+	page
+		.getByRole("listitem")
+		.filter({ has: page.getByRole("button", { name: `Edit ${title}`, exact: true }) });
 const calls = (page: Page) => page.evaluate(() => window.adminTest.calls);
 const refreshes = (page: Page) => page.evaluate(() => window.adminTest.refreshes);
 const editor = (page: Page) => page.getByRole("dialog", { name: "Edit piece" });
 const titleField = (page: Page) => page.getByRole("textbox", { name: "Title *" });
+const statusGroup = (scope: Page | Locator, title: string) =>
+	scope.getByRole("radiogroup", { name: `Status of ${title}` });
 
 const fixtureImage = (name: string) => ({
 	name,
@@ -20,48 +24,89 @@ const fixtureImage = (name: string) => ({
 	buffer: Buffer.from(`isolated upload fixture ${name}`),
 });
 
-/** Mounts the add form and expands it when the viewport collapsed it (D36). */
-async function mountUpload(page: Page, view: "upload" | "uploadEmpty" = "upload") {
-	await mountAdmin(page, view);
-	const trigger = page.getByRole("button", { name: "Add a piece" });
-	if (await trigger.count()) await trigger.click();
-	await expect(page.locator("form")).toBeVisible();
+/** The grid is the default view (D-A13); list view carries reorder and quick states. */
+async function showList(page: Page) {
+	await page.getByRole("button", { name: "List view" }).click();
+	await expect(page.getByRole("button", { name: /^Reorder Alpha/ })).toBeVisible();
 }
 
-async function openStatusSheet(page: Page, title: string, current: string) {
-	await page.getByRole("button", { name: `Status of ${title}: ${current}` }).click();
-	return page.getByRole("dialog", { name: title });
-}
-
+/** Opens the editor from Alpha's grid tile (the default view). */
 async function editAlpha(page: Page): Promise<Locator> {
-	await page.getByRole("button", { name: "Edit Alpha" }).click();
+	await page.getByRole("button", { name: /^Edit Alpha, position 1/ }).click();
 	const dialog = editor(page);
 	await expect(dialog).toBeVisible();
 	return dialog;
 }
 
-test("every row shows the R6 anatomy in reading order", async ({ page }) => {
+test("grid view is the default and tiles carry title, position, featured and status", async ({
+	page,
+}) => {
 	await mountAdmin(page, "artworks");
+	await expect(page.getByRole("button", { name: "Grid view" })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+	await expect(
+		page.getByRole("button", { name: "Edit Alpha, position 1, Not for sale", exact: true }),
+	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Edit Bravo, position 2, featured, Available", exact: true }),
+	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Edit Charlie, position 3, Sold", exact: true }),
+	).toBeVisible();
+	await expect(page.getByRole("listitem")).toHaveCount(3);
+	// Tiles never carry Move buttons; ordering lives in list view.
+	await expect(page.getByRole("button", { name: /^Reorder / })).toHaveCount(0);
+	await expect(page.getByText("Switch to list view to change the order.")).toBeVisible();
+});
+
+test("a grid tile opens the editor and focus returns on close", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await editAlpha(page);
+	await expect(titleField(page)).toHaveValue("Alpha");
+	await page.keyboard.press("Escape");
+	await expect(page.getByRole("dialog")).toHaveCount(0);
+	await expect(page.getByRole("button", { name: /^Edit Alpha, position 1/ })).toBeFocused();
+});
+
+test("the view toggle switches to rows and back", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await showList(page);
+	await expect(page.getByRole("button", { name: "List view" })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+	await expect(statusGroup(page, "Alpha")).toBeVisible();
+	await page.getByRole("button", { name: "Grid view" }).click();
+	await expect(page.getByRole("button", { name: /^Reorder / })).toHaveCount(0);
+	await expect(page.getByRole("button", { name: /^Edit Alpha, position 1/ })).toBeVisible();
+});
+
+test("every list row shows the anatomy with the segmented status", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await showList(page);
 	const states = { Alpha: "Not for sale", Bravo: "Available", Charlie: "Sold" } as const;
 	for (const [index, [title, status]] of Object.entries(states).entries()) {
 		for (const name of [
 			`Reorder ${title}, position ${index + 1} of 3`,
 			`Edit ${title}`,
-			`Status of ${title}: ${status}`,
 			`Feature ${title}`,
 			`Delete ${title}`,
 		]) {
 			await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
 		}
+		const group = statusGroup(page, title);
+		await expect(group.getByRole("radio", { checked: true })).toHaveText(new RegExp(status));
 		const order = await rowOf(page, title)
 			.locator("button[aria-label]")
 			.evaluateAll((buttons) =>
 				buttons
 					.map((button) => button.getAttribute("aria-label") ?? "")
-					.filter((label) => /^(Reorder|Edit|Status of|Feature|Delete) /.test(label))
+					.filter((label) => /^(Reorder|Edit|Feature|Delete) /.test(label))
 					.map((label) => label.split(" ")[0]),
 			);
-		expect(order).toEqual(["Reorder", "Edit", "Status", "Feature", "Delete"]);
+		expect(order).toEqual(["Reorder", "Edit", "Feature", "Delete"]);
 	}
 	await expect(page.getByRole("button", { name: "Feature Bravo" })).toHaveAttribute(
 		"aria-pressed",
@@ -75,52 +120,31 @@ test("every row shows the R6 anatomy in reading order", async ({ page }) => {
 	await expect(rowOf(page, "Charlie")).not.toContainText("INR");
 });
 
-test("Edit body opens the editor and focus returns on close", async ({ page }) => {
-	await mountAdmin(page, "artworks");
-	await editAlpha(page);
-	await expect(titleField(page)).toHaveValue("Alpha");
-	await page.keyboard.press("Escape");
-	await expect(page.getByRole("dialog")).toHaveCount(0);
-	await expect(page.getByRole("button", { name: "Edit Alpha" })).toBeFocused();
-});
-
-test("status chip opens the quick-state sheet with the current option pressed", async ({
+test("the segmented control blocks Not for sale on a priced piece and explains NFS", async ({
 	page,
 }) => {
 	await mountAdmin(page, "artworks");
-	const sheet = await openStatusSheet(page, "Alpha", "Not for sale");
-	await expect(sheet).toBeVisible();
-	for (const option of ["Available", "Sold", "Not for sale"]) {
-		await expect(sheet.getByRole("button", { name: option, exact: true })).toBeAttached();
-	}
-	await expect(sheet.getByRole("button", { name: "Not for sale", exact: true })).toHaveAttribute(
-		"aria-pressed",
-		"true",
-	);
-	const available = sheet.getByRole("button", { name: "Available", exact: true });
-	await expect(available).toBeEnabled();
-	await expect(available).toHaveAccessibleDescription(/No price yet/);
-	// The footer Close (the header X shares the name).
-	await sheet.getByText("Close", { exact: true }).click();
-	await expect(page.getByRole("dialog")).toHaveCount(0);
-
-	const priced = await openStatusSheet(page, "Bravo", "Available");
-	const notForSale = priced.getByRole("button", { name: "Not for sale", exact: true });
-	await expect(notForSale).toBeDisabled();
-	await expect(notForSale).toHaveAccessibleDescription(/has a price/);
+	await showList(page);
+	// Alpha is stored archive: the helper names the public effect.
+	await expect(
+		rowOf(page, "Alpha").getByText("Shown in the gallery without a price"),
+	).toBeVisible();
+	// Bravo has a price: the archive segment is disabled with its reason.
+	const bravoNfs = statusGroup(page, "Bravo").getByRole("radio", { name: "Not for sale" });
+	await expect(bravoNfs).toBeDisabled();
+	await expect(rowOf(page, "Bravo").getByText(/has a price/)).toBeVisible();
 });
 
 for (const failure of failures) {
 	test(`quick status flips optimistically and reverts on ${failure.outcome}`, async ({ page }) => {
 		await mountAdmin(page, "artworks");
+		await showList(page);
 		await outcome(page, failure.outcome);
-		const sheet = await openStatusSheet(page, "Alpha", "Not for sale");
-		await sheet.getByRole("button", { name: "Sold", exact: true }).click();
-		await expect(page.getByRole("dialog")).toHaveCount(0);
+		await statusGroup(page, "Alpha").getByRole("radio", { name: "Sold" }).click();
 		await expect(rowOf(page, "Alpha").getByRole("alert")).toHaveText(failure.message);
 		await expect(
-			page.getByRole("button", { name: "Status of Alpha: Not for sale" }),
-		).toBeEnabled();
+			statusGroup(page, "Alpha").getByRole("radio", { checked: true }),
+		).toHaveText(/Not for sale/);
 		expect(await refreshes(page)).toBe(0);
 		expect((await calls(page)).at(-1)).toEqual({
 			name: "setArtworkStatus",
@@ -130,6 +154,7 @@ for (const failure of failures) {
 
 	test(`featured toggle reverts with an in-row alert on ${failure.outcome}`, async ({ page }) => {
 		await mountAdmin(page, "artworks");
+		await showList(page);
 		await outcome(page, failure.outcome);
 		const star = page.getByRole("button", { name: "Feature Alpha" });
 		await star.click();
@@ -138,18 +163,21 @@ for (const failure of failures) {
 	});
 }
 
-test("quick status persists on success", async ({ page }) => {
+test("quick status persists on success and never opens a dialog", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	await outcome(page, "success");
-	const sheet = await openStatusSheet(page, "Alpha", "Not for sale");
-	await sheet.getByRole("button", { name: "Sold", exact: true }).click();
-	await expect(page.getByRole("button", { name: "Status of Alpha: Sold" })).toBeEnabled();
+	await statusGroup(page, "Alpha").getByRole("radio", { name: "Sold" }).click();
+	await expect(statusGroup(page, "Alpha").getByRole("radio", { checked: true })).toHaveText(
+		/Sold/,
+	);
 	await expect.poll(() => refreshes(page)).toBe(1);
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("featured toggle round-trips on success and never double-submits", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	await outcome(page, "success");
 	const star = page.getByRole("button", { name: "Feature Alpha" });
 	await star.click();
@@ -171,6 +199,7 @@ test("row delete uses outcome labels, keeps the row on failure, removes it on su
 	page,
 }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	await page.getByRole("button", { name: "Delete Alpha" }).click();
 	const confirm = page.getByRole("dialog", { name: 'Delete "Alpha"?' });
 	await expect(confirm.getByRole("button", { name: "Keep piece" })).toBeFocused();
@@ -211,6 +240,24 @@ test("editor save shows the result in the footer and keeps edits on failure", as
 	expect(last?.args[1]).toMatchObject({ title: "Unsaved title", status: "archive" });
 });
 
+test("editor quick states apply at once without dirtying Save", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await outcome(page, "success");
+	const dialog = await editAlpha(page);
+	await statusGroup(dialog, "Alpha").getByRole("radio", { name: "Sold" }).click();
+	await expect(statusGroup(dialog, "Alpha").getByRole("radio", { checked: true })).toHaveText(
+		/Sold/,
+	);
+	expect((await calls(page)).at(-1)).toEqual({ name: "setArtworkStatus", args: ["alpha", "sold"] });
+	await expect(dialog.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+
+	const featured = dialog.getByRole("switch", { name: "Featured on home" });
+	await featured.click();
+	await expect(featured).toHaveAttribute("aria-checked", "true");
+	expect((await calls(page)).at(-1)).toEqual({ name: "setArtworkFeatured", args: ["alpha", true] });
+	await expect(dialog.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+});
+
 test("editor asks before discarding", async ({ page }) => {
 	await mountAdmin(page, "artworks");
 	const dialog = await editAlpha(page);
@@ -247,7 +294,7 @@ for (const failure of failures) {
 	});
 }
 
-test("editor delete closes the sheet and removes the row on success", async ({ page }) => {
+test("editor delete closes the sheet and removes the piece on success", async ({ page }) => {
 	await mountAdmin(page, "artworks");
 	await outcome(page, "success");
 	const dialog = await editAlpha(page);
@@ -288,6 +335,7 @@ test("replace photo shows the preview, then the Replace button", async ({ page }
 
 test("search and chips filter the list and lock reorder", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	const search = page.getByRole("searchbox", { name: "Find a piece" });
 	await search.fill("bra");
 	await expect(page.getByRole("listitem")).toHaveCount(1);
@@ -305,8 +353,7 @@ test("search and chips filter the list and lock reorder", async ({ page }) => {
 	await expect(page.getByText(/Show all pieces to change the order\./)).toBeVisible();
 
 	await search.fill("zzz");
-	await expect(page.getByText("No pieces match")).toBeVisible();
-	await expect(page.getByText('Nothing matches "zzz"')).toBeVisible();
+	await expect(page.getByText('No pieces match "zzz"')).toBeVisible();
 	await page.getByRole("button", { name: "Show all pieces" }).click();
 	await expect(page.getByRole("listitem")).toHaveCount(3);
 	await expect(
@@ -315,19 +362,37 @@ test("search and chips filter the list and lock reorder", async ({ page }) => {
 	await expect(page.getByRole("button", { name: /^Reorder Alpha/ })).toBeEnabled();
 });
 
-test("empty list offers one action", async ({ page }) => {
-	await mountAdmin(page, "artworksEmpty");
-	await expect(page.getByRole("status")).toContainText("No pieces yet");
-	await expect(page.getByRole("link", { name: "Add a piece" })).toHaveAttribute(
-		"href",
-		"#add-piece",
-	);
+test("a status filter with no pieces names the state", async ({ page }) => {
+	await mountAdmin(page, "artworks");
+	await showList(page);
+	await outcome(page, "success");
+	await page.getByRole("group", { name: "Show" }).getByRole("button", { name: /^Sold/ }).click();
+	await page.getByRole("button", { name: "Delete Charlie" }).click();
+	await page
+		.getByRole("dialog", { name: 'Delete "Charlie"?' })
+		.getByRole("button", { name: "Delete piece" })
+		.click();
+	await expect(page.getByText("No sold pieces")).toBeVisible();
+	await page.getByRole("button", { name: "Show all pieces" }).click();
+	await expect(page.getByRole("listitem")).toHaveCount(2);
 });
 
-test("filtered initial state from the page", async ({ page }) => {
+test("empty catalog offers the add sheet", async ({ page }) => {
+	await mountAdmin(page, "artworksEmpty");
+	await expect(page.getByRole("status")).toContainText("No pieces yet");
+	await expect(page.getByRole("status")).toContainText(
+		"Add your first painting to open the gallery.",
+	);
+	await page.getByRole("button", { name: "Add a piece" }).click();
+	await expect(page.getByRole("dialog", { name: "New piece" })).toBeVisible();
+});
+
+test("filtered initial state from the page shows only matching tiles", async ({ page }) => {
 	await mountAdmin(page, "artworksFiltered");
 	await expect(page.getByRole("listitem")).toHaveCount(1);
-	await expect(rowOf(page, "Charlie")).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Edit Charlie, position 3, Sold", exact: true }),
+	).toBeVisible();
 	await expect(
 		page.getByRole("group", { name: "Show" }).getByRole("button", { name: /^Sold/ }),
 	).toHaveAttribute("aria-pressed", "true");
@@ -335,6 +400,7 @@ test("filtered initial state from the page", async ({ page }) => {
 
 test("staged order survives a quick state refresh", async ({ page }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	await page.getByRole("button", { name: "Reorder Alpha, position 1 of 3" }).focus();
 	await page.keyboard.press("ArrowDown");
 	const save = page.getByRole("button", { name: "Save order" });
@@ -347,96 +413,17 @@ test("staged order survives a quick state refresh", async ({ page }) => {
 	await expect(page.getByText(/marked as|featured on/)).toHaveCount(0);
 });
 
-test("add form is photo-first and reports success in the artist's words", async ({ page }) => {
-	await mountUpload(page);
-	await expect(page.locator("form label").first()).toContainText(
-		"Choose image (JPG, PNG, or WebP)",
-	);
-	await expect(page.getByText("Fields marked * are required.")).toBeVisible();
-	const picker = page.locator('input[name="image"]');
-	expect(await picker.evaluate((input: HTMLInputElement) => input.required)).toBe(false);
-	await page.getByLabel("Title *", { exact: true }).fill("Lotus garden");
-	await page.getByLabel("Category *", { exact: true }).selectOption("Gond");
-	await page.getByLabel("Medium *", { exact: true }).fill("Ink");
-	await page.getByRole("button", { name: "Add piece", exact: true }).click();
-	await expect(page.getByRole("alert")).toHaveText("Choose an image first.");
-
-	await picker.setInputFiles(fixtureImage("lotus.jpg"));
-	await expect(page.getByLabel("Title *", { exact: true })).toBeFocused();
-	await outcome(page, "success");
-	await page.getByRole("button", { name: "Add piece", exact: true }).click();
-	const output = page.locator("output");
-	await expect(output).toContainText('Added "Lotus garden". It is now in the gallery.');
-	await expect(output.getByRole("link", { name: "View on site" })).toHaveAttribute(
-		"href",
-		"/work/created-piece/",
-	);
-	await expect(output.getByRole("link", { name: "Show in list" })).toHaveAttribute(
-		"href",
-		"#piece-created-piece",
-	);
-	await expect(page.getByLabel("Title *", { exact: true })).toHaveValue("");
-	await expect(picker).toBeFocused();
-});
-
-test("numeric fields keep digits only", async ({ page }) => {
-	await mountUpload(page);
-	const price = page.getByLabel("Price (optional)", { exact: true });
-	await price.fill("1,200");
-	await expect(price).toHaveValue("1200");
-	await expect(page.getByText("Shows as INR 1,200")).toBeVisible();
-	await expect(price).toHaveAttribute("inputmode", "numeric");
-	await expect(page.getByLabel("Year (optional)", { exact: true })).toHaveAttribute(
-		"inputmode",
-		"numeric",
-	);
-});
-
-test("add form is collapsed on phones and open when the catalog is empty", async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
-	await mountAdmin(page, "upload");
-	await expect(page.locator("form")).toHaveCount(0);
-	const trigger = page.getByRole("button", { name: "Add a piece" });
-	await expect(trigger).toHaveAttribute("aria-expanded", "false");
-	await trigger.click();
-	await expect(page.locator("form")).toBeVisible();
-	await expect(page.locator('input[name="image"]')).toBeFocused();
-
-	await mountAdmin(page, "uploadEmpty");
-	await expect(page.locator("form")).toBeVisible();
-	await expect(page.getByRole("button", { name: "Add a piece" })).toHaveCount(0);
-	await expect(page.getByRole("link", { name: "Add one in Categories" })).toBeVisible();
-
-	await page.setViewportSize({ width: 1280, height: 800 });
-	await mountAdmin(page, "upload");
-	await expect(page.locator("form")).toBeVisible();
-	await expect(page.getByRole("button", { name: "Add a piece" })).toHaveCount(0);
-});
-
-test("add form prefills the last-used category and medium and offers suggestions", async ({
-	page,
-}) => {
-	await mountUpload(page);
-	await expect(page.getByRole("combobox", { name: "Category *" })).toHaveValue("Gond");
-	// An input with a datalist exposes the combobox role.
-	const medium = page.getByRole("combobox", { name: "Medium *" });
-	await expect(medium).toHaveValue("Ink");
-	await expect(medium).toHaveAttribute("required", "");
-	const options = async (field: Locator) =>
-		field.evaluate((input: HTMLInputElement) => input.list?.options.length ?? -1);
-	expect(await options(medium)).toBe(2);
-	expect(await options(page.getByRole("combobox", { name: "Dimensions (optional)" }))).toBe(1);
-});
+// The add-piece sheet form flows live in admin-catalog-add.spec.ts (500-line ceiling).
 
 test("quick states offer Undo in the bottom bar and Undo runs the reverse action once", async ({
 	page,
 }) => {
 	await mountAdmin(page, "artworks");
+	await showList(page);
 	await outcome(page, "success");
 	const bar = page.getByRole("status").filter({ has: page.getByRole("button", { name: "Undo" }) });
 
-	const sheet = await openStatusSheet(page, "Alpha", "Not for sale");
-	await sheet.getByRole("button", { name: "Sold", exact: true }).click();
+	await statusGroup(page, "Alpha").getByRole("radio", { name: "Sold" }).click();
 	await expect(bar).toContainText('"Alpha" marked as sold');
 	await expect(bar.getByRole("button", { name: "Dismiss" })).toBeVisible();
 	await bar.getByRole("button", { name: "Undo" }).click();
@@ -446,7 +433,9 @@ test("quick states offer Undo in the bottom bar and Undo runs the reverse action
 		args: ["alpha", "archive"],
 	});
 	await expect(page.getByRole("dialog")).toHaveCount(0);
-	await expect(page.getByRole("button", { name: "Status of Alpha: Not for sale" })).toBeEnabled();
+	await expect(statusGroup(page, "Alpha").getByRole("radio", { checked: true })).toHaveText(
+		/Not for sale/,
+	);
 
 	await page.getByRole("button", { name: "Feature Alpha" }).click();
 	await expect(bar).toContainText('"Alpha" featured on home');
