@@ -13,6 +13,10 @@ import { usePendingVisible } from "./use-admin-action";
  * ReorderBar and UndoBar (D26) both render into it; a manager shows one or
  * the other, never both. Returns a fragment: an in-flow spacer the height
  * of the bar so the last list row is never hidden, then the fixed bar.
+ * Steering 2026-09-14: the bar is floating chrome, so it carries the iOS
+ * material (material-glass: translucent surface tint, static blur, hairline
+ * + e2 in one box-shadow list, opaque fallback); border-t stays the crisp
+ * top edge the --tabbar-offset math counts on.
  */
 export function BottomBar({
 	children,
@@ -33,7 +37,7 @@ export function BottomBar({
 				role={role}
 				aria-live={ariaLive}
 				className={cn(
-					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line bg-surface xl:bottom-0 starting:translate-y-2 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)",
+					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line material-glass xl:bottom-0 starting:translate-y-2 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)",
 					className,
 				)}
 			>

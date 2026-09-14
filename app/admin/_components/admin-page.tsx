@@ -97,7 +97,8 @@ export function AdminPage({
 export function AdminPageHeaderSkeleton() {
 	return (
 		<div className={cn(HEADER_INSET, "max-w-(--header-max) space-y-3")}>
-			<Skeleton className="h-9 w-40 sm:h-12" />
+			{/* h-11 tracks the calmed text-h1 line box (44px x 1.05 at 1280; steering 2026-09-14). */}
+			<Skeleton className="h-9 w-40 sm:h-11" />
 			<Skeleton className="h-4 w-64 max-w-full" />
 		</div>
 	);

@@ -20,7 +20,14 @@ import { usePathname } from "next/navigation";
 import { Fragment, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
-import { PRESS_SCALE, SPRING_INDICATOR, SPRING_PRESS } from "@/lib/motion";
+import {
+	DUR,
+	EASE_IN,
+	PRESS_SCALE,
+	SPRING_INDICATOR,
+	SPRING_PANEL,
+	SPRING_PRESS,
+} from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useAddSheet } from "./add-sheet";
 import { adminBtn, adminBtnPrimary, adminIconBtnGhost, ICON_MD, ICON_TAB } from "./controls";
@@ -233,10 +240,13 @@ function MobileNavLink({
 }
 
 /**
- * The raised Add cell (1.3): a terracotta size-fab disc on a bg-surface
- * collar, lifted out of the bar, one hit target with the label. Motion owns
- * every transform on the button (never pair with CSS pressable); the Plus
- * rotates to an X while an add surface is open and snaps under reduced motion.
+ * The raised Add cell (1.3): a terracotta size-fab disc on a material-glass
+ * collar (steering 2026-09-14: translucent surface tint + static blur +
+ * hairline + e2, opaque fallback), lifted out of the bar, one hit target with
+ * the label. Motion owns every transform on the button (never pair with CSS
+ * pressable); the Plus rotates to an X on SPRING_INDICATOR while an add
+ * surface is open and snaps under reduced motion (MotionConfig). The accent
+ * disc dips e3 -> e2 while pressed (shadow only; Motion keeps the transform).
  * Focus draws the standard 2px accent ring around the round disc at 3px
  * offset (1.3 focus note), not around the rectangular cell; outline-hidden
  * keeps the forced-colors fallback that outline-none would drop.
@@ -258,16 +268,17 @@ function RaisedAddCell() {
 		>
 			<span
 				aria-hidden="true"
-				className="grid size-[4.25rem] -translate-y-4 place-items-center rounded-full bg-surface shadow-hairline"
+				className="grid size-[4.25rem] -translate-y-4 place-items-center rounded-full material-glass"
 			>
-				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3 group-focus-visible:outline-2 group-focus-visible:outline-accent group-focus-visible:outline-offset-3">
-					<Plus
-						size={24}
-						className={cn(
-							"transition-transform duration-(--duration-base) ease-(--ease-in-out)",
-							addOpen && "rotate-45",
-						)}
-					/>
+				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3 transition-shadow group-active:shadow-e2 group-focus-visible:outline-2 group-focus-visible:outline-accent group-focus-visible:outline-offset-3">
+					<motion.span
+						className="grid"
+						initial={false}
+						animate={{ rotate: addOpen ? 45 : 0 }}
+						transition={SPRING_INDICATOR}
+					>
+						<Plus size={24} />
+					</motion.span>
 				</span>
 			</span>
 			<span className={cn("absolute bottom-1 font-medium text-muted", TAB_LABEL)}>Add</span>
@@ -293,7 +304,9 @@ export function AdminNavMobile({
 	const moreActive = MOBILE_MORE_NAV.some((item) => isActive(item.href));
 
 	// A4: the sheet and scrim exit at fast/ease-in before unmount; a route
-	// change or reduced motion unmounts at once.
+	// change or reduced motion unmounts at once. The sheet itself is Motion
+	// (SPRING_PANEL settle in, DUR.fast EASE_IN tween out, steering 2026-09-14);
+	// the scrim keeps the CSS fade below.
 	const close = useCallback(
 		(animated = true) => {
 			if (closeTimer.current !== null) return;
@@ -350,7 +363,7 @@ export function AdminNavMobile({
 		<>
 			<nav
 				aria-label="Admin"
-				className="fixed inset-x-0 bottom-0 z-nav border-t border-line bg-surface pb-safe-bottom xl:hidden"
+				className="fixed inset-x-0 bottom-0 z-nav border-t border-line material-glass pb-safe-bottom xl:hidden"
 			>
 				<LayoutGroup id="admin-nav-mobile">
 					<ul className="mx-auto grid h-tabbar max-w-lg grid-cols-5 gap-1 px-2">
@@ -414,15 +427,16 @@ export function AdminNavMobile({
 							closingClasses,
 						)}
 					/>
-					<div
+					<motion.div
 						id="admin-more-tools"
 						role="dialog"
 						aria-labelledby={sheetTitleId}
-						className={cn(
-							"fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-w-md rounded-(--radius-md) border border-line bg-surface-raised p-3 shadow-e5 xl:hidden starting:translate-y-3 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)",
-							closingClasses,
-							morePhase === "closing" && "translate-y-3",
-						)}
+						initial={{ opacity: 0, y: 12 }}
+						animate={morePhase === "closing" ? { opacity: 0, y: 12 } : { opacity: 1, y: 0 }}
+						transition={
+							morePhase === "closing" ? { duration: DUR.fast, ease: EASE_IN } : SPRING_PANEL
+						}
+						className="fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-w-md rounded-(--radius-md) material-glass-strong p-3 xl:hidden"
 					>
 						<div className="mb-2 flex items-start justify-between gap-3 px-3">
 							<div className="min-w-0 py-2">
@@ -472,7 +486,7 @@ export function AdminNavMobile({
 							<ThemeToggle compact />
 							{signOut}
 						</div>
-					</div>
+					</motion.div>
 				</>
 			) : null}
 		</>

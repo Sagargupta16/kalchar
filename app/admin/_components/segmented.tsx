@@ -126,7 +126,8 @@ export function Segmented<V extends string = string>({
 									<motion.span
 										layoutId="segmented-pill"
 										aria-hidden="true"
-										className="absolute inset-0 -z-10 rounded-full bg-ink"
+										// shadow-e2: the iOS segmented thumb casts on its track (steering 2026-09-14).
+										className="absolute inset-0 -z-10 rounded-full bg-ink shadow-e2"
 										transition={SPRING_INDICATOR}
 									/>
 								) : null}

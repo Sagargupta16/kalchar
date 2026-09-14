@@ -88,16 +88,23 @@ interface ModalProps {
 	children: ReactNode;
 }
 
+// Fill and elevation live on the placement variants, not the base: the
+// center card and the full editor sheet stay opaque (form legibility, dense
+// tool), while the content detent carries the iOS material below.
 const PANEL_BASE =
-	"relative z-raised flex w-full flex-col overflow-hidden bg-surface-raised text-ink shadow-e5 starting:opacity-0 motion-safe:transition-[opacity,translate,scale] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)";
+	"relative z-raised flex w-full flex-col overflow-hidden text-ink starting:opacity-0 motion-safe:transition-[opacity,translate,scale] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)";
 const PANEL_CENTER =
-	"max-h-[calc(100dvh-1.5rem)] rounded-(--radius-md) border border-line starting:scale-95 sm:max-h-[calc(100dvh-2rem)]";
+	"max-h-[calc(100dvh-1.5rem)] rounded-(--radius-md) border border-line bg-surface-raised shadow-e5 starting:scale-95 sm:max-h-[calc(100dvh-2rem)]";
 const PANEL_SHEET =
-	"h-dvh max-h-none rounded-none border-0 starting:translate-y-4 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:border sm:border-line sm:starting:translate-y-0 sm:starting:scale-95";
+	"h-dvh max-h-none rounded-none border-0 bg-surface-raised shadow-e5 starting:translate-y-4 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:border sm:border-line sm:starting:translate-y-0 sm:starting:scale-95";
 // Content detent (1.7): bottom-anchored, content height capped at --sheet-peek
-// (62dvh), top corners only, enters on the sheet curve; the centred card from sm.
+// (62dvh), top corners only, enters on the sheet curve; the centred card from
+// sm. Steering 2026-09-14: the quick-choice sheet is the iOS material surface
+// (material-glass-strong: translucent raised tint, static blur, hairline +
+// e4 in one box-shadow list with an opaque fallback), so it carries no
+// border-* or shadow-* utilities of its own.
 const PANEL_SHEET_CONTENT =
-	"h-auto max-h-(--sheet-peek) rounded-t-(--radius-sheet) rounded-b-none border-x-0 border-t border-b-0 border-line starting:translate-y-4 motion-safe:ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:border sm:border-line sm:starting:translate-y-0 sm:starting:scale-95 sm:motion-safe:ease-(--ease-out)";
+	"material-glass-strong h-auto max-h-(--sheet-peek) rounded-t-(--radius-sheet) rounded-b-none starting:translate-y-4 motion-safe:ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:starting:translate-y-0 sm:starting:scale-95 sm:motion-safe:ease-(--ease-out)";
 // A1 exit: fast, ease-in, back to the pre-open pose.
 const PANEL_CLOSING =
 	"opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)";

@@ -144,7 +144,7 @@ function PresetGroup({
 						{...dragProps(i)}
 						className={cn(
 							adminRowInset,
-							dragging === i && "opacity-50",
+							dragging === i && "scale-[0.98] opacity-60 shadow-e3 select-none",
 							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
