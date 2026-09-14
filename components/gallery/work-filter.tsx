@@ -1,16 +1,29 @@
 "use client";
 
 import { Palette, ShoppingBag } from "lucide-react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
-import { EAGER_CARD_COUNT, GalleryGrid } from "@/components/gallery/gallery-grid";
+import {
+	EAGER_CARD_COUNT,
+	GALLERY_LEAD_SIZES,
+	GalleryGrid,
+} from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isForSale } from "@/lib/catalog";
-import { staggerDelay } from "@/lib/motion";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import {
+	DUR,
+	EASE_IN,
+	gridStaggerDelay,
+	REVEAL_DISTANCE,
+	SPRING_INDICATOR,
+	SPRING_LAYOUT,
+} from "@/lib/motion";
 import type { ArtStyle, Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -26,8 +39,11 @@ import { cn } from "@/lib/utils";
  * for-sale pieces (priced and not yet sold). Sold pieces show under All with
  * their badge, and drop out the moment "Available to buy" is active.
  *
- * Cards are uniform 3:4 plates -- the user picked uniform-cropped over
- * masonry to avoid the previous attempt's size inconsistency.
+ * Visual pass (visual-direction 2.2): pills are wall text (t-meta) with the
+ * active state carried by a sliding ink pill (layoutId, SPRING_INDICATOR) and
+ * per-pill counts in tabular numerals; the rail sticks under the header on
+ * phones; the grid reflows through AnimatePresence popLayout (G3) with
+ * layout="position" so the 3:4 plates never stretch.
  */
 interface WorkFilterProps {
 	styles: readonly ArtStyle[];
@@ -41,9 +57,11 @@ const AVAILABLE = "Available to buy" as const;
 // type is just `string` and the ALL/AVAILABLE consts carry the intent.
 type Filter = ArtStyle;
 
-/** One pill recipe for both axes; state colours are appended per pill. */
+/** One pill recipe for both axes; state colours are appended per pill. The
+ *  isolate keeps the sliding ink span's -z-10 inside the pill instead of
+ *  behind the rail's backdrop. */
 const PILL =
-	"inline-flex min-h-control shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-ui pressable";
+	"t-meta relative isolate inline-flex min-h-control shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 transition-ui pressable";
 
 /**
  * Resolve the active filter from the URL: `?view=available` -> the buy lens,
@@ -66,6 +84,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+	const reduceMotion = usePrefersReducedMotion();
 	const active = filterFromParams(new URLSearchParams(searchParams.toString()), styles);
 
 	// Write the chosen filter to the URL (replace, no scroll jump) so it's the
@@ -82,12 +101,28 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	);
 
 	const forSaleCount = useMemo(() => items.filter(isForSale).length, [items]);
+	/** Count per style pill, derived from the catalog the client already holds. */
+	const styleCounts = useMemo(() => {
+		const counts = new Map<string, number>();
+		for (const item of items) counts.set(item.style, (counts.get(item.style) ?? 0) + 1);
+		return counts;
+	}, [items]);
+	/** 1-based catalogue position per piece: the wall-label "No. NN" is the
+	 *  piece's place in catalog sort order, stable under every filter. */
+	const indexBySlug = useMemo(() => new Map(items.map((item, i) => [item.slug, i + 1])), [items]);
 
 	const visible = useMemo(() => {
 		if (active === ALL) return items;
 		if (active === AVAILABLE) return items.filter(isForSale);
 		return items.filter((i) => i.style === active);
 	}, [active, items]);
+
+	// The eager plate unveils run only on the first paint; every reflow after a
+	// filter tap enters through the Motion whileInView path instead.
+	const initialRender = useRef(true);
+	useEffect(() => {
+		initialRender.current = false;
+	}, []);
 
 	// Deep link: bring the active pill into the rail's visible box (scrolls the
 	// rail only, never the page, so ?style=Gond from a detail page lands at y=0).
@@ -190,63 +225,93 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		statusMessage = `Showing ${visible.length} ${active} ${pieceWord}`;
 	}
 
+	const exitTransition = { duration: DUR.fast, ease: EASE_IN } as const;
+	const cardExit = reduceMotion
+		? { opacity: 0, transition: exitTransition }
+		: { opacity: 0, scale: 0.96, transition: exitTransition };
+
 	return (
 		<>
 			<h2 className="sr-only">Gallery</h2>
 			{/* Single-row horizontal rail on phones (a half-cut last pill is the swipe
-			    cue), wrapping from sm. py-1.5 -my-1.5 gives the pill focus outline
-			    (2px at a 3px offset on rounded-full) room inside the clipping scroller
-			    without moving the rhythm. */}
+			    cue), sticky under the shrunk header with a glass fill until lg, where
+			    it sits static and transparent (visual-direction 2.2). */}
 			<fieldset
 				ref={railRef}
-				className="m-0 -mx-(--container-px) -my-1.5 flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 px-(--container-px) py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0"
+				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 border-b border-line bg-bg/90 px-(--container-px) py-3 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
 			>
 				<legend className="sr-only">Filter artwork</legend>
-				{styleFilters.map((f) => {
-					const isActive = f === active;
-					return (
-						<button
-							key={f}
-							type="button"
-							onClick={() => setActive(f)}
-							aria-pressed={isActive}
-							data-active={isActive || undefined}
-							className={cn(
-								PILL,
-								isActive
-									? "border-ink bg-ink text-bg"
-									: "border-line text-muted hover:border-accent hover:text-accent-text",
-							)}
-						>
-							{f}
-						</button>
-					);
-				})}
+				<LayoutGroup>
+					{styleFilters.map((f) => {
+						const isActive = f === active;
+						const count = f === ALL ? items.length : (styleCounts.get(f) ?? 0);
+						return (
+							<button
+								key={f}
+								type="button"
+								onClick={() => setActive(f)}
+								aria-pressed={isActive}
+								data-active={isActive || undefined}
+								className={cn(
+									PILL,
+									isActive
+										? "border-ink text-bg"
+										: "border-line text-muted hover:border-accent hover:text-accent-text",
+								)}
+							>
+								{isActive ? (
+									<motion.span
+										aria-hidden="true"
+										layoutId="work-filter-pill"
+										transition={SPRING_INDICATOR}
+										className="absolute inset-0 -z-10 rounded-full bg-ink"
+									/>
+								) : null}
+								{f}
+								<span className={cn("tabular-nums", isActive ? "text-bg/70" : "text-muted")}>
+									({count})
+								</span>
+							</button>
+						);
+					})}
 
-				{/* "Available to buy" -- a second axis, vermillion-accented so it reads
-				    as its own thing rather than another tradition. Hidden entirely when
-				    nothing is for sale, so the row never offers an empty filter. */}
-				{forSaleCount > 0 ? (
-					<>
-						<span aria-hidden="true" className="mx-1 hidden h-5 w-px bg-line sm:block" />
-						<button
-							type="button"
-							onClick={() => setActive(AVAILABLE)}
-							aria-pressed={active === AVAILABLE}
-							data-active={active === AVAILABLE || undefined}
-							className={cn(
-								PILL,
-								active === AVAILABLE
-									? "border-(--color-vermillion) bg-(--color-vermillion) text-bg"
-									: "border-(--color-vermillion)/50 text-(--color-vermillion) hover:bg-(--color-vermillion)/10",
-							)}
-						>
-							<ShoppingBag size={13} aria-hidden="true" />
-							{AVAILABLE}
-							<span className="tabular-nums opacity-80">{forSaleCount}</span>
-						</button>
-					</>
-				) : null}
+					{/* "Available to buy" -- a second axis on the same ink recipe, set
+					    apart by its icon and the gold hairline border. Hidden entirely
+					    when nothing is for sale, so the row never offers an empty filter. */}
+					{forSaleCount > 0 ? (
+						<>
+							<span aria-hidden="true" className="mx-1 hidden h-5 w-px bg-line sm:block" />
+							<button
+								type="button"
+								onClick={() => setActive(AVAILABLE)}
+								aria-pressed={active === AVAILABLE}
+								data-active={active === AVAILABLE || undefined}
+								className={cn(
+									PILL,
+									active === AVAILABLE
+										? "border-ink text-bg"
+										: "border-(--color-gold-hairline) text-muted hover:text-accent-text",
+								)}
+							>
+								{active === AVAILABLE ? (
+									<motion.span
+										aria-hidden="true"
+										layoutId="work-filter-pill"
+										transition={SPRING_INDICATOR}
+										className="absolute inset-0 -z-10 rounded-full bg-ink"
+									/>
+								) : null}
+								<ShoppingBag size={13} aria-hidden="true" />
+								{AVAILABLE}
+								<span
+									className={cn("tabular-nums", active === AVAILABLE ? "text-bg/70" : "text-muted")}
+								>
+									({forSaleCount})
+								</span>
+							</button>
+						</>
+					) : null}
+				</LayoutGroup>
 			</fieldset>
 
 			<p className="t-meta mt-4" aria-live="polite" aria-atomic="true">
@@ -254,12 +319,44 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			</p>
 
 			{visible.length > 0 ? (
-				<GalleryGrid className="mt-(--space-block)">
-					{visible.map((art, i) => (
-						<Reveal key={art.slug} as="li" eager={i < EAGER_CARD_COUNT} delayMs={staggerDelay(i)}>
-							<ArtworkCard artwork={art} siblings={visible} priority={i < 3} />
-						</Reveal>
-					))}
+				<GalleryGrid spanLead className="mt-(--space-block)">
+					<AnimatePresence mode="popLayout" initial={false}>
+						{visible.map((art, i) => {
+							const eager = initialRender.current && i < EAGER_CARD_COUNT;
+							const card = (
+								<ArtworkCard
+									artwork={art}
+									siblings={visible}
+									priority={i < 3}
+									index={indexBySlug.get(art.slug)}
+									total={items.length}
+									sizes={i % 7 === 0 ? GALLERY_LEAD_SIZES : undefined}
+									unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
+									unveilSlow={i === 0}
+								/>
+							);
+							return (
+								<motion.li
+									key={art.slug}
+									layout="position"
+									transition={SPRING_LAYOUT}
+									exit={cardExit}
+								>
+									{eager ? (
+										card
+									) : (
+										<Reveal
+											eager={false}
+											distance={REVEAL_DISTANCE.item}
+											delayMs={gridStaggerDelay(i)}
+										>
+											{card}
+										</Reveal>
+									)}
+								</motion.li>
+							);
+						})}
+					</AnimatePresence>
 				</GalleryGrid>
 			) : (
 				<EmptyState

@@ -7,20 +7,21 @@ export default function WorkLoading() {
 	return (
 		<main role="status" aria-busy="true">
 			<span className="sr-only">Loading</span>
-			<Section background="canvas" borderBottom padded>
+			<Section accent="ruby" background="wash" rhythm="grand" padded>
 				<SkeletonHeader />
-				<Skeleton className="mt-6 h-3 w-16" />
+				{/* Count numeral + word */}
+				<Skeleton className="mt-6 h-7 w-24" />
 			</Section>
-			<Section padded containerClassName="pt-(--space-block)">
+			<Section accent="ruby" padded containerClassName="pt-(--space-block)">
 				{/* Filter pill rail */}
-				<div className="flex gap-2 overflow-hidden">
+				<div className="flex gap-2 overflow-hidden py-3">
 					{[0, 1, 2, 3, 4, 5, 6].map((i) => (
 						<Skeleton key={i} className="h-control w-20 shrink-0 rounded-full" />
 					))}
 				</div>
 				{/* Visible result count */}
 				<Skeleton className="mt-4 h-3 w-40" />
-				<GalleryGrid className="mt-(--space-block)">
+				<GalleryGrid spanLead className="mt-(--space-block)">
 					{[0, 1, 2, 3, 4, 5].map((i) => (
 						<li key={i}>
 							<SkeletonCard />

@@ -52,6 +52,10 @@ interface WallLabelProps {
 	prefix?: ReactNode;
 	/** Line 2's element: the detail page passes "h1"; default is a paragraph. */
 	headingLevel?: "h1" | "h2" | "none";
+	/** Optional id on line 2 (the lightbox labels its dialog by the title). */
+	titleId?: string;
+	/** Extra classes on line 2 (the detail page adds md:text-h1). */
+	titleClassName?: string;
 	className?: string;
 }
 
@@ -69,11 +73,16 @@ export function WallLabel({
 	mark = false,
 	prefix,
 	headingLevel = "none",
+	titleId,
+	titleClassName,
 	className,
 }: Readonly<WallLabelProps>) {
 	const full = variant === "full";
 	const scrim = tone === "scrim";
-	const mutedClass = scrim ? "text-bg/70" : undefined;
+	// Scrim text follows the house convention (globals.css SURFACES): the scrim
+	// stays dark in both modes, so light mode reads text-bg (cream) and dark
+	// mode reads text-ink (the near-white dark-mode ink).
+	const mutedClass = scrim ? "text-bg/70 dark:text-ink/70" : undefined;
 
 	const counter =
 		typeof index === "number"
@@ -100,8 +109,15 @@ export function WallLabel({
 	lines.push({
 		key: "title",
 		tag: headingTag,
-		className: cn("t-display", full ? "text-title" : "text-h3", scrim && "text-bg"),
-		content: title,
+		className: cn(
+			"t-display",
+			full ? "text-title" : "text-h3",
+			scrim && "text-bg dark:text-ink",
+			titleClassName,
+		),
+		// The id rides on an inner span so the stagger path (Reveal owns the line
+		// element) can still be referenced by aria-labelledby.
+		content: titleId ? <span id={titleId}>{title}</span> : title,
 	});
 	if (metaLine) {
 		lines.push({ key: "meta", tag: "p", className: cn("t-meta", mutedClass), content: metaLine });
@@ -115,7 +131,7 @@ export function WallLabel({
 			className: cn(
 				"t-numeral",
 				full ? "text-h2" : "text-base",
-				scrim ? "text-bg" : "text-(--section-accent)",
+				scrim ? "text-bg dark:text-ink" : "text-(--section-accent)",
 			),
 			content: price,
 		});

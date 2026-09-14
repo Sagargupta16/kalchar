@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { PlateFrame } from "@/components/gallery/plate-frame";
+import { WallLabel } from "@/components/gallery/wall-label";
+import { TiltPlate } from "@/components/motion/tilt-plate";
 import { isPositivePrice } from "@/lib/catalog";
+import { STAGGER } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 
@@ -17,6 +22,17 @@ interface ArtworkCardProps {
 	siblings?: readonly Artwork[];
 	/** Image sizes hint; defaults to the 3-column gallery grid's. */
 	sizes?: string;
+	/** 1-based catalogue position for the wall-label counter ("No. 07"). */
+	index?: number;
+	/** Catalogue size for the counter's "of {total}" tail. */
+	total?: number;
+	/** Present = this card paints eagerly and its plate clip-unveils with this
+	 *  delay. The clip lives on the image layer inside the frame (overflow is
+	 *  already hidden there) so the hover shadow and 2px lift are never cropped
+	 *  by a lingering clip-path (anti-pattern 3). */
+	unveilDelayMs?: number;
+	/** Slower 700ms unveil for the spanning lead tile. */
+	unveilSlow?: boolean;
 }
 
 export function ArtworkCard({
@@ -25,13 +41,20 @@ export function ArtworkCard({
 	className,
 	siblings,
 	sizes = GALLERY_CARD_SIZES,
+	index,
+	total,
+	unveilDelayMs,
+	unveilSlow = false,
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 
 	const handleClick = (e: React.MouseEvent) => {
 		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
 			e.preventDefault();
-			openLightbox(artwork, siblings);
+			openLightbox(artwork, siblings, {
+				xPct: (e.clientX / window.innerWidth) * 100,
+				yPct: (e.clientY / window.innerHeight) * 100,
+			});
 		}
 	};
 
@@ -45,6 +68,16 @@ export function ArtworkCard({
 	}
 	const ariaLabel = [artwork.title, artwork.style, statusLabel].filter(Boolean).join(", ");
 
+	let priceSlot: string | undefined;
+	if (isAvailable && typeof artwork.priceInr === "number" && !isSold) {
+		priceSlot = formatInr(artwork.priceInr);
+	}
+	let statusSlot: string | undefined;
+	if (isSold) statusSlot = "Sold";
+	else if (!isAvailable) statusSlot = "Not listed for sale";
+
+	const unveiling = typeof unveilDelayMs === "number";
+
 	return (
 		<Link
 			href={`/work/${artwork.slug}`}
@@ -52,55 +85,72 @@ export function ArtworkCard({
 			className={cn("group @container block pressable", className)}
 			aria-label={ariaLabel}
 		>
-			{/* Image plate: the grid keeps the confirmed uniform 3:4 crop (D9). */}
-			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline transition-ui group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent)">
-				{/* No hover zoom on the painting (motion addendum G1: the frame moves,
-				    the image stays at scale 1.0; the token guard's image-zoom rule bans it). */}
-				<ArtImage
-					src={imgSrc}
-					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-					sizes={sizes}
-					className="absolute inset-0 h-full w-full object-cover"
-					priority={priority}
+			<TiltPlate>
+				{/* Image plate: uniform 3:4 crop in the grid (D9). PlateFrame owns the
+				    hairline, the elevate-e2 crossfade, the 2px lift and the gold inset
+				    hover cue; a single gold-sheen pass crosses on hover (G9); the image
+				    itself never scales (G1). */}
+				<PlateFrame className="aspect-3/4">
+					<div
+						className={cn(
+							"absolute inset-0",
+							unveiling && "reveal-plate",
+							unveiling && unveilSlow && "reveal-plate-unveil",
+						)}
+						style={
+							unveiling ? ({ animationDelay: `${unveilDelayMs}ms` } as CSSProperties) : undefined
+						}
+					>
+						<ArtImage
+							src={imgSrc}
+							alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
+							sizes={sizes}
+							className="absolute inset-0 h-full w-full object-cover"
+							priority={priority}
+						/>
+					</div>
+					<span
+						aria-hidden="true"
+						className="gold-sheen pointer-events-none absolute inset-0 hidden rounded-[inherit] [@media(hover:hover)_and_(pointer:fine)]:block"
+					/>
+					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+				</PlateFrame>
+			</TiltPlate>
+
+			{/* Caption rises one stagger step after its plate on the eager path
+			    (visual-direction 2.2 motion). */}
+			<div
+				className={cn("mt-4", unveiling && "reveal-up")}
+				style={
+					unveiling
+						? ({ animationDelay: `${unveilDelayMs + STAGGER.stepMs}ms` } as CSSProperties)
+						: undefined
+				}
+			>
+				<WallLabel
+					variant="compact"
+					index={index}
+					total={total}
+					title={artwork.title}
+					meta={[artwork.style, artwork.medium, artwork.year ? String(artwork.year) : ""].filter(
+						Boolean,
+					)}
+					price={priceSlot}
+					status={statusSlot}
 				/>
 
-				{/* Gold border on hover */}
-				<div className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-gold-leaf/0 transition-colors group-hover:border-gold-leaf/40" />
-
-				<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
-			</div>
-
-			{/* Caption follows the card width (container query), not the viewport. */}
-			<div className="mt-3 flex flex-col gap-1 @xs:flex-row @xs:items-baseline @xs:justify-between @xs:gap-2">
-				<h3 className="t-display min-w-0 text-balance line-clamp-2 text-h3 transition-colors group-hover:text-(--section-accent)">
-					{artwork.title}
-				</h3>
-				<span className="t-meta @xs:shrink-0 @xs:whitespace-nowrap">{artwork.style}</span>
-			</div>
-
-			<Chromacard
-				palette={artwork.palette}
-				ariaLabel={`Palette from ${artwork.title}`}
-				className="mt-2"
-				groupHoverBloom
-			/>
-
-			{artwork.description ? (
-				<p className="mt-2 line-clamp-1 text-sm text-muted @xs:line-clamp-2">
-					{artwork.description}
-				</p>
-			) : null}
-
-			<div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-				<p className="min-w-0 text-xs text-muted text-pretty">{artwork.medium}</p>
-				{isAvailable && typeof artwork.priceInr === "number" ? (
-					<p className="ml-auto shrink-0 whitespace-nowrap text-sm font-medium text-ink tabular-nums">
-						{formatInr(artwork.priceInr)}
+				{artwork.description ? (
+					<p className="mt-2 hidden line-clamp-1 text-sm text-muted @xs:block">
+						{artwork.description}
 					</p>
 				) : null}
-				{!isAvailable && !isSold ? (
-					<p className="ml-auto shrink-0 text-xs text-muted">Not listed for sale</p>
-				) : null}
+
+				<Chromacard
+					palette={artwork.palette}
+					ariaLabel={`Palette from ${artwork.title}`}
+					className="mt-2"
+					groupHoverBloom
+				/>
 			</div>
 		</Link>
 	);

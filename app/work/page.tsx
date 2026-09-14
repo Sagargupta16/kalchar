@@ -33,15 +33,18 @@ export default async function WorkPage() {
 
 	return (
 		<main>
-			<Section accent="ruby" background="canvas" borderBottom padded>
+			{/* The standard public page header (visual-direction 2.0): grand rhythm
+			    on the flat ruby wash band; the count reads as wall text. */}
+			<Section accent="ruby" background="wash" rhythm="grand" padded>
 				<PageHeader
 					eyebrow={work?.eyebrow ?? "Work"}
 					title={work?.title ?? "Selected work"}
 					lead={work?.lead}
 				>
 					<Reveal eager delayMs={staggerDelay(3)}>
-						<p className="t-meta mt-5">
-							{all.length} {all.length === 1 ? "piece" : "pieces"}
+						<p className="mt-6 flex items-baseline gap-2">
+							<span className="t-numeral text-title text-accent-text">{all.length}</span>
+							<span className="t-meta">{all.length === 1 ? "piece" : "pieces"}</span>
 						</p>
 					</Reveal>
 					{contact.whatsapp.catalog ? (
