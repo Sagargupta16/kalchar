@@ -14,6 +14,10 @@ interface RevealProps {
 	eager?: boolean;
 	direction?: "up" | "down" | "left" | "right";
 	distance?: number;
+	/** plate = clip-path unveil for artwork plates (the image is never resampled). */
+	variant?: "up" | "plate";
+	/** Slower single-plate unveil (700ms, --ease-emphatic) on the eager plate path. */
+	unveil?: boolean;
 }
 
 const DIR = { up: "Y", down: "Y", left: "X", right: "X" } as const;
@@ -27,9 +31,13 @@ export function Reveal({
 	eager = false,
 	direction = "up",
 	distance = 20,
+	variant = "up",
+	unveil = false,
 }: Readonly<RevealProps>) {
 	const reduceMotion = usePrefersReducedMotion();
+	const plate = variant === "plate";
 	if (reduceMotion) {
+		// Plates included: clip-path none, plain presence.
 		const Tag = as;
 		return <Tag className={className}>{children}</Tag>;
 	}
@@ -37,7 +45,13 @@ export function Reveal({
 	if (eager) {
 		const Tag = as;
 		return (
-			<Tag className={cn("reveal-up", className)} style={{ animationDelay: `${delayMs}ms` }}>
+			<Tag
+				className={cn(
+					plate ? cn("reveal-plate", unveil && "reveal-plate-unveil") : "reveal-up",
+					className,
+				)}
+				style={{ animationDelay: `${delayMs}ms` }}
+			>
 				{children}
 			</Tag>
 		);
@@ -46,8 +60,13 @@ export function Reveal({
 	const Tag = motion[as];
 	const axis = DIR[direction];
 	const offset = SIGN[direction] * distance;
-	const initial = { opacity: 0, [`translate${axis}`]: offset };
-	const animate = { opacity: 1, translateX: 0, translateY: 0 };
+	// Plates clip-unveil at final size (never resampled); everything else fades up.
+	const initial = plate
+		? { clipPath: "inset(0% 0% 100% 0%)" }
+		: { opacity: 0, [`translate${axis}`]: offset };
+	const animate = plate
+		? { clipPath: "inset(0% 0% 0% 0%)" }
+		: { opacity: 1, translateX: 0, translateY: 0 };
 
 	return (
 		<Tag
@@ -56,7 +75,11 @@ export function Reveal({
 			initial={initial}
 			whileInView={animate}
 			viewport={{ once: true, margin: REVEAL_VIEWPORT_MARGIN }}
-			transition={{ duration: DUR.enter, ease: EASE_OUT, delay: delayMs / 1000 }}
+			transition={{
+				duration: plate ? DUR.slow : DUR.enter,
+				ease: EASE_OUT,
+				delay: delayMs / 1000,
+			}}
 		>
 			{children}
 		</Tag>
