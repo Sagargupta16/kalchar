@@ -1,9 +1,11 @@
 import { ArrowRight, BookOpen, MessageCircle, QrCode } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { PlateFrame } from "@/components/gallery/plate-frame";
+import { WallLabel } from "@/components/gallery/wall-label";
 import { Reveal } from "@/components/motion/reveal";
 import { AccentRule } from "@/components/ui/accent-rule";
-import { Badge } from "@/components/ui/badge";
 import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cardVariants } from "@/components/ui/card";
@@ -27,29 +29,39 @@ export const metadata = createPageMetadata({
 /** The one link-card recipe: resting surface, 2px lift to e2 with the section pigment, global focus. */
 const linkCard = cardVariants({ padding: "none", interactive: true });
 
+/**
+ * The plate of the page (visual-direction 2.9): a 2px gold top seam over the
+ * hairline + e1 composite (one shadow utility, anti-pattern 11), written out
+ * because stacking a second shadow-* on cardVariants is banned.
+ */
+const whatsAppCard =
+	"group flex items-center gap-5 rounded-(--radius-md) border border-line border-t-2 border-t-(--color-gold-hairline) bg-surface p-(--card-pad) shadow-e1-edged transition-ui pressable elevate-e2 hover:-translate-y-0.5 dark:hover:bg-surface-raised";
+
 export default function ContactPage() {
 	const { contact, sections } = getSite();
 	const contactCopy = sections.contact;
 
 	return (
-		<main className="[--shadow-ink:0.2_0.02_220]">
-			<Section accent="peacock" padded size="narrow">
+		<main>
+			{/* The standard public page header (visual-direction 2.0): grand rhythm
+			    on the flat peacock wash band with the short kachni rule. */}
+			<Section accent="peacock" background="wash" rhythm="grand" padded size="narrow">
 				<PageHeader
+					kachni
 					eyebrow={contactCopy?.eyebrow ?? "Contact"}
 					title={contactCopy?.title ?? "Get in touch"}
 					lead="WhatsApp is the fastest way to reach us. For formal briefs, use email. Follow along on Instagram and YouTube."
 				/>
+			</Section>
 
+			<Section accent="peacock" padded size="narrow" containerClassName="pt-(--space-block)">
 				{/* Reply channels first: WhatsApp, then the catalogue, then email. */}
 				<Reveal delayMs={staggerDelay(0)}>
 					<a
 						href={contact.whatsapp.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={cn(
-							linkCard,
-							"group mt-(--space-block) flex items-center gap-5 border-(--section-accent)/30 bg-canvas p-(--card-pad)",
-						)}
+						className={whatsAppCard}
 					>
 						<IconCircle size="lg" className="group-hover:ring-(--section-accent)">
 							<WhatsAppIcon className="size-6" />
@@ -59,11 +71,13 @@ export default function ContactPage() {
 								<MessageCircle size={12} aria-hidden="true" />
 								Fastest reply
 							</p>
-							<p className="t-display mt-1 text-title transition-colors group-hover:text-(--section-accent)">
+							{/* The one place a number is the headline: the numeral voice at
+							    the h2 rung, tabular, select-all so it copies in one gesture. */}
+							<p className="t-numeral mt-1 select-all text-h2 text-ink transition-colors group-hover:text-(--section-accent)">
 								{contact.whatsapp.display}
 							</p>
 							<p className="mt-1 text-sm text-muted">
-								Usually same-day. Send a photo, link, or short brief.
+								{contact.whatsapp.note ?? "Usually same-day. Send a photo, link, or short brief."}
 							</p>
 						</div>
 						<ArrowRight
@@ -107,7 +121,9 @@ export default function ContactPage() {
 						</IconCircle>
 						<div className="flex-1">
 							<p className="text-sm font-medium">{contact.email.display}</p>
-							<p className="text-sm text-muted">For longer briefs or formal enquiries</p>
+							<p className="text-sm text-muted">
+								{contact.email.note ?? "For longer briefs or formal enquiries"}
+							</p>
 						</div>
 						<ArrowRight
 							size={14}
@@ -116,7 +132,8 @@ export default function ContactPage() {
 					</a>
 				</Reveal>
 
-				{/* Follow along: Instagram QR cards and YouTube */}
+				{/* Follow along: the broadcast channels as museum plates (QR tiles
+				    scan from another device at 1280; tap opens on a phone). */}
 				<div className="mt-(--space-block)">
 					<Reveal delayMs={staggerDelay(0)}>
 						<p className="t-eyebrow flex items-center gap-2">
@@ -124,45 +141,40 @@ export default function ContactPage() {
 							Follow along
 						</p>
 					</Reveal>
-					<div className={cn("mt-5 grid gap-4", contact.instagramCommunity && "sm:grid-cols-2")}>
-						<Reveal delayMs={staggerDelay(1)}>
-							<InstagramQrCard channel={contact.instagram} />
+					<ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3">
+						<Reveal as="li" delayMs={staggerDelay(1)}>
+							<ChannelPlate
+								channel={contact.instagram}
+								icon={<InstagramIcon className="size-3.5 shrink-0" aria-hidden="true" />}
+								qrAlt={`QR code for ${contact.instagram.display} on Instagram`}
+							/>
 						</Reveal>
 						{contact.instagramCommunity ? (
-							<Reveal delayMs={staggerDelay(2)}>
-								<InstagramQrCard channel={contact.instagramCommunity} />
+							<Reveal as="li" delayMs={staggerDelay(2)}>
+								<ChannelPlate
+									channel={contact.instagramCommunity}
+									icon={<InstagramIcon className="size-3.5 shrink-0" aria-hidden="true" />}
+									qrAlt={`QR code for ${contact.instagramCommunity.display} on Instagram`}
+								/>
 							</Reveal>
 						) : null}
-					</div>
-
-					{contact.youtube ? (
-						<Reveal delayMs={staggerDelay(3)}>
-							<a
-								href={contact.youtube.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={cn(linkCard, "group mt-4 flex items-center gap-4 p-(--card-pad)")}
-							>
-								<IconCircle size="sm">
-									<YouTubeIcon className="size-3.5" />
-								</IconCircle>
-								<div className="flex-1">
-									<p className="text-sm font-medium">{contact.youtube.display}</p>
-									<p className="text-sm text-muted">{contact.youtube.note ?? "Watch on YouTube"}</p>
-								</div>
-								<ArrowRight
-									size={14}
-									className="shrink-0 text-muted transition-transform group-hover:translate-x-1"
+						{contact.youtube ? (
+							<Reveal as="li" delayMs={staggerDelay(3)}>
+								<ChannelPlate
+									channel={contact.youtube}
+									icon={<YouTubeIcon className="size-3.5 shrink-0" aria-hidden="true" />}
+									fallbackNote="Watch on YouTube"
+									glyph={<YouTubeIcon className="size-8" aria-hidden="true" />}
 								/>
-							</a>
-						</Reveal>
-					) : null}
+							</Reveal>
+						) : null}
+					</ul>
 				</div>
 
 				{/* Personal IG (subtle) */}
 				{contact.instagramPersonal ? (
 					<Reveal delayMs={staggerDelay(4)}>
-						<p className="mt-6 text-center text-sm text-muted">
+						<p className="mt-8 text-center text-sm text-muted">
 							Also find Megha at{" "}
 							<a
 								href={contact.instagramPersonal.url}
@@ -202,47 +214,67 @@ export default function ContactPage() {
 }
 
 /**
- * Instagram card with a scan-or-tap QR. The whole card is one link: tap on a
- * phone opens the profile, scan the QR from another device opens it too. The
- * QR plate is the visual anchor; handle + purpose tag sit beside it.
+ * One broadcast channel as a plate + wall label (visual-direction 2.9). The
+ * whole tile is one link: tap on a phone opens the profile, scan the QR from
+ * another device opens it too. Channels without a QR (YouTube) show a glyph
+ * plate; the handle and purpose caption read as the wall label.
  */
-function InstagramQrCard({ channel }: Readonly<{ channel: ContactChannel }>) {
+function ChannelPlate({
+	channel,
+	icon,
+	qrAlt,
+	fallbackNote,
+	glyph,
+}: Readonly<{
+	channel: ContactChannel;
+	/** Small brand glyph on the "Scan or tap" line. */
+	icon: ReactNode;
+	qrAlt?: string;
+	fallbackNote?: string;
+	/** Large glyph for the plate when the channel has no QR image. */
+	glyph?: ReactNode;
+}>) {
 	return (
 		<a
 			href={channel.url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className={cn(linkCard, "group flex h-full items-center gap-4 p-(--card-pad)")}
+			className="group block pressable"
 		>
-			{/* QR plate */}
-			<div className="relative shrink-0">
-				{channel.qr ? (
-					<Image
-						src={`/${channel.qr}`}
-						alt={`QR code for ${channel.display} on Instagram`}
-						width={334}
-						height={384}
-						sizes="112px"
-						loading="lazy"
-						className="size-24 rounded-(--radius-sm) border border-line bg-surface object-contain p-1.5 transition-colors group-hover:border-(--section-accent) sm:size-28"
-					/>
-				) : (
-					<div className="grid size-24 place-items-center rounded-(--radius-sm) border border-line bg-canvas text-muted sm:size-28">
-						<QrCode size={28} />
-					</div>
-				)}
-			</div>
-
-			{/* Text */}
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-1.5 text-(--section-accent)">
-					<InstagramIcon className="size-4 shrink-0" aria-hidden="true" />
-					<Badge variant="muted">{channel.note}</Badge>
-				</div>
-				<p className="t-display mt-2 break-words text-h3 transition-colors group-hover:text-(--section-accent)">
-					{channel.display}
-				</p>
-				<p className="mt-2 inline-flex items-center gap-1 text-sm text-muted">
+			<figure>
+				<PlateFrame className="aspect-square">
+					{channel.qr ? (
+						// The QR unveils like a plate; the clip lives on the layer inside
+						// the frame so the hover lift and shadow are never cropped.
+						<Reveal variant="plate" className="absolute inset-0">
+							<Image
+								src={`/${channel.qr}`}
+								alt={qrAlt ?? `QR code for ${channel.display}`}
+								width={334}
+								height={384}
+								sizes="(min-width: 1024px) 224px, 45vw"
+								loading="lazy"
+								className="absolute inset-0 h-full w-full bg-surface object-contain p-4"
+							/>
+						</Reveal>
+					) : (
+						<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
+							{glyph ?? <QrCode size={28} aria-hidden="true" />}
+						</div>
+					)}
+				</PlateFrame>
+				<WallLabel
+					as="figcaption"
+					className="mt-4"
+					title={channel.display ?? channel.label}
+					titleClassName="break-words transition-colors group-hover:text-(--section-accent)"
+					meta={[channel.note ?? fallbackNote ?? ""]}
+				/>
+			</figure>
+			{/* The scan affordance only makes sense on a QR plate; glyph tiles just tap. */}
+			{channel.qr ? (
+				<p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
+					{icon}
 					Scan or tap
 					<ArrowRight
 						size={12}
@@ -250,7 +282,16 @@ function InstagramQrCard({ channel }: Readonly<{ channel: ContactChannel }>) {
 						className="transition-transform group-hover:translate-x-1"
 					/>
 				</p>
-			</div>
+			) : (
+				<p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
+					{icon}
+					<ArrowRight
+						size={12}
+						aria-hidden="true"
+						className="transition-transform group-hover:translate-x-1"
+					/>
+				</p>
+			)}
 		</a>
 	);
 }

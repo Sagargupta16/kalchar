@@ -3,6 +3,7 @@
 import { Brush, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
+import { PlateFrame } from "@/components/gallery/plate-frame";
 import type { ArtStyle } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -108,14 +109,10 @@ function OptionCard({
 	return (
 		// The radio is sr-only, so the global :focus-visible outline would land on a
 		// 1px element; has-focus-visible lifts the same 2px outline onto the card.
-		<label
-			className={cn(
-				"group relative cursor-pointer overflow-hidden rounded-(--radius-md) border bg-surface transition-ui has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
-				checked
-					? "border-(--section-accent) shadow-e2"
-					: "border-line hover:border-(--section-accent)/50 hover:shadow-e1",
-			)}
-		>
+		// Selection carries two non-colour cues (visual-direction 2.8): the 2px
+		// section-pigment ring offset 2px on the plate AND the resting gold inset
+		// line (goldRest), plus the check badge.
+		<label className="group relative block cursor-pointer transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2">
 			<input
 				type="radio"
 				name={name}
@@ -124,8 +121,15 @@ function OptionCard({
 				onChange={() => onSelect(value)}
 				className="sr-only"
 			/>
-			{/* Thumbnail / icon plate */}
-			<div className="relative aspect-4/3 overflow-hidden">
+			{/* Sample plate: the museum frame owns the hairline, hover lift and the
+			    concentric gold inset (rested while selected). */}
+			<PlateFrame
+				goldRest={checked}
+				className={cn(
+					"aspect-4/3",
+					checked && "ring-2 ring-(--section-accent) ring-offset-2 ring-offset-bg",
+				)}
+			>
 				{children}
 				{/* Selected check */}
 				<span
@@ -137,11 +141,11 @@ function OptionCard({
 				>
 					<Check size={12} />
 				</span>
-			</div>
+			</PlateFrame>
 			{/* Label */}
 			<span
 				className={cn(
-					"block px-3 py-2 text-sm font-medium transition-colors",
+					"block px-1 py-2 text-sm font-medium transition-colors",
 					checked ? "text-(--section-accent)" : "text-ink",
 				)}
 			>

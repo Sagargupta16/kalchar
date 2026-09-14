@@ -40,6 +40,7 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 
 	return (
 		<AuthShell
+			eyebrow="Admin access"
 			title="Maintainer sign-in"
 			lead="Access is limited to listed maintainers. Sign in with the Google account on the allowlist."
 		>
@@ -62,7 +63,7 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 					"use server";
 					await signIn("google", { redirectTo });
 				}}
-				className="mt-8"
+				className="mt-6"
 			>
 				<button type="submit" className={buttonVariants({ variant: "ghost", size: "lg" })}>
 					<GoogleIcon className="size-4 shrink-0" aria-hidden="true" />

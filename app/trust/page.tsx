@@ -8,6 +8,7 @@ import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
 import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
+import styles from "./trust.module.css";
 
 const site = getSite();
 const trust = site.trust;
@@ -24,17 +25,21 @@ export const metadata = createPageMetadata({
  * via the sync getSite()), so the maintainer changes copy without a deploy.
  *
  * The accordion is a native <details>/<summary> -- accessible and
- * keyboard-friendly with no JS, and reduced-motion-safe by construction.
- * FAQPage JSON-LD is emitted from the same content for rich results.
+ * keyboard-friendly with no JS. Opening animates the answer's grid rows
+ * 0fr -> 1fr (trust.module.css; reduced motion opens instantly); the open
+ * summary tints on the section wash. FAQPage JSON-LD is emitted from the same
+ * content for rich results. Header per the 2.0 standard: grand rhythm on the
+ * default terracotta wash (visual-direction 2.10).
  */
 export default function TrustPage() {
 	if (!trust || trust.faqs.length === 0) {
 		return (
 			<main>
-				<Section accent="peacock" padded>
-					<PageHeader eyebrow="FAQ" title="Frequently asked questions" />
+				<Section background="wash" rhythm="grand" padded>
+					<PageHeader kachni eyebrow="FAQ" title="Frequently asked questions" />
+				</Section>
+				<Section padded containerClassName="pt-(--space-block)">
 					<EmptyState
-						className="mt-(--space-block)"
 						icon={<CircleHelp size={24} aria-hidden="true" />}
 						title="No answers posted yet"
 						body="Ask us on WhatsApp and we will reply with the details."
@@ -68,15 +73,17 @@ export default function TrustPage() {
 					__html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
 				}}
 			/>
-			<Section accent="peacock" padded>
-				<PageHeader eyebrow={trust.eyebrow ?? "FAQ"} title={trust.title} lead={trust.lead} />
+			<Section background="wash" rhythm="grand" padded>
+				<PageHeader kachni eyebrow={trust.eyebrow ?? "FAQ"} title={trust.title} lead={trust.lead} />
+			</Section>
 
-				{/* The list shares the h1's left axis and measure (42rem). */}
-				<div className="mt-(--space-block) max-w-(--header-max) divide-y divide-line border-y border-line">
+			<Section padded containerClassName="pt-(--space-block)">
+				{/* The list shares the h1's left axis and stays prose-measured (2.10). */}
+				<div className="max-w-(--prose-max) divide-y divide-line border-y border-line">
 					{trust.faqs.map((faq, i) => (
 						<Reveal key={faq.question} delayMs={staggerDelay(i)}>
 							<details className="group">
-								<summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-4 text-left text-base font-medium text-ink pressable [&::-webkit-details-marker]:hidden">
+								<summary className="-mx-3 flex min-h-control cursor-pointer items-center justify-between gap-4 rounded-(--radius-sm) px-3 py-3 text-left text-sm font-medium text-ink transition-colors pressable group-open:bg-(--section-wash) [&::-webkit-details-marker]:hidden">
 									{faq.question}
 									<ChevronDown
 										size={18}
@@ -84,10 +91,13 @@ export default function TrustPage() {
 										className="shrink-0 text-muted transition-transform group-open:rotate-180"
 									/>
 								</summary>
-								{/* Reuses the reveal-up-in keyframe: the answer fades up as the disclosure opens. */}
-								<p className="t-body pb-4 motion-safe:animate-[reveal-up-in_var(--duration-base)_var(--ease-out)_both]">
-									{faq.answer}
-								</p>
+								{/* Rows animate 0fr -> 1fr on open; the inner box hides the
+								    overflow while the row grows. */}
+								<div className={styles.answer}>
+									<div className="overflow-hidden">
+										<p className="t-body pb-4 pt-1">{faq.answer}</p>
+									</div>
+								</div>
 							</details>
 						</Reveal>
 					))}

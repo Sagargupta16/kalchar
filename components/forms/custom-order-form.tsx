@@ -4,7 +4,9 @@ import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "luci
 import { motion } from "motion/react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { submitLead } from "@/app/admin/lead-actions";
+import { PresetChips } from "@/components/forms/preset-chips";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { SPRING_ZOOM } from "@/lib/motion";
@@ -23,6 +25,9 @@ import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/
  */
 const MAX_BRIEF_LENGTH = 4000;
 const MAX_CONTACT_LENGTH = 200;
+/** Chips only while a preset list stays at 6 options or fewer (forms-copy P10
+ *  threshold plus the neutral chip); past that the select returns. */
+const CHIP_LIMIT = 6;
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
 
 interface CustomOrderFormProps {
@@ -104,179 +109,200 @@ export function CustomOrderForm({
 		: null;
 
 	return (
-		<form
-			onSubmit={onSubmit}
-			onChange={() => {
-				// An old response must not mark an edited brief as saved.
-				submissionVersion.current += 1;
-				setDraft(null);
-				setSaveStatus("idle");
-				setError(null);
-			}}
-			// relative anchors the off-screen honeypot to the form; @container lets
-			// the field pairs split on the form's own width, not the viewport.
-			className="@container relative flex flex-col gap-(--form-gap)"
-			noValidate
+		// The commission sheet's own surface (visual-direction 2.8): the Card
+		// anatomy with the hairline + e1 composite shadow (one shadow utility,
+		// anti-pattern 11), written out so the data hook can ride along.
+		<div
+			data-slot="commission-card"
+			className="rounded-(--radius-md) border border-line bg-surface p-(--card-pad-lg) shadow-e1-edged"
 		>
-			{/* Honeypot: hidden from users + assistive tech; bots fill it and the
+			{/* The sheet's wall-label head (visual-direction 2.8): one new eyebrow
+			    string ("Commission brief", 2.16) over a short gold rule. */}
+			<p className="t-eyebrow">Commission brief</p>
+			<AccentRule variant="gold" className="mt-3 w-10" />
+			<form
+				onSubmit={onSubmit}
+				onChange={() => {
+					// An old response must not mark an edited brief as saved.
+					submissionVersion.current += 1;
+					setDraft(null);
+					setSaveStatus("idle");
+					setError(null);
+				}}
+				// relative anchors the off-screen honeypot to the form; @container lets
+				// the field pairs split on the form's own width, not the viewport.
+				className="@container relative mt-6 flex flex-col gap-(--form-gap)"
+				noValidate
+			>
+				{/* Honeypot: hidden from users + assistive tech; bots fill it and the
 			    lead is silently dropped server-side. Not display:none (some bots
 			    skip those) -- off-screen + aria-hidden + no tab stop. */}
-			<div
-				aria-hidden="true"
-				className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
-			>
-				<label htmlFor="website">Leave this field empty</label>
-				<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
-			</div>
-			{/* Brief -- the one required field, given hero weight up top. */}
-			<Field id="brief" label="What would you like painted?" required>
-				<textarea
-					id="brief"
-					name="brief"
-					rows={5}
-					required
-					maxLength={MAX_BRIEF_LENGTH}
-					aria-invalid={error ? true : undefined}
-					aria-describedby={error ? "brief-error" : undefined}
-					placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
-					className={cn(inputClass, "resize-y")}
-				/>
-			</Field>
-
-			{/* Visual style picker (replaces the old dropdown). */}
-			<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
-
-			<div className="grid gap-(--form-gap) @md:grid-cols-2">
-				<SelectField id="size" label="Approx size">
-					<select id="size" name="size" defaultValue="" className={selectClass}>
-						<option value="">No preference</option>
-						{sizes.map((s) => (
-							<option key={s} value={s}>
-								{s}
-							</option>
-						))}
-					</select>
-				</SelectField>
-
-				<SelectField id="budget" label="Budget">
-					<select id="budget" name="budget" defaultValue="" className={selectClass}>
-						<option value="">Open / not sure</option>
-						{budgets.map((b) => (
-							<option key={b} value={b}>
-								{b}
-							</option>
-						))}
-					</select>
-				</SelectField>
-			</div>
-
-			<div className="grid gap-(--form-gap) @md:grid-cols-2">
-				<SelectField id="timeline" label="Timeline">
-					<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
-						<option value="">No specific timeline</option>
-						{timelines.map((t) => (
-							<option key={t} value={t}>
-								{t}
-							</option>
-						))}
-					</select>
-				</SelectField>
-
-				<Field id="name" label="Your name" optional>
-					<input
-						id="name"
-						name="name"
-						type="text"
-						autoComplete="name"
-						placeholder="What should we call you?"
-						className={inputClass}
+				<div
+					aria-hidden="true"
+					className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
+				>
+					<label htmlFor="website">Leave this field empty</label>
+					<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+				</div>
+				{/* Brief -- the one required field, given hero weight up top. */}
+				<Field id="brief" label="What would you like painted?" required>
+					<textarea
+						id="brief"
+						name="brief"
+						rows={5}
+						required
+						maxLength={MAX_BRIEF_LENGTH}
+						autoCapitalize="sentences"
+						aria-invalid={error ? true : undefined}
+						aria-describedby={error ? "brief-error" : undefined}
+						placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
+						className={cn(inputClass, "resize-y")}
 					/>
 				</Field>
-			</div>
 
-			<Field
-				id="contact"
-				label="Email or WhatsApp number"
-				optional
-				description={
-					<p id="contact-hint" className="text-sm text-muted">
-						Leave a way for us to reply if you cannot send your message on WhatsApp.
-					</p>
-				}
-			>
-				<input
-					id="contact"
-					name="contact"
-					type="text"
-					maxLength={MAX_CONTACT_LENGTH}
-					autoCapitalize="none"
-					spellCheck={false}
-					aria-describedby="contact-hint"
-					placeholder="Where can we reply?"
-					className={inputClass}
+				{/* Visual style picker (replaces the old dropdown). */}
+				<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
+
+				{/* Structured preferences as chip rows (forms-copy c1 order: size, budget,
+			    timeline). Each group takes the full measure so the pills can wrap. */}
+				<PresetRow name="size" label="Approx size" neutralLabel="No preference" options={sizes} />
+				<PresetRow name="budget" label="Budget" neutralLabel="Open / not sure" options={budgets} />
+				<PresetRow
+					name="timeline"
+					label="Timeline"
+					neutralLabel="No specific timeline"
+					options={timelines}
 				/>
-			</Field>
 
-			{/* Reference images are shared in the conversation. */}
-			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-canvas p-4">
-				<IconCircle size="sm">
-					<ImageUp size={14} />
-				</IconCircle>
-				<p className="text-sm text-muted">
-					<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
-					can share photos directly on WhatsApp right after you send this brief.
-				</p>
-			</div>
+				<div className="grid gap-(--form-gap) @md:grid-cols-2">
+					<Field id="name" label="Your name" optional>
+						<input
+							id="name"
+							name="name"
+							type="text"
+							autoComplete="name"
+							autoCorrect="off"
+							autoCapitalize="words"
+							placeholder="What should we call you?"
+							className={inputClass}
+						/>
+					</Field>
 
-			<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
+					<Field
+						id="contact"
+						label="Email or WhatsApp number"
+						optional
+						description={
+							<p id="contact-hint" className="text-sm text-muted">
+								Leave a way for us to reply if you cannot send your message on WhatsApp.
+							</p>
+						}
+					>
+						<input
+							id="contact"
+							name="contact"
+							type="text"
+							maxLength={MAX_CONTACT_LENGTH}
+							autoCapitalize="none"
+							autoCorrect="off"
+							spellCheck={false}
+							aria-describedby="contact-hint"
+							placeholder="Where can we reply?"
+							className={inputClass}
+						/>
+					</Field>
+				</div>
 
-			{/* One primary in one slot: the submit hands over to the WhatsApp link
+				{/* Reference images are shared in the conversation. */}
+				<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-canvas p-4">
+					<IconCircle size="sm">
+						<ImageUp size={14} />
+					</IconCircle>
+					<p className="text-sm text-muted">
+						<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
+						can share photos directly on WhatsApp right after you send this brief.
+					</p>
+				</div>
+
+				<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
+
+				{/* One primary in one slot: the submit hands over to the WhatsApp link
 			    the moment the draft exists (the save runs alongside, never gating it). */}
-			<div className="mt-(--form-group-gap) flex flex-col items-start gap-3">
-				{whatsappHref ? (
-					<a
-						ref={whatsappRef}
-						href={whatsappHref}
-						target="_blank"
-						rel="noopener noreferrer"
-						className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full sm:w-auto")}
-					>
-						{submitLabel}
-						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-					</a>
-				) : (
-					<Button type="submit" size="lg" className="w-full sm:w-auto">
-						Continue to WhatsApp
-						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-					</Button>
-				)}
-				{saveStatus === "failed" ? (
-					<Button type="submit" variant="secondary" className="w-full sm:w-auto">
-						Try saving again
-					</Button>
-				) : null}
-				<p className="text-sm text-muted">
-					{whatsappHref
-						? "WhatsApp opens with your message ready to review. If it does not open, send the same message by email."
-						: "We save your brief, then open WhatsApp with the message ready for you to review."}
-				</p>
-				<p className="text-sm text-muted">
-					We use your brief and contact details only to reply to your enquiry.
-				</p>
-				{mailtoHref ? (
-					<a
-						href={mailtoHref}
-						className="inline-flex min-h-control items-center gap-2 text-sm text-accent-text underline-offset-4 hover:underline"
-					>
-						<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
-					</a>
-				) : null}
-			</div>
-		</form>
+				<div className="mt-(--form-group-gap) flex flex-col items-start gap-3">
+					{whatsappHref ? (
+						<a
+							ref={whatsappRef}
+							href={whatsappHref}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full sm:w-auto")}
+						>
+							{submitLabel}
+							<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+						</a>
+					) : (
+						<Button type="submit" size="lg" className="w-full sm:w-auto">
+							Continue to WhatsApp
+							<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+						</Button>
+					)}
+					{saveStatus === "failed" ? (
+						<Button type="submit" variant="secondary" className="w-full sm:w-auto">
+							Try saving again
+						</Button>
+					) : null}
+					<p className="text-sm text-muted">
+						{whatsappHref
+							? "WhatsApp opens with your message ready to review. If it does not open, send the same message by email."
+							: "We save your brief, then open WhatsApp with the message ready for you to review."}
+					</p>
+					<p className="text-sm text-muted">
+						We use your brief and contact details only to reply to your enquiry.
+					</p>
+					{mailtoHref ? (
+						<a
+							href={mailtoHref}
+							className="inline-flex min-h-control items-center gap-2 text-sm text-accent-text underline-offset-4 hover:underline"
+						>
+							<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
+						</a>
+					) : null}
+				</div>
+			</form>
+		</div>
 	);
 }
 
 /* ----------------------------- helpers ----------------------------- */
+
+/** Chip group at 6 options or fewer; the landed select recipe past that. */
+function PresetRow({
+	name,
+	label,
+	neutralLabel,
+	options,
+}: Readonly<{
+	name: string;
+	label: string;
+	neutralLabel: string;
+	options: readonly string[];
+}>) {
+	if (options.length <= CHIP_LIMIT) {
+		return <PresetChips name={name} label={label} neutralLabel={neutralLabel} options={options} />;
+	}
+	return (
+		<SelectField id={name} label={label}>
+			<select id={name} name={name} defaultValue="" className={selectClass}>
+				<option value="">{neutralLabel}</option>
+				{options.map((option) => (
+					<option key={option} value={option}>
+						{option}
+					</option>
+				))}
+			</select>
+		</SelectField>
+	);
+}
 
 function EnquiryStatus({
 	error,
@@ -287,6 +313,17 @@ function EnquiryStatus({
 	saveStatus: SaveStatus;
 	draft: CustomOrderDraft | null;
 }>) {
+	// Specific beats generic (forms-copy c1 success anatomy): echo the choices
+	// the visitor made so the record reads back, skipping empty selections.
+	const echo = draft
+		? [
+				draft.style,
+				draft.size ? `around ${draft.size}` : null,
+				draft.budget ? `budget ${draft.budget}` : null,
+			]
+				.filter(Boolean)
+				.join(", ")
+		: "";
 	return (
 		<div aria-live="polite" aria-atomic="true">
 			{error ? (
@@ -322,6 +359,7 @@ function EnquiryStatus({
 					</motion.span>
 					<div>
 						<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
+						{echo ? <p className="mt-1 text-sm text-muted">{echo}.</p> : null}
 						<p className="mt-1 text-sm text-muted">
 							{draft.contact
 								? "We'll use your contact details to reply. You can also send your message on WhatsApp."

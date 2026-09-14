@@ -33,6 +33,7 @@ export default async function AccessDeniedPage({ searchParams }: Readonly<Access
 
 	return (
 		<AuthShell
+			eyebrow="Admin access"
 			title={isConfigurationError ? "Sign-in unavailable" : "Access not granted"}
 			lead={
 				isConfigurationError
@@ -59,7 +60,7 @@ export default async function AccessDeniedPage({ searchParams }: Readonly<Access
 				</a>
 			) : null}
 
-			<div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+			<div className="mt-8 flex flex-wrap items-center justify-center gap-3">
 				<Link href="/" className={buttonVariants({ variant: "primary" })}>
 					Back to site
 				</Link>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { cardVariants } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +18,12 @@ interface ClosingCtaProps {
 }
 
 /**
- * The one closing beat every public page ends on: eyebrow, display title, one
- * muted line, one action. Owns its offset from the block above (--space-block)
- * so pages never wrap it in mt-*. Consumers: /events, /workshops, /contact, and
- * /work/[slug] (public-gallery adopts it after this lands).
+ * The one closing beat every public page ends on (visual-direction 2.9):
+ * eyebrow, the title in the roman headline voice, one muted line, one action,
+ * over a static pigment wash in the page's section accent (drift off; the
+ * host is [contain:paint] so the -z-10 ellipses paint above the card ground).
+ * Owns its offset from the block above (--space-block) so pages never wrap it
+ * in mt-*. Consumers: /events, /workshops, /contact, and /work/[slug].
  */
 export function ClosingCta({
 	eyebrow,
@@ -35,16 +38,21 @@ export function ClosingCta({
 			data-slot="closing-cta"
 			className={cn(
 				cardVariants({ padding: "lg" }),
-				"mt-(--space-block) flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between",
+				"relative mt-(--space-block) flex flex-col items-start gap-4 overflow-hidden [contain:paint] md:grid md:grid-cols-12 md:items-center",
 				className,
 			)}
 		>
-			<div className="min-w-0">
+			<PigmentWash drift={false} />
+			<div className="min-w-0 md:col-span-7">
 				{eyebrow ? <p className="t-eyebrow">{eyebrow}</p> : null}
-				<Heading className={cn("t-display text-title", eyebrow && "mt-2")}>{title}</Heading>
+				<Heading className={cn("t-headline text-title md:text-display-sm", eyebrow && "mt-2")}>
+					{title}
+				</Heading>
 				{body ? <p className="mt-1 text-sm text-muted">{body}</p> : null}
 			</div>
-			<div className="w-full shrink-0 sm:w-auto">{action}</div>
+			<div className="w-full shrink-0 sm:w-auto md:col-span-5 md:w-full md:text-right">
+				{action}
+			</div>
 		</div>
 	);
 }
