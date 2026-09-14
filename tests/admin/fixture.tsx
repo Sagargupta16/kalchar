@@ -11,6 +11,7 @@ import {
 import { EventImageManager } from "../../app/admin/_components/event-image-manager";
 import { EventsManager } from "../../app/admin/_components/events-manager";
 import { LeadsManager } from "../../app/admin/_components/leads-manager";
+import { MaintainerManager } from "../../app/admin/_components/maintainer-manager";
 import { Modal, ModalBody, ModalFooter } from "../../app/admin/_components/modal";
 import { PresetManager } from "../../app/admin/_components/preset-manager";
 import { ProfileManager } from "../../app/admin/_components/profile-manager";
@@ -77,6 +78,10 @@ const secondEvent: Event = {
 	order: 1,
 };
 const artworkTitles = [{ slug: "alpha", title: "Alpha", image: "alpha.jpg" }];
+const maintainerRoster = [
+	{ email: "root@example.invalid", name: "Root", isRoot: true, addedBy: null },
+	{ email: "bravo@example.invalid", name: null, isRoot: false, addedBy: "root@example.invalid" },
+];
 const mira = {
 	id: "testimonial-1",
 	quote: "Beautiful work.",
@@ -342,6 +347,14 @@ const views = {
 			usage={{}}
 		/>
 	),
+	categoriesInUse: (
+		<CategoryManager
+			categories={names.map((name, order) => ({ id: name, name, order }))}
+			usage={{ Alpha: 2 }}
+		/>
+	),
+	maintainers: <MaintainerManager roster={maintainerRoster} me="root@example.invalid" />,
+	maintainersSelf: <MaintainerManager roster={maintainerRoster} me="bravo@example.invalid" />,
 	workshops: (
 		<WorkshopManager
 			workshops={names.map((title, order) => ({

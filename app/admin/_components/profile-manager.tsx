@@ -1,14 +1,19 @@
 "use client";
 
 import { ImagePlus, Trash2, UserCircle } from "lucide-react";
-import { useState } from "react";
+import { useOptimistic, useRef, useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
-import { cn } from "@/lib/utils";
+import { formatBytes } from "@/lib/utils";
 import { clearProfileImage, setProfileImage, setShowHomeIntro } from "../event-actions";
+import { AdminNotice } from "./admin-notice";
+import { AdminPanel } from "./admin-panel";
+import { AdminSwitch } from "./admin-switch";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnDestructive, adminBtnPrimary } from "./controls";
+import { adminBtnDestructive, adminBtnPrimary, adminFilePicker, ICON_MD } from "./controls";
+import { PhotoPreview } from "./photo-preview";
 import { stageImage } from "./stage-image";
-import { useAdminAction } from "./use-admin-action";
+import { UploadProgress, type UploadProgressState } from "./upload-progress";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 
 interface ProfileManagerProps {
 	imageKey?: string;
@@ -18,27 +23,51 @@ interface ProfileManagerProps {
 /**
  * Artist profile settings: the avatar shown on About + home, and the toggle
  * that controls whether a short intro appears on the home page. Both persist
- * to the `settings` table via server actions.
+ * to the `settings` table via server actions. Two independent action hooks so
+ * each panel reports next to itself.
  */
 export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileManagerProps>) {
 	const confirm = useConfirm();
-	const { pending, err, run } = useAdminAction();
-	const [fileName, setFileName] = useState<string | null>(null);
+	const photo = useAdminAction();
+	const intro = useAdminAction();
+	const [file, setFile] = useState<File | null>(null);
+	const [progress, setProgress] = useState<UploadProgressState | null>(null);
+	const [photoSaved, setPhotoSaved] = useState<"updated" | "removed" | null>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	// The toggle paints before the round trip; the value reverts by itself on
+	// failure because the dispatch runs inside run()'s transition (React 19).
+	const [shownIntro, setShownIntro] = useOptimistic(showHomeIntro);
+
+	const clearFile = () => {
+		setFile(null);
+		if (inputRef.current) inputRef.current.value = "";
+	};
 
 	const onUpload = (form: HTMLFormElement) => {
-		const fd = new FormData(form);
-		const file = fd.get("image");
-		if (!(file instanceof File) || file.size === 0) return;
-		run(
+		if (!file) return;
+		const uploading = `Uploading ${formatBytes(file.size)}`;
+		setPhotoSaved(null);
+		photo.run(
 			async () => {
-				// Upload the master to R2 first, then submit just its staged key.
-				fd.delete("image");
-				fd.set("imageKey", await stageImage(file));
-				return setProfileImage(fd);
+				try {
+					setProgress({ label: uploading, fraction: 0 });
+					// Upload the master to R2 first, then submit just its staged key.
+					const key = await stageImage(file, (fraction) =>
+						setProgress({ label: uploading, fraction }),
+					);
+					setProgress({ label: "Preparing sizes for phones and desktops", fraction: null });
+					const fd = new FormData();
+					fd.set("imageKey", key);
+					return await setProfileImage(fd);
+				} finally {
+					setProgress(null);
+				}
 			},
 			() => {
-				setFileName(null);
+				clearFile();
 				form.reset();
+				setPhotoSaved("updated");
+				setTimeout(() => setPhotoSaved(null), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
@@ -47,29 +76,32 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 		const ok = await confirm({
 			title: "Remove profile photo?",
 			body: "The About page and home will fall back to the monogram.",
-			confirmLabel: "Remove",
+			confirmLabel: "Remove photo",
+			cancelLabel: "Keep photo",
 		});
-		if (ok) run(() => clearProfileImage());
-	};
-
-	const onToggleIntro = () => {
-		run(() => setShowHomeIntro(!showHomeIntro));
+		if (!ok) return;
+		setPhotoSaved(null);
+		photo.run(
+			() => clearProfileImage(),
+			() => {
+				setPhotoSaved("removed");
+				setTimeout(() => setPhotoSaved(null), SAVED_BADGE_DURATION_MS);
+			},
+		);
 	};
 
 	const previewSrc = imageKey ? `${IMAGE_ORIGIN}/${imageKey}-400.webp` : null;
 
 	return (
-		<div className="space-y-8">
-			{/* Avatar */}
-			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
-				<h2 className="text-sm font-semibold">Profile photo</h2>
-				<p className="mt-1 text-xs text-muted">
-					Shown on the About page and home. Square or portrait works best. Leave empty to use the
-					monogram.
-				</p>
-
-				<div className="mt-4 flex items-start gap-5">
-					<div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-(--radius-sm) border border-line bg-bg-soft">
+		// Ruling 42: the photo panel and the intro toggle are independent panels, side by side from lg.
+		<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)] lg:items-start">
+			<AdminPanel
+				title="Profile photo"
+				description="Shown on the About page and home. Square or portrait works best. Leave it empty to use the monogram."
+				className="min-w-0"
+			>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+					<div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-(--radius-sm) border border-line bg-canvas">
 						{previewSrc ? (
 							// biome-ignore lint/performance/noImgElement: admin-only preview, R2 origin, next/image not configured for this host
 							<img src={previewSrc} alt="Current profile" className="h-full w-full object-cover" />
@@ -82,93 +114,88 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 
 					<div className="min-w-0 flex-1 space-y-3">
 						<form
+							aria-busy={photo.pending || undefined}
+							className="space-y-3"
 							onSubmit={(e) => {
 								e.preventDefault();
 								onUpload(e.currentTarget);
 							}}
-							className="space-y-3"
 						>
-							<label
-								className={`${adminBtn} cursor-pointer px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
-							>
-								<ImagePlus size={14} />
-								{fileName ?? "Choose photo"}
+							<label className={adminFilePicker}>
+								<ImagePlus size={ICON_MD} aria-hidden="true" />
+								<span>
+									{file ? "Change photo" : "Choose photo (JPG, PNG or WebP, up to 20 MB)"}
+								</span>
 								<input
-									disabled={pending}
+									ref={inputRef}
 									name="image"
 									type="file"
 									accept="image/jpeg,image/png,image/webp"
-									onChange={(e) => setFileName(e.currentTarget.files?.[0]?.name ?? null)}
+									disabled={photo.pending}
+									onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
 									className="sr-only"
 								/>
 							</label>
-							{fileName ? (
-								<button
-									type="submit"
-									disabled={pending}
-									className={`${adminBtnPrimary} ml-2 px-3 py-2`}
-								>
-									{pending ? "Uploading..." : "Upload"}
+							{file ? (
+								<PhotoPreview file={file} disabled={photo.pending} onClear={clearFile} />
+							) : null}
+							{file ? (
+								<button type="submit" disabled={photo.pending} className={adminBtnPrimary}>
+									Upload photo
 								</button>
 							) : null}
+							{photo.pending && progress ? <UploadProgress state={progress} /> : null}
 						</form>
-
 						{imageKey ? (
 							<button
 								type="button"
-								disabled={pending}
+								disabled={photo.pending}
 								onClick={onClear}
-								className={`${adminBtnDestructive} px-3 py-1.5`}
+								className={adminBtnDestructive}
 							>
-								<Trash2 size={12} />
+								<Trash2 size={ICON_MD} aria-hidden="true" />
 								Remove photo
 							</button>
 						) : null}
 					</div>
 				</div>
-			</section>
+				{photo.err ? (
+					<AdminNotice variant="error" className="mt-3">
+						{photo.err}
+					</AdminNotice>
+				) : null}
+				{photoSaved === "updated" ? (
+					<AdminNotice variant="success" className="mt-3">
+						Photo updated. It shows on About and home.
+					</AdminNotice>
+				) : null}
+				{photoSaved === "removed" ? (
+					<AdminNotice variant="success" className="mt-3">
+						Photo removed. The monogram shows instead.
+					</AdminNotice>
+				) : null}
+			</AdminPanel>
 
-			{/* Home intro toggle */}
-			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
-				<div className="flex items-center justify-between gap-4">
-					<div className="min-w-0">
-						<h2 className="text-sm font-semibold">Show artist intro on home</h2>
-						<p className="mt-1 text-xs text-muted">
-							Adds the profile photo and a short intro to the home page About preview.
-						</p>
-					</div>
-					<button
-						type="button"
-						role="switch"
-						aria-checked={showHomeIntro}
-						aria-label="Show artist intro on home"
-						disabled={pending}
-						onClick={onToggleIntro}
-						className="grid h-11 w-14 shrink-0 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-					>
-						<span
-							aria-hidden="true"
-							className={cn(
-								"relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-								showHomeIntro ? "bg-accent" : "bg-bg-muted",
-							)}
-						>
-							<span
-								className={cn(
-									"inline-block h-5 w-5 rounded-full bg-bg shadow transition-transform",
-									showHomeIntro ? "translate-x-5" : "translate-x-0.5",
-								)}
-							/>
-						</span>
-					</button>
-				</div>
-			</section>
-
-			{err ? (
-				<p role="alert" className="text-sm text-ruby">
-					{err}
-				</p>
-			) : null}
+			<AdminPanel
+				title="Show artist intro on home"
+				description="Adds the profile photo and a short intro to the home page About preview."
+				className="min-w-0"
+				action={
+					<AdminSwitch
+						checked={shownIntro}
+						disabled={intro.pending}
+						label="Show artist intro on home"
+						onChange={(next) =>
+							intro.run(async () => {
+								setShownIntro(next);
+								return setShowHomeIntro(next);
+							})
+						}
+					/>
+				}
+			>
+				{intro.err ? <AdminNotice variant="error">{intro.err}</AdminNotice> : null}
+			</AdminPanel>
 		</div>
 	);
 }

@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getMaintainers } from "@/lib/data";
-import { AdminPageHeader } from "../_components/admin-page-header";
+import { AdminPage } from "../_components/admin-page";
 import { MaintainerManager } from "../_components/maintainer-manager";
 
 export default async function MaintainersPage() {
@@ -8,11 +8,10 @@ export default async function MaintainersPage() {
 	const roster = await getMaintainers();
 
 	return (
-		<div className="max-w-2xl space-y-6">
-			<AdminPageHeader
-				title="Maintainers"
-				description="Anyone listed here can sign in and manage the catalog. Add by Google email."
-			/>
+		<AdminPage
+			title="Maintainers"
+			description="Anyone listed here can sign in with Google and manage the site. Add people by their Google email; nothing is emailed to them."
+		>
 			<MaintainerManager
 				roster={roster.map((m) => ({
 					email: m.email,
@@ -22,6 +21,6 @@ export default async function MaintainersPage() {
 				}))}
 				me={me}
 			/>
-		</div>
+		</AdminPage>
 	);
 }

@@ -1,18 +1,25 @@
 "use client";
 
-import { Check, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useId, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
+import { AdminNotice } from "./admin-notice";
+import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
-	adminBtn,
 	adminBtnPrimary,
+	adminError,
 	adminField,
 	adminIconBtn,
 	adminIconBtnDestructive,
 	adminIconBtnPrimary,
+	adminLabel,
+	adminPanelInset,
+	adminRow,
+	ICON_MD,
 } from "./controls";
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
@@ -35,9 +42,15 @@ export function CategoryManager({
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
 	const [newName, setNewName] = useState("");
+	const [fieldError, setFieldError] = useState<string | null>(null);
+	const [added, setAdded] = useState<string | null>(null);
+	// Which control the shared err belongs to: the reorder bar or the form panel.
+	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
+	const formId = useId();
 	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
 	const handleSaveOrder = () => {
+		setErrSlot("order");
 		setSaved(false);
 		return run(
 			() => reorderCategories(items.map((i) => i.id)),
@@ -50,6 +63,7 @@ export function CategoryManager({
 	};
 
 	const handleDelete = (id: string) => {
+		setErrSlot("general");
 		run(
 			() => deleteCategory(id),
 			() => {
@@ -60,92 +74,140 @@ export function CategoryManager({
 	};
 
 	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
+	const generalError = errSlot === "general" ? err : null;
 
 	return (
-		<div className="space-y-6">
-			{/* Add */}
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					if (!newName.trim()) return;
-					run(
-						() => createCategory(newName),
-						() => setNewName(""),
-					);
-				}}
-				className="rounded-(--radius-md) border border-line bg-bg-soft p-4"
-			>
-				<p className="mb-3 text-xs font-medium text-muted">Add a category</p>
-				<div className="flex items-center gap-2">
-					<input
-						value={newName}
-						onChange={(e) => setNewName(e.target.value)}
-						aria-label="Category name"
-						placeholder="e.g. Warli, Kalamkari, Tanjore"
-						className={`${adminField} flex-1`}
+		<div className="space-y-group">
+			{/* Ruling 42: the create form and the list are independent panels, side by side from lg. */}
+			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
+				<form
+					aria-labelledby={`${formId}-title`}
+					className={cn(adminPanelInset, "min-w-0")}
+					onSubmit={(e) => {
+						e.preventDefault();
+						const name = newName.trim();
+						if (!name) {
+							setFieldError("Enter a category name");
+							return;
+						}
+						setFieldError(null);
+						setAdded(null);
+						setErrSlot("general");
+						run(
+							() => createCategory(name),
+							() => {
+								setNewName("");
+								setAdded(name);
+								setTimeout(() => setAdded(null), SAVED_BADGE_DURATION_MS);
+							},
+						);
+					}}
+				>
+					<AdminPanelHeader
+						id={`${formId}-title`}
+						as="h2"
+						title="Add a category"
+						description="The style name as it should read in the gallery filter, for example Warli or Kalamkari."
 					/>
-					<button type="submit" disabled={pending} className={adminBtnPrimary}>
-						<Plus size={14} />
-						Add
-					</button>
-				</div>
-			</form>
+					<div className="flex flex-col gap-(--form-gap) sm:flex-row sm:items-end">
+						<label htmlFor={`${formId}-name`} className={cn(adminLabel, "flex-1")}>
+							Category name
+							<input
+								id={`${formId}-name`}
+								value={newName}
+								onChange={(e) => {
+									setNewName(e.target.value);
+									if (fieldError) setFieldError(null);
+								}}
+								required
+								autoCapitalize="words"
+								autoComplete="off"
+								enterKeyHint="done"
+								aria-invalid={fieldError ? true : undefined}
+								aria-describedby={fieldError ? `${formId}-error` : undefined}
+								className={adminField}
+							/>
+						</label>
+						<button
+							type="submit"
+							disabled={pending}
+							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+						>
+							<Plus size={ICON_MD} aria-hidden="true" />
+							Add category
+						</button>
+					</div>
+					{fieldError ? (
+						<p id={`${formId}-error`} className={cn(adminError, "mt-1")}>
+							{fieldError}
+						</p>
+					) : null}
+					{generalError ? (
+						<AdminNotice variant="error" className="mt-3">
+							{generalError}
+						</AdminNotice>
+					) : null}
+					{added ? (
+						<AdminNotice variant="success" className="mt-3">
+							Added "{added}" at the end of the list.
+						</AdminNotice>
+					) : null}
+				</form>
 
-			{err ? (
-				<p role="alert" className="text-sm text-ruby">
-					{err}
-				</p>
-			) : null}
+				<ul className="min-w-0 space-y-tight">
+					{items.map((c, i) => (
+						<li
+							key={c.id}
+							{...dragProps(i)}
+							className={cn(
+								adminRow,
+								dragging === i && "opacity-50",
+								over === i && dragging !== i && "border-accent shadow-e1",
+							)}
+						>
+							<CategoryItem
+								category={c}
+								usageCount={usage[c.name] ?? 0}
+								pending={pending}
+								reorderHandle={
+									<ReorderHandle
+										label={c.name}
+										index={i}
+										count={items.length}
+										disabled={pending}
+										onMove={(to) => move(i, to)}
+									/>
+								}
+								onSave={(name) => {
+									setErrSlot("general");
+									return run(() => renameCategory(c.id, name));
+								}}
+								onDelete={async () => {
+									const ok = await confirm({
+										title: `Delete category "${c.name}"?`,
+										body: "It will disappear from the gallery filter and the custom-order style picker.",
+										confirmLabel: "Delete category",
+										cancelLabel: "Keep category",
+									});
+									if (ok) handleDelete(c.id);
+								}}
+							/>
+						</li>
+					))}
+					{items.length === 0 ? (
+						<EmptyState as="li" variant="compact" voice="tool" title="No categories yet">
+							Add the first one above. It appears in the gallery filter as soon as it is saved.
+						</EmptyState>
+					) : null}
+				</ul>
+			</div>
 
-			{/* List */}
-			<ul className="space-y-2">
-				{items.map((c, i) => (
-					<li
-						key={c.id}
-						{...dragProps(i)}
-						className={cn(
-							"rounded-(--radius-sm) border border-line bg-bg transition-all duration-(--duration-fast)",
-							dragging === i && "opacity-50",
-							over === i && dragging !== i && "border-accent shadow-e1",
-						)}
-					>
-						<CategoryItem
-							category={c}
-							usageCount={usage[c.name] ?? 0}
-							pending={pending}
-							reorderHandle={
-								<ReorderHandle
-									label={c.name}
-									index={i}
-									count={items.length}
-									disabled={pending}
-									onMove={(to) => move(i, to)}
-								/>
-							}
-							onSave={(name) => run(() => renameCategory(c.id, name))}
-							onDelete={async () => {
-								const ok = await confirm({
-									title: `Delete category "${c.name}"?`,
-									body: "Pieces must be reassigned first; this only removes the empty category.",
-									confirmLabel: "Delete",
-								});
-								if (ok) handleDelete(c.id);
-							}}
-						/>
-					</li>
-				))}
-				{items.length === 0 ? (
-					<li className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
-						No categories yet. Add one above.
-					</li>
-				) : null}
-			</ul>
-
-			{hasOrderChanges ? (
+			{hasOrderChanges || saved ? (
 				<ReorderBar
 					label="Category order changed"
 					pending={pending}
 					saved={saved}
+					error={errSlot === "order" ? err : null}
 					onSave={handleSaveOrder}
 					onReset={() => setItems(baseline)}
 				/>
@@ -174,12 +236,15 @@ function CategoryItem({
 
 	if (!editing) {
 		return (
-			<div className="flex items-center gap-3 p-3">
+			<div className="flex items-center gap-3">
 				{reorderHandle}
-				<span className="flex-1 truncate text-sm font-medium">{category.name}</span>
-				<span className="t-meta shrink-0 text-[0.65rem]">
-					{usageCount} {usageCount === 1 ? "piece" : "pieces"}
-				</span>
+				<div className="min-w-0 flex-1">
+					<p className="truncate text-sm font-medium text-ink">{category.name}</p>
+					<p className="text-label text-muted tabular-nums">
+						{usageCount} {usageCount === 1 ? "piece" : "pieces"}
+						{usageCount > 0 ? ", in use" : ""}
+					</p>
+				</div>
 				<button
 					type="button"
 					disabled={pending}
@@ -187,58 +252,76 @@ function CategoryItem({
 						setName(category.name);
 						setEditing(true);
 					}}
-					className={`${adminBtn} min-w-11 px-2 py-1`}
+					aria-label={`Rename ${category.name}`}
+					title="Rename"
+					className={adminIconBtn}
 				>
-					Rename
+					<Pencil size={ICON_MD} aria-hidden="true" />
 				</button>
-				<button
-					type="button"
-					disabled={pending || usageCount > 0}
-					onClick={onDelete}
-					aria-label={`Delete ${category.name}`}
-					title={usageCount > 0 ? "Reassign its pieces before deleting" : "Delete category"}
-					className={adminIconBtnDestructive}
-				>
-					<Trash2 size={14} aria-hidden="true" />
-				</button>
+				<span className="ml-4 flex border-l border-line pl-4">
+					<button
+						type="button"
+						disabled={pending || usageCount > 0}
+						onClick={onDelete}
+						aria-label={`Delete ${category.name}`}
+						title={usageCount > 0 ? "Reassign its pieces before deleting" : "Delete category"}
+						className={adminIconBtnDestructive}
+					>
+						<Trash2 size={ICON_MD} aria-hidden="true" />
+					</button>
+				</span>
 			</div>
 		);
 	}
 
+	// A form so the phone keyboard's return key saves and Escape cancels.
 	return (
-		<div className="flex items-center gap-2 p-3">
+		<form
+			className="flex items-center gap-3"
+			onSubmit={async (e) => {
+				e.preventDefault();
+				if (await onSave(name.trim())) setEditing(false);
+			}}
+		>
 			<input
 				disabled={pending}
 				value={name}
 				onChange={(e) => setName(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Escape") {
+						setName(category.name);
+						setEditing(false);
+					}
+				}}
 				aria-label={`Rename ${category.name}`}
-				className={`${adminField} flex-1`}
+				enterKeyHint="done"
+				autoCapitalize="words"
+				className={adminField}
 				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
 				autoFocus
 			/>
 			<button
-				type="button"
+				type="submit"
 				disabled={pending}
-				onClick={async () => {
-					if (await onSave(name.trim())) setEditing(false);
-				}}
 				aria-label={`Save ${category.name}`}
 				className={adminIconBtnPrimary}
 			>
-				<Check size={14} aria-hidden="true" />
+				<Check size={ICON_MD} aria-hidden="true" />
 			</button>
-			<button
-				type="button"
-				disabled={pending}
-				onClick={() => {
-					setName(category.name);
-					setEditing(false);
-				}}
-				aria-label={`Cancel renaming ${category.name}`}
-				className={adminIconBtn}
-			>
-				<X size={14} aria-hidden="true" />
-			</button>
-		</div>
+			<span className="ml-4 flex border-l border-line pl-4">
+				<button
+					type="button"
+					disabled={pending}
+					onClick={() => {
+						setName(category.name);
+						setEditing(false);
+					}}
+					aria-label={`Cancel renaming ${category.name}`}
+					className={adminIconBtn}
+				>
+					<X size={ICON_MD} aria-hidden="true" />
+				</button>
+			</span>
+		</form>
 	);
 }

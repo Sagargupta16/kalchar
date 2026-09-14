@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useId, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { OrderPreset, OrderPresetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -10,34 +11,46 @@ import {
 	reorderOrderPresets,
 	updateOrderPreset,
 } from "../actions";
+import { AdminNotice } from "./admin-notice";
+import { AdminPanel } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
-	adminBtn,
 	adminBtnPrimary,
+	adminError,
 	adminField,
 	adminIconBtn,
 	adminIconBtnDestructive,
 	adminIconBtnPrimary,
+	adminLabel,
+	adminRowInset,
+	ICON_MD,
 } from "./controls";
+import { InlineReorderControls } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
-import { useAdminAction } from "./use-admin-action";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
-const GROUPS: Array<{ kind: OrderPresetKind; title: string; hint: string }> = [
-	{ kind: "size", title: "Sizes", hint: "e.g. A4 (8 x 12 inches)" },
-	{ kind: "budget", title: "Budgets", hint: "e.g. Under INR 5,000" },
-	{ kind: "timeline", title: "Timelines", hint: "e.g. Within a month" },
+const GROUPS: Array<{ kind: OrderPresetKind; title: string; singular: string; hint: string }> = [
+	{ kind: "size", title: "Sizes", singular: "size", hint: "For example A4 (8 x 12 inches)" },
+	{ kind: "budget", title: "Budgets", singular: "budget", hint: "For example Under INR 5,000" },
+	{
+		kind: "timeline",
+		title: "Timelines",
+		singular: "timeline",
+		hint: "For example Within a month",
+	},
 ];
 
 export function PresetManager({ presets }: Readonly<{ presets: OrderPreset[] }>) {
 	return (
-		<div className="space-y-8">
+		<div className="space-y-group">
 			{GROUPS.map((g) => (
 				<PresetGroup
 					key={g.kind}
 					kind={g.kind}
 					title={g.title}
+					singular={g.singular}
 					hint={g.hint}
 					items={presets.filter((p) => p.kind === g.kind)}
 				/>
@@ -49,11 +62,13 @@ export function PresetManager({ presets }: Readonly<{ presets: OrderPreset[] }>)
 function PresetGroup({
 	kind,
 	title,
+	singular,
 	hint,
 	items: initial,
 }: Readonly<{
 	kind: OrderPresetKind;
 	title: string;
+	singular: string;
 	hint: string;
 	items: OrderPreset[];
 }>) {
@@ -63,10 +78,29 @@ function PresetGroup({
 	// Adopt fresh server data after a create (router.refresh), keeping the
 	// reorder baseline in step.
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
+	const [saved, setSaved] = useState(false);
 	const [newLabel, setNewLabel] = useState("");
+	const [fieldError, setFieldError] = useState<string | null>(null);
+	// Which control the shared err belongs to: the order pair or the add form.
+	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
+	const fieldId = useId();
 	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
+	const handleSaveOrder = () => {
+		setErrSlot("order");
+		setSaved(false);
+		return run(
+			() => reorderOrderPresets(items.map((i) => i.id)),
+			() => {
+				setBaseline(items);
+				setSaved(true);
+				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+			},
+		);
+	};
+
 	const handleDelete = (id: string) => {
+		setErrSlot("general");
 		run(
 			() => deleteOrderPreset(id),
 			() => {
@@ -77,46 +111,37 @@ function PresetGroup({
 	};
 
 	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
+	const generalError = errSlot === "general" ? err : null;
 
 	return (
-		<section className="rounded-(--radius-md) border border-line bg-bg p-4 sm:p-5">
-			<div className="mb-3 flex items-baseline justify-between gap-3">
-				<h3 className="text-sm font-semibold">{title}</h3>
-				{hasOrderChanges ? (
-					<div className="flex items-center gap-2">
-						<button
-							type="button"
-							onClick={() => setItems(baseline)}
-							disabled={pending}
-							className={`${adminBtn} px-2.5 py-1 text-xs`}
-						>
-							Reset
-						</button>
-						<button
-							type="button"
-							onClick={() =>
-								run(
-									() => reorderOrderPresets(items.map((i) => i.id)),
-									() => setBaseline(items),
-								)
-							}
-							disabled={pending}
-							className={`${adminBtn} px-2.5 py-1 text-xs border-accent text-accent`}
-						>
-							Save order
-						</button>
-					</div>
-				) : null}
-			</div>
-
-			{/* List */}
-			<ul className="space-y-2">
+		<AdminPanel
+			title={title}
+			description={hint}
+			action={
+				hasOrderChanges ? (
+					<InlineReorderControls
+						layout="column"
+						className="sm:flex-row sm:items-center"
+						pending={pending}
+						saved={false}
+						error={errSlot === "order" ? err : null}
+						onSave={handleSaveOrder}
+						onReset={() => setItems(baseline)}
+					/>
+				) : saved ? (
+					// The shell's InlineReorderControls keeps its buttons while `saved`, which
+					// would leave a dead Save order on screen; only its output line renders here.
+					<output className="text-sm text-accent-text">Order saved</output>
+				) : null
+			}
+		>
+			<ul className="space-y-tight">
 				{items.map((p, i) => (
 					<li
 						key={p.id}
 						{...dragProps(i)}
 						className={cn(
-							"rounded-(--radius-sm) border border-line bg-bg-soft transition-all duration-(--duration-fast)",
+							adminRowInset,
 							dragging === i && "opacity-50",
 							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
@@ -133,12 +158,16 @@ function PresetGroup({
 									onMove={(to) => move(i, to)}
 								/>
 							}
-							onSave={(label) => run(() => updateOrderPreset(p.id, label))}
+							onSave={(label) => {
+								setErrSlot("general");
+								return run(() => updateOrderPreset(p.id, label));
+							}}
 							onDelete={async () => {
 								const ok = await confirm({
-									title: `Remove "${p.label}"?`,
-									body: "This option will no longer appear on the custom-order form.",
-									confirmLabel: "Remove",
+									title: `Delete "${p.label}"?`,
+									body: "It will no longer appear on the custom-order form.",
+									confirmLabel: "Delete option",
+									cancelLabel: "Keep option",
 								});
 								if (ok) handleDelete(p.id);
 							}}
@@ -146,43 +175,66 @@ function PresetGroup({
 					</li>
 				))}
 				{items.length === 0 ? (
-					<li className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
-						No options yet. Add one below.
-					</li>
+					<EmptyState as="li" variant="nested">
+						No {title.toLowerCase()} yet. Add the first one below.
+					</EmptyState>
 				) : null}
 			</ul>
 
-			{/* Add */}
 			<form
+				className="mt-4 flex flex-col gap-(--form-gap) sm:flex-row sm:items-end"
 				onSubmit={(e) => {
 					e.preventDefault();
-					if (!newLabel.trim()) return;
+					const label = newLabel.trim();
+					if (!label) {
+						setFieldError(`Enter a ${singular} option`);
+						return;
+					}
+					setFieldError(null);
+					setErrSlot("general");
 					run(
-						() => createOrderPreset(kind, newLabel),
+						() => createOrderPreset(kind, label),
 						() => setNewLabel(""),
 					);
 				}}
-				className="mt-3 flex items-center gap-2"
 			>
-				<input
-					value={newLabel}
-					onChange={(e) => setNewLabel(e.target.value)}
-					aria-label={`New ${title.toLowerCase()} option`}
-					placeholder={hint}
-					className={`${adminField} flex-1`}
-				/>
-				<button type="submit" disabled={pending} className={adminBtnPrimary}>
-					<Plus size={14} />
-					Add
+				<label htmlFor={fieldId} className={cn(adminLabel, "flex-1")}>
+					New {singular} option
+					<input
+						id={fieldId}
+						value={newLabel}
+						onChange={(e) => {
+							setNewLabel(e.target.value);
+							if (fieldError) setFieldError(null);
+						}}
+						required
+						enterKeyHint="done"
+						autoComplete="off"
+						aria-invalid={fieldError ? true : undefined}
+						aria-describedby={fieldError ? `${fieldId}-error` : undefined}
+						className={adminField}
+					/>
+				</label>
+				<button
+					type="submit"
+					disabled={pending}
+					className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+				>
+					<Plus size={ICON_MD} aria-hidden="true" />
+					Add {singular}
 				</button>
 			</form>
-
-			{err ? (
-				<p role="alert" className="mt-2 text-xs text-ruby">
-					{err}
+			{fieldError ? (
+				<p id={`${fieldId}-error`} className={cn(adminError, "mt-1")}>
+					{fieldError}
 				</p>
 			) : null}
-		</section>
+			{generalError ? (
+				<AdminNotice variant="error" className="mt-3">
+					{generalError}
+				</AdminNotice>
+			) : null}
+		</AdminPanel>
 	);
 }
 
@@ -204,9 +256,11 @@ function PresetItem({
 
 	if (!editing) {
 		return (
-			<div className="flex items-center gap-3 p-2.5">
+			<div className="flex items-center gap-3">
 				{reorderHandle}
-				<span className="flex-1 truncate text-sm">{preset.label}</span>
+				<div className="min-w-0 flex-1">
+					<p className="truncate text-sm font-medium text-ink">{preset.label}</p>
+				</div>
 				<button
 					type="button"
 					disabled={pending}
@@ -214,57 +268,74 @@ function PresetItem({
 						setLabel(preset.label);
 						setEditing(true);
 					}}
-					className={`${adminBtn} min-w-11 px-2 py-1`}
+					aria-label={`Rename ${preset.label}`}
+					title="Rename"
+					className={adminIconBtn}
 				>
-					Edit
+					<Pencil size={ICON_MD} aria-hidden="true" />
 				</button>
-				<button
-					type="button"
-					disabled={pending}
-					onClick={onDelete}
-					aria-label={`Delete ${preset.label}`}
-					className={adminIconBtnDestructive}
-				>
-					<Trash2 size={14} aria-hidden="true" />
-				</button>
+				<span className="ml-4 flex border-l border-line pl-4">
+					<button
+						type="button"
+						disabled={pending}
+						onClick={onDelete}
+						aria-label={`Delete ${preset.label}`}
+						className={adminIconBtnDestructive}
+					>
+						<Trash2 size={ICON_MD} aria-hidden="true" />
+					</button>
+				</span>
 			</div>
 		);
 	}
 
+	// A form so the phone keyboard's return key saves and Escape cancels.
 	return (
-		<div className="flex items-center gap-2 p-2.5">
+		<form
+			className="flex items-center gap-3"
+			onSubmit={async (e) => {
+				e.preventDefault();
+				if (await onSave(label.trim())) setEditing(false);
+			}}
+		>
 			<input
 				disabled={pending}
 				value={label}
 				onChange={(e) => setLabel(e.target.value)}
-				aria-label={`Edit ${preset.label}`}
-				className={`${adminField} flex-1`}
-				// biome-ignore lint/a11y/noAutofocus: focus the field the user just chose to edit
+				onKeyDown={(e) => {
+					if (e.key === "Escape") {
+						setLabel(preset.label);
+						setEditing(false);
+					}
+				}}
+				aria-label={`Rename ${preset.label}`}
+				enterKeyHint="done"
+				className={adminField}
+				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
 				autoFocus
 			/>
 			<button
-				type="button"
+				type="submit"
 				disabled={pending}
-				onClick={async () => {
-					if (await onSave(label.trim())) setEditing(false);
-				}}
 				aria-label={`Save ${preset.label}`}
 				className={adminIconBtnPrimary}
 			>
-				<Check size={14} aria-hidden="true" />
+				<Check size={ICON_MD} aria-hidden="true" />
 			</button>
-			<button
-				type="button"
-				disabled={pending}
-				onClick={() => {
-					setLabel(preset.label);
-					setEditing(false);
-				}}
-				aria-label={`Cancel editing ${preset.label}`}
-				className={adminIconBtn}
-			>
-				<X size={14} aria-hidden="true" />
-			</button>
-		</div>
+			<span className="ml-4 flex border-l border-line pl-4">
+				<button
+					type="button"
+					disabled={pending}
+					onClick={() => {
+						setLabel(preset.label);
+						setEditing(false);
+					}}
+					aria-label={`Cancel renaming ${preset.label}`}
+					className={adminIconBtn}
+				>
+					<X size={ICON_MD} aria-hidden="true" />
+				</button>
+			</span>
+		</form>
 	);
 }

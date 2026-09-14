@@ -2,14 +2,15 @@ import { expect, test } from "@playwright/test";
 import { mountAdmin, outcome } from "../admin/browser-fixture";
 
 const removals = [
-	{ view: "categories", button: "Delete Alpha", confirm: "Delete" },
+	{ view: "categories", button: "Delete Alpha", confirm: "Delete category" },
 	{ view: "workshops", button: "Delete Alpha", confirm: "Delete workshop" },
-	{ view: "presets", button: "Delete Alpha", confirm: "Remove" },
+	{ view: "presets", button: "Delete Alpha", confirm: "Delete option" },
 	{ view: "events", button: "Delete Gathering", confirm: "Delete event" },
 	{ view: "eventImages", button: "Remove photo 1", confirm: "Remove photo" },
-	{ view: "leads", button: "Delete lead", confirm: "Delete" },
+	{ view: "leads", button: "Delete enquiry from Mira", confirm: "Delete enquiry" },
 	{ view: "testimonials", button: "Delete testimonial from Mira", confirm: "Delete testimonial" },
-	{ view: "profile", button: "Remove photo", confirm: "Remove" },
+	{ view: "profile", button: "Remove photo", confirm: "Remove photo" },
+	{ view: "maintainers", button: "Remove bravo@example.invalid", confirm: "Remove maintainer" },
 ] as const;
 
 for (const failure of ["failure", "throw"] as const) {
@@ -68,9 +69,9 @@ for (const failure of ["failure", "throw"] as const) {
 	}
 
 	for (const editor of [
-		{ view: "categories", edit: "Rename", input: "Rename Alpha", save: "Save Alpha" },
+		{ view: "categories", edit: "Rename Alpha", input: "Rename Alpha", save: "Save Alpha" },
 		{ view: "workshops", edit: "Edit Alpha", input: "Title *", save: "Save" },
-		{ view: "presets", edit: "Edit", input: "Edit Alpha", save: "Save Alpha" },
+		{ view: "presets", edit: "Rename Alpha", input: "Rename Alpha", save: "Save Alpha" },
 	] as const) {
 		test(`${editor.view} retains the inline draft after ${failure}`, async ({ page }) => {
 			await mountAdmin(page, editor.view);
@@ -124,7 +125,7 @@ for (const failure of ["failure", "throw"] as const) {
 	});
 
 	for (const upload of [
-		{ view: "profile", picker: 'input[name="image"]', button: "Upload" },
+		{ view: "profile", picker: 'input[name="image"]', button: "Upload photo" },
 		{ view: "eventImages", picker: 'input[name="images"]', button: "Upload photos" },
 	] as const) {
 		test(`${upload.view} preserves its selected upload on ${failure}`, async ({ page }) => {
@@ -250,14 +251,20 @@ test("deleting the last lead shows an error on failure and an empty state only a
 	page,
 }) => {
 	await mountAdmin(page, "leads");
-	const remove = page.getByRole("button", { name: "Delete lead" });
+	const remove = page.getByRole("button", { name: "Delete enquiry from Mira" });
 	await remove.click();
-	await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+	await page
+		.getByRole("dialog")
+		.getByRole("button", { name: "Delete enquiry", exact: true })
+		.click();
 	await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
 	await expect(page.getByText("No enquiries on this page.", { exact: false })).toHaveCount(0);
 	await outcome(page, "success");
 	await remove.click();
-	await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+	await page
+		.getByRole("dialog")
+		.getByRole("button", { name: "Delete enquiry", exact: true })
+		.click();
 	await expect(page.getByText("No enquiries on this page.", { exact: false })).toBeVisible();
 	await expect(page.getByRole("alert")).toHaveCount(0);
 });

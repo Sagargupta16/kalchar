@@ -1,127 +1,168 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { useOptimistic, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LEAD_STATUS_LABEL, LEAD_STATUSES } from "@/lib/lead-triage";
 import type { Lead, LeadStatus } from "@/lib/types";
-import { formatEventDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";
+import { AdminNotice } from "./admin-notice";
 import { useConfirm } from "./confirm-dialog";
-import { adminField, adminIconBtnDestructive } from "./controls";
+import { adminBtn } from "./controls";
+import { LeadCard } from "./lead-card";
+import { UndoBar, useUndo } from "./undo-bar";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
-const STATUSES: readonly LeadStatus[] = ["new", "contacted", "closed"];
+type Lens = "all" | LeadStatus;
+
+const LENS_LABEL: Record<Lens, string> = { all: "All", ...LEAD_STATUS_LABEL };
 
 /**
- * Admin queue for captured custom-order leads. Each lead shows its brief +
- * chosen options, a status dropdown (new/contacted/closed), and a delete
- * control (the PII-removal path). Changes appear after the server accepts them.
+ * Admin queue for captured custom-order enquiries. Each card shows the brief,
+ * the chosen options, one-tap reply links, a status select whose flips are
+ * optimistic with an Undo offer (D26), and a delete control (the PII-removal
+ * path). Failures render inside the card they belong to.
  */
-export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
+export function LeadsManager({
+	leads: initial,
+	siteName = "Kalchar",
+}: Readonly<{ leads: Lead[]; siteName?: string }>) {
 	const { pending, err, run } = useAdminAction();
 	const [leads, setLeads] = useServerSyncedList(initial);
 	const confirm = useConfirm();
+	const [failedId, setFailedId] = useState<string | null>(null);
+	const [lens, setLens] = useState<Lens>("all");
+	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
+	// Status flips paint before the round trip; the value reverts by itself on
+	// failure because the dispatch runs inside run()'s transition (React 19).
+	const [shownLeads, applyStatus] = useOptimistic(
+		leads,
+		(state: Lead[], patch: { id: string; status: LeadStatus }) =>
+			state.map((l) => (l.id === patch.id ? { ...l, status: patch.status } : l)),
+	);
+
+	/** Run a mutation and remember which card it belongs to, for error routing. */
+	const act = (id: string, fn: () => Promise<unknown>, after?: () => void) => {
+		setFailedId(null);
+		return run(fn, after).then((ok) => {
+			if (!ok) setFailedId(id);
+			return ok;
+		});
+	};
 
 	const onStatus = (id: string, status: LeadStatus) => {
-		run(
-			() => setLeadStatus(id, status),
-			() => setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l))),
+		const lead = leads.find((l) => l.id === id);
+		if (!lead || lead.status === status) return Promise.resolve(true);
+		const previous = lead.status;
+		const who = lead.name?.trim() || "Someone";
+		return act(
+			id,
+			async () => {
+				applyStatus({ id, status });
+				return setLeadStatus(id, status);
+			},
+			() => {
+				setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+				offerUndo({
+					message: `Enquiry from ${who} marked ${LEAD_STATUS_LABEL[status].toLowerCase()}`,
+					// The RAW reverse action: wrapping it in the same run() would trip the
+					// inFlight guard. The optimistic dispatch is legal inside run's transition.
+					action: async () => {
+						applyStatus({ id, status: previous });
+						return setLeadStatus(id, previous);
+					},
+				});
+			},
 		);
 	};
 
-	const onDelete = async (id: string) => {
+	const onDelete = async (lead: Lead) => {
 		const ok = await confirm({
-			title: "Delete this lead?",
-			body: "This permanently removes the enquiry and the details it holds.",
-			confirmLabel: "Delete",
-			destructive: true,
+			title: `Delete the enquiry from ${lead.name || "this visitor"}?`,
+			body: "This permanently removes the enquiry and the contact details it holds.",
+			confirmLabel: "Delete enquiry",
+			cancelLabel: "Keep enquiry",
 		});
 		if (!ok) return;
-		run(
-			() => deleteLead(id),
-			() => setLeads((prev) => prev.filter((l) => l.id !== id)),
+		act(
+			lead.id,
+			() => deleteLead(lead.id),
+			() => setLeads((prev) => prev.filter((l) => l.id !== lead.id)),
 		);
 	};
 
+	const counts = shownLeads.reduce<Record<Lens, number>>(
+		(acc, l) => {
+			acc.all += 1;
+			acc[l.status] += 1;
+			return acc;
+		},
+		{ all: 0, new: 0, contacted: 0, closed: 0 },
+	);
+	const shown = lens === "all" ? shownLeads : shownLeads.filter((l) => l.status === lens);
+
 	return (
-		<div className="space-y-3">
-			{err ? (
-				<p role="alert" className="text-sm text-ruby">
-					{err}
-				</p>
+		<div className="space-y-group">
+			{leads.length > 0 ? (
+				<div role="group" aria-label="Filter enquiries" className="flex flex-wrap gap-2">
+					{(["all", ...LEAD_STATUSES] as Lens[]).map((key) => (
+						<button
+							key={key}
+							type="button"
+							aria-pressed={lens === key}
+							onClick={() => setLens(key)}
+							className={cn(adminBtn, "rounded-full")}
+						>
+							{LENS_LABEL[key]} <span className="tabular-nums text-muted">{counts[key]}</span>
+						</button>
+					))}
+				</div>
+			) : null}
+			{err && !undo && (failedId === null || !shown.some((l) => l.id === failedId)) ? (
+				<AdminNotice variant="error">{err}</AdminNotice>
 			) : null}
 			{leads.length === 0 ? (
-				<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
-					No enquiries on this page. Custom-order briefs submitted from the site appear here.
-				</p>
+				<EmptyState variant="compact" voice="tool">
+					No enquiries on this page. Briefs sent from the custom-order form appear here.
+				</EmptyState>
 			) : null}
-			<ul className="space-y-3">
-				{leads.map((lead) => (
-					<li key={lead.id} className="rounded-(--radius-sm) border border-line bg-bg-soft/40 p-4">
-						<div className="flex flex-wrap items-start justify-between gap-3">
-							<div className="min-w-0">
-								<p className="text-sm font-medium text-ink">
-									{lead.name || "Someone"}
-									{lead.style ? <span className="text-muted"> · {lead.style}</span> : null}
-								</p>
-								<p className="mt-0.5 text-xs text-muted">{formatEventDate(lead.createdAt)}</p>
-								{lead.contact ? (
-									<p className="mt-1 break-words text-xs text-muted">Contact: {lead.contact}</p>
-								) : null}
-							</div>
-							<div className="flex items-center gap-2">
-								<label className="sr-only" htmlFor={`status-${lead.id}`}>
-									Lead status
-								</label>
-								<select
-									id={`status-${lead.id}`}
-									value={lead.status}
-									disabled={pending}
-									onChange={(e) => onStatus(lead.id, e.currentTarget.value as LeadStatus)}
-									className={adminField}
-								>
-									{STATUSES.map((s) => (
-										<option key={s} value={s}>
-											{s}
-										</option>
-									))}
-								</select>
-								<button
-									type="button"
-									disabled={pending}
-									onClick={() => onDelete(lead.id)}
-									aria-label="Delete lead"
-									className={adminIconBtnDestructive}
-								>
-									<Trash2 size={15} />
-								</button>
-							</div>
-						</div>
-						<p className="mt-3 whitespace-pre-wrap text-sm text-ink">{lead.brief}</p>
-						{lead.size || lead.budget || lead.timeline ? (
-							<dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
-								{lead.size ? (
-									<div>
-										<dt className="inline font-medium">Size: </dt>
-										<dd className="inline">{lead.size}</dd>
-									</div>
-								) : null}
-								{lead.budget ? (
-									<div>
-										<dt className="inline font-medium">Budget: </dt>
-										<dd className="inline">{lead.budget}</dd>
-									</div>
-								) : null}
-								{lead.timeline ? (
-									<div>
-										<dt className="inline font-medium">Timeline: </dt>
-										<dd className="inline">{lead.timeline}</dd>
-									</div>
-								) : null}
-							</dl>
-						) : null}
-					</li>
-				))}
-			</ul>
+			{shown.length === 0 && leads.length > 0 ? (
+				<EmptyState
+					variant="compact"
+					voice="tool"
+					body={`No ${LENS_LABEL[lens].toLowerCase()} enquiries on this page.`}
+					action={
+						<button type="button" onClick={() => setLens("all")} className={adminBtn}>
+							Show all
+						</button>
+					}
+				/>
+			) : null}
+			{shown.length > 0 ? (
+				<ul className="space-y-tight">
+					{shown.map((lead) => (
+						<LeadCard
+							key={lead.id}
+							lead={lead}
+							siteName={siteName}
+							pending={pending}
+							error={failedId === lead.id ? err : null}
+							onStatus={(status) => onStatus(lead.id, status)}
+							onDelete={() => onDelete(lead)}
+						/>
+					))}
+				</ul>
+			) : null}
+			{undo ? (
+				<UndoBar
+					message={undo.message}
+					pending={undoPending}
+					error={undoError ? (err ?? undoError) : null}
+					onAction={undoNow}
+					onDismiss={dismissUndo}
+				/>
+			) : null}
 		</div>
 	);
 }

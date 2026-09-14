@@ -1,11 +1,25 @@
 "use client";
 
 import { Shield, Trash2, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { inviteMaintainer, revokeMaintainer } from "../actions";
+import { AdminNotice } from "./admin-notice";
+import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
+import {
+	adminBtnDestructive,
+	adminBtnPrimary,
+	adminError,
+	adminField,
+	adminLabel,
+	adminPanelInset,
+	ICON_MD,
+	ICON_SM,
+} from "./controls";
 import { useAdminAction } from "./use-admin-action";
+import { useServerSyncedList } from "./use-server-synced-list";
 
 interface MaintainerView {
 	email: string;
@@ -14,109 +28,177 @@ interface MaintainerView {
 	addedBy: string | null;
 }
 
-/** Sub-label describing how a maintainer got their access. */
-function roleLabel(m: MaintainerView): string {
-	if (m.isRoot) return "Root maintainer";
-	return m.addedBy ? `Added by ${m.addedBy}` : "Maintainer";
-}
-
 export function MaintainerManager({
-	roster,
+	roster: initial,
 	me,
 }: Readonly<{ roster: MaintainerView[]; me: string }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
+	const [roster, setRoster] = useServerSyncedList(initial);
 	const [email, setEmail] = useState("");
 	const [name, setName] = useState("");
+	const [fieldError, setFieldError] = useState<string | null>(null);
+	const [added, setAdded] = useState<string | null>(null);
+	const ids = useId();
+
+	const onRemove = async (m: MaintainerView, isMe: boolean) => {
+		const ok = await confirm(
+			isMe
+				? {
+						title: "Remove your own access?",
+						body: "You will lose access to this admin as soon as you confirm, and another maintainer will need to add you back.",
+						confirmLabel: "Remove my access",
+						cancelLabel: "Keep my access",
+					}
+				: {
+						title: `Remove ${m.name ?? m.email}?`,
+						body: `${m.email} will lose admin access.`,
+						confirmLabel: "Remove maintainer",
+						cancelLabel: "Keep maintainer",
+					},
+		);
+		if (!ok) return;
+		run(
+			() => revokeMaintainer(m.email),
+			() => setRoster((prev) => prev.filter((x) => x.email !== m.email)),
+		);
+	};
 
 	return (
-		<div className="space-y-6">
-			{/* Invite form */}
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					if (!email.trim()) return;
-					run(
-						() => inviteMaintainer(email.trim(), name.trim() || undefined),
-						() => {
-							setEmail("");
-							setName("");
-						},
-					);
-				}}
-				className="rounded-(--radius-md) border border-line bg-bg-soft p-4"
-			>
-				<p className="text-xs font-medium text-muted mb-3">Invite a maintainer</p>
-				<div className="flex flex-wrap items-end gap-3">
-					<label className="flex flex-col gap-1 text-xs text-muted">
-						<span>Google email</span>
-						<input
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							placeholder="person@gmail.com"
-							required
-							className={`${adminField} w-60`}
-						/>
-					</label>
-					<label className="flex flex-col gap-1 text-xs text-muted">
-						<span>Name (optional)</span>
-						<input
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className={`${adminField} w-36`}
-						/>
-					</label>
-					<button type="submit" disabled={pending} className={adminBtnPrimary}>
-						<UserPlus size={14} />
-						Add
-					</button>
-				</div>
-			</form>
-
-			{err ? (
-				<p role="alert" className="text-sm text-ruby">
-					{err}
-				</p>
-			) : null}
-
-			{/* Roster */}
-			<div className="divide-y divide-line rounded-(--radius-md) border border-line overflow-hidden">
-				{roster.map((m) => (
-					<div key={m.email} className="flex items-center justify-between gap-3 bg-bg px-4 py-3">
-						<div>
-							<p className="text-sm font-medium">
-								{m.name ? `${m.name} · ` : ""}
-								{m.email}
-								{m.email === me ? <span className="ml-1.5 text-xs text-accent">(you)</span> : null}
-							</p>
-							<p className="text-xs text-muted">{roleLabel(m)}</p>
-						</div>
-						{m.isRoot ? (
-							<span className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[0.65rem] text-muted">
-								<Shield size={10} />
-								root
-							</span>
-						) : (
-							<button
-								type="button"
-								disabled={pending}
-								onClick={async () => {
-									const ok = await confirm({
-										title: `Remove ${m.email}?`,
-										body: "They will lose admin access.",
-										confirmLabel: "Remove",
-									});
-									if (ok) run(() => revokeMaintainer(m.email));
+		<div className="space-y-group">
+			{/* Ruling 42: the add form and the roster are independent panels, side by side from lg. */}
+			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
+				<form
+					aria-labelledby={`${ids}-title`}
+					className={cn(adminPanelInset, "min-w-0")}
+					onSubmit={(e) => {
+						e.preventDefault();
+						const address = email.trim().toLowerCase();
+						if (!address) {
+							setFieldError("Enter a Google email");
+							return;
+						}
+						if (roster.some((m) => m.email.toLowerCase() === address)) {
+							setFieldError(`${address} already has access.`);
+							return;
+						}
+						setFieldError(null);
+						setAdded(null);
+						run(
+							() => inviteMaintainer(address, name.trim() || undefined),
+							() => {
+								setAdded(address);
+								setEmail("");
+								setName("");
+							},
+						);
+					}}
+				>
+					<AdminPanelHeader
+						id={`${ids}-title`}
+						as="h2"
+						title="Add a maintainer"
+						description="They can sign in straight away with this Google account. Nothing is emailed to them."
+					/>
+					<div className="grid gap-(--form-gap) sm:grid-cols-2">
+						<label htmlFor={`${ids}-email`} className={cn(adminLabel, "sm:col-span-2")}>
+							Google email
+							<input
+								id={`${ids}-email`}
+								type="email"
+								inputMode="email"
+								autoComplete="email"
+								autoCapitalize="none"
+								spellCheck={false}
+								required
+								value={email}
+								onChange={(e) => {
+									setEmail(e.target.value);
+									if (fieldError) setFieldError(null);
+									if (added) setAdded(null);
 								}}
-								className={`${adminBtnDestructive} px-2.5 py-1`}
-							>
-								<Trash2 size={12} />
-								Remove
-							</button>
-						)}
+								aria-invalid={fieldError ? true : undefined}
+								aria-describedby={fieldError ? `${ids}-error` : undefined}
+								className={adminField}
+							/>
+						</label>
+						<label htmlFor={`${ids}-name`} className={adminLabel}>
+							Name (optional)
+							<input
+								id={`${ids}-name`}
+								autoComplete="name"
+								autoCapitalize="words"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+								className={adminField}
+							/>
+						</label>
+						<button
+							type="submit"
+							disabled={pending}
+							className={cn(adminBtnPrimary, "w-full sm:w-auto sm:self-end sm:justify-self-end")}
+						>
+							<UserPlus size={ICON_MD} aria-hidden="true" />
+							Add maintainer
+						</button>
 					</div>
-				))}
+					{fieldError ? (
+						<p id={`${ids}-error`} className={cn(adminError, "mt-1")}>
+							{fieldError}
+						</p>
+					) : null}
+					{err ? (
+						<AdminNotice variant="error" className="mt-3">
+							{err}
+						</AdminNotice>
+					) : null}
+					{added ? (
+						<AdminNotice variant="success" className="mt-3">
+							{added} can now sign in with Google at kalchar.co.in/admin.
+						</AdminNotice>
+					) : null}
+				</form>
+
+				<ul className="min-w-0 divide-y divide-line overflow-hidden rounded-(--radius-md) border border-line bg-surface">
+					{roster.map((m) => {
+						const isMe = m.email === me;
+						const secondLine = [m.name ? m.email : null, m.addedBy ? `Added by ${m.addedBy}` : null]
+							.filter(Boolean)
+							.join(", ");
+						return (
+							<li key={m.email} className="flex items-center gap-3 px-4 py-3">
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium text-ink">
+										{m.name ?? m.email}
+										{isMe ? (
+											<span className="ml-1.5 text-label font-normal text-accent-text">(you)</span>
+										) : null}
+									</p>
+									{secondLine ? (
+										<p className="truncate text-label text-muted">{secondLine}</p>
+									) : null}
+								</div>
+								{m.isRoot ? (
+									<Badge variant="muted" className="shrink-0">
+										<Shield size={ICON_SM} aria-hidden="true" />
+										Root
+									</Badge>
+								) : (
+									<button
+										type="button"
+										disabled={pending}
+										onClick={() => onRemove(m, isMe)}
+										aria-label={`Remove ${m.email}`}
+										className={cn(adminBtnDestructive, "shrink-0")}
+									>
+										<Trash2 size={ICON_MD} aria-hidden="true" />
+										Remove
+									</button>
+								)}
+							</li>
+						);
+					})}
+				</ul>
 			</div>
 		</div>
 	);
