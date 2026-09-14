@@ -65,3 +65,37 @@ export function formatBytes(bytes: number): string {
 	if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+const ROMAN_NUMERALS: readonly (readonly [number, string])[] = [
+	[1000, "M"],
+	[900, "CM"],
+	[500, "D"],
+	[400, "CD"],
+	[100, "C"],
+	[90, "XC"],
+	[50, "L"],
+	[40, "XL"],
+	[10, "X"],
+	[9, "IX"],
+	[5, "V"],
+	[4, "IV"],
+	[1, "I"],
+];
+
+/**
+ * Roman numeral for the workshop ledger rows (visual-direction 2.1/2.7):
+ * 1 -> "I", 4 -> "IV". Returns "" for zero, negative or non-finite input so
+ * callers can gate on truthiness.
+ */
+export function toRoman(value: number): string {
+	if (!Number.isFinite(value) || value < 1) return "";
+	let remainder = Math.floor(value);
+	let out = "";
+	for (const [figure, glyph] of ROMAN_NUMERALS) {
+		while (remainder >= figure) {
+			out += glyph;
+			remainder -= figure;
+		}
+	}
+	return out;
+}

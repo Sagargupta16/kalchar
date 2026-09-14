@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { PlateFrame } from "@/components/gallery/plate-frame";
+import { WallLabel } from "@/components/gallery/wall-label";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { HERO_SHUFFLE_DELAY_MS } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 
-const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
+/** Shared with hero.tsx: the front plate caps at 35rem in the md+ seven-column cell. */
+const FEATURED_SIZES = "(min-width: 768px) 35rem, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 const MIN_SHUFFLE_TILT = 3;
@@ -28,7 +32,7 @@ interface HeroPlatesProps {
 	pool: readonly Artwork[];
 	defaultFront: Artwork;
 	defaultBack?: Artwork;
-	/** Map of slug -> catalog position, for the "N of M" caption. */
+	/** Map of slug -> catalog position, for the wall-label counter. */
 	catalogIndex: Record<string, number>;
 	totalCount: number;
 }
@@ -81,13 +85,19 @@ async function prepareShuffle(
 }
 
 /**
- * The layered featured-artwork plates on the home hero.
+ * The layered featured-artwork plates on the home hero (visual-direction 2.1).
  *
  * Server renders the deterministic default pair at the resting tilt (-5deg
  * front, +4deg back) -- that front plate is the preloaded LCP. After mount,
  * if the visitor has not asked for reduced motion, we shuffle to two random
  * featured pieces at random opposite-leaning angles, so the hero feels alive
  * and different on each reload.
+ *
+ * The front plate sits in a PlateFrame with the resting gold inset and the
+ * approved gold-leaf sheen loop (deferred 23, --sheen-every 8s); the back
+ * plate takes a bare PlateFrame. Hover adds nothing on the hero: it already
+ * rests at the top (no `group` on the link). Under the plates a museum wall
+ * label carries the kept Featured glyph line as "✦ Featured · No. NN of T".
  *
  * Clicking the front plate opens the shared lightbox (same behavior as the
  * gallery cards), with the whole featured pool as the navigable set. Cmd/Ctrl
@@ -157,22 +167,24 @@ export function HeroPlates({
 
 	return (
 		<div data-shuffle-status={shuffleStatus}>
-			<div className="relative aspect-3/4">
+			<div className="relative aspect-3/4 max-h-[46dvh] md:max-h-none">
 				{/* Back plate */}
 				{back ? (
 					<div
 						aria-hidden="true"
-						className="hero-plate absolute inset-0 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-e2-edged"
+						className="hero-plate absolute inset-0"
 						style={{ transform: `translate(6%, 4%) rotate(${backTilt}deg)` }}
 					>
-						<ArtImage
-							key={back.slug}
-							src={`/artworks/${back.image}`}
-							alt=""
-							sizes={FEATURED_SIZES}
-							maxWidth={800}
-							className="absolute inset-0 h-full w-full object-cover"
-						/>
+						<PlateFrame className="h-full">
+							<ArtImage
+								key={back.slug}
+								src={`/artworks/${back.image}`}
+								alt=""
+								sizes={FEATURED_SIZES}
+								maxWidth={800}
+								className="absolute inset-0 h-full w-full object-cover"
+							/>
+						</PlateFrame>
 					</div>
 				) : null}
 
@@ -184,15 +196,10 @@ export function HeroPlates({
 					<Link
 						href={`/work/${front.slug}`}
 						onClick={handleClick}
-						className="group pressable absolute inset-0 block rounded-(--radius-md)"
+						className="pressable absolute inset-0 block rounded-(--radius-md)"
 						aria-label={`View ${front.title}`}
 					>
-						{/* Gold-leaf sheen loop on the frame (H4, ruling 45): one soft-light
-						    pass every 6s (the class default), zeroed under reduced motion. */}
-						<div
-							data-sheen="loop"
-							className="gold-sheen relative h-full overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-e3-edged transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-1 group-hover:ring-accent"
-						>
+						<PlateFrame goldRest sheen className="h-full">
 							<ArtImage
 								key={front.slug}
 								src={`/artworks/${front.image}`}
@@ -202,25 +209,30 @@ export function HeroPlates({
 								priority={!shuffled}
 								className="absolute inset-0 h-full w-full object-cover"
 							/>
-						</div>
+						</PlateFrame>
 					</Link>
 				</div>
 			</div>
 
-			{/* Caption */}
+			{/* Museum wall label: "✦ Featured · No. NN of T" / italic title / STYLE · YEAR */}
 			<div className="mt-6">
-				<p className="t-meta flex items-center gap-2">
-					<span aria-hidden="true" className="text-gold-leaf">
-						✦
-					</span>
-					<span>
-						Featured, {index >= 0 ? index + 1 : 1} of {totalCount}
-					</span>
-				</p>
-				<p className="mt-2 flex items-baseline justify-between gap-3">
-					<span className="t-display min-w-0 line-clamp-2 text-h3">{front.title}</span>
-					<span className="t-meta shrink-0 whitespace-nowrap">{front.style}</span>
-				</p>
+				<WallLabel
+					variant="compact"
+					index={index >= 0 ? index + 1 : 1}
+					total={totalCount}
+					title={front.title}
+					meta={[front.style, front.year ? String(front.year) : ""]}
+					stagger
+					prefix={
+						<>
+							<span aria-hidden="true" className="text-gold-leaf">
+								✦
+							</span>
+							<span>Featured ·</span>
+						</>
+					}
+				/>
+				<AccentRule variant="gold" className="mt-3 w-6" />
 			</div>
 		</div>
 	);

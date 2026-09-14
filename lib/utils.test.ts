@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { cn, formatBytes, formatEventDate, formatEventDateShort, formatInr } from "./utils";
+import {
+	cn,
+	formatBytes,
+	formatEventDate,
+	formatEventDateShort,
+	formatInr,
+	toRoman,
+} from "./utils";
 
 describe("cn", () => {
 	it("keeps a custom size token next to a text colour", () => {
@@ -58,5 +65,27 @@ describe("formatBytes", () => {
 	it("treats empty or invalid sizes as 0 KB", () => {
 		expect(formatBytes(0)).toBe("0 KB");
 		expect(formatBytes(Number.NaN)).toBe("0 KB");
+	});
+});
+
+describe("toRoman", () => {
+	it("covers the ledger range the teasers use", () => {
+		expect(toRoman(1)).toBe("I");
+		expect(toRoman(2)).toBe("II");
+		expect(toRoman(3)).toBe("III");
+		expect(toRoman(4)).toBe("IV");
+		expect(toRoman(5)).toBe("V");
+	});
+	it("handles subtractive and compound forms", () => {
+		expect(toRoman(9)).toBe("IX");
+		expect(toRoman(14)).toBe("XIV");
+		expect(toRoman(40)).toBe("XL");
+		expect(toRoman(1994)).toBe("MCMXCIV");
+	});
+	it("floors fractions and returns '' for zero, negative and non-finite input", () => {
+		expect(toRoman(3.9)).toBe("III");
+		expect(toRoman(0)).toBe("");
+		expect(toRoman(-2)).toBe("");
+		expect(toRoman(Number.NaN)).toBe("");
 	});
 });

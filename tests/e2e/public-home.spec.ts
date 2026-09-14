@@ -62,11 +62,13 @@ test("hero title and lead render immediately; the stagger covers secondary eleme
 	await expect(hero.locator("[data-motion-reveal]")).toHaveCount(0);
 	await expect(hero.locator(".t-lead")).toBeVisible();
 
-	// Eager stagger: eyebrow, plate, chips, CTAs at staggerDelay(0, 2, 4, 5).
+	// Eager stagger: eyebrow, plate, chips, CTAs at staggerDelay(0, 2, 4, 5);
+	// inside the plate cell the wall-label lines rise at staggerDelay(1..3)
+	// (visual-direction 2.1: counter, title, meta at 60/120/180ms).
 	const delays = await hero
 		.locator(".reveal-up")
 		.evaluateAll((els) => els.map((el) => (el as HTMLElement).style.animationDelay));
-	expect(delays).toEqual(["0ms", "120ms", "240ms", "300ms"]);
+	expect(delays).toEqual(["0ms", "120ms", "60ms", "120ms", "180ms", "240ms", "300ms"]);
 });
 
 test("style chips are deep links with 44px hit boxes", async ({ page }) => {
@@ -147,17 +149,95 @@ for (const theme of ["light", "dark"] as const) {
 	});
 }
 
-test("every section heading sits on the one h2 rung", async ({ page }) => {
+test("every section heading sits on the display-sm rung", async ({ page }) => {
 	await page.goto("/");
 	const sizes = await page
-		.locator("main section h2.text-h2")
-		.evaluateAll((els) => els.map((el) => getComputedStyle(el).fontSize));
+		.locator("main section h2.text-display-sm")
+		.evaluateAll((els) => els.map((el) => Number.parseFloat(getComputedStyle(el).fontSize)));
 	expect(sizes.length).toBeGreaterThanOrEqual(6);
 	const viewport = page.viewportSize();
-	const expected = viewport && viewport.width < 640 ? "30px" : "48px";
+	if (!viewport) throw new Error("missing viewport");
+	// --text-display-sm: clamp(2.5rem, 1.597rem + 3.71vw, 4.5rem) -> 40px at 390, 72px at 1280.
+	const expected = Math.min(Math.max(25.552 + 0.0371 * viewport.width, 40), 72);
 	for (const size of sizes) {
-		expect(size).toBe(expected);
+		expect(Math.abs(size - expected)).toBeLessThanOrEqual(1);
 	}
+});
+
+test("the hero h1 carries the roman headline voice on the display rung", async ({ page }) => {
+	await page.goto("/");
+	const probe = await page.locator("main h1").evaluate((el) => {
+		const cs = getComputedStyle(el);
+		return { fontSize: Number.parseFloat(cs.fontSize), fontWeight: cs.fontWeight, fontStyle: cs.fontStyle };
+	});
+	const viewport = page.viewportSize();
+	if (!viewport) throw new Error("missing viewport");
+	// --text-display: clamp(2.75rem, 1.545rem + 4.94vw, 5.5rem) -> 44px at 390, 88px at 1280.
+	const expected = Math.min(Math.max(24.72 + 0.0494 * viewport.width, 44), 88);
+	expect(Math.abs(probe.fontSize - expected)).toBeLessThanOrEqual(1);
+	expect(probe.fontWeight).toBe("600");
+	expect(probe.fontStyle).toBe("normal");
+});
+
+test("kachni seams open every home section after the hero", async ({ page }) => {
+	await page.goto("/");
+	const sections = page.locator("main > section");
+	const count = await sections.count();
+	expect(count).toBeGreaterThanOrEqual(7);
+	await expect(sections.nth(0).locator('[role="presentation"]')).toHaveCount(0);
+	for (let i = 1; i < count; i += 1) {
+		const rule = sections.nth(i).locator('[role="presentation"]');
+		await expect(rule).toHaveCount(1);
+		const height = await rule.evaluate((el) => el.getBoundingClientRect().height);
+		expect(Math.round(height)).toBe(7);
+	}
+});
+
+test("one gold sheen loops on the hero front plate only", async ({ page }) => {
+	await page.goto("/");
+	await expect(page.locator('.gold-sheen[data-sheen="loop"]')).toHaveCount(1);
+	await expect(
+		page.locator("main > section").first().locator('.gold-sheen[data-sheen="loop"]'),
+	).toHaveCount(1);
+});
+
+test("the pigment wash sits behind the hero with no blur filter", async ({ page }) => {
+	await page.goto("/");
+	const wash = await page
+		.locator("main > section")
+		.first()
+		.evaluate((section) => {
+			const host = section.querySelector(':scope > [aria-hidden="true"]');
+			if (!host) return null;
+			const children = Array.from(host.children);
+			return {
+				count: children.length,
+				filters: children.map((child) => getComputedStyle(child).filter),
+				pointerEvents: getComputedStyle(host).pointerEvents,
+			};
+		});
+	expect(wash).not.toBeNull();
+	expect(wash?.count).toBe(2);
+	expect(wash?.pointerEvents).toBe("none");
+	for (const filter of wash?.filters ?? []) {
+		expect(filter).toBe("none");
+	}
+});
+
+test("the Selected grid leads with a spanning tile", async ({ page }) => {
+	await page.goto("/");
+	const grid = page.locator("#work ul").first();
+	const gridBox = await grid.boundingBox();
+	const leadBox = await grid.locator("li").first().boundingBox();
+	if (!gridBox || !leadBox) throw new Error("missing grid geometry");
+	expect(Math.abs(leadBox.width - gridBox.width)).toBeLessThanOrEqual(2);
+});
+
+test("the hero wall label numbers the featured piece", async ({ page }) => {
+	await page.goto("/");
+	const counter = page.locator("[data-shuffle-status] .t-meta").first();
+	await expect(counter).toContainText("Featured");
+	await expect(counter).toContainText(/No\. \d{2} of \d+/);
 });
 
 test("LCP priority stays on the first Selected cards only", async ({ page }) => {

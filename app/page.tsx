@@ -1,11 +1,14 @@
+import { KachniRule } from "@/components/decor/kachni-rule";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
-import { GalleryGrid } from "@/components/gallery/gallery-grid";
+import { GALLERY_LEAD_SIZES, GalleryGrid } from "@/components/gallery/gallery-grid";
 import { AboutTeaser } from "@/components/home/about-teaser";
 import { ContactTeaser } from "@/components/home/contact-teaser";
 import { CustomOrdersTeaser } from "@/components/home/custom-orders-teaser";
 import { EventsTeaser } from "@/components/home/events-teaser";
 import { Hero } from "@/components/home/hero";
+import { LeadUnveil } from "@/components/home/lead-unveil";
 import { SectionCta } from "@/components/home/section-cta";
+import { Spread } from "@/components/home/spread";
 import { Testimonials } from "@/components/home/testimonials";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
 import { Reveal } from "@/components/motion/reveal";
@@ -22,13 +25,17 @@ import {
 	getSite,
 } from "@/lib/data";
 import { shapeHomeCatalog } from "@/lib/home-catalog";
-import { staggerDelay } from "@/lib/motion";
+import { gridStaggerDelay, REVEAL_DISTANCE } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
 import type { SectionCopy } from "@/lib/types";
 import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 const WORKSHOPS_PREVIEW_COUNT = 3;
 const WHATSAPP_GREETING = "Hi, I found you on kalchar.co.in.";
+/** Home grids sit inside the lg spread's eight-column content area, so they
+ *  stay two columns there and the spanLead first tile spans both
+ *  (visual-direction 2.1 change 5). */
+const HOME_GRID_CLASS = "lg:grid-cols-2";
 
 // Home-specific metadata: the highest-traffic entry page (most visits arrive
 // from WhatsApp/Instagram link-taps), so give it a unique, keyword-rich title
@@ -95,50 +102,108 @@ export default async function HomePage() {
 			/>
 
 			{selected.length > 0 ? (
-				<Section id="work" padded borderBottom>
-					<Reveal>
-						<SectionHeader
-							eyebrow={workCopy?.eyebrow ?? "Selected work"}
-							title={workCopy?.title ?? "Selected pieces from the archive"}
-							lead={workCopy?.homeLead ?? workCopy?.lead}
-						/>
-					</Reveal>
-					<GalleryGrid className="mt-(--space-block)">
-						{selected.map((art, i) => (
-							<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
-								<ArtworkCard artwork={art} siblings={selected} priority={i < 3} />
+				<Section id="work" padded rhythm="grand">
+					<KachniRule form="long" className="mb-(--space-block)" />
+					<Spread
+						header={
+							<Reveal>
+								<SectionHeader
+									eyebrow={workCopy?.eyebrow ?? "Selected work"}
+									title={workCopy?.title ?? "Selected pieces from the archive"}
+									lead={workCopy?.homeLead ?? workCopy?.lead}
+								/>
 							</Reveal>
-						))}
-					</GalleryGrid>
-					<Reveal>
-						<div className="mt-(--space-block)">
-							<SectionCta href="/work">{selectedCtaLabel}</SectionCta>
-						</div>
-					</Reveal>
+						}
+					>
+						<GalleryGrid spanLead className={HOME_GRID_CLASS}>
+							{selected.map((art, i) =>
+								i === 0 ? (
+									<LeadUnveil key={art.slug}>
+										<ArtworkCard
+											artwork={art}
+											siblings={selected}
+											priority
+											index={(catalogIndex[art.slug] ?? 0) + 1}
+											total={all.length}
+											sizes={GALLERY_LEAD_SIZES}
+										/>
+									</LeadUnveil>
+								) : (
+									<Reveal
+										key={art.slug}
+										as="li"
+										distance={REVEAL_DISTANCE.item}
+										delayMs={gridStaggerDelay(i)}
+									>
+										<ArtworkCard
+											artwork={art}
+											siblings={selected}
+											priority={i < 3}
+											index={(catalogIndex[art.slug] ?? 0) + 1}
+											total={all.length}
+										/>
+									</Reveal>
+								),
+							)}
+						</GalleryGrid>
+						<Reveal>
+							<div className="mt-(--space-block)">
+								<SectionCta href="/work">{selectedCtaLabel}</SectionCta>
+							</div>
+						</Reveal>
+					</Spread>
 				</Section>
 			) : null}
 
 			{availablePreview.length > 0 ? (
-				<Section id="available" padded borderBottom>
-					<Reveal>
-						<SectionHeader
-							eyebrow={availableCopy?.eyebrow ?? "Available now"}
-							title={availableCopy?.title ?? "Pieces ready to find a home"}
-							lead={availableCopy?.lead}
-						/>
-					</Reveal>
-					<GalleryGrid className="mt-(--space-block)">
-						{availablePreview.map((art, i) => (
-							<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
-								<ArtworkCard artwork={art} siblings={available} />
+				<Section id="available" padded rhythm="grand">
+					<KachniRule form="long" className="mb-(--space-block)" />
+					<Spread
+						header={
+							<Reveal>
+								<SectionHeader
+									eyebrow={availableCopy?.eyebrow ?? "Available now"}
+									title={availableCopy?.title ?? "Pieces ready to find a home"}
+									lead={availableCopy?.lead}
+								/>
 							</Reveal>
-						))}
-					</GalleryGrid>
-					<Reveal>
-						<div className="mt-(--space-block)">
-							<SectionCta href="/work?view=available">{availableCtaLabel}</SectionCta>
-						</div>
-					</Reveal>
+						}
+					>
+						<GalleryGrid spanLead className={HOME_GRID_CLASS}>
+							{availablePreview.map((art, i) =>
+								i === 0 ? (
+									<LeadUnveil key={art.slug}>
+										<ArtworkCard
+											artwork={art}
+											siblings={available}
+											index={(catalogIndex[art.slug] ?? 0) + 1}
+											total={all.length}
+											sizes={GALLERY_LEAD_SIZES}
+										/>
+									</LeadUnveil>
+								) : (
+									<Reveal
+										key={art.slug}
+										as="li"
+										distance={REVEAL_DISTANCE.item}
+										delayMs={gridStaggerDelay(i)}
+									>
+										<ArtworkCard
+											artwork={art}
+											siblings={available}
+											index={(catalogIndex[art.slug] ?? 0) + 1}
+											total={all.length}
+										/>
+									</Reveal>
+								),
+							)}
+						</GalleryGrid>
+						<Reveal>
+							<div className="mt-(--space-block)">
+								<SectionCta href="/work?view=available">{availableCtaLabel}</SectionCta>
+							</div>
+						</Reveal>
+					</Spread>
 				</Section>
 			) : null}
 
@@ -147,13 +212,14 @@ export default async function HomePage() {
 				title={site.sections.about?.title ?? "The practice"}
 				lead={site.sections.about?.lead}
 				location={site.brand.location}
+				tagline={site.brand.tagline}
 				intro={showHomeIntro ? aboutCopy?.intro : undefined}
 				profileImage={profileImage}
 				monogram={site.brand.devanagariMark}
 				publicName={site.brand.publicName}
 			/>
 
-			<Testimonials testimonials={testimonials} borderBottom />
+			<Testimonials testimonials={testimonials} seam />
 
 			{workshopsPreview.length > 0 ? (
 				<WorkshopsTeaser

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { HeroPlates } from "@/components/home/hero-plates";
-import { HeroWash } from "@/components/home/hero-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { Badge } from "@/components/ui/badge";
 import { WhatsAppIcon } from "@/components/ui/brand-icons";
@@ -10,7 +9,8 @@ import { artworkPreloadSrcset } from "@/lib/image-base";
 import { staggerDelay } from "@/lib/motion";
 import type { Artwork, Site } from "@/lib/types";
 
-const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
+/** Shared with hero-plates.tsx: the front plate caps at 35rem in the md+ seven-column cell. */
+const FEATURED_SIZES = "(min-width: 768px) 35rem, 85vw";
 
 interface HeroProps {
 	site: Site;
@@ -28,11 +28,14 @@ interface HeroProps {
 }
 
 /**
- * Phone order is Head, Plate, Body so the painting sits inside the first
- * screen (flow 0/48); md+ keeps the headline-left / plate-right composition
- * via explicit row placement. Ruling 44: the h1 and the lead render in full
- * immediately (no Reveal of any kind); the eager stagger covers only the
- * secondary elements and skips their indexes (1 and 3) so the rhythm holds.
+ * Editorial museum hero (visual-direction 2.1). Phone order is Head, Plate,
+ * Body so the painting sits inside the first screen; md+ gives the plates the
+ * majority column (copy 5 / plates 7) inside a viewport-height shell capped
+ * at 52rem, with the organic pigment wash drifting behind (Section `wash`).
+ * The h1 carries the roman headline voice on the display rung. Ruling 44:
+ * the h1 and the lead render in full immediately (no Reveal of any kind);
+ * the eager stagger covers only the secondary elements and skips their
+ * indexes (1 and 3) so the rhythm holds.
  */
 export function Hero({
 	site,
@@ -47,11 +50,10 @@ export function Hero({
 	return (
 		<Section
 			padded
-			borderBottom
-			className="relative overflow-hidden"
-			containerClassName="relative isolate"
+			rhythm="grand"
+			wash
+			className="md:grid md:content-center md:max-h-[52rem] md:min-h-[calc(100dvh-var(--header-h-shrunk))]"
 		>
-			<HeroWash />
 			{featured ? (
 				<link
 					rel="preload"
@@ -65,7 +67,7 @@ export function Hero({
 
 			<div className="grid gap-8 md:grid-cols-12 md:grid-rows-[auto_auto] md:gap-x-12 md:gap-y-6">
 				{/* Head: eyebrow + h1 */}
-				<div className="md:col-span-7 md:row-start-1 md:self-end">
+				<div className="md:col-span-5 md:row-start-1 md:self-end">
 					<Reveal eager>
 						<p className="t-eyebrow flex items-center gap-2">
 							<span aria-hidden="true" className="text-gold-leaf">
@@ -75,29 +77,28 @@ export function Hero({
 						</p>
 					</Reveal>
 
-					<h1 className="t-display mt-4 text-5xl sm:text-6xl md:text-7xl">
+					<h1 className="t-headline mt-4 text-display [--devanagari-shift:-0.02em]">
 						<span className="block">
-							<span className="not-italic">{site.brand.headline.latinPrefix}</span>
+							{site.brand.headline.latinPrefix}
 							<span
 								lang="hi"
-								className="flare-after relative inline-block font-devanagari not-italic text-accent"
+								className="devanagari-display flare-after relative inline-block text-accent"
 							>
 								{site.brand.headline.devanagariCore}
 							</span>
 						</span>
-						<span className="mt-2 block text-2xl text-muted sm:text-3xl md:text-4xl">
-							<span className="not-italic">{site.brand.headline.connector}</span>{" "}
-							<span>{site.brand.headline.suffix}</span>
+						<span className="t-headline mt-3 block text-title text-muted">
+							{site.brand.headline.connector} {site.brand.headline.suffix}
 						</span>
 					</h1>
 				</div>
 
-				{/* Plate: directly under the headline on phones, right column on md+ */}
+				{/* Plate: directly under the headline on phones, majority column on md+ */}
 				{featured ? (
 					<Reveal
 						eager
 						delayMs={staggerDelay(2)}
-						className="mx-auto w-full max-w-xs sm:max-w-sm md:col-span-5 md:col-start-8 md:row-span-2 md:row-start-1 md:max-w-none md:self-center"
+						className="mx-auto w-full max-w-xs sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[35rem] md:self-center"
 					>
 						<HeroPlates
 							pool={pool}
@@ -110,8 +111,10 @@ export function Hero({
 				) : null}
 
 				{/* Body: lead + chips + CTAs */}
-				<div className="md:col-span-7 md:col-start-1 md:row-start-2 md:self-start">
-					<p className="t-lead max-w-xl">{site.brand.description}</p>
+				<div className="md:col-span-5 md:col-start-1 md:row-start-2 md:self-start">
+					<p className="t-lead line-clamp-2 max-w-xl md:line-clamp-none">
+						{site.brand.description}
+					</p>
 
 					<Reveal eager delayMs={staggerDelay(4)}>
 						<nav aria-label="Browse by style">
