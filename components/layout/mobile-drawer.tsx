@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
-import { DUR, EASE_IN, EASE_OUT } from "@/lib/motion";
+import { DUR, EASE_IN, EASE_OUT, SPRING_SHEET } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export interface DrawerNavItem {
@@ -28,11 +28,19 @@ interface MobileDrawerProps {
  * bar collapses) with the six destinations as numbered index rows: "01".."06"
  * in tabular meta caps beside the label in the roman headline voice; the
  * active row carries accent text, a 24px gold rule and aria-current (never
- * gold alone). "Message on WhatsApp" keeps its content but moves from the
- * first row to a pinned full-width primary above the safe area. Rows cascade
- * on the CSS stagger utility; the panel enters at DUR.base EASE_OUT and exits
- * at DUR.fast EASE_IN (motion addendum C6); reduced motion fades (MotionConfig
- * strips the travel, the reduced block zeroes the stagger).
+ * gold alone). Steering 2026-09-14: rows sit on the calmer h3 rung (the
+ * text-title register read shouty against the retuned page scale; the t-meta
+ * numerals already match portfolio-react's 11px mono index and stay), and the
+ * panel is the flagship iOS material (material-glass-strong: raised tint at
+ * 90% fill, static 24px blur + saturate, hairline + e4 in one box-shadow
+ * list; opaque readable fallback without backdrop-filter). "Message on
+ * WhatsApp" keeps its content but moves from the first row to a pinned
+ * full-width primary above the safe area. Rows cascade on the CSS stagger
+ * utility; the panel settles in on SPRING_SHEET (the open answers the
+ * visitor's tap, so a spring; the blurred material fades in with the panel's
+ * opacity, never by animating the blur radius) and exits at DUR.fast EASE_IN
+ * (motion addendum C6); reduced motion fades (MotionConfig strips the travel,
+ * the reduced block zeroes the stagger).
  *
  * Positioning note: the host header's backdrop-filter makes it the containing
  * block for positioned descendants, so absolute + top-0 here means "from the
@@ -63,11 +71,11 @@ export function MobileDrawer({
 					<motion.div
 						key="panel"
 						id="mobile-menu"
-						initial={{ opacity: 0, y: -8 }}
+						initial={{ opacity: 0, y: -12 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8, transition: { duration: DUR.fast, ease: EASE_IN } }}
-						transition={{ duration: DUR.base, ease: EASE_OUT }}
-						className="absolute inset-x-0 top-0 flex h-svh flex-col bg-surface-raised pt-(--header-h-shrunk) lg:hidden"
+						transition={SPRING_SHEET}
+						className="material-glass-strong absolute inset-x-0 top-0 flex h-svh flex-col pt-(--header-h-shrunk) lg:hidden"
 					>
 						<nav
 							aria-label="Primary mobile"
@@ -98,7 +106,7 @@ export function MobileDrawer({
 												<span aria-hidden="true" className="t-meta w-6 shrink-0 tabular-nums">
 													{String(i + 1).padStart(2, "0")}
 												</span>
-												<span className="t-headline flex-1 text-title">{item.label}</span>
+												<span className="t-headline flex-1 text-h3">{item.label}</span>
 												<ArrowRight
 													size={16}
 													aria-hidden="true"

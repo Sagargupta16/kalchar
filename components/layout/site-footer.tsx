@@ -100,8 +100,10 @@ export function SiteFooter() {
 							aria-label="Home"
 							className="group inline-flex min-h-control flex-wrap items-baseline gap-x-3 gap-y-1"
 						>
-							{/* Display-size wordmark tunes the Devanagari baseline locally (1.1). */}
-							<span className="t-headline text-display [--devanagari-shift:-0.02em]">
+							{/* Display-size wordmark tunes the Devanagari baseline locally (1.1).
+							    Steering 2026-09-14: one rung under the hero (display-sm, 40/56px)
+							    so the colophon no longer restates the hero's display rung. */}
+							<span className="t-headline text-display-sm [--devanagari-shift:-0.02em]">
 								<span className="transition-colors group-hover:text-accent-text">
 									{brand.headline.latinPrefix}
 								</span>

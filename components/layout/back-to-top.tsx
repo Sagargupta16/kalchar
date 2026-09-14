@@ -19,8 +19,13 @@ import { cn } from "@/lib/utils";
  * --fixed-bar-h while a page publishes a fixed bottom bar (the /work/[slug]
  * enquiry bar), and the html:has([data-enquire-fab]) rule in animations.css
  * lifts it one FAB slot whenever the floating WhatsApp disc is mounted
- * (visual-direction 2.14). Rests at e3, hovers to e4 (M3 FAB rungs; motion
- * addendum C3) with the gold hairline border.
+ * (visual-direction 2.14). The disc sits on the shared iOS-material recipe
+ * (steering 2026-09-14): surface tint at the 85% glass fill over static
+ * backdrop blur + saturate from the --glass-* knobs, staying solid where
+ * backdrop-filter is unsupported; the border-line hairline and the e3 rest /
+ * e4 hover rungs are kept (M3 FAB rungs; motion addendum C3). It stays still
+ * on purpose: the WhatsApp disc one slot below carries the idle breath, and
+ * two loops in the same corner would read busy.
  * Hidden on /admin (which owns the bottom-right zone with its own mobile tab
  * bar). Reduced motion -> instant jump and no fade transition.
  */
@@ -65,7 +70,7 @@ export function BackToTop() {
 				aria-label="Back to top"
 				onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
 				className={cn(
-					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface/90 text-ink shadow-e3 backdrop-blur-md transition-ui pressable hover:-translate-y-0.5 hover:border-(--color-gold-hairline) hover:text-accent-text hover:shadow-e4",
+					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface text-ink shadow-e3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-ui pressable supports-[backdrop-filter]:bg-surface/85 hover:-translate-y-0.5 hover:border-(--color-gold-hairline) hover:text-accent-text hover:shadow-e4",
 					"bottom-[calc(var(--spacing-safe-bottom)+--spacing(5)+var(--fixed-bar-h,0px))] right-[calc(var(--spacing-safe-right)+--spacing(5))]",
 					shown
 						? "pointer-events-auto translate-y-0 opacity-100"

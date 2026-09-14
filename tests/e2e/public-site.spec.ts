@@ -207,6 +207,17 @@ test(
 		const viewport = page.viewportSize();
 		expect(panelBox?.height).toBeGreaterThanOrEqual((viewport?.height ?? 0) - 1);
 
+		// Steering 2026-09-14: the panel is the flagship iOS material -- a
+		// translucent raised tint over a static 24px blur + saturate with the
+		// hairline and e4 in one shadow list (material-glass-strong).
+		const material = await panel.evaluate((el) => {
+			const cs = getComputedStyle(el);
+			return { fill: cs.backgroundColor, filter: cs.backdropFilter };
+		});
+		expect(material.filter).toMatch(/blur\(24px\)/);
+		expect(material.filter).toMatch(/saturate\(1\.5\)/);
+		expect(material.fill).toMatch(/\/ 0\.9\)/);
+
 		// Six numbered destinations, each row at least 56px tall with a tabular index.
 		const rows = drawer.getByRole("link");
 		await expect(rows).toHaveCount(6);
@@ -217,6 +228,15 @@ test(
 			const box = await row.boundingBox();
 			expect(box?.height).toBeGreaterThanOrEqual(56);
 		}
+
+		// Steering 2026-09-14: row labels sit on the calmer h3 rung (18 -> 20px),
+		// down from the shouty text-title register; touch targets stay 56px.
+		const labelSize = await rows
+			.first()
+			.locator(".t-headline")
+			.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
+		expect(labelSize).toBeGreaterThanOrEqual(18);
+		expect(labelSize).toBeLessThanOrEqual(20);
 
 		// The WhatsApp action keeps its content but moves to a pinned full-width
 		// primary at the panel bottom, at least 48px tall.
@@ -279,6 +299,26 @@ test("header keeps one 61px control row before and after scrolling", { tag: "@mo
 		.toBe(61);
 });
 
+test("the header glass appears after scroll and stays statically blurred", async ({ page }) => {
+	await page.goto("/");
+	const header = page.locator("header").first();
+	const readSurface = () =>
+		header.evaluate((el) => {
+			const cs = getComputedStyle(el);
+			return { fill: cs.backgroundColor, filter: cs.backdropFilter };
+		});
+	// The blur + saturate pair is static and present in both states (it keeps
+	// the header a containing block for the drawer; never animated).
+	const atTop = await readSurface();
+	expect(atTop.filter).toMatch(/blur\(16px\)/);
+	expect(atTop.filter).toMatch(/saturate\(1\.5\)/);
+	// At rest the bar is solid; scrolling thins the fill so content sliding
+	// under the bar is what reveals the material (steering 2026-09-14).
+	expect(atTop.fill).not.toMatch(/\/ 0?\.\d/);
+	await page.mouse.wheel(0, 400);
+	await expect.poll(async () => (await readSurface()).fill).toMatch(/\/ 0\.85\)/);
+});
+
 test("theme toggle drives the browser theme colour", async ({ page }) => {
 	await page.goto("/");
 	const meta = page.locator('meta[name="theme-color"]');
@@ -309,6 +349,11 @@ test("floating WhatsApp disc follows the route policy", async ({ page }) => {
 	// Past one viewport the disc fades in (visual-direction 2.14).
 	await page.evaluate(() => globalThis.scrollTo(0, globalThis.innerHeight * 2));
 	await expect(fab).toHaveCSS("opacity", "1");
+	// While shown the disc face breathes on the idle float loop (steering
+	// 2026-09-14): 3px half-cycle, running only while visible.
+	const face = fab.locator("span").first();
+	await expect(face).toHaveCSS("animation-name", "plate-float");
+	await expect(face).toHaveCSS("animation-play-state", "running");
 	// While the footer channel row is on screen it yields.
 	await page.evaluate(() => globalThis.scrollTo(0, document.documentElement.scrollHeight));
 	await expect(fab).toHaveCSS("opacity", "0");
@@ -365,5 +410,14 @@ test.describe("reduced motion", () => {
 		const description = page.locator("main section").first().locator(".t-lead");
 		await expect(description).toBeVisible();
 		await expect(description).not.toBeEmpty();
+	});
+
+	test("stills the WhatsApp disc's idle breath", async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: "reduce" });
+		await page.goto("/");
+		// The shared reduced block removes .plate-float entirely: the disc is
+		// simply present, at rest, whatever its visibility state.
+		const face = page.locator("[data-enquire-fab] span").first();
+		await expect(face).toHaveCSS("animation-name", "none");
 	});
 });

@@ -95,8 +95,17 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 			/>
 			<header
 				className={cn(
-					"sticky top-0 z-nav border-b bg-bg/90 backdrop-blur-md transition-[border-color,box-shadow] duration-(--duration-base) ease-(--ease-out)",
-					scrolled ? "border-(--color-gold-hairline) shadow-e3" : "border-transparent",
+					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
+					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
+					// the header stays a containing block for the drawer's absolute panel.
+					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
+					// as the gold hairline and e3 shadow arrive, so content sliding under the
+					// bar is what reveals the material. Without backdrop-filter support the
+					// supports-[] fill never applies and the bar stays solid and readable.
+					"sticky top-0 z-nav border-b bg-bg backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-[border-color,box-shadow,background-color] duration-(--duration-base) ease-(--ease-out)",
+					scrolled
+						? "border-(--color-gold-hairline) shadow-e3 supports-[backdrop-filter]:bg-bg/85"
+						: "border-transparent",
 				)}
 			>
 				{/* One padding in both states: the bar is always --header-h-shrunk, so the
