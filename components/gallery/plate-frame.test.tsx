@@ -9,13 +9,13 @@ describe("PlateFrame", () => {
 		</PlateFrame>,
 	);
 
-	it("frames at radius-md on the canvas with the hairline, lift and hover crossfade", () => {
+	it("frames at radius-md on the canvas with the edged rest, lift and hover crossfade", () => {
 		expect(base).toContain("rounded-(--radius-md)");
 		expect(base).toContain("bg-canvas");
-		expect(base).toContain("shadow-hairline");
-		expect(base).toContain("elevate-e2");
+		expect(base).toContain("shadow-e1-edged");
+		expect(base).toContain("elevate-e3");
 		expect(base).toContain("transition-ui");
-		expect(base).toContain("group-hover:-translate-y-0.5");
+		expect(base).toContain("group-hover:-translate-y-1");
 		expect(base).toContain("relative overflow-hidden");
 	});
 
@@ -26,7 +26,7 @@ describe("PlateFrame", () => {
 		expect(base).toContain("opacity-0 group-hover:opacity-100");
 	});
 
-	it("rests the gold line at full opacity with goldRest", () => {
+	it("rests the gold line at full opacity and the e3-edged shadow with goldRest", () => {
 		const html = renderToStaticMarkup(
 			<PlateFrame goldRest>
 				<span />
@@ -34,6 +34,8 @@ describe("PlateFrame", () => {
 		);
 		expect(html).toContain("opacity-100");
 		expect(html).not.toContain("opacity-0");
+		expect(html).toContain("shadow-e3-edged");
+		expect(html).not.toContain("shadow-e1-edged");
 	});
 
 	it("radius lg swaps both the frame and the concentric inset", () => {
@@ -63,7 +65,7 @@ describe("PlateFrame", () => {
 		expect(base).not.toContain("data-sheen");
 	});
 
-	it("glow feeds --plate-glow and swaps the hairline for shadow-glow", () => {
+	it("glow feeds --plate-glow and swaps the resting shadow for shadow-glow", () => {
 		const html = renderToStaticMarkup(
 			<PlateFrame glow="oklch(0.6 0.2 300)">
 				<span />
@@ -71,7 +73,7 @@ describe("PlateFrame", () => {
 		);
 		expect(html).toContain("--plate-glow:oklch(0.6 0.2 300)");
 		expect(html).toContain("shadow-glow");
-		expect(html).not.toContain("shadow-hairline");
+		expect(html).not.toContain("shadow-e1-edged");
 	});
 
 	it("never scales the image and merges consumer classes", () => {

@@ -19,7 +19,8 @@ interface PageHeaderProps {
 /**
  * The shared public page h1 (visual-direction 2.12): eyebrow, optional short
  * kachni rule, the title in the roman headline voice at the display-sm rung
- * (40px at 390, 72px at 1280), a gold hairline drawn under it, then the lead.
+ * (40px at 390, 56px at 1280 since the 2026-09-14 steering retune), a gold
+ * hairline drawn under it, then the lead.
  * Internal rhythm per 2.0: eyebrow to h1 12px, h1 to rule 20px, rule to lead
  * 16px.
  */

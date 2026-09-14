@@ -24,6 +24,8 @@ export const DUR = {
 	unveil: 0.7,
 	/** Pigment-wash drift loop, seconds. Mirrors --duration-drift (the 30s form). */
 	drift: 30,
+	/** Idle plate-float half-cycle, seconds. Mirrors --duration-float (the 7s form); CSS drives the loop. */
+	float: 7,
 	/** DEPRECATED alias of drift; unconsumed since the visual pass. Integration deletes. */
 	ambient: 30,
 } as const;
@@ -87,6 +89,11 @@ export const REVEAL_DISTANCE = { block: 20, item: 12 } as const;
 /** Pointer tilt on art plates (TiltPlate). 3deg, not portfolio-react's 4: a painting must not read as warped. */
 export const TILT_MAX_DEG = 3;
 export const TILT_PERSPECTIVE_PX = 800;
+
+/** Pointer parallax on the hero plate pair (portfolio-react usePointerParallax numbers).
+ * Gate on (hover: hover) + usePrefersReducedMotion; travel = pointer(-1..1) x depth. */
+export const PARALLAX_SPRING = { type: "spring", stiffness: 40, damping: 20 } as const;
+export const PLATE_PARALLAX_DEPTH = { front: 10, back: 6 } as const;
 
 /** Drag dismissal thresholds (Vaul CLOSE_THRESHOLD 0.25 and VELOCITY_THRESHOLD 0.4 px/ms; Motion reports px/s). */
 export const DRAG_CLOSE_FRACTION = 0.25;

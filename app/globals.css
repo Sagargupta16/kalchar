@@ -106,16 +106,16 @@
   /* ─── TYPOGRAPHY TOKENS ─── */
   --tracking-tight: -0.02em; /* intentionally overrides Tailwind's -0.025em */
   --tracking-display: -0.015em;
-  --tracking-headline: -0.03em; /* t-headline poster rung (visual-direction 1.1) */
+  --tracking-headline: -0.02em; /* t-headline poster rung; loosened from -0.03em at the calmer 56-68px endpoints (steering 2026-09-14) */
   --tracking-eyebrow: 0.18em;
   --tracking-meta: 0.14em;
 
   /* Type scale: fluid rungs whose endpoints equal the old snapped stacks at
      360 and 1280 (D3). Written as `t-display text-h2` (voice + size stay two
      axes). Nothing interactive under 14px; nothing under 11px anywhere. */
-  --text-h1: clamp(2.25rem, 1.5rem + 2vw, 3rem); /* 36 -> 48px: page h1 */
+  --text-h1: clamp(2.25rem, 2.03rem + 0.9vw, 2.75rem); /* 36 -> 44px: page h1 (desktop end calmed from 48, steering 2026-09-14) */
   --text-h1--line-height: 1.05;
-  --text-h2: clamp(1.875rem, 1.125rem + 2.35vw, 3rem); /* 30 -> 48px: home section h2 */
+  --text-h2: clamp(1.875rem, 1.6rem + 1.12vw, 2.5rem); /* 30 -> 40px: large sub-heads, numerals, wall dates (was 48) */
   --text-h2--line-height: 1.05;
   --text-title: clamp(1.5rem, 1.25rem + 1vw, 1.875rem); /* 24 -> 30px: in-page sub-heading */
   --text-title--line-height: 1.1;
@@ -129,12 +129,14 @@
   --text-micro--line-height: 1rem;
   /* Display rungs (roman headline voice, visual-direction 1.1). The rem term
      keeps browser font-size settings scaling the middle of the range (WCAG
-     1.4.4). 44px at 390 -> 88px at 1280. */
-  --text-display: clamp(2.75rem, 1.545rem + 4.94vw, 5.5rem);
-  --text-display--line-height: 0.95;
-  /* 40px at 390 -> 72px at 1280 (rounded intercept pair, shipped as stated). */
-  --text-display-sm: clamp(2.5rem, 1.597rem + 3.71vw, 4.5rem);
-  --text-display-sm--line-height: 0.95;
+     1.4.4). Desktop ends lowered 88/72 -> 68/56 per steering 2026-09-14
+     (portfolio-react parity: calmer type, artwork leads); 390 floors kept.
+     44px at 390 -> 68px at 1280. */
+  --text-display: clamp(2.75rem, 2.09rem + 2.7vw, 4.25rem);
+  --text-display--line-height: 1.02;
+  /* 40px at 390 -> 56px at 1280. */
+  --text-display-sm: clamp(2.5rem, 2.06rem + 1.8vw, 3.5rem);
+  --text-display-sm--line-height: 1.02;
 
   /* ─── SPACING ─── */
   /* The 4px grid IS Tailwind's --spacing (0.25rem): p-4, gap-3, mt-10 already
@@ -189,6 +191,10 @@
      Public only; never under /admin. */
   --duration-unveil: 700ms;
   --duration-drift: 30s;
+  /* Idle plate-float half-cycle (.plate-float runs `alternate`, so one full
+     breath is 14s). Hero and single art plates only; never the 21-plate grid,
+     never under /admin. JS mirror DUR.float (test-locked). */
+  --duration-float: 7s;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* every entrance and gesture response */
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0); /* exits only; enter with --ease-out */
@@ -237,8 +243,10 @@
    * e1 = resting card, primary Button; e2 = card / plate / Button hover, small
    * popover; e3 = header-on-scroll, dropdown, back-to-top at rest, hero front
    * plate; e4 = back-to-top hover, lightbox chrome, More sheet; e5 = modal /
-   * lightbox panel. Hover lifts one level, never two; resting art plates stay
-   * at hairline (the art is the hero). Bare var(--elev-*) on purpose: Tailwind
+   * lightbox panel. Hover lifts one level, never two. Art plates rest on the
+   * edged ladder so the idle float reads (steering 2026-09-14): grid plates
+   * e1-edged, goldRest plates (hero front, detail, featured) e3-edged, both
+   * crossfading e3 on hover via PlateFrame. Bare var(--elev-*) on purpose: Tailwind
    * inlines @theme shadow values, so only an indirection lets :root.dark remap
    * them. Lists + numbers: app/elevation.css. */
   --shadow-hairline: var(--elev-hairline);
@@ -346,6 +354,15 @@
   /* Painting-grid seams (admin pieces grid, event photo grid): 2px on phones,
      4px from lg (media query below). */
   --grid-gap-tight: 2px;
+  /* iOS-style material recipe, read by the material-glass utilities in
+     app/elevation.css. Fill percentages feed color-mix over the token surface
+     (dark remaps flow through --color-surface / --elev-*); blur is applied
+     statically, never animated (scripts/check-ui-tokens.mjs). */
+  --glass-blur: 16px;
+  --glass-blur-strong: 24px;
+  --glass-saturate: 1.5;
+  --glass-fill: 85%;
+  --glass-fill-strong: 90%;
 
   /* DEPRECATED aliases: integration deletes all four. */
   --space-3: 0.75rem; /* admin-nav.tsx More-sheet offset; use --space-tight */

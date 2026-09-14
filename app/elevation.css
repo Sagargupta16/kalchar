@@ -87,3 +87,43 @@
     opacity: 1;
   }
 }
+
+/* ─── iOS-STYLE MATERIAL (steering 2026-09-14) ─── */
+/* Reusable glass recipe (HIG materials with portfolio-react restraint): a
+   translucent token surface with backdrop blur + saturate, the 1px warm
+   hairline and layered elevation in ONE box-shadow list (never stack a
+   shadow-* utility on top; same collapse rule as shadow-eN-edged). Reserved
+   for floating chrome: header, drawer, quick sheets, tab bar, back-to-top.
+   Never cards, panels, PlateFrame or footers -- the art needs stable ground.
+   Knobs live in globals.css :root (--glass-blur / -strong, --glass-saturate,
+   --glass-fill / -strong); per-surface tint via --glass-tint (headers may set
+   [--glass-tint:var(--color-bg)]). Dark mapping flows through the tokens
+   themselves (--color-surface* and --elev-* both remap in :root.dark). Where
+   backdrop-filter is unsupported the surface stays fully opaque and readable;
+   the @supports gate only ever removes ink. Blur is static: fade opacity if
+   needed, never the radius (scripts/check-ui-tokens.mjs). */
+@utility material-glass {
+  background-color: var(--glass-tint, var(--color-surface));
+  box-shadow: var(--elev-hairline), var(--elev-e2);
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: color-mix(in oklch, var(--glass-tint, var(--color-surface)) var(--glass-fill), transparent);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+}
+
+/* Stronger material for full sheets and drawers over artwork-heavy pages:
+   deeper blur, higher fill, e4 elevation, raised-surface tint. */
+@utility material-glass-strong {
+  background-color: var(--glass-tint, var(--color-surface-raised));
+  box-shadow: var(--elev-hairline), var(--elev-e4);
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: color-mix(
+      in oklch,
+      var(--glass-tint, var(--color-surface-raised)) var(--glass-fill-strong),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  }
+}

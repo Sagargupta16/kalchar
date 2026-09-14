@@ -84,9 +84,10 @@ describe("lib/motion mirrors app/globals.css", () => {
 		expect(bezier(token("--ease-sheet"))).toEqual([...EASE_SHEET]);
 	});
 
-	it("--duration-unveil and --duration-drift mirror DUR (ms and s forms)", () => {
+	it("--duration-unveil, --duration-drift and --duration-float mirror DUR (ms and s forms)", () => {
 		expect(token("--duration-unveil")).toBe(`${DUR.unveil * 1000}ms`);
 		expect(token("--duration-drift")).toBe(`${DUR.drift}s`);
+		expect(token("--duration-float")).toBe(`${DUR.float}s`);
 	});
 
 	it("--ease-emphatic is in @theme (M3 emphasized-decelerate; hero-scale entrances only)", () => {
@@ -96,9 +97,13 @@ describe("lib/motion mirrors app/globals.css", () => {
 
 	it.each([
 		["--text-display", 390, 44],
-		["--text-display", 1280, 88],
+		["--text-display", 1280, 68],
 		["--text-display-sm", 390, 40],
-		["--text-display-sm", 1280, 72],
+		["--text-display-sm", 1280, 56],
+		["--text-h1", 390, 36],
+		["--text-h1", 1280, 44],
+		["--text-h2", 390, 30],
+		["--text-h2", 1280, 40],
 	])("%s resolves at %dpx viewport to %dpx within 1px", (name, viewport, expected) => {
 		expect(clampAtViewport(token(name), viewport)).toBeCloseTo(expected, 0);
 	});
@@ -196,7 +201,13 @@ describe("app/animations.css", () => {
 		expect(reduced).toMatch(
 			/\.transition-ui\s*\{\s*transition-property:\s*color, background-color, border-color, box-shadow, opacity;/,
 		);
-		for (const selector of [".reveal-plate", ".theme-icon-in", ".rule-draw", ".notice-in"]) {
+		for (const selector of [
+			".reveal-plate",
+			".theme-icon-in",
+			".rule-draw",
+			".notice-in",
+			".plate-float",
+		]) {
 			expect(reduced).toContain(selector);
 		}
 	});

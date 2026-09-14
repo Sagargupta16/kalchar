@@ -157,8 +157,8 @@ test("every section heading sits on the display-sm rung", async ({ page }) => {
 	expect(sizes.length).toBeGreaterThanOrEqual(6);
 	const viewport = page.viewportSize();
 	if (!viewport) throw new Error("missing viewport");
-	// --text-display-sm: clamp(2.5rem, 1.597rem + 3.71vw, 4.5rem) -> 40px at 390, 72px at 1280.
-	const expected = Math.min(Math.max(25.552 + 0.0371 * viewport.width, 40), 72);
+	// --text-display-sm: clamp(2.5rem, 2.06rem + 1.8vw, 3.5rem) -> 40px at 390, 56px at 1280.
+	const expected = Math.min(Math.max(32.96 + 0.018 * viewport.width, 40), 56);
 	for (const size of sizes) {
 		expect(Math.abs(size - expected)).toBeLessThanOrEqual(1);
 	}
@@ -172,8 +172,8 @@ test("the hero h1 carries the roman headline voice on the display rung", async (
 	});
 	const viewport = page.viewportSize();
 	if (!viewport) throw new Error("missing viewport");
-	// --text-display: clamp(2.75rem, 1.545rem + 4.94vw, 5.5rem) -> 44px at 390, 88px at 1280.
-	const expected = Math.min(Math.max(24.72 + 0.0494 * viewport.width, 44), 88);
+	// --text-display: clamp(2.75rem, 2.09rem + 2.7vw, 4.25rem) -> 44px at 390, 68px at 1280.
+	const expected = Math.min(Math.max(33.44 + 0.027 * viewport.width, 44), 68);
 	expect(Math.abs(probe.fontSize - expected)).toBeLessThanOrEqual(1);
 	expect(probe.fontWeight).toBe("600");
 	expect(probe.fontStyle).toBe("normal");

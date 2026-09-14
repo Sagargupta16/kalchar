@@ -38,6 +38,35 @@
   will-change: transform;
 }
 
+/* Idle plate float (steering 2026-09-14): hero and single art plates breathe
+   on a compositor-only transform loop so the work reads alive between
+   gestures (portfolio-react's tile drift, adapted to painting scale). Named
+   knobs, set inline per plate so neighbours never sync:
+     --float-travel  max rise; 6px default, front plates up to 8px
+     --float-period  half-cycle; defaults to --duration-float (7s alternate)
+     --float-delay   negative phase offset (e.g. -3s) staggers siblings
+     --float-rotate  optional crest tilt, 0.5deg max, default 0
+     --float-state   consumers with an in-view gate set `paused` offscreen
+   Apply on a NESTED wrapper, never on an element that already transitions or
+   animates transform (.hero-plate shuffles; PlateFrame lifts on hover), and
+   never on the 21-plate grid (busy-ornament territory). Transform-only, so
+   offscreen instances cost the compositor nothing on modern engines; the
+   reduced-motion block below removes the loop entirely. */
+.plate-float {
+  animation: plate-float var(--float-period, var(--duration-float)) var(--ease-in-out) infinite alternate;
+  animation-delay: var(--float-delay, 0s);
+  animation-play-state: var(--float-state, running);
+}
+
+@keyframes plate-float {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(calc(-1 * var(--float-travel, 6px))) rotate(var(--float-rotate, 0deg));
+  }
+}
+
 /* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
    route's server data resolves (route loading.tsx files). */
 .skeleton {
@@ -259,7 +288,7 @@
     font-style: normal;
     font-weight: 600;
     letter-spacing: var(--tracking-headline);
-    line-height: 0.95;
+    line-height: 1.02; /* matches the display rung line-heights (steering 2026-09-14; was 0.95) */
     text-wrap: balance;
   }
 
@@ -423,6 +452,12 @@
   /* Keep the static gallery composition, but skip all plate transitions. */
   .hero-plate {
     transition: none;
+  }
+
+  /* Idle float: the plate is simply present, at rest. */
+  .plate-float {
+    animation: none;
+    transform: none;
   }
 
   /* Skeletons stay a static tint (no sweep); page-enter is instant. */
