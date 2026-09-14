@@ -116,11 +116,14 @@ export function CustomOrderForm({
 
 	return (
 		// The commission sheet's own surface (visual-direction 2.8): the Card
-		// anatomy with the hairline + e1 composite shadow (one shadow utility,
-		// anti-pattern 11), written out so the data hook can ride along.
+		// anatomy with the hairline + e2 composite shadow (one shadow utility,
+		// anti-pattern 11; rest stepped e1 -> e2 with the layered-shadow steering
+		// 2026-09-14), written out so the data hook can ride along. Deliberately
+		// solid, never glass: a text-entry sheet needs stable ground and nothing
+		// passes behind it.
 		<div
 			data-slot="commission-card"
-			className="rounded-(--radius-md) border border-line bg-surface p-(--card-pad-lg) shadow-e1-edged"
+			className="rounded-(--radius-md) border border-line bg-surface p-(--card-pad-lg) shadow-e2-edged"
 		>
 			{/* The sheet's wall-label head (visual-direction 2.8): one new eyebrow
 			    string ("Commission brief", 2.16) over a short gold rule. */}

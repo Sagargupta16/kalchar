@@ -33,6 +33,10 @@ interface PortraitPlateProps {
  * beneath (name italic / tagline / location; index and price absent), and the
  * 700ms plate unveil on client navigations only. The avatar's own chrome is
  * neutralised so the frame owns radius and shadow (the about-teaser pattern).
+ * The frame idles on the shared .plate-float breath (steering 2026-09-14),
+ * on a wrapper between the sticky column and the frame so the loop never
+ * fights the hover lift's transform; reduced motion removes it wholesale in
+ * animations.css. The label stays still: only the plate floats.
  */
 export function PortraitPlate({
 	imageKey,
@@ -49,19 +53,21 @@ export function PortraitPlate({
 
 	return (
 		<div className={className}>
-			<PlateFrame
-				goldRest
-				className={cn("aspect-3/4", unveil && "reveal-plate reveal-plate-unveil")}
-			>
-				<ArtistAvatar
-					imageKey={imageKey}
-					monogram={monogram}
-					alt={alt}
-					sizes="(min-width: 768px) 30vw, 100vw"
-					priority
-					className="absolute inset-0 aspect-auto h-full w-full rounded-none shadow-none"
-				/>
-			</PlateFrame>
+			<div className="plate-float">
+				<PlateFrame
+					goldRest
+					className={cn("aspect-3/4", unveil && "reveal-plate reveal-plate-unveil")}
+				>
+					<ArtistAvatar
+						imageKey={imageKey}
+						monogram={monogram}
+						alt={alt}
+						sizes="(min-width: 768px) 30vw, 100vw"
+						priority
+						className="absolute inset-0 aspect-auto h-full w-full rounded-none shadow-none"
+					/>
+				</PlateFrame>
+			</div>
 			<WallLabel variant="full" stagger title={title} meta={meta} className="mt-4" />
 		</div>
 	);

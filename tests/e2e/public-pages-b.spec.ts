@@ -141,6 +141,22 @@ test("the steps read as wall text with roman numerals in the section pigment", a
 	await expect(numerals.first()).toHaveCSS("color", await resolveColor(page, "--color-vermillion"));
 });
 
+test("one style sample idles on the float breath and rests under reduced motion", async ({
+	page,
+}) => {
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await page.goto("/custom-orders/");
+	// One floating plate per page (steering 2026-09-14): the first
+	// artwork-backed sample only, never the whole picker grid.
+	const floats = page.locator("main .plate-float");
+	await expect(floats).toHaveCount(1);
+	const group = page.getByRole("radiogroup", { name: "Preferred style" });
+	await expect(group.locator(".plate-float")).toHaveCount(1);
+	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+});
+
 test("the example strip sits a canyon below the sheet", async ({ page }, testInfo) => {
 	await page.goto("/custom-orders/");
 	const strip = page.locator('[data-slot="example-strip"]');
@@ -264,6 +280,20 @@ for (const route of ["/login/", "/access-denied/"] as const) {
 		await expect(page.locator("main section")).not.toHaveClass(/bg-\(--section-wash\)/);
 	});
 }
+
+test("the auth sheet sits on the glass material with its own elevation", async ({ page }) => {
+	await page.goto("/login/");
+	const card = page.locator('main [data-slot="auth-card"]');
+	const material = await card.evaluate((el) => {
+		const computed = getComputedStyle(el);
+		return { backdrop: computed.backdropFilter, shadow: computed.boxShadow };
+	});
+	// material-glass: static blur + saturate over the token tint, hairline + e2
+	// in one box-shadow list (opaque fallback where backdrop-filter is missing).
+	expect(material.backdrop).toContain("blur(16px)");
+	expect(material.backdrop).toContain("saturate(1.5)");
+	expect(material.shadow).not.toBe("none");
+});
 
 test("the Google button meets the 44px floor", async ({ page }) => {
 	await page.goto("/login/");

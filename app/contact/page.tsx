@@ -31,11 +31,13 @@ const linkCard = cardVariants({ padding: "none", interactive: true });
 
 /**
  * The plate of the page (visual-direction 2.9): a 2px gold top seam over the
- * hairline + e1 composite (one shadow utility, anti-pattern 11), written out
- * because stacking a second shadow-* on cardVariants is banned.
+ * hairline + e2 composite (one shadow utility, anti-pattern 11; rest stepped
+ * e1 -> e2 and hover to the elevate-e3 crossfade with the layered-shadow
+ * steering 2026-09-14), written out because stacking a second shadow-* on
+ * cardVariants is banned. Solid on purpose: nothing passes behind it.
  */
 const whatsAppCard =
-	"group flex items-center gap-5 rounded-(--radius-md) border border-line border-t-2 border-t-(--color-gold-hairline) bg-surface p-(--card-pad) shadow-e1-edged transition-ui pressable elevate-e2 hover:-translate-y-0.5 dark:hover:bg-surface-raised";
+	"group flex items-center gap-5 rounded-(--radius-md) border border-line border-t-2 border-t-(--color-gold-hairline) bg-surface p-(--card-pad) shadow-e2-edged transition-ui pressable elevate-e3 hover:-translate-y-0.5 dark:hover:bg-surface-raised";
 
 export default function ContactPage() {
 	const { contact, sections } = getSite();

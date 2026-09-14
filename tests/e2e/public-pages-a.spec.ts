@@ -114,6 +114,22 @@ test("about portrait rests its gold inset and owns the route's priority image", 
 	await expect(page.locator('main img[fetchpriority="high"]')).toHaveCount(1);
 });
 
+test("the about portrait idles on the float breath and rests under reduced motion", async ({
+	page,
+}) => {
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await page.goto("/about/");
+	// One floating plate per page (steering 2026-09-14): the portrait only.
+	const float = page.locator("main .plate-float");
+	await expect(float).toHaveCount(1);
+	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
+	// The label under the plate stays still: the wrapper holds the frame only.
+	await expect(float.locator('[class*="aspect-3/4"]')).toHaveCount(1);
+	// Reduced motion removes the loop wholesale (animations.css reduced block).
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+});
+
 test("about essay column holds the 62ch measure", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name === "mobile-chromium", "the spread composes from md");
 	await page.goto("/about/");
@@ -177,6 +193,36 @@ test("the gold timeline spans the chronology and one year watermark renders", as
 	const watermark = page.locator("main [data-year-watermark]");
 	await expect(watermark).toHaveCount(1);
 	await expect(watermark).toHaveText("2026");
+});
+
+test("only the lead event plate floats, never the grid", async ({ page }) => {
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await page.goto("/events/");
+	// One floating plate per page (steering 2026-09-14): the lead gallery's
+	// lead tile; the other five inline tiles and the second gallery stay still.
+	const floats = page.locator("main .plate-float");
+	await expect(floats).toHaveCount(1);
+	const lead = page.getByRole("button", { name: /^View photo 1 from Studio gathering/ });
+	await expect(lead.locator(".plate-float")).toHaveCount(1);
+	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+});
+
+test("the lg wall date sits on the glass material chip", async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name === "mobile-chromium", "the chip composes from lg");
+	await page.goto("/events/");
+	const chip = page.locator("#fixture-event time");
+	const material = await chip.evaluate((el) => {
+		const computed = getComputedStyle(el);
+		return { backdrop: computed.backdropFilter, shadow: computed.boxShadow };
+	});
+	// material-glass: static blur + saturate over the token tint, with the
+	// hairline + e2 elevation in one box-shadow list (solid fallback where
+	// backdrop-filter is unsupported; Chromium supports it).
+	expect(material.backdrop).toContain("blur(16px)");
+	expect(material.backdrop).toContain("saturate(1.5)");
+	expect(material.shadow).not.toBe("none");
 });
 
 test("event lightbox mirrors the v2 room: paging, loop, scrim caption, no commerce", async ({

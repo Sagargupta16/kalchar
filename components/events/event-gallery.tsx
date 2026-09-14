@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion, type PanInfo, useMotionValue } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { BinduMark } from "@/components/decor/bindu-mark";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
@@ -172,6 +172,30 @@ function PhotoTile({
 			className="absolute inset-0 h-full w-full object-contain"
 		/>
 	);
+	/* The frame lifts on hover (PlateFrame elevate + gold inset); the photo
+	   itself never scales, and the unveil clips inside the frame so the lift's
+	   shadow is never cropped by a lingering clip-path. */
+	const plate = (
+		<PlateFrame className={aspect}>
+			{priority ? (
+				image
+			) : (
+				<Reveal
+					variant="plate"
+					eager={eager}
+					delayMs={gridStaggerDelay(index, MAX_INLINE, 3)}
+					className="absolute inset-0"
+				>
+					{image}
+				</Reveal>
+			)}
+			{overflow === undefined ? null : (
+				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
+					<span className="t-display text-title">+{overflow}</span>
+				</span>
+			)}
+		</PlateFrame>
+	);
 	return (
 		<button
 			type="button"
@@ -183,28 +207,19 @@ function PhotoTile({
 			}
 			className="group pressable relative block w-full rounded-(--radius-md)"
 		>
-			{/* The frame lifts on hover (PlateFrame elevate + gold inset); the photo
-			    itself never scales, and the unveil clips inside the frame so the
-			    lift's shadow is never cropped by a lingering clip-path. */}
-			<PlateFrame className={aspect}>
-				{priority ? (
-					image
-				) : (
-					<Reveal
-						variant="plate"
-						eager={eager}
-						delayMs={gridStaggerDelay(index, MAX_INLINE, 3)}
-						className="absolute inset-0"
-					>
-						{image}
-					</Reveal>
-				)}
-				{overflow === undefined ? null : (
-					<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
-						<span className="t-display text-title">+{overflow}</span>
-					</span>
-				)}
-			</PlateFrame>
+			{/* Only the page's lead plate idles on the float breath (steering
+			    2026-09-14): one plate per page, never the whole grid. Travel is
+			    trimmed to 4px for the tile scale; the wrapper sits between the
+			    pressable button and the hover-lifting frame so no transform
+			    fights another, and reduced motion removes the loop in
+			    animations.css. */}
+			{priority ? (
+				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
+					{plate}
+				</div>
+			) : (
+				plate
+			)}
 		</button>
 	);
 }

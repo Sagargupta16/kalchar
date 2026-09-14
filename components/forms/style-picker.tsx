@@ -1,7 +1,7 @@
 "use client";
 
 import { Brush, Check, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import type { ArtStyle } from "@/lib/types";
@@ -34,6 +34,11 @@ const OPEN = "" as const;
  */
 export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps>) {
 	const [selected, setSelected] = useState<string>(OPEN);
+	// The page's one floating plate (steering 2026-09-14): the first
+	// artwork-backed sample idles on the shared float breath. One plate only,
+	// never the whole picker grid; purely decorative, so radio semantics and
+	// the checked cues (ring, gold inset, check badge) are untouched.
+	const floatingStyle = styles.find((style) => samples[style]);
 
 	return (
 		<fieldset>
@@ -68,6 +73,7 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 							value={style}
 							label={style}
 							checked={selected === style}
+							floating={style === floatingStyle}
 							onSelect={setSelected}
 						>
 							{sample ? (
@@ -96,6 +102,7 @@ function OptionCard({
 	value,
 	label,
 	checked,
+	floating = false,
 	onSelect,
 	children,
 }: Readonly<{
@@ -103,9 +110,34 @@ function OptionCard({
 	value: string;
 	label: string;
 	checked: boolean;
+	/** Idle float on this sample's plate (one per page; decorative only). */
+	floating?: boolean;
 	onSelect: (value: string) => void;
 	children: React.ReactNode;
 }>) {
+	/* Sample plate: the museum frame owns the hairline, hover lift and the
+	   concentric gold inset (rested while selected). */
+	const plate = (
+		<PlateFrame
+			goldRest={checked}
+			className={cn(
+				"aspect-4/3",
+				checked && "ring-2 ring-(--section-accent) ring-offset-2 ring-offset-bg",
+			)}
+		>
+			{children}
+			{/* Selected check */}
+			<span
+				className={cn(
+					"absolute right-2 top-2 grid size-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity",
+					checked ? "opacity-100" : "opacity-0",
+				)}
+				aria-hidden="true"
+			>
+				<Check size={12} />
+			</span>
+		</PlateFrame>
+	);
 	return (
 		// The radio is sr-only, so the global :focus-visible outline would land on a
 		// 1px element; has-focus-visible lifts the same 2px outline onto the card.
@@ -121,27 +153,17 @@ function OptionCard({
 				onChange={() => onSelect(value)}
 				className="sr-only"
 			/>
-			{/* Sample plate: the museum frame owns the hairline, hover lift and the
-			    concentric gold inset (rested while selected). */}
-			<PlateFrame
-				goldRest={checked}
-				className={cn(
-					"aspect-4/3",
-					checked && "ring-2 ring-(--section-accent) ring-offset-2 ring-offset-bg",
-				)}
-			>
-				{children}
-				{/* Selected check */}
-				<span
-					className={cn(
-						"absolute right-2 top-2 grid size-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity",
-						checked ? "opacity-100" : "opacity-0",
-					)}
-					aria-hidden="true"
-				>
-					<Check size={12} />
-				</span>
-			</PlateFrame>
+			{/* The float wrapper sits between the pressable label and the
+			    hover-lifting frame so no transform fights another; travel is
+			    trimmed to 4px for the tile scale, and reduced motion removes the
+			    loop in animations.css. */}
+			{floating ? (
+				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
+					{plate}
+				</div>
+			) : (
+				plate
+			)}
 			{/* Label */}
 			<span
 				className={cn(

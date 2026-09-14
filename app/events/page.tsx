@@ -36,9 +36,13 @@ function wallDateParts(iso: string): { day: string; month: string; year: string 
 
 /**
  * The exhibition wall date (visual-direction 2.6): bare day numeral in the
- * numeral voice (30px at 390, 48px in the 1280 chronology column) beside the
+ * numeral voice (30px at 390, 44px in the 1280 chronology column) beside the
  * stacked month/year meta with the kept calendar glyph. The first entry of
- * each year hangs its year as a display watermark behind the numeral.
+ * each year hangs its year as a display watermark behind the numeral. In the
+ * lg chronology the date sits on a fit-width glass chip (material-glass,
+ * steering 2026-09-14): the sticky date is the one element content passes
+ * beneath, and the utility itself falls back to an opaque surface where
+ * backdrop-filter is unsupported. At 390 the date stays bare wall text.
  */
 function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean }>) {
 	const date = wallDateParts(iso);
@@ -57,7 +61,7 @@ function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean
 			<Reveal eager>
 				<time
 					dateTime={iso}
-					className="flex items-baseline gap-3 lg:flex-col lg:items-start lg:gap-1"
+					className="flex items-baseline gap-3 lg:material-glass lg:w-fit lg:flex-col lg:items-start lg:gap-1 lg:rounded-(--radius-md) lg:px-3 lg:py-2"
 				>
 					<span className="t-numeral text-h2 text-(--section-accent) lg:text-h1">{date.day}</span>
 					<span className="t-meta flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-1.5">
@@ -109,7 +113,7 @@ export default async function EventsPage() {
 										as="article"
 										eager={i < 2}
 										delayMs={staggerDelay(i)}
-										className="grid gap-4 py-(--section-py) lg:grid-cols-[12rem_1fr] lg:gap-10"
+										className="grid gap-4 py-(--section-py) lg:grid-cols-[10rem_1fr] lg:gap-10"
 									>
 										<WallDate
 											iso={event.eventDate}
@@ -150,12 +154,14 @@ export default async function EventsPage() {
 						})}
 						{/* The exhibition timeline: one gold hairline running the full
 						    height of the chronology, between the date and record columns
-						    (12rem column + half the lg gap of 2.5rem). Rendered last so
-						    the first entry wrapper stays :first-child for its border. */}
+						    (10rem column + half the lg gap of 2.5rem; the column narrowed
+						    from 12rem with the calmer 44px day numeral and 68px watermark,
+						    steering 2026-09-14). Rendered last so the first entry wrapper
+						    stays :first-child for its border. */}
 						<div
 							aria-hidden="true"
 							data-timeline
-							className="absolute inset-y-0 left-[13.25rem] hidden w-px bg-(--color-gold-hairline) lg:block"
+							className="absolute inset-y-0 left-[11.25rem] hidden w-px bg-(--color-gold-hairline) lg:block"
 						/>
 					</div>
 				) : (

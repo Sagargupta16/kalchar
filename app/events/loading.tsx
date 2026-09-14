@@ -14,7 +14,7 @@ export default function EventsLoading() {
 					{[0, 1].map((i) => (
 						<div
 							key={i}
-							className="grid gap-4 border-t border-line py-(--section-py) first:border-t-0 first:pt-0 lg:grid-cols-[12rem_1fr] lg:gap-10"
+							className="grid gap-4 border-t border-line py-(--section-py) first:border-t-0 first:pt-0 lg:grid-cols-[10rem_1fr] lg:gap-10"
 						>
 							<div className="flex items-baseline gap-3 lg:flex-col lg:gap-2">
 								<Skeleton className="h-8 w-10" />

@@ -19,12 +19,15 @@ interface AuthShellProps {
  * Shared frame for /login and /access-denied (visual-direction 2.11): a
  * single centred column capped at 28rem, vertically centred over 60svh, the
  * h1 in the roman headline voice at the title rung (utility pages; the
- * display-sm rung would shout), and one Card with the page's single gold rule
- * at its head holding the actions. No wash, no motifs beyond that rule: these
- * pages precede the admin, so they stay quiet. The site header and footer
- * render around these routes (HideOnAdmin only hides on /admin), so the
- * column follows the section rhythm instead of claiming a full viewport.
- * Server component: reads the brand lockup from site.json.
+ * display-sm rung would shout), and one carded sheet with the page's single
+ * gold rule at its head holding the actions. The sheet sits on the iOS
+ * material (material-glass, steering 2026-09-14): token tint, static blur,
+ * and the hairline + e2 elevation in one box-shadow list, falling back to an
+ * opaque surface where backdrop-filter is unsupported. No wash, no motifs
+ * beyond that rule: these pages precede the admin, so they stay quiet. The
+ * site header and footer render around these routes (HideOnAdmin only hides
+ * on /admin), so the column follows the section rhythm instead of claiming a
+ * full viewport. Server component: reads the brand lockup from site.json.
  */
 export function AuthShell({ eyebrow, title, lead, icon, children }: Readonly<AuthShellProps>) {
 	const { brand } = getSite();
@@ -47,11 +50,13 @@ export function AuthShell({ eyebrow, title, lead, icon, children }: Readonly<Aut
 						{title}
 					</h1>
 					<p className="t-lead mt-3">{lead}</p>
-					{/* The Card anatomy with the hairline + e1 composite (one shadow
-					    utility), written out so the data hook can ride along. */}
+					{/* The auth foreground sheet on the glass material: the utility
+					    carries its own hairline + e2 elevation (one box-shadow list, so
+					    no border or shadow-* utility may stack on it) and stays fully
+					    opaque without backdrop-filter support. */}
 					<div
 						data-slot="auth-card"
-						className="mt-8 rounded-(--radius-md) border border-line bg-surface p-(--card-pad-lg) shadow-e1-edged"
+						className="material-glass mt-8 rounded-(--radius-md) p-(--card-pad-lg)"
 					>
 						<AccentRule variant="gold" className="mx-auto w-8" />
 						{children}
