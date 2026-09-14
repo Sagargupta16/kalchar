@@ -181,6 +181,22 @@ export const PATTERNS = [
 		phase: "warn",
 		message: "Use the opaque ruby-line / ruby-soft tokens instead of alpha over a tinted surface",
 	},
+	{
+		// The style-object form (style={{ "--plate-glow": swatch }}): the sanctioned
+		// raw-colour exception is confined to the two allowlisted files.
+		id: "inline-plate-glow",
+		re: /"--plate-glow"/,
+		phase: "now",
+		message:
+			"Inline --plate-glow only in PlateFrame and the artwork lightbox (visual-direction 1.9)",
+	},
+	{
+		id: "inline-sheen-every",
+		re: /"--sheen-every"/,
+		phase: "now",
+		message:
+			"Set the sheen period through PlateFrame's sheen prop; inline --sheen-every only there",
+	},
 ];
 
 /** Paths where a pattern is legal: token definitions, deprecated aliases, sanctioned half steps. */
@@ -199,6 +215,11 @@ export const ALLOW = [
 	{ id: "half-step", path: CONTROLS },
 	{ id: "half-step", path: "components/ui/badge.tsx" },
 	{ id: "half-step", path: "app/admin/_components/admin-notice.tsx" },
+	// The plate glow and sheen period are set inline only where visual-direction
+	// 1.9 sanctions them (the palette array raw-colour exception).
+	{ id: "inline-plate-glow", path: "components/gallery/plate-frame.tsx" },
+	{ id: "inline-plate-glow", path: "components/gallery/artwork-lightbox.tsx" },
+	{ id: "inline-sheen-every", path: "components/gallery/plate-frame.tsx" },
 ];
 
 /** @param {Pattern} pattern @param {Phase} phase */

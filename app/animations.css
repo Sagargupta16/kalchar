@@ -1,8 +1,9 @@
-/* Animation classes, editorial typography and the reduced-motion overrides.
-   Split out of app/globals.css (500-line ceiling); globals.css imports this
-   file right after its @theme block, so every token it references exists.
-   Reduced motion is the repo exception (MEMORY "Reduced motion"): motion
-   stays visible by default and only these rules answer the OS preference. */
+/* Animation classes, typography role classes, editorial typography and the
+   reduced-motion overrides. Split out of app/globals.css (500-line ceiling);
+   globals.css imports this file right after its @theme block, so every token
+   it references exists. Reduced motion is the repo exception (MEMORY "Reduced
+   motion"): motion stays visible by default and only these rules answer the
+   OS preference. */
 
 /* ─── ANIMATION CLASSES ─── */
 
@@ -127,6 +128,14 @@
   animation: reveal-plate-in var(--duration-slow) var(--ease-out) both;
 }
 
+/* Single-plate unveil modifier (detail plate on client nav, about portrait,
+   spanning grid lead): duration and curve only, on top of .reveal-plate
+   (visual-direction 1.7). */
+.reveal-plate-unveil {
+  animation-duration: var(--duration-unveil);
+  animation-timing-function: var(--ease-emphatic);
+}
+
 @keyframes reveal-plate-in {
   to {
     clip-path: inset(0);
@@ -148,8 +157,11 @@
 
 /* Gold-leaf sheen: one soft-light pass of gold across a plate frame on group
    hover, or a slow loop where the caller sets data-sheen="loop" (period from
-   --sheen-every). Allowed by the house rules ("gold-leaf shimmer" on the
-   work). The host needs position: relative and overflow: hidden. */
+   --sheen-every; the hero front plate sets 8s). Allowed by the house rules
+   ("gold-leaf shimmer" on the work). The host needs position: relative and
+   overflow: hidden. The band is the gold gradient ladder (metal = value
+   contrast within the gold) at 0.24 opacity so the sweep never lightens the
+   painting more than the old flat mix did (visual-direction 1.9). */
 .gold-sheen::after {
   content: "";
   position: absolute;
@@ -157,12 +169,8 @@
   pointer-events: none;
   border-radius: inherit;
   mix-blend-mode: soft-light;
-  background: linear-gradient(
-    115deg,
-    transparent 40%,
-    color-mix(in oklch, var(--color-gold-leaf) 35%, transparent) 50%,
-    transparent 60%
-  );
+  opacity: 0.24;
+  background: var(--gradient-gold-sheen);
   transform: translateX(-100%);
 }
 
@@ -187,12 +195,17 @@
 }
 
 /* Section header rule: AccentRule draws from the left once the eyebrow and
-   title have risen (stagger steps 0 and 1; the rule is step 2). */
+   title have risen (stagger steps 0 and 1; the rule is step 2). Pull quotes
+   use the centre origin (AccentRule origin="center"). */
 .rule-draw {
   transform: scaleX(0);
   transform-origin: left;
   animation: rule-draw var(--duration-enter) var(--ease-out) both;
   animation-delay: calc(2 * var(--stagger-step));
+}
+
+.rule-draw-center {
+  transform-origin: center;
 }
 
 @keyframes rule-draw {
@@ -220,6 +233,108 @@
 .theme-switching *::before,
 .theme-switching *::after {
   transition: none !important;
+}
+
+/* ─── TYPOGRAPHY ROLE CLASSES ─── */
+/* In @layer components so text-* and colour utilities can override them
+   (unlayered, they beat every utility and `t-meta text-micro` was dead).
+   Moved here from globals.css (500-line ceiling). */
+
+@layer components {
+  .t-display {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  /* Roman headline voice for the display rungs (t-headline text-display /
+     text-display-sm). 600 on purpose: Cormorant's strokes are light for a
+     poster rung on cream (visual-direction 1.1). Never under 16px, never on
+     running text. */
+  .t-headline {
+    font-family: var(--font-display);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: var(--tracking-headline);
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+
+  /* Numeral voice: plate numbers, counts, prices in wall labels, wall dates.
+     Inherits its size from a text-* utility. */
+  .t-numeral {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sans heading voice (admin dialog titles and the like). */
+  .t-heading {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .t-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-micro);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .t-meta {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-body {
+    font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+    line-height: 1.7;
+    color: var(--color-ink-soft);
+    text-wrap: pretty;
+  }
+
+  .t-lead {
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    line-height: 1.65;
+    /* deliberate dek: larger than body, lighter than body; page files must
+       not recolour it (system-26) */
+    color: var(--color-muted);
+    text-wrap: pretty;
+  }
+
+  /* Brand span in the Devanagari face (chrome consumes). vertical-align reads
+     --devanagari-shift so display-size wordmarks can tune the baseline locally
+     (visual-direction 1.1 wordmark note). */
+  .devanagari-display {
+    font-family: var(--font-devanagari);
+    font-style: normal;
+    font-size: 1.08em;
+    line-height: 1.35;
+    letter-spacing: 0;
+    vertical-align: var(--devanagari-shift);
+  }
+
+  /* Back-to-top yields to the floating WhatsApp disc (visual-direction 2.14):
+     when the FAB is mounted, back-to-top moves up one FAB slot. Layout, not
+     animation; vu-chrome only adds the data hooks. */
+  html:has([data-enquire-fab]) [data-back-to-top] {
+    margin-bottom: calc(var(--spacing-fab) + 0.75rem);
+  }
 }
 
 /* ─── EDITORIAL TYPOGRAPHY ─── */
@@ -282,6 +397,10 @@
   .reveal-plate {
     clip-path: none;
     animation: none;
+  }
+  .reveal-plate-unveil {
+    animation: none;
+    clip-path: none;
   }
   .theme-icon-in,
   .notice-in,

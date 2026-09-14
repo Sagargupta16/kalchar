@@ -9,10 +9,14 @@ import {
 	EASE_SHEET,
 	gridStaggerDelay,
 	PRESS_SCALE,
+	perSegmentEase,
 	REVEAL_DISTANCE,
+	SHEEN_EVERY_S,
+	SHEET_DETENTS,
 	SPRING_SHEET,
 	STAGGER,
 	staggerDelay,
+	UNDO_HOLD_MS,
 } from "./motion";
 
 // Normalise line endings so the slices below work on a CRLF checkout too.
@@ -34,6 +38,17 @@ function bezier(value: string): number[] {
 	const inner = value.match(/cubic-bezier\(([^)]+)\)/)?.[1];
 	if (!inner) throw new Error(`not a cubic-bezier: ${value}`);
 	return inner.split(",").map((n) => Number(n.trim()));
+}
+
+/** Evaluate a `clamp(<min>rem, <intercept>rem + <slope>vw, <max>rem)` rung at a viewport width, in px (16px root). */
+function clampAtViewport(value: string, viewportPx: number): number {
+	const match = value.match(
+		/^clamp\(\s*([\d.]+)rem\s*,\s*([\d.]+)rem\s*\+\s*([\d.]+)vw\s*,\s*([\d.]+)rem\s*\)$/,
+	);
+	if (!match) throw new Error(`not a rem + vw clamp: ${value}`);
+	const [minRem, interceptRem, slopeVw, maxRem] = match.slice(1).map(Number);
+	const preferred = (interceptRem ?? 0) * 16 + ((slopeVw ?? 0) / 100) * viewportPx;
+	return Math.min(Math.max(preferred, (minRem ?? 0) * 16), (maxRem ?? 0) * 16);
 }
 
 /** The whole `@theme ... { ... }` block, brace-balanced (the file reads `@theme static {`). */
@@ -67,6 +82,39 @@ describe("lib/motion mirrors app/globals.css", () => {
 	it("--ease-in and --ease-sheet equal the exported arrays", () => {
 		expect(bezier(token("--ease-in"))).toEqual([...EASE_IN]);
 		expect(bezier(token("--ease-sheet"))).toEqual([...EASE_SHEET]);
+	});
+
+	it("--duration-unveil and --duration-drift mirror DUR (ms and s forms)", () => {
+		expect(token("--duration-unveil")).toBe(`${DUR.unveil * 1000}ms`);
+		expect(token("--duration-drift")).toBe(`${DUR.drift}s`);
+	});
+
+	it("--ease-emphatic is in @theme (M3 emphasized-decelerate; hero-scale entrances only)", () => {
+		expect(themeBlock()).toContain("--ease-emphatic");
+		expect(bezier(token("--ease-emphatic"))).toEqual([0.05, 0.7, 0.1, 1]);
+	});
+
+	it.each([
+		["--text-display", 390, 44],
+		["--text-display", 1280, 88],
+		["--text-display-sm", 390, 40],
+		["--text-display-sm", 1280, 72],
+	])("%s resolves at %dpx viewport to %dpx within 1px", (name, viewport, expected) => {
+		expect(clampAtViewport(token(name), viewport)).toBeCloseTo(expected, 0);
+	});
+
+	it("--sheet-peek mirrors SHEET_DETENTS.peek and --spacing-fab is the 56px disc", () => {
+		expect(token("--sheet-peek")).toBe(`${SHEET_DETENTS.peek * 100}dvh`);
+		expect(SHEET_DETENTS.full).toBe(1);
+		expect(token("--spacing-fab")).toBe("3.5rem");
+	});
+
+	it("the undo toast holds for 5 seconds (D-A3 supersedes D26)", () => {
+		expect(UNDO_HOLD_MS).toBe(5000);
+	});
+
+	it("the sheen loop period constant is 8 seconds", () => {
+		expect(SHEEN_EVERY_S).toBe(8);
 	});
 
 	it("--stagger-step equals STAGGER.stepMs and the stagger utility caps at maxIndex", () => {
@@ -175,5 +223,18 @@ describe("gridStaggerDelay", () => {
 		expect(gridStaggerDelay(7)).toBe(60);
 		expect(gridStaggerDelay(8)).toBe(120);
 		expect(gridStaggerDelay(9)).toBe(0);
+	});
+});
+
+describe("perSegmentEase", () => {
+	it("returns one ease per keyframe segment, all EASE_IN_OUT", () => {
+		const eases = perSegmentEase([0, 0.5, 1]);
+		expect(eases).toHaveLength(2);
+		for (const ease of eases) expect(ease).toBe(EASE_IN_OUT);
+	});
+
+	it("never returns an empty array (Motion requires at least one ease)", () => {
+		expect(perSegmentEase([0])).toHaveLength(1);
+		expect(perSegmentEase([])).toHaveLength(1);
 	});
 });

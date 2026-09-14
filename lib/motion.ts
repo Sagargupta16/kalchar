@@ -20,7 +20,11 @@ export const DUR = {
 	base: 0.3,
 	enter: 0.4,
 	slow: 0.5,
-	/** Ambient drift loops (hero pigment wash, motion addendum H3; ruling 45). Seconds. */
+	/** Single-plate unveil (detail on client nav, spanning grid lead). Mirrors --duration-unveil. */
+	unveil: 0.7,
+	/** Pigment-wash drift loop, seconds. Mirrors --duration-drift (the 30s form). */
+	drift: 30,
+	/** DEPRECATED alias of drift (hero-wash.tsx consumes it); integration renames the call site. */
 	ambient: 30,
 } as const;
 
@@ -43,6 +47,8 @@ export const SPRING_INDICATOR = { type: "spring", stiffness: 400, damping: 30 } 
 export const SPRING_LAYOUT = { type: "spring", stiffness: 300, damping: 30 } as const;
 /** Motion-driven sheets and drag-dismiss releases: lands in DUR.base, inherits finger velocity, no bounce. */
 export const SPRING_SHEET = { type: "spring", visualDuration: DUR.base, bounce: 0 } as const;
+/** Raised Add disc press: a firm press that lands fast. Motion owns the node (never pair with CSS pressable). */
+export const SPRING_PRESS = { type: "spring", stiffness: 500, damping: 30 } as const;
 
 /** Press cue for whileTap; matches the pressable utility. */
 export const PRESS_SCALE = 0.97;
@@ -63,9 +69,17 @@ export function gridStaggerDelay(index: number, eager = 6, cols = 3): number {
 	return staggerDelay(index < eager ? index : index % cols);
 }
 
+/** One ease per keyframe segment so a [from, to, from] loop lands on frame 0. */
+export function perSegmentEase(times: readonly number[]): (typeof EASE_IN_OUT)[] {
+	return Array.from({ length: Math.max(times.length - 1, 1) }, () => EASE_IN_OUT);
+}
+
+/** Hero front-plate sheen period in seconds (CSS reads --sheen-every: 8s on the PlateFrame). */
+export const SHEEN_EVERY_S = 8;
+
 /** Reveal viewport margin shared by Reveal and any whileInView list. */
 export const REVEAL_VIEWPORT_MARGIN = "0px 0px -80px 0px";
-/** Mount gate for looping ambient layers (H3): loops unmount once scrolled past. */
+/** Mount margin for ambient loops (pigment wash): animate only near the viewport. */
 export const LOOP_MOUNT_MARGIN = "300px 0px";
 /** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. */
 export const REVEAL_DISTANCE = { block: 20, item: 12 } as const;
@@ -81,8 +95,12 @@ export const DRAG_VELOCITY_PX_S = 400;
 /** Pending indicators: show after PENDING_SHOW_MS, stay at least PENDING_MIN_MS (Vercel guidelines). */
 export const PENDING_SHOW_MS = 200;
 export const PENDING_MIN_MS = 300;
-/** Undo bar hold (D26: 6 seconds). */
-export const UNDO_HOLD_MS = 6000;
+/** Undo toast hold (was 6000 per D26; 5000 per the visual pass, the Gmail floor and decision D-A3;
+ * the countdown pauses on hover, focus-within and document.hidden). */
+export const UNDO_HOLD_MS = 5000;
+
+/** Sheet detents as fractions of 100dvh; CSS mirror --sheet-peek (test-locked). */
+export const SHEET_DETENTS = { peek: 0.62, full: 1 } as const;
 
 /** Hero shuffle hold before the preloaded plate swap (hero-plates.tsx). */
 export const HERO_SHUFFLE_DELAY_MS = 700;

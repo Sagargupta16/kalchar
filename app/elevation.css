@@ -27,6 +27,11 @@
   --elev-e4: 0 2px 4px oklch(var(--shadow-ink) / 0.05), 0 10px 16px -3px oklch(var(--shadow-ink) / 0.07), 0 22px 32px -8px oklch(var(--shadow-ink) / 0.08), 0 36px 48px -12px oklch(var(--shadow-ink) / 0.06);
   /* e5: 4/8/0/0.06, 14/24/-6/0.09, 30/44/-10/0.10, 56/72/-16/0.08 */
   --elev-e5: 0 4px 8px oklch(var(--shadow-ink) / 0.06), 0 14px 24px -6px oklch(var(--shadow-ink) / 0.09), 0 30px 44px -10px oklch(var(--shadow-ink) / 0.10), 0 56px 72px -16px oklch(var(--shadow-ink) / 0.08);
+  /* Palette glow behind a plate on a dark ground (lightbox v2). Colour and
+     strength come from globals.css :root: --plate-glow is set inline from the
+     artwork's most saturated palette swatch (ink fallback), --plate-glow-alpha
+     is 35% light / 55% dark, so one list serves both modes. */
+  --elev-glow: 0 0 120px -24px color-mix(in oklch, var(--plate-glow) var(--plate-glow-alpha), transparent);
 }
 
 /* ─── DARK: surface roles carry depth, not heavier shadows ─── */
@@ -44,6 +49,9 @@
   --elev-e3: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 2px 4px oklch(0 0 0 / 0.4), 0 10px 20px -6px oklch(0 0 0 / 0.55);
   --elev-e4: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 18px 32px -10px oklch(0 0 0 / 0.6);
   --elev-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 28px 52px -12px oklch(0 0 0 / 0.7);
+  /* Same expression as light: the dark lift flows through --plate-glow-alpha
+     (55% in :root.dark), declared here so both modes define every --elev-*. */
+  --elev-glow: 0 0 120px -24px color-mix(in oklch, var(--plate-glow) var(--plate-glow-alpha), transparent);
 }
 
 /* ─── HOVER LIFT FOR SURFACES ─── */

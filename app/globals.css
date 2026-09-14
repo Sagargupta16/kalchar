@@ -63,6 +63,10 @@
   --color-surface: var(--color-bg);
   --color-surface-raised: var(--color-bg);
   --color-scrim: oklch(0.18 0.022 60);
+  /* Lightbox room: near-black warm ink, identical in both modes (not remapped). */
+  --color-scrim-deep: oklch(0.10 0.012 60);
+  /* Row / tile hover fill (Radix step-4 analog); remapped in :root.dark. */
+  --color-surface-hover: oklch(0.955 0.016 78);
   /* Form-control boundary only: 3.63:1 on bg (WCAG 1.4.11 needs 3:1 for an
      input's border). --color-line stays decorative. */
   --color-line-strong: oklch(0.60 0.022 75);
@@ -81,13 +85,28 @@
    * contrast is scored on the real composite instead of an alpha guess. */
   --color-ruby-line: color-mix(in oklch, var(--color-ruby) 40%, var(--color-bg));
   --color-ruby-soft: color-mix(in oklch, var(--color-ruby) 10%, var(--color-bg));
+  /* Admin status colours (visual-direction-admin 1.15): dots, segmented-control
+     dots, status chips. Terracotta stays "you can act here" and is never a
+     status; the references resolve at use time so dark pigment remaps flow. */
+  --color-status-available: var(--color-pichwai);
+  --color-status-sold: var(--color-ruby);
+  --color-status-nfs: var(--color-line-strong);
 
   /* Metallic accents */
   --color-gold-leaf: oklch(0.76 0.12 85);
+  /* Gold ladder (visual-direction 1.3): gold is a line, an edge and a sheen;
+     never a fill wider than a rule, never body text. gold-2 aliases the leaf
+     so dark remaps follow it; the hairline is THE gold rule (seams, plate
+     inset lines, wall-label bars, AccentRule variant="gold"). */
+  --color-gold-1: oklch(0.62 0.11 80);
+  --color-gold-2: var(--color-gold-leaf);
+  --color-gold-3: oklch(0.89 0.07 92);
+  --color-gold-hairline: color-mix(in oklch, var(--color-gold-leaf) 55%, var(--color-line));
 
   /* ─── TYPOGRAPHY TOKENS ─── */
   --tracking-tight: -0.02em; /* intentionally overrides Tailwind's -0.025em */
   --tracking-display: -0.015em;
+  --tracking-headline: -0.03em; /* t-headline poster rung (visual-direction 1.1) */
   --tracking-eyebrow: 0.18em;
   --tracking-meta: 0.14em;
 
@@ -108,6 +127,14 @@
      baked in (add tracking-meta explicitly) so non-uppercase copy can use it. */
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1rem;
+  /* Display rungs (roman headline voice, visual-direction 1.1). The rem term
+     keeps browser font-size settings scaling the middle of the range (WCAG
+     1.4.4). 44px at 390 -> 88px at 1280. */
+  --text-display: clamp(2.75rem, 1.545rem + 4.94vw, 5.5rem);
+  --text-display--line-height: 0.95;
+  /* 40px at 390 -> 72px at 1280 (rounded intercept pair, shipped as stated). */
+  --text-display-sm: clamp(2.5rem, 1.597rem + 3.71vw, 4.5rem);
+  --text-display-sm--line-height: 0.95;
 
   /* ─── SPACING ─── */
   /* The 4px grid IS Tailwind's --spacing (0.25rem): p-4, gap-3, mt-10 already
@@ -128,6 +155,10 @@
 
   /* THE touch target: min-h-control, size-control, min-w-control. */
   --spacing-control: 2.75rem; /* 44px */
+  /* FAB-sized discs: the public floating WhatsApp disc (visual-direction 2.14)
+     and the admin raised Add (visual-direction-admin 1.3). "fab" collides with
+     no built-in utility; generates size-fab and z-fab. */
+  --spacing-fab: 3.5rem; /* 56px */
   /* Mobile admin tab-bar row, excluding its 1px border-top: h-tabbar. */
   --spacing-tabbar: 4rem; /* 64px */
   /* Safe-area steps as real utilities: pb-safe-bottom, pt-safe-top,
@@ -154,11 +185,17 @@
   --duration-slow: 500ms;
   --duration-shimmer: 1400ms; /* skeleton sweep loop (animations.css) */
   --delay-flare: 600ms; /* flare-after start (animations.css) */
+  /* Single-plate unveil and the ambient wash drift (visual-direction 1.9).
+     Public only; never under /admin. */
+  --duration-unveil: 700ms;
+  --duration-drift: 30s;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* every entrance and gesture response */
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0); /* exits only; enter with --ease-out */
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* drag reorder: neighbours shift; theme icon */
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* CSS sheets at --duration-base (admin Modal sheet, BottomBar) */
+  /* Hero-scale entrances only (M3 emphasized-decelerate); never under /admin. */
+  --ease-emphatic: cubic-bezier(0.05, 0.7, 0.1, 1);
   /* Step for the stagger utility; lib/motion.ts STAGGER.stepMs mirrors it. */
   --stagger-step: 60ms;
   /* Every bare transition-colors / -opacity / -transform inherits these, so
@@ -170,6 +207,13 @@
   /* --container-px is declared in :root below, not here: see the note there. */
   /* Section rhythm: 48px up to 600px, 64px at 800, 104px from 1300 (D1). */
   --section-py: clamp(3rem, 8vw, 6.5rem);
+  /* Museum breathing (visual-direction 1.5): 64px at 390, 144px at 1280. Home
+     hero, home section shells and every public page header (Section
+     rhythm="grand"). */
+  --section-py-grand: clamp(4rem, 12vw, 9rem);
+  /* Within-page grand seam: 64 to 128px; at most twice per page. In the
+     --space namespace so space-y-canyon and mt-(--space-canyon) both work. */
+  --space-canyon: clamp(4rem, 2rem + 8vw, 8rem);
   --content-max: 72rem; /* 1152px: Container default */
   --prose-max: 48rem; /* 768px: Container narrow, admin single-column routes */
   --header-max: 42rem; /* 672px: PageHeader, SectionHeader, SkeletonHeader */
@@ -182,6 +226,11 @@
      rounded-full (D13). */
   --radius-lg: 1rem;
   --radius-full: 9999px; /* pills, avatars */
+  /* Bottom-sheet top corners (admin content-detent sheet, 1.7). */
+  --radius-sheet: 1.25rem; /* 20px -> rounded-t-(--radius-sheet) */
+
+  /* Photo hero in the admin add and edit sheets (IG post ratio) -> aspect-post. */
+  --aspect-post: 4 / 5;
 
   /* ─── ELEVATION ─────────────────────────────────────────────────────
    * Warm-ink layered scale. Role map: hairline = every resting frame edge;
@@ -204,6 +253,11 @@
   --shadow-e1-edged: var(--elev-hairline), var(--elev-e1);
   --shadow-e2-edged: var(--elev-hairline), var(--elev-e2);
   --shadow-e3-edged: var(--elev-hairline), var(--elev-e3);
+  /* Palette glow behind a plate on a dark ground (lightbox). List lives in
+     elevation.css; --plate-glow / --plate-glow-alpha are :root properties
+     (alpha remaps in dark), set inline from the artwork's most saturated
+     palette swatch (the sanctioned raw-colour exception). */
+  --shadow-glow: var(--elev-glow);
 
   /* ─── Z SCALE ─── */
   /* raised = chips over images, dialog-internal controls; sticky = ReorderBar;
@@ -213,6 +267,8 @@
      one: raised hairline to e2; sticky e0 + border; nav e3 to e4; overlay e4 to e5. */
   --z-index-raised: 10;
   --z-index-sticky: 30;
+  /* Floating WhatsApp disc: above content chips, below sticky bars and nav. */
+  --z-index-fab: 35;
   --z-index-nav: 40;
   --z-index-overlay: 50;
 }
@@ -228,10 +284,13 @@
      <dialog> backdrop follow the class-based theme (system-5). */
   color-scheme: light;
   --section-accent: var(--color-accent);
-  /* Shadow tint: the --color-ink light triplet (L C H), fed to oklch(.../a) in
-   * the elevation tokens so depth reads as warm brown, never flat black. Lives
-   * here (not @theme) because it's an oklch component triplet, not a color. */
-  --shadow-ink: 0.18 0.022 60;
+  /* Shadow tint: warm ink triplet (L C H), fed to oklch(.../a) in the
+   * elevation tokens so depth reads as warm brown, never flat black. Lives
+   * here (not @theme) because it's an oklch component triplet, not a color.
+   * Chroma lifted 0.022 -> 0.032 (hue 60 -> 68) so depth on cream reads
+   * warmer without getting heavier; alpha ladder untouched (visual-direction
+   * 1.2). Dark shadows stay black ambient by rule (elevation.css). */
+  --shadow-ink: 0.18 0.032 68;
   /* Container inline padding. Kept out of @theme on purpose: Tailwind 4 turns
    * every --container-* theme key into a named size for w-, max-w-, min-w-,
    * size- and basis-, so a key called "px" shadowed the built-in 1px `w-px`
@@ -259,6 +318,35 @@
   --reveal-travel: 20px;
   --reveal-travel-item: 12px;
 
+  /* Visual-upgrade properties (visual-direction 1.9; no utilities generated). */
+  /* Essay and description measure: max-w-(--measure-essay). */
+  --measure-essay: 62ch;
+  /* .devanagari-display reads it; display-size wordmark wrappers override
+     locally ([--devanagari-shift:-0.02em]) so "Kal" and the Devanagari core
+     share a baseline at 44 to 88px. */
+  --devanagari-shift: -0.04em;
+  /* Flat pigment band for page headers and closing CTAs: Section
+     background="wash" -> bg-(--section-wash). Computed once from whatever
+     --section-accent the page's <main> already sets. */
+  --wash-strength: 8%;
+  --section-wash: color-mix(in oklch, var(--section-accent) var(--wash-strength), var(--color-bg));
+  /* Organic two-ellipse PigmentWash stops (components/decor/pigment-wash.tsx). */
+  --wash-a: color-mix(in oklch, var(--section-accent) 10%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 7%, transparent);
+  /* Plate glow behind a dark-room plate; inline from the most saturated
+     palette swatch, ink fallback when a piece has no palette. */
+  --plate-glow: oklch(var(--shadow-ink));
+  --plate-glow-alpha: 35%;
+  /* Metal = value contrast within the gold: consumed by .gold-sheen and the
+     optional gilded display accent. Lives here, not @theme (gradients emit no
+     utility). */
+  --gradient-gold-sheen: linear-gradient(105deg, var(--color-gold-1), var(--color-gold-2) 35%, var(--color-gold-3) 50%, var(--color-gold-2) 65%, var(--color-gold-1));
+  /* CSS mirror of SHEET_DETENTS.peek for the pre-hydration frame (admin 1.15). */
+  --sheet-peek: 62dvh;
+  /* Painting-grid seams (admin pieces grid, event photo grid): 2px on phones,
+     4px from lg (media query below). */
+  --grid-gap-tight: 2px;
+
   /* DEPRECATED aliases: integration deletes all four. */
   --space-3: 0.75rem; /* admin-nav.tsx More-sheet offset; use --space-tight */
   --space-16: 4rem; /* reorder-bar.tsx / admin-nav.tsx bottom; use --tabbar-offset */
@@ -271,6 +359,12 @@
     --form-gap: 1.5rem;
     --card-pad: 1.5rem;
     --card-pad-lg: 2rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --grid-gap-tight: 4px;
   }
 }
 
@@ -295,8 +389,11 @@
   --color-canvas: var(--color-bg);
   --color-surface: var(--color-bg-soft);
   --color-surface-raised: var(--color-bg-muted);
+  --color-surface-hover: oklch(0.21 0.017 56);
   --color-line-strong: oklch(0.50 0.02 60); /* 3.31:1 on the dark bg */
-  --color-accent-text: oklch(0.72 0.13 45); /* terracotta as text, APCA Lc about -55 (D6) */
+  /* Lifted 0.72/0.13/45 -> 0.75/0.12/47 so 14px links clear APCA Lc 60 with
+     margin (visual-direction 1.2; D6). */
+  --color-accent-text: oklch(0.75 0.12 47);
 
   --color-marigold: oklch(0.78 0.14 80);
   --color-pichwai: oklch(0.6 0.09 165);
@@ -304,6 +401,15 @@
   --color-peacock: oklch(0.65 0.09 220);
   --color-ruby: oklch(0.65 0.18 28);
   --color-gold-leaf: oklch(0.82 0.13 88);
+  --color-gold-1: oklch(0.66 0.12 82);
+  --color-gold-3: oklch(0.93 0.08 95);
+  --color-gold-hairline: color-mix(in oklch, var(--color-gold-leaf) 45%, var(--color-line));
+
+  /* Visual-upgrade dark values (visual-direction 1.9). */
+  --wash-strength: 12%;
+  --wash-a: color-mix(in oklch, var(--section-accent) 6%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 4%, transparent);
+  --plate-glow-alpha: 55%;
 }
 
 /* ─── BASE ─── */
@@ -396,72 +502,8 @@
 }
 
 /* ─── TYPOGRAPHY ROLE CLASSES ─── */
-/* In @layer components so text-* and colour utilities can override them
-   (unlayered, they beat every utility and `t-meta text-micro` was dead). */
-
-@layer components {
-  .t-display {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 500;
-    letter-spacing: var(--tracking-display);
-    line-height: 1.05;
-    text-wrap: balance;
-  }
-
-  /* Sans heading voice (admin dialog titles and the like). */
-  .t-heading {
-    font-family: var(--font-body);
-    font-weight: 600;
-    letter-spacing: var(--tracking-tight);
-    line-height: 1.2;
-    text-wrap: balance;
-  }
-
-  .t-eyebrow {
-    font-family: var(--font-body);
-    font-size: var(--text-micro);
-    letter-spacing: var(--tracking-eyebrow);
-    text-transform: uppercase;
-    color: var(--color-muted);
-    font-weight: 500;
-  }
-
-  .t-meta {
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    letter-spacing: var(--tracking-meta);
-    text-transform: uppercase;
-    color: var(--color-muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .t-body {
-    font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
-    line-height: 1.7;
-    color: var(--color-ink-soft);
-    text-wrap: pretty;
-  }
-
-  .t-lead {
-    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-    line-height: 1.65;
-    /* deliberate dek: larger than body, lighter than body; page files must
-       not recolour it (system-26) */
-    color: var(--color-muted);
-    text-wrap: pretty;
-  }
-
-  /* Brand span in the Devanagari face (chrome consumes). */
-  .devanagari-display {
-    font-family: var(--font-devanagari);
-    font-style: normal;
-    font-size: 1.08em;
-    line-height: 1.35;
-    letter-spacing: 0;
-    vertical-align: -0.04em;
-  }
-}
+/* Moved to app/animations.css (500-line ceiling split: it already owns the
+   editorial typography block). Same @layer components; cascade unchanged. */
 
 /* ─── UTILITIES ─── */
 
