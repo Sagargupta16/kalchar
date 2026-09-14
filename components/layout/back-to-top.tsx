@@ -17,7 +17,10 @@ import { cn } from "@/lib/utils";
  * (chrome-7; the footer renders the [data-fab-sentinel] it observes). The
  * offset ADDS the safe-area insets to the 20px margin (chrome-8) plus
  * --fixed-bar-h while a page publishes a fixed bottom bar (the /work/[slug]
- * enquiry bar). Rests at e3, hovers to e4 (M3 FAB rungs; motion addendum C3).
+ * enquiry bar), and the html:has([data-enquire-fab]) rule in animations.css
+ * lifts it one FAB slot whenever the floating WhatsApp disc is mounted
+ * (visual-direction 2.14). Rests at e3, hovers to e4 (M3 FAB rungs; motion
+ * addendum C3) with the gold hairline border.
  * Hidden on /admin (which owns the bottom-right zone with its own mobile tab
  * bar). Reduced motion -> instant jump and no fade transition.
  */
@@ -58,10 +61,11 @@ export function BackToTop() {
 			/>
 			<button
 				type="button"
+				data-back-to-top=""
 				aria-label="Back to top"
 				onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
 				className={cn(
-					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface/90 text-ink shadow-e3 backdrop-blur-md transition-ui pressable hover:-translate-y-0.5 hover:border-accent hover:text-accent-text hover:shadow-e4",
+					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface/90 text-ink shadow-e3 backdrop-blur-md transition-ui pressable hover:-translate-y-0.5 hover:border-(--color-gold-hairline) hover:text-accent-text hover:shadow-e4",
 					"bottom-[calc(var(--spacing-safe-bottom)+--spacing(5)+var(--fixed-bar-h,0px))] right-[calc(var(--spacing-safe-right)+--spacing(5))]",
 					shown
 						? "pointer-events-auto translate-y-0 opacity-100"

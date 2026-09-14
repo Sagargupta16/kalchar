@@ -6,6 +6,7 @@ import { ScrollProgress } from "@/components/decor/scroll-progress";
 import { ArtworkLightbox } from "@/components/gallery/artwork-lightbox";
 import { LightboxProvider } from "@/components/gallery/lightbox-context";
 import { BackToTop } from "@/components/layout/back-to-top";
+import { EnquireFab } from "@/components/layout/enquire-fab";
 import { HideOnAdmin } from "@/components/layout/hide-on-admin";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -14,12 +15,18 @@ import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
 import { SERVER_BRAND_COLORS } from "@/lib/server-brand-colors";
 import { siteConfig } from "@/lib/site-config";
-import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
+import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
 import "./globals.css";
 
 const site = getSite();
 const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
+/** FAB greeting; verbatim pair of WHATSAPP_GREETING in app/page.tsx (visual-direction 2.16). */
+const FAB_WHATSAPP_MESSAGE = "Hi, I found you on kalchar.co.in.";
+const fabWhatsappHref = buildWhatsAppLink({
+	phoneE164NoPlus: whatsappPhone,
+	message: FAB_WHATSAPP_MESSAGE,
+});
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
@@ -122,6 +129,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 							<SiteFooter />
 						</HideOnAdmin>
 						<BackToTop />
+						<EnquireFab whatsappHref={fabWhatsappHref} />
 						<ArtworkLightbox />
 					</LightboxProvider>
 				</MotionProvider>

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
+import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { AccentRule } from "@/components/ui/accent-rule";
 import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
@@ -75,36 +76,30 @@ export function SiteFooter() {
 	];
 
 	return (
-		<footer className="relative overflow-hidden border-t border-line bg-canvas">
-			{/* Artistic top rule -- a hairline that fades through accent, replacing
-			    the flat border for a more crafted seam (decorative). */}
+		<footer className="relative overflow-hidden border-t border-line bg-canvas [contain:paint]">
+			{/* Colophon seam -- the hairline fades through gold at the centre
+			    (visual-direction 2.13; the museum's one full-width gold moment). */}
 			<div
 				aria-hidden="true"
-				className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent"
+				className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--color-gold-hairline) to-transparent"
 			/>
 
-			{/* Soft pigment washes for warmth -- one top-left, one bottom-right. */}
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-accent/8 blur-3xl"
-			/>
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-accent-soft/8 blur-3xl"
-			/>
+			{/* Static pigment wash for warmth (drift=false: nothing loops in the footer). */}
+			<PigmentWash drift={false} />
 
 			<Container className="relative z-raised">
-				{/* ── Top: links + channels ── */}
-				<div className="grid gap-10 py-14 sm:grid-cols-2 sm:py-16 lg:grid-cols-[1fr_1fr_auto] lg:gap-16">
-					{/* Brand */}
-					<Reveal as="div" delayMs={staggerDelay(0)} className="sm:col-span-2 lg:col-span-1">
+				{/* ── Top: colophon + links + channels ── */}
+				<div className="grid gap-10 py-14 sm:grid-cols-2 sm:py-16 lg:grid-cols-12 lg:gap-16 lg:py-24">
+					{/* Brand colophon: her name set at display size on paper (2.13). */}
+					<Reveal as="div" delayMs={staggerDelay(0)} className="sm:col-span-2 lg:col-span-6">
 						<Link
 							href="/"
 							aria-label="Home"
-							className="group inline-flex min-h-control items-baseline gap-2"
+							className="group inline-flex min-h-control flex-wrap items-baseline gap-x-3 gap-y-1"
 						>
-							<span className="t-display text-3xl tracking-tight">
-								<span className="not-italic transition-colors group-hover:text-accent-text">
+							{/* Display-size wordmark tunes the Devanagari baseline locally (1.1). */}
+							<span className="t-headline text-display [--devanagari-shift:-0.02em]">
+								<span className="transition-colors group-hover:text-accent-text">
 									{brand.headline.latinPrefix}
 								</span>
 								<span lang="hi" className="devanagari-display text-accent">
@@ -120,17 +115,17 @@ export function SiteFooter() {
 						</p>
 					</Reveal>
 
-					{/* Explore -- icon-led index. Each row is a self-contained chip
-					    (icon pellet + label) so the list reads as a structured menu
-					    rather than a sparse column, and rhymes with Reach out. */}
-					<Reveal as="div" delayMs={staggerDelay(1)}>
+					{/* Explore -- the numbered wall list (2.13): tabular indices beside
+					    the kept icon pellets, 44px rows, the doormat nav for a ten-section
+					    home page. */}
+					<Reveal as="div" delayMs={staggerDelay(1)} className="lg:col-span-3">
 						<nav aria-label="Footer">
 							<p className="t-eyebrow flex items-center gap-2">
 								<AccentRule />
 								Explore
 							</p>
 							<ul className="mt-5 space-y-1">
-								{nav.map((item) => {
+								{nav.map((item, index) => {
 									const Icon = NAV_ICON[navKey(item.href)];
 									return (
 										<li key={item.href}>
@@ -138,6 +133,9 @@ export function SiteFooter() {
 												className="group -mx-2 flex min-h-control items-center gap-3 rounded-(--radius-sm) px-2 py-2 text-sm text-ink transition-colors hover:bg-surface/60 active:bg-surface/60"
 												href={item.href.startsWith("#") ? `/${item.href.slice(1)}` : item.href}
 											>
+												<span aria-hidden="true" className="t-meta w-5 shrink-0 tabular-nums">
+													{String(index + 1).padStart(2, "0")}
+												</span>
 												<IconCircle
 													size="xs"
 													className="bg-surface text-muted group-hover:text-accent-text group-hover:ring-accent/60"
@@ -163,12 +161,17 @@ export function SiteFooter() {
 					    row (pellet, caption, then the actual handle or number) so
 					    "Art" and "Workshops" say which account opens without a hover;
 					    from sm the pellets wrap with a hover/focus tooltip. */}
-					<Reveal as="div" delayMs={staggerDelay(2)}>
+					<Reveal as="div" delayMs={staggerDelay(2)} className="lg:col-span-3">
 						<p className="t-eyebrow flex items-center gap-2">
 							<AccentRule />
 							Reach out
 						</p>
-						<ul className="mt-5 grid gap-1 sm:flex sm:max-w-[19rem] sm:flex-wrap sm:gap-x-5 sm:gap-y-4">
+						{/* data-channel-row: the floating WhatsApp disc hides while this
+						    block is in view (visual-direction 2.14). */}
+						<ul
+							data-channel-row=""
+							className="mt-5 grid gap-1 sm:flex sm:max-w-[19rem] sm:flex-wrap sm:gap-x-5 sm:gap-y-4"
+						>
 							{channels.map((c) => {
 								const Icon = ICON_FOR_KEY[c.key];
 								const handle = c.display ?? c.label;
@@ -221,7 +224,7 @@ export function SiteFooter() {
 						as="div"
 						eager
 						delayMs={staggerDelay(2)}
-						className="t-meta flex flex-col items-center gap-3 border-t border-line/70 pt-6 pb-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left"
+						className="t-meta flex flex-col items-center gap-3 border-t border-(--color-gold-hairline) pt-6 pb-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left"
 					>
 						<p>
 							&copy; {year}{" "}
