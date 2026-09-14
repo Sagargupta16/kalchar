@@ -22,7 +22,9 @@ interface ArtworkCtaPanelProps {
  * primary, the WhatsApp display fallback and the share row. Sold pieces get
  * the commission intent as a secondary action plus a one-line jump to the
  * style's available pieces. `id="enquire"` is observed by the phone
- * EnquiryBar, which hides itself while this panel is on screen.
+ * EnquiryBar, which hides itself while this panel is on screen. Rests on
+ * shadow-e2-edged (steering 2026-09-14): one rung above flat content, so the
+ * enquiry inset reads as a raised card beside the suspended plate.
  */
 export function ArtworkCtaPanel({
 	art,
@@ -35,7 +37,7 @@ export function ArtworkCtaPanel({
 		<section
 			id="enquire"
 			aria-labelledby="enquire-heading"
-			className="mt-(--space-block) rounded-(--radius-md) border-t-2 border-(--color-gold-hairline) bg-canvas p-(--card-pad) shadow-e1-edged"
+			className="mt-(--space-block) rounded-(--radius-md) border-t-2 border-(--color-gold-hairline) bg-canvas p-(--card-pad) shadow-e2-edged"
 		>
 			<h2 id="enquire-heading" className="sr-only">
 				Price and enquiry

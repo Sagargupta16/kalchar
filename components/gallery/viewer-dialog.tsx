@@ -14,10 +14,15 @@ import { createPortal } from "react-dom";
 import { DUR, EASE_IN, EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-/** Floating icon control over a photo panel: translucent raised surface, hairline
- *  edge, 44px, press cue, global focus outline. Used for Close and Previous / Next. */
+/** Floating icon control over a photo panel: iOS-style material (steering
+ *  2026-09-14). The raised-surface fill at the shared glass weight with the
+ *  static --glass-blur + --glass-saturate backdrop, hairline edge, shadow-e2,
+ *  44px, press cue, global focus outline. Kept as plain utilities rather than
+ *  the material-glass utility so consumers' md: overrides keep their proven
+ *  cascade (events lightbox stacks md:bg-* on this string). Used for Close,
+ *  Previous / Next and the detail plate's Expand affordance. */
 export const LIGHTBOX_ICON_BUTTON =
-	"grid size-control shrink-0 place-items-center rounded-full border border-line/40 bg-surface-raised/80 text-ink shadow-e2 backdrop-blur transition-ui pressable hover:text-accent-text";
+	"grid size-control shrink-0 place-items-center rounded-full border border-line/40 bg-surface-raised/85 text-ink shadow-e2 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-ui pressable hover:text-accent-text";
 
 export const LightboxIconButton = forwardRef<
 	HTMLButtonElement,

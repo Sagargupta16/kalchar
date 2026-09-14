@@ -287,6 +287,10 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 				{/* Plate room: the browser owns pinch on the layers we track; Motion
 				    owns the paging/dismiss drag at fit. */}
 				<div className="relative flex min-h-0 flex-1 items-center justify-center p-(--card-pad) md:col-span-8">
+					{/* Paging arrows keep the icon buttons' glass material at every
+					    width (steering 2026-09-14): the old md ghost fills (bg/10)
+					    washed out beside bright plates; the raised glass disc stays
+					    legible over any painting and matches the Close control. */}
 					{hasSiblings ? (
 						<>
 							<LightboxIconButton
@@ -294,7 +298,7 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 								aria-label="Previous artwork"
 								inert={chromeHidden || undefined}
 								className={cn(
-									"absolute bottom-3 left-3 z-raised md:bottom-auto md:left-safe-left md:top-1/2 md:ml-3 md:-translate-y-1/2 md:border-bg/20 md:bg-bg/10 md:text-bg md:dark:text-ink",
+									"absolute bottom-3 left-3 z-raised md:bottom-auto md:left-safe-left md:top-1/2 md:ml-3 md:-translate-y-1/2",
 									chromeClass,
 								)}
 							>
@@ -305,7 +309,7 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 								aria-label="Next artwork"
 								inert={chromeHidden || undefined}
 								className={cn(
-									"absolute bottom-3 right-3 z-raised md:bottom-auto md:right-safe-right md:top-1/2 md:mr-3 md:-translate-y-1/2 md:border-bg/20 md:bg-bg/10 md:text-bg md:dark:text-ink",
+									"absolute bottom-3 right-3 z-raised md:bottom-auto md:right-safe-right md:top-1/2 md:mr-3 md:-translate-y-1/2",
 									chromeClass,
 								)}
 							>

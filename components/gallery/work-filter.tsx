@@ -238,7 +238,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			    it sits static and transparent (visual-direction 2.2). */}
 			<fieldset
 				ref={railRef}
-				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 border-b border-line bg-bg/90 px-(--container-px) py-3 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 border-b border-line bg-bg/90 px-(--container-px) py-3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
 			>
 				<legend className="sr-only">Filter artwork</legend>
 				<LayoutGroup>
@@ -333,6 +333,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 									sizes={i % 7 === 0 ? GALLERY_LEAD_SIZES : undefined}
 									unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
 									unveilSlow={i === 0}
+									float={i === 0}
 								/>
 							);
 							return (

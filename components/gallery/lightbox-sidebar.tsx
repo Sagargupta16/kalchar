@@ -132,8 +132,11 @@ export function LightboxSidebar({
 			{/* Buy bar (the C graft): pinned to the panel's bottom edge on phones so
 			    price and the WhatsApp action are on the first screen of the modal;
 			    a surface block in the column flow at md+. Never hidden by the
-			    chrome toggle. */}
-			<div className="sticky bottom-0 z-raised -mx-(--card-pad) mt-6 flex items-center gap-3 border-t border-(--color-gold-hairline) bg-surface-raised/95 px-4 py-3 pb-[max(--spacing(3),var(--spacing-safe-bottom))] backdrop-blur md:static md:mx-0 md:rounded-(--radius-md) md:pb-3">
+			    chrome toggle. material-glass-strong (steering 2026-09-14) carries
+			    the raised fill, static blur + saturate, hairline and e4 depth over
+			    the deep room, with the opaque raised-surface fallback where
+			    backdrop-filter is unsupported. */}
+			<div className="material-glass-strong sticky bottom-0 z-raised -mx-(--card-pad) mt-6 flex items-center gap-3 border-t border-(--color-gold-hairline) px-4 py-3 pb-[max(--spacing(3),var(--spacing-safe-bottom))] md:static md:mx-0 md:rounded-(--radius-md) md:pb-3">
 				{hasPrice ? (
 					<span className="t-numeral min-w-0 shrink-0 whitespace-nowrap text-title text-accent-text tabular-nums">
 						{formatInr(artwork.priceInr as number)}

@@ -30,7 +30,7 @@ describe("WallLabel", () => {
 		expect(html).toContain("Madhubani · 2024");
 	});
 
-	it("prices in the numeral voice and section pigment: text-base compact, text-h2 full", () => {
+	it("prices in the numeral voice and section pigment: text-base compact, text-title full", () => {
 		const compact = renderToStaticMarkup(<WallLabel title="T" meta={[]} price="INR 12,500" />);
 		expect(compact).toContain("t-numeral");
 		expect(compact).toContain("text-base");
@@ -39,7 +39,10 @@ describe("WallLabel", () => {
 		const full = renderToStaticMarkup(
 			<WallLabel variant="full" title="T" meta={[]} price="INR 12,500" />,
 		);
-		expect(full).toContain("text-h2");
+		// The title line is t-display text-title; assert the price line's pairing
+		// so the calmer rung (was text-h2, steering 2026-09-14) is what's locked.
+		expect(full).toContain("t-numeral text-title");
+		expect(full).not.toContain("text-h2");
 	});
 
 	it("status replaces the price slot in the meta voice", () => {

@@ -37,6 +37,13 @@ interface DetailPlateProps {
  * sticky beside the info column from md on tall-enough viewports, resting
  * gold inset line, and lightbox v2 as the tap target: the whole plate opens
  * it, with a 44px Expand affordance at the bottom-right.
+ *
+ * The plate hangs on the museum wall (steering 2026-09-14): a .plate-float
+ * wrapper (animations.css) breathes the frame, the full-plate trigger and
+ * the Expand control as one unit, over the e3-edged rest PlateFrame already
+ * carries. Paused below md via --float-state, where the plate is full-bleed
+ * and a drifting flush edge reads as jitter, not suspension; reduced motion
+ * removes the loop entirely at the animations.css level.
  */
 export function DetailPlate({
 	artwork,
@@ -74,40 +81,44 @@ export function DetailPlate({
 					style={{ "--plate-ratio": artwork.aspectRatio } as CSSProperties}
 					className="relative mx-auto aspect-(--plate-ratio) w-[min(100%,calc(72dvh*var(--plate-ratio)))] md:w-[min(100%,calc((100dvh-var(--header-h-shrunk)-4rem)*var(--plate-ratio)))]"
 				>
-					<PlateFrame
-						radius="lg"
-						goldRest
-						className={cn(
-							"absolute inset-0 rounded-none md:rounded-(--radius-lg)",
-							unveil && "reveal-plate reveal-plate-unveil",
-						)}
-					>
-						<ArtImage
-							src={`/artworks/${artwork.image}`}
-							alt={alt}
-							sizes={sizes}
-							maxWidth={maxWidth}
-							priority
-							className="absolute inset-0 h-full w-full object-contain"
+					<div className="plate-float absolute inset-0 [--float-travel:7px] max-md:[--float-state:paused]">
+						<PlateFrame
+							radius="lg"
+							goldRest
+							className={cn(
+								"absolute inset-0 rounded-none md:rounded-(--radius-lg)",
+								unveil && "reveal-plate reveal-plate-unveil",
+							)}
+						>
+							<ArtImage
+								src={`/artworks/${artwork.image}`}
+								alt={alt}
+								sizes={sizes}
+								maxWidth={maxWidth}
+								priority
+								className="absolute inset-0 h-full w-full object-contain"
+							/>
+							<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
+						</PlateFrame>
+						{/* The whole plate is the trigger; the 44px Expand button is the
+						    accessible control (same pattern as the viewer's backdrop). Both
+						    live inside the float wrapper so the affordance never detaches
+						    from the breathing frame. */}
+						<button
+							type="button"
+							tabIndex={-1}
+							aria-hidden="true"
+							onClick={(e) => open(e)}
+							className="absolute inset-0 cursor-zoom-in"
 						/>
-						<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
-					</PlateFrame>
-					{/* The whole plate is the trigger; the 44px Expand button is the
-					    accessible control (same pattern as the viewer's backdrop). */}
-					<button
-						type="button"
-						tabIndex={-1}
-						aria-hidden="true"
-						onClick={(e) => open(e)}
-						className="absolute inset-0 cursor-zoom-in"
-					/>
-					<LightboxIconButton
-						onClick={() => open()}
-						aria-label="View full screen"
-						className="absolute bottom-3 right-3"
-					>
-						<Maximize2 size={18} aria-hidden="true" />
-					</LightboxIconButton>
+						<LightboxIconButton
+							onClick={() => open()}
+							aria-label="View full screen"
+							className="absolute bottom-3 right-3"
+						>
+							<Maximize2 size={18} aria-hidden="true" />
+						</LightboxIconButton>
+					</div>
 				</div>
 			</div>
 		</div>

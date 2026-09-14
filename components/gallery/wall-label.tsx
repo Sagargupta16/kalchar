@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
  * (optionally prefixed by a BinduMark and/or a caller slot like the hero's
  * kept "Featured" glyph line). Line 2: the work's title in the italic display
  * voice (the one titled-work register). Line 3: meta facts joined with a
- * middle dot. Line 4: the price in the numeral voice and the section pigment,
- * or the status line ("Sold", "Not listed for sale") when `status` is given.
+ * middle dot. Line 4: the price in the numeral voice and the section pigment
+ * (text-title on the full variant, steering 2026-09-14: one rung under the
+ * old text-h2 so the caption stops shouting past the title), or the status
+ * line ("Sold", "Not listed for sale") when `status` is given.
  * `tone="scrim"` swaps ink/muted for text-bg / text-bg-70 (lightbox caption);
  * `stagger` rises the lines on the eager Reveal rhythm; `headingLevel` lets
  * the detail page render line 2 as the document h1 (everywhere else it is a
@@ -130,7 +132,7 @@ export function WallLabel({
 			tag: "p",
 			className: cn(
 				"t-numeral",
-				full ? "text-h2" : "text-base",
+				full ? "text-title" : "text-base",
 				scrim ? "text-bg dark:text-ink" : "text-(--section-accent)",
 			),
 			content: price,

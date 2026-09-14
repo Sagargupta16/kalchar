@@ -22,7 +22,10 @@ const END_REACHED_ROOT_MARGIN = "100000px 0px 0px 0px";
 /** Phone-only sticky enquiry bar (md:hidden). Visible while the in-column CTA panel is
  *  outside the viewport and the page end has not been reached; carries the SAME
  *  wa.me link as the panel, never a scroll-to. Publishes its height as --fixed-bar-h
- *  on <html> so the back-to-top control can move above it (chrome handover). */
+ *  on <html> so the back-to-top control can move above it (chrome handover).
+ *  material-glass-strong (steering 2026-09-14): the bar floats over the full-bleed
+ *  plate, so it takes the strong fill + static blur with the opaque fallback;
+ *  only opacity and translate ever animate, never the blur radius. */
 export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarProps>) {
 	const [panelVisible, setPanelVisible] = useState(true);
 	const [endReached, setEndReached] = useState(false);
@@ -83,7 +86,7 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 				inert={!visible || undefined}
 				aria-hidden={!visible}
 				className={cn(
-					"fixed inset-x-0 bottom-0 z-nav border-t border-(--color-gold-hairline) bg-surface-raised/95 pb-safe-bottom backdrop-blur md:hidden",
+					"material-glass-strong fixed inset-x-0 bottom-0 z-nav border-t border-(--color-gold-hairline) pb-safe-bottom md:hidden",
 					"transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
 					visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
 					reduceMotion && "transition-none",

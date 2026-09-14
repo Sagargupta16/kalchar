@@ -33,6 +33,11 @@ interface ArtworkCardProps {
 	unveilDelayMs?: number;
 	/** Slower 700ms unveil for the spanning lead tile. */
 	unveilSlow?: boolean;
+	/** Idle plate float for the grid's lead tile only (steering 2026-09-14):
+	 *  one breathing plate reads alive, a whole floating grid reads busy. The
+	 *  loop rides a nested wrapper so it never fights TiltPlate's tilt or the
+	 *  PlateFrame hover lift; reduced motion removes it in animations.css. */
+	float?: boolean;
 }
 
 export function ArtworkCard({
@@ -45,6 +50,7 @@ export function ArtworkCard({
 	total,
 	unveilDelayMs,
 	unveilSlow = false,
+	float = false,
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 
@@ -78,6 +84,36 @@ export function ArtworkCard({
 
 	const unveiling = typeof unveilDelayMs === "number";
 
+	/* Image plate: uniform 3:4 crop in the grid (D9). PlateFrame owns the
+	   e1-edged rest, the elevate-e3 crossfade, the 4px lift and the gold inset
+	   hover cue; a single gold-sheen pass crosses on hover (G9); the image
+	   itself never scales (G1). */
+	const plate = (
+		<PlateFrame className="aspect-3/4">
+			<div
+				className={cn(
+					"absolute inset-0",
+					unveiling && "reveal-plate",
+					unveiling && unveilSlow && "reveal-plate-unveil",
+				)}
+				style={unveiling ? ({ animationDelay: `${unveilDelayMs}ms` } as CSSProperties) : undefined}
+			>
+				<ArtImage
+					src={imgSrc}
+					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
+					sizes={sizes}
+					className="absolute inset-0 h-full w-full object-cover"
+					priority={priority}
+				/>
+			</div>
+			<span
+				aria-hidden="true"
+				className="gold-sheen pointer-events-none absolute inset-0 hidden rounded-[inherit] [@media(hover:hover)_and_(pointer:fine)]:block"
+			/>
+			<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+		</PlateFrame>
+	);
+
 	return (
 		<Link
 			href={`/work/${artwork.slug}`}
@@ -86,35 +122,7 @@ export function ArtworkCard({
 			aria-label={ariaLabel}
 		>
 			<TiltPlate>
-				{/* Image plate: uniform 3:4 crop in the grid (D9). PlateFrame owns the
-				    hairline, the elevate-e2 crossfade, the 2px lift and the gold inset
-				    hover cue; a single gold-sheen pass crosses on hover (G9); the image
-				    itself never scales (G1). */}
-				<PlateFrame className="aspect-3/4">
-					<div
-						className={cn(
-							"absolute inset-0",
-							unveiling && "reveal-plate",
-							unveiling && unveilSlow && "reveal-plate-unveil",
-						)}
-						style={
-							unveiling ? ({ animationDelay: `${unveilDelayMs}ms` } as CSSProperties) : undefined
-						}
-					>
-						<ArtImage
-							src={imgSrc}
-							alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-							sizes={sizes}
-							className="absolute inset-0 h-full w-full object-cover"
-							priority={priority}
-						/>
-					</div>
-					<span
-						aria-hidden="true"
-						className="gold-sheen pointer-events-none absolute inset-0 hidden rounded-[inherit] [@media(hover:hover)_and_(pointer:fine)]:block"
-					/>
-					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
-				</PlateFrame>
+				{float ? <div className="plate-float [--float-travel:5px]">{plate}</div> : plate}
 			</TiltPlate>
 
 			{/* Caption rises one stagger step after its plate on the eager path
