@@ -20,6 +20,8 @@ export const DUR = {
 	base: 0.3,
 	enter: 0.4,
 	slow: 0.5,
+	/** Ambient drift loops (hero pigment wash, motion addendum H3; ruling 45). Seconds. */
+	ambient: 30,
 } as const;
 
 /** Mirrors --ease-out. */
@@ -63,6 +65,8 @@ export function gridStaggerDelay(index: number, eager = 6, cols = 3): number {
 
 /** Reveal viewport margin shared by Reveal and any whileInView list. */
 export const REVEAL_VIEWPORT_MARGIN = "0px 0px -80px 0px";
+/** Mount gate for looping ambient layers (H3): loops unmount once scrolled past. */
+export const LOOP_MOUNT_MARGIN = "300px 0px";
 /** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. */
 export const REVEAL_DISTANCE = { block: 20, item: 12 } as const;
 

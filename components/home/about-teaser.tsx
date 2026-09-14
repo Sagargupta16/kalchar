@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { ArtistAvatar } from "@/components/about/artist-avatar";
+import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
-import { buttonVariants } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
-import { Section } from "@/components/ui/section";
+import { Section, SectionHeader } from "@/components/ui/section";
+import { staggerDelay } from "@/lib/motion";
 
 interface AboutTeaserProps {
 	eyebrow: string;
@@ -37,80 +35,59 @@ export function AboutTeaser({
 
 	if (showIntro) {
 		return (
-			<Section accent="marigold" background="soft" borderBottom>
-				<Container className="py-(--section-py)">
-					<div className="grid items-center gap-10 md:grid-cols-[auto_1fr] md:gap-12">
-						<Reveal className="mx-auto w-40 sm:w-48 md:w-56">
-							<ArtistAvatar
-								imageKey={profileImage}
-								monogram={monogram ?? "म"}
-								alt={`${publicName ?? "The artist"}, folk artist`}
-								sizes="(min-width: 768px) 14rem, 12rem"
-							/>
+			<Section id="about" accent="marigold" background="canvas" padded borderBottom>
+				<div className="grid items-center gap-10 md:grid-cols-[auto_1fr] md:gap-12">
+					<Reveal className="w-40 sm:w-48 md:w-56">
+						<ArtistAvatar
+							imageKey={profileImage}
+							monogram={monogram ?? "म"}
+							alt={`${publicName ?? "The artist"}, folk artist`}
+							sizes="(min-width: 768px) 14rem, 12rem"
+						/>
+					</Reveal>
+					<div>
+						<Reveal>
+							<SectionHeader eyebrow={eyebrow} title={title} lead={intro} />
 						</Reveal>
-						<div>
-							<Reveal>
-								<p className="t-eyebrow flex items-center gap-2">
-									<AccentRule />
-									{eyebrow}
-								</p>
-							</Reveal>
-							<Reveal
-								delayMs={80}
-								as="h2"
-								className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl"
-							>
-								{title}
-							</Reveal>
-							<Reveal delayMs={160}>
-								<p className="t-lead mt-4 max-w-lg">{intro}</p>
-							</Reveal>
-							<Reveal delayMs={220}>
-								<p className="mt-4 text-sm text-muted">Working from {location}</p>
-							</Reveal>
-							<Reveal delayMs={280}>
-								<div className="mt-7">
-									<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
-										Read more<span className="sr-only"> about Megha</span>
-									</Link>
-								</div>
-							</Reveal>
-						</div>
+						<Reveal delayMs={staggerDelay(1)}>
+							<p className="mt-4 text-sm text-muted">Working from {location}</p>
+						</Reveal>
+						<Reveal delayMs={staggerDelay(2)}>
+							<div className="mt-8">
+								<SectionCta href="/about">
+									Read more<span className="sr-only"> about Megha</span>
+								</SectionCta>
+							</div>
+						</Reveal>
 					</div>
-				</Container>
+				</div>
 			</Section>
 		);
 	}
 
 	return (
-		<Section accent="marigold" background="soft" borderBottom>
-			<Container size="narrow" className="py-(--section-py) text-center">
-				<Reveal>
-					<p className="t-eyebrow flex items-center justify-center gap-2">
-						<AccentRule />
-						{eyebrow}
-						<AccentRule />
-					</p>
-				</Reveal>
-				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
-					{title}
-				</Reveal>
-				{lead ? (
-					<Reveal delayMs={160}>
-						<p className="t-lead mt-5 mx-auto max-w-lg">{lead}</p>
-					</Reveal>
-				) : null}
-				<Reveal delayMs={200}>
-					<p className="mt-5 text-sm text-muted">Working from {location}</p>
-				</Reveal>
-				<Reveal delayMs={260}>
-					<div className="mt-7">
-						<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
-							Read more<span className="sr-only"> about Megha</span>
-						</Link>
-					</div>
-				</Reveal>
-			</Container>
+		<Section
+			id="about"
+			accent="marigold"
+			background="canvas"
+			padded
+			size="narrow"
+			borderBottom
+			containerClassName="text-center"
+		>
+			<Reveal>
+				<SectionHeader centered eyebrow={eyebrow} title={title} lead={lead} />
+			</Reveal>
+			<Reveal delayMs={staggerDelay(1)}>
+				<p className="mt-4 text-sm text-muted">Working from {location}</p>
+			</Reveal>
+			<Reveal delayMs={staggerDelay(2)}>
+				<div className="mt-8">
+					<SectionCta href="/about">
+						Read more<span className="sr-only"> about Megha</span>
+					</SectionCta>
+				</div>
+			</Reveal>
 		</Section>
 	);
 }

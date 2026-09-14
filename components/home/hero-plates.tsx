@@ -5,13 +5,12 @@ import { useEffect, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
+import { HERO_SHUFFLE_DELAY_MS } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 
 const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
-/** Hold the LCP default plate this long before shuffling to a random pair. */
-const SHUFFLE_DELAY_MS = 700;
 const MIN_SHUFFLE_TILT = 3;
 const MAX_SHUFFLE_TILT = 7;
 
@@ -113,8 +112,16 @@ export function HeroPlates({
 
 	useEffect(() => {
 		if (globalThis.window === undefined) return;
-		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		if (pool.length < 1) return;
+		// Release the pending will-change promise (H1): a skipped shuffle must not
+		// leave the plates promoted forever under reduced motion or an empty pool.
+		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+			setShuffleStatus("skipped");
+			return;
+		}
+		if (pool.length < 1) {
+			setShuffleStatus("skipped");
+			return;
+		}
 
 		let cancelled = false;
 		// Delay the shuffle so the LCP front plate paints first.
@@ -131,7 +138,7 @@ export function HeroPlates({
 			setBackTilt(next.backTilt);
 			setShuffled(true);
 			setShuffleStatus("applied");
-		}, SHUFFLE_DELAY_MS);
+		}, HERO_SHUFFLE_DELAY_MS);
 
 		return () => {
 			cancelled = true;
@@ -155,7 +162,7 @@ export function HeroPlates({
 				{back ? (
 					<div
 						aria-hidden="true"
-						className="hero-plate absolute inset-0 overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-e2 shadow-hairline motion-reduce:opacity-60"
+						className="hero-plate absolute inset-0 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-e2-edged"
 						style={{ transform: `translate(6%, 4%) rotate(${backTilt}deg)` }}
 					>
 						<ArtImage
@@ -177,10 +184,15 @@ export function HeroPlates({
 					<Link
 						href={`/work/${front.slug}`}
 						onClick={handleClick}
-						className="group absolute inset-0 block focus-visible:outline-none"
+						className="group pressable absolute inset-0 block rounded-(--radius-md)"
 						aria-label={`View ${front.title}`}
 					>
-						<div className="relative h-full overflow-hidden rounded-(--radius-lg) bg-bg-soft shadow-e3 transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-1 group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
+						{/* Gold-leaf sheen loop on the frame (H4, ruling 45): one soft-light
+						    pass every 6s (the class default), zeroed under reduced motion. */}
+						<div
+							data-sheen="loop"
+							className="gold-sheen relative h-full overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-e3-edged transition-shadow duration-(--duration-base) ease-(--ease-out) group-hover:ring-1 group-hover:ring-accent"
+						>
 							<ArtImage
 								key={front.slug}
 								src={`/artworks/${front.image}`}
@@ -188,7 +200,7 @@ export function HeroPlates({
 								sizes={FEATURED_SIZES}
 								maxWidth={800}
 								priority={!shuffled}
-								className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.02]"
+								className="absolute inset-0 h-full w-full object-cover"
 							/>
 						</div>
 					</Link>
@@ -197,17 +209,17 @@ export function HeroPlates({
 
 			{/* Caption */}
 			<div className="mt-6">
-				<p className="flex items-center gap-2 text-muted">
+				<p className="t-meta flex items-center gap-2">
 					<span aria-hidden="true" className="text-gold-leaf">
 						✦
 					</span>
-					<span className="t-meta">
+					<span>
 						Featured, {index >= 0 ? index + 1 : 1} of {totalCount}
 					</span>
 				</p>
 				<p className="mt-2 flex items-baseline justify-between gap-3">
-					<span className="t-display text-lg sm:text-xl">{front.title}</span>
-					<span className="t-meta whitespace-nowrap">{front.style}</span>
+					<span className="t-display min-w-0 line-clamp-2 text-h3">{front.title}</span>
+					<span className="t-meta shrink-0 whitespace-nowrap">{front.style}</span>
 				</p>
 			</div>
 		</div>

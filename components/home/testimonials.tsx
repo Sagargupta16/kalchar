@@ -1,5 +1,17 @@
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
+import { cardVariants } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
+import { staggerDelay } from "@/lib/motion";
 import type { Testimonial } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+interface TestimonialsProps {
+	testimonials: readonly Testimonial[];
+	heading?: string;
+	/** Home page passes true so the block joins the ruled rhythm; the detail page keeps no rule. */
+	borderBottom?: boolean;
+}
 
 /**
  * Quiet testimonial row. Renders nothing when empty, so an empty table never
@@ -10,20 +22,25 @@ import type { Testimonial } from "@/lib/types";
 export function Testimonials({
 	testimonials,
 	heading = "In their words",
-}: Readonly<{ testimonials: readonly Testimonial[]; heading?: string }>) {
+	borderBottom = false,
+}: Readonly<TestimonialsProps>) {
 	if (testimonials.length === 0) return null;
 
 	return (
-		<section className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<Section accent="marigold" padded borderBottom={borderBottom}>
 			<Reveal>
-				<p className="t-eyebrow text-center">{heading}</p>
+				<h2 className="t-eyebrow flex items-center justify-center gap-2">
+					<AccentRule />
+					{heading}
+					<AccentRule />
+				</h2>
 			</Reveal>
-			<ul className="mt-(--space-block) grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+			<ul className="mt-(--space-block) grid gap-(--grid-gap) sm:grid-cols-2 lg:grid-cols-3">
 				{testimonials.map((t, i) => (
-					<Reveal key={t.id} as="li" delayMs={i * 60}>
-						<figure className="flex h-full flex-col rounded-(--radius-md) border border-line bg-bg-soft/40 p-6">
+					<Reveal key={t.id} as="li" delayMs={staggerDelay(i)}>
+						<figure className={cn(cardVariants(), "flex h-full flex-col")}>
 							<blockquote className="t-lead grow text-pretty">&ldquo;{t.quote}&rdquo;</blockquote>
-							<figcaption className="t-meta mt-4 normal-case tracking-normal text-muted">
+							<figcaption className="mt-4 text-sm text-muted">
 								{t.authorName}
 								{t.authorLocation ? `, ${t.authorLocation}` : ""}
 							</figcaption>
@@ -31,6 +48,6 @@ export function Testimonials({
 					</Reveal>
 				))}
 			</ul>
-		</section>
+		</Section>
 	);
 }

@@ -1,13 +1,15 @@
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { AboutTeaser } from "@/components/home/about-teaser";
 import { ContactTeaser } from "@/components/home/contact-teaser";
 import { CustomOrdersTeaser } from "@/components/home/custom-orders-teaser";
 import { EventsTeaser } from "@/components/home/events-teaser";
 import { Hero } from "@/components/home/hero";
-import { SectionShell } from "@/components/home/section-shell";
+import { SectionCta } from "@/components/home/section-cta";
 import { Testimonials } from "@/components/home/testimonials";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
 import { Reveal } from "@/components/motion/reveal";
+import { Section, SectionHeader } from "@/components/ui/section";
 import {
 	getAllArtworks,
 	getAllWorkshops,
@@ -19,8 +21,14 @@ import {
 	getSetting,
 	getSite,
 } from "@/lib/data";
+import { shapeHomeCatalog } from "@/lib/home-catalog";
+import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
-import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
+import type { SectionCopy } from "@/lib/types";
+import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
+
+const WORKSHOPS_PREVIEW_COUNT = 3;
+const WHATSAPP_GREETING = "Hi, I found you on kalchar.co.in.";
 
 // Home-specific metadata: the highest-traffic entry page (most visits arrive
 // from WhatsApp/Instagram link-taps), so give it a unique, keyword-rich title
@@ -58,23 +66,20 @@ export default async function HomePage() {
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 	const aboutCopy = site.sections.about as { intro?: string } | undefined;
 
-	const SELECTED_WORK_COUNT = 6;
-	const WORKSHOPS_PREVIEW_COUNT = 3;
-	const selected = all
-		.filter((art) => art.featured && art.slug !== featured?.slug)
-		.slice(0, SELECTED_WORK_COUNT);
+	const {
+		selected,
+		availablePreview,
+		heroPool,
+		heroSecondary,
+		catalogIndex,
+		selectedCtaLabel,
+		availableCtaLabel,
+	} = shapeHomeCatalog({ all, available, featured });
 	const workshopsPreview = allWorkshops.slice(0, WORKSHOPS_PREVIEW_COUNT);
-
-	// Keep at least two pieces in the hero pool so the layered composition never
-	// collapses when only one catalog row is marked featured.
-	const heroSource = all.filter((a) => a.featured);
-	const heroPool = heroSource.length >= 2 ? heroSource : all;
-	const heroSecondary = heroPool.find((art) => art.slug !== featured?.slug);
-	// slug -> catalog position, for the hero "N of M" caption.
-	const catalogIndex: Record<string, number> = {};
-	all.forEach((a, i) => {
-		catalogIndex[a.slug] = i;
-	});
+	const workCopy = site.sections.work as (SectionCopy & { homeLead?: string }) | undefined;
+	const availableCopy = site.sections.available;
+	const eventsCopy = site.sections.events;
+	const greetingWa = buildWhatsAppLink({ phoneE164NoPlus: phone, message: WHATSAPP_GREETING });
 
 	return (
 		<main>
@@ -86,42 +91,55 @@ export default async function HomePage() {
 				catalogIndex={catalogIndex}
 				totalCount={all.length}
 				styles={categoryNames}
+				whatsappHref={greetingWa}
 			/>
 
 			{selected.length > 0 ? (
-				<SectionShell
-					eyebrow="Selected work"
-					title={site.sections.work?.title ?? "Selected pieces from the archive"}
-					lead={site.sections.work?.lead}
-					href="/work"
-					hrefLabel="See all work"
-				>
-					<ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
+				<Section id="work" padded borderBottom>
+					<Reveal>
+						<SectionHeader
+							eyebrow={workCopy?.eyebrow ?? "Selected work"}
+							title={workCopy?.title ?? "Selected pieces from the archive"}
+							lead={workCopy?.homeLead ?? workCopy?.lead}
+						/>
+					</Reveal>
+					<GalleryGrid className="mt-(--space-block)">
 						{selected.map((art, i) => (
-							<Reveal key={art.slug} as="li" delayMs={i * 60}>
+							<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
 								<ArtworkCard artwork={art} siblings={selected} priority={i < 3} />
 							</Reveal>
 						))}
-					</ul>
-				</SectionShell>
+					</GalleryGrid>
+					<Reveal>
+						<div className="mt-(--space-block)">
+							<SectionCta href="/work">{selectedCtaLabel}</SectionCta>
+						</div>
+					</Reveal>
+				</Section>
 			) : null}
 
-			{available.length > 0 ? (
-				<SectionShell
-					eyebrow="Available now"
-					title="Pieces ready to find a home"
-					lead="Each one ships from India. Tap to enquire."
-					href="/work"
-					hrefLabel="Browse the archive"
-				>
-					<ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-3">
-						{available.map((art, i) => (
-							<Reveal key={art.slug} as="li" delayMs={i * 60}>
-								<ArtworkCard artwork={art} siblings={available} priority={i < 3} />
+			{availablePreview.length > 0 ? (
+				<Section id="available" padded borderBottom>
+					<Reveal>
+						<SectionHeader
+							eyebrow={availableCopy?.eyebrow ?? "Available now"}
+							title={availableCopy?.title ?? "Pieces ready to find a home"}
+							lead={availableCopy?.lead}
+						/>
+					</Reveal>
+					<GalleryGrid className="mt-(--space-block)">
+						{availablePreview.map((art, i) => (
+							<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
+								<ArtworkCard artwork={art} siblings={available} />
 							</Reveal>
 						))}
-					</ul>
-				</SectionShell>
+					</GalleryGrid>
+					<Reveal>
+						<div className="mt-(--space-block)">
+							<SectionCta href="/work?view=available">{availableCtaLabel}</SectionCta>
+						</div>
+					</Reveal>
+				</Section>
 			) : null}
 
 			<AboutTeaser
@@ -135,7 +153,7 @@ export default async function HomePage() {
 				publicName={site.brand.publicName}
 			/>
 
-			<Testimonials testimonials={testimonials} />
+			<Testimonials testimonials={testimonials} borderBottom />
 
 			{workshopsPreview.length > 0 ? (
 				<WorkshopsTeaser
@@ -149,9 +167,9 @@ export default async function HomePage() {
 			{recentEvents.length > 0 ? (
 				<EventsTeaser
 					events={recentEvents}
-					eyebrow="Recent events"
-					title="From the workshop floor"
-					lead="Workshops held, exhibitions, and gatherings with the community."
+					eyebrow={eventsCopy?.eyebrow ?? "Recent events"}
+					title={eventsCopy?.title ?? "From the workshop floor"}
+					lead={eventsCopy?.lead}
 				/>
 			) : null}
 
@@ -167,6 +185,7 @@ export default async function HomePage() {
 				eyebrow={site.sections.contact?.eyebrow ?? "Contact"}
 				title={site.sections.contact?.title ?? "Get in touch"}
 				lead={site.sections.contact?.lead}
+				whatsappHref={greetingWa}
 			/>
 		</main>
 	);

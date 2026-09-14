@@ -60,7 +60,8 @@
 			"label": "WhatsApp",
 			"display": "+91 87963 16773",
 			"url": "https://wa.me/918796316773",
-			"catalog": "https://wa.me/c/918796316773"
+			"catalog": "https://wa.me/c/918796316773",
+			"note": "Fastest reply, usually same-day"
 		},
 		"email": {
 			"label": "Email",
@@ -77,7 +78,13 @@
 		"work": {
 			"eyebrow": "Selected work",
 			"title": "Original pieces, in progress and finished",
-			"lead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Filter by style. Open a piece for a closer look."
+			"lead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Filter by style. Open a piece for a closer look.",
+			"homeLead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Open a piece for a closer look."
+		},
+		"available": {
+			"eyebrow": "Available now",
+			"title": "Pieces ready to find a home",
+			"lead": "Each one ships from India. Tap a piece to see it up close and enquire on WhatsApp."
 		},
 		"about": {
 			"eyebrow": "About",
@@ -95,6 +102,11 @@
 			"eyebrow": "Workshops",
 			"title": "Hands-on sessions for every age group",
 			"lead": "Workshops are designed to be enjoyable, therapeutic and culturally meaningful. Held for individuals, schools, communities and corporate groups."
+		},
+		"events": {
+			"eyebrow": "Recent events",
+			"title": "From the workshop floor",
+			"lead": "Workshops held, exhibitions, and gatherings with the community."
 		},
 		"contact": {
 			"eyebrow": "Contact",
@@ -127,8 +139,8 @@
 				"Within 2 weeks",
 				"Specific date (mention in notes)"
 			],
-			"submitLabel": "Send order on WhatsApp",
-			"fallbackEmailLabel": "Or email the order instead"
+			"submitLabel": "Send on WhatsApp",
+			"fallbackEmailLabel": "Or email instead"
 		}
 	},
 	"workshops": [

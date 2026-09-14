@@ -1,13 +1,11 @@
-import { ArrowRight, Brush, Clock, MessageCircle } from "lucide-react";
-import Link from "next/link";
+import { Brush, Clock, MessageCircle } from "lucide-react";
+import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Container } from "@/components/ui/container";
 import { IconCircle } from "@/components/ui/icon-circle";
-import { Section } from "@/components/ui/section";
-import { cn } from "@/lib/utils";
+import { Section, SectionHeader } from "@/components/ui/section";
+import { staggerDelay } from "@/lib/motion";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 interface CustomOrdersTeaserProps {
@@ -29,86 +27,68 @@ export function CustomOrdersTeaser({
 	});
 
 	return (
-		<Section accent="vermillion" background="soft" borderBottom>
-			<Container className="py-(--section-py)">
-				<header className="max-w-2xl">
-					<Reveal>
-						<p className="t-eyebrow flex items-center gap-2">
-							<AccentRule />
-							{eyebrow}
-						</p>
-					</Reveal>
-					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
-						{title}
-					</Reveal>
-					{lead ? (
-						<Reveal delayMs={140}>
-							<p className="t-lead mt-4">{lead}</p>
-						</Reveal>
-					) : null}
-				</header>
+		<Section id="custom-orders" accent="vermillion" background="canvas" padded borderBottom>
+			<Reveal>
+				<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
+			</Reveal>
 
-				<ol className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-3">
-					<Reveal as="li" delayMs={60}>
-						<StepCard
-							icon={<Brush size={18} />}
-							title="Send a brief"
-							body="Style, size, occasion. References welcome on WhatsApp."
-						/>
-					</Reveal>
-					<Reveal as="li" delayMs={120}>
-						<StepCard
-							icon={<MessageCircle size={18} />}
-							title="We talk it through"
-							body="Quote and timeline come back over WhatsApp."
-						/>
-					</Reveal>
-					<Reveal as="li" delayMs={180}>
-						<StepCard
-							icon={<Clock size={18} />}
-							title="Painted, approved, shipped"
-							body="Progress shots along the way. Ships from India."
-						/>
-					</Reveal>
-				</ol>
-
-				<Reveal delayMs={240}>
-					<div className="mt-10 flex flex-wrap items-center gap-3 sm:mt-14">
-						<a
-							href={quickWa}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={buttonVariants({ variant: "primary" })}
-						>
-							Start on WhatsApp
-						</a>
-						<Link
-							href="/custom-orders"
-							className={cn(buttonVariants({ variant: "secondary" }), "group")}
-						>
-							Open the brief form
-							<ArrowRight
-								size={14}
-								aria-hidden="true"
-								className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
-							/>
-						</Link>
-					</div>
+			<ol className="mt-(--space-block) grid gap-(--grid-gap) sm:grid-cols-3">
+				<Reveal as="li" delayMs={staggerDelay(0)}>
+					<StepCard
+						step={1}
+						icon={<Brush size={16} />}
+						title="Send a brief"
+						body="Style, size, occasion. References welcome on WhatsApp."
+					/>
 				</Reveal>
-			</Container>
+				<Reveal as="li" delayMs={staggerDelay(1)}>
+					<StepCard
+						step={2}
+						icon={<MessageCircle size={16} />}
+						title="We talk it through"
+						body="Quote and timeline come back over WhatsApp."
+					/>
+				</Reveal>
+				<Reveal as="li" delayMs={staggerDelay(2)}>
+					<StepCard
+						step={3}
+						icon={<Clock size={16} />}
+						title="Painted, approved, shipped"
+						body="Progress shots along the way. Ships from India."
+					/>
+				</Reveal>
+			</ol>
+
+			<Reveal delayMs={staggerDelay(3)}>
+				<div className="mt-(--space-block) flex flex-wrap items-center gap-3">
+					<a
+						href={quickWa}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={buttonVariants({ variant: "primary" })}
+					>
+						Start on WhatsApp
+					</a>
+					<SectionCta href="/custom-orders">Open the brief form</SectionCta>
+				</div>
+			</Reveal>
 		</Section>
 	);
 }
 
 function StepCard({
+	step,
 	icon,
 	title,
 	body,
-}: Readonly<{ icon: React.ReactNode; title: string; body: string }>) {
+}: Readonly<{ step: number; icon: React.ReactNode; title: string; body: string }>) {
 	return (
 		<Card className="flex h-full flex-col">
-			<IconCircle>{icon}</IconCircle>
-			<h3 className="t-display mt-4 text-lg sm:text-xl">{title}</h3>
+			<div className="flex items-center gap-3">
+				<IconCircle>{icon}</IconCircle>
+				<span className="t-meta text-(--section-accent)">0{step}</span>
+			</div>
+			<h3 className="t-display mt-4 text-h3">{title}</h3>
 			<p className="mt-2 text-sm text-muted">{body}</p>
 		</Card>
 	);
