@@ -59,6 +59,7 @@ export function CustomOrderForm({
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
 	const submissionVersion = useRef(0);
 	const whatsappRef = useRef<HTMLAnchorElement>(null);
+	const briefRef = useRef<HTMLTextAreaElement>(null);
 
 	// The submit button unmounts once the draft exists; move focus to the link
 	// that took its place so keyboard and screen-reader users are not stranded.
@@ -89,7 +90,12 @@ export function CustomOrderForm({
 		setError(null);
 		const formData = new FormData(e.currentTarget);
 		const next = readDraft(formData);
-		if (!next) return;
+		if (!next) {
+			// Single-error recipe (forms-copy c1/P2): focus moves to the failing field,
+			// whose aria-describedby reads the message out.
+			briefRef.current?.focus();
+			return;
+		}
 		const version = ++submissionVersion.current;
 		setDraft(next);
 		setSaveStatus("saving");
@@ -123,11 +129,12 @@ export function CustomOrderForm({
 			<form
 				onSubmit={onSubmit}
 				onChange={() => {
-					// An old response must not mark an edited brief as saved.
+					// An old response must not mark an edited brief as saved. The brief
+					// error is NOT cleared here: only the failing field's own input
+					// revalidates it (forms-copy c1/P7).
 					submissionVersion.current += 1;
 					setDraft(null);
 					setSaveStatus("idle");
-					setError(null);
 				}}
 				// relative anchors the off-screen honeypot to the form; @container lets
 				// the field pairs split on the form's own width, not the viewport.
@@ -144,9 +151,27 @@ export function CustomOrderForm({
 					<label htmlFor="website">Leave this field empty</label>
 					<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
 				</div>
-				{/* Brief -- the one required field, given hero weight up top. */}
-				<Field id="brief" label="What would you like painted?" required>
+				{/* Brief -- the one required field, given hero weight up top. Its error
+			    renders between label and control with the hidden "Error:" prefix
+			    (forms-copy c1/P2, GOV.UK error-message anatomy). */}
+				<Field
+					id="brief"
+					label="What would you like painted?"
+					required
+					error={
+						error ? (
+							<p id="brief-error" role="alert" className="flex items-start gap-2 text-sm text-ruby">
+								<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+								<span>
+									<span className="sr-only">Error: </span>
+									{error}
+								</span>
+							</p>
+						) : null
+					}
+				>
 					<textarea
+						ref={briefRef}
 						id="brief"
 						name="brief"
 						rows={5}
@@ -155,6 +180,11 @@ export function CustomOrderForm({
 						autoCapitalize="sentences"
 						aria-invalid={error ? true : undefined}
 						aria-describedby={error ? "brief-error" : undefined}
+						onChange={(event) => {
+							// P7 re-check rule: after a failed submit the brief revalidates on
+							// every input and the message clears the instant it passes.
+							if (error && event.currentTarget.value.trim()) setError(null);
+						}}
 						placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
 						className={cn(inputClass, "resize-y")}
 					/>
@@ -224,7 +254,7 @@ export function CustomOrderForm({
 					</p>
 				</div>
 
-				<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
+				<EnquiryStatus saveStatus={saveStatus} draft={draft} />
 
 				{/* One primary in one slot: the submit hands over to the WhatsApp link
 			    the moment the draft exists (the save runs alongside, never gating it). */}
@@ -305,11 +335,9 @@ function PresetRow({
 }
 
 function EnquiryStatus({
-	error,
 	saveStatus,
 	draft,
 }: Readonly<{
-	error: string | null;
 	saveStatus: SaveStatus;
 	draft: CustomOrderDraft | null;
 }>) {
@@ -326,12 +354,6 @@ function EnquiryStatus({
 		: "";
 	return (
 		<div aria-live="polite" aria-atomic="true">
-			{error ? (
-				<p id="brief-error" className="flex items-start gap-2 text-sm text-ruby" role="alert">
-					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-					<span>{error}</span>
-				</p>
-			) : null}
 			{saveStatus === "saving" ? (
 				<p className="text-sm text-muted">Saving your brief. You can send it on WhatsApp now.</p>
 			) : null}
@@ -410,6 +432,7 @@ function Field({
 	label,
 	optional,
 	required,
+	error,
 	description,
 	children,
 }: Readonly<{
@@ -417,6 +440,8 @@ function Field({
 	label: string;
 	optional?: boolean;
 	required?: boolean;
+	/** Inline error rendered between label and control (forms-copy c1/P2). */
+	error?: React.ReactNode;
 	/** Helper line under the control (outside the underline wrapper). */
 	description?: React.ReactNode;
 	children: React.ReactNode;
@@ -436,6 +461,7 @@ function Field({
 				<span>{label}</span>
 				{hint}
 			</label>
+			{error}
 			{/* A pigment underline draws under the focused control (additive to the
 			    global outline; compositor-only, nothing repaints). */}
 			<div className="relative after:pointer-events-none after:absolute after:inset-x-2.5 after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:bg-(--section-accent) after:transition-transform focus-within:after:scale-x-100">
