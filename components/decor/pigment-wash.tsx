@@ -4,7 +4,7 @@ import { motion, useInView } from "motion/react";
 import type { CSSProperties } from "react";
 import { useRef } from "react";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
-import { DUR, EASE_IN_OUT, LOOP_MOUNT_MARGIN } from "@/lib/motion";
+import { DUR, LOOP_MOUNT_MARGIN, perSegmentEase } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -23,15 +23,6 @@ import { cn } from "@/lib/utils";
  */
 
 const DRIFT_TIMES = [0, 0.5, 1];
-
-/**
- * One ease per keyframe segment so the [from, to, from] loop lands back on
- * frame 0. Local pending the lib/motion.ts export from the vu-foundations
- * token lane (shared files are not edited from this lane).
- */
-function perSegmentEase(times: readonly number[]): (typeof EASE_IN_OUT)[] {
-	return Array.from({ length: Math.max(times.length - 1, 1) }, () => EASE_IN_OUT);
-}
 
 /** Ellipse B drifts over 40s against A's 30s so the washes never sync (spec 1.6 item 4). */
 const DRIFT_B_SECONDS = 40;
@@ -82,7 +73,7 @@ export function PigmentWash({ drift = true, className }: Readonly<PigmentWashPro
 						style={WASH_A_STYLE}
 						animate={DRIFT_A}
 						transition={{
-							duration: DUR.ambient,
+							duration: DUR.drift,
 							times: DRIFT_TIMES,
 							ease: perSegmentEase(DRIFT_TIMES),
 							repeat: Number.POSITIVE_INFINITY,

@@ -24,7 +24,7 @@ export const DUR = {
 	unveil: 0.7,
 	/** Pigment-wash drift loop, seconds. Mirrors --duration-drift (the 30s form). */
 	drift: 30,
-	/** DEPRECATED alias of drift (hero-wash.tsx consumes it); integration renames the call site. */
+	/** DEPRECATED alias of drift; unconsumed since the visual pass. Integration deletes. */
 	ambient: 30,
 } as const;
 
