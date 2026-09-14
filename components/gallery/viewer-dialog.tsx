@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { motion } from "motion/react";
+import { type MotionValue, motion } from "motion/react";
 import {
 	type ButtonHTMLAttributes,
 	forwardRef,
@@ -11,7 +11,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { DUR } from "@/lib/motion";
+import { DUR, EASE_IN, EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /** Floating icon control over a photo panel: translucent raised surface, hairline
@@ -34,9 +34,23 @@ interface ViewerDialogProps {
 	onClose: () => void;
 	onNext?: () => void;
 	onPrevious?: () => void;
+	/** Home / End jump to the first / last piece (visual-direction 2.4). */
+	onFirst?: () => void;
+	onLast?: () => void;
+	/** + / - step the zoom level; ArrowUp / ArrowDown pan while zoomed. */
+	onZoomIn?: () => void;
+	onZoomOut?: () => void;
+	onArrowUp?: () => void;
+	onArrowDown?: () => void;
+	/** Live opacity for the deep scrim while a drag-to-dismiss is in flight. */
+	scrimOpacity?: MotionValue<number>;
 }
 
-/** Native modal focus/inert behavior, outside any transformed gallery card. */
+/** Native modal focus/inert behavior, outside any transformed gallery card.
+ *  The room is the deep warm ink (--color-scrim-deep, identical in both
+ *  modes); chrome on it follows the house scrim convention (text-bg
+ *  dark:text-ink). The scrim lives on an inner layer so a downward drag can
+ *  track its opacity without fading the plate. */
 export function ViewerDialog({
 	children,
 	label,
@@ -44,6 +58,13 @@ export function ViewerDialog({
 	onClose,
 	onNext,
 	onPrevious,
+	onFirst,
+	onLast,
+	onZoomIn,
+	onZoomOut,
+	onArrowUp,
+	onArrowDown,
+	scrimOpacity,
 }: Readonly<ViewerDialogProps>) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const closeRef = useRef<HTMLButtonElement>(null);
@@ -108,14 +129,38 @@ export function ViewerDialog({
 				} else if (event.key === "ArrowLeft" && onPrevious) {
 					event.preventDefault();
 					onPrevious();
+				} else if (event.key === "ArrowUp" && onArrowUp) {
+					event.preventDefault();
+					onArrowUp();
+				} else if (event.key === "ArrowDown" && onArrowDown) {
+					event.preventDefault();
+					onArrowDown();
+				} else if (event.key === "Home" && onFirst) {
+					event.preventDefault();
+					onFirst();
+				} else if (event.key === "End" && onLast) {
+					event.preventDefault();
+					onLast();
+				} else if ((event.key === "+" || event.key === "=") && onZoomIn) {
+					event.preventDefault();
+					onZoomIn();
+				} else if (event.key === "-" && onZoomOut) {
+					event.preventDefault();
+					onZoomOut();
 				}
 			}}
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
-			exit={{ opacity: 0 }}
-			transition={{ duration: DUR.fast }}
-			className="fixed inset-0 m-0 h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-bg/95 p-4 text-ink open:flex backdrop:bg-transparent md:p-8"
+			exit={{ opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }}
+			transition={{ duration: DUR.base, ease: EASE_OUT }}
+			className="fixed inset-0 m-0 h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-transparent p-4 text-bg open:flex backdrop:bg-transparent dark:text-ink md:p-8"
 		>
+			{/* The room: deep warm ink at 95 percent, tracked by drag-to-dismiss. */}
+			<motion.div
+				aria-hidden="true"
+				style={scrimOpacity ? { opacity: scrimOpacity } : undefined}
+				className="pointer-events-none absolute inset-0 bg-scrim-deep/95"
+			/>
 			<button
 				type="button"
 				tabIndex={-1}

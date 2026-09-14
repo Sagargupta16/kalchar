@@ -51,9 +51,10 @@ test("artwork viewer contains forward/reverse focus and restores its trigger", a
 	await page.goto("/work/");
 	const trigger = galleryCards(page).first();
 	await trigger.click();
-	// The buy bar puts the enquiry link on the first screen of the modal on both projects.
+	// The buy bar puts the enquiry link and price on the first screen of the modal.
 	const enquiry = page.getByRole("dialog").getByRole("link", { name: "Enquire on WhatsApp" });
 	await expect(enquiry).toBeInViewport();
+	await expect(page.getByRole("dialog").getByText(/INR [\d,]+/).first()).toBeInViewport();
 	await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).focus();
 	await page.screenshot({
 		path: test.info().outputPath("artwork-viewer.png"),
@@ -207,7 +208,8 @@ test("detail plate and lightbox figure show the whole painting", async ({ page }
 	const viewer = await plateRatios(figure);
 	expect(Math.abs(viewer.box - viewer.data)).toBeLessThan(0.02);
 	const viewport = page.viewportSize();
-	expect(viewer.height).toBeLessThanOrEqual((mobile ? 0.55 : 0.8) * (viewport?.height ?? 0));
+	// 60dvh cap on phones (up from 55svh: the dialog locks scroll), 80dvh from md.
+	expect(viewer.height).toBeLessThanOrEqual((mobile ? 0.6 : 0.8) * (viewport?.height ?? 0));
 });
 
 test("buy bar is on the first screen of the viewer", async ({ page }) => {
@@ -217,7 +219,9 @@ test("buy bar is on the first screen of the viewer", async ({ page }) => {
 	const enquiry = dialog.getByRole("link", { name: "Ask about a similar piece" });
 	await expect(enquiry).toBeInViewport();
 	expect((await enquiry.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(48);
-	await expect(dialog.getByText("INR 1,000")).toBeInViewport();
+	// Sold pieces show the status, never a price, in the caption and the bar (2.4).
+	await expect(dialog.getByText(/INR [\d,]+/)).toHaveCount(0);
+	await expect(dialog.getByText("Sold", { exact: true }).first()).toBeVisible();
 	await expect(dialog.getByRole("button", { name: /^Share / })).toHaveCount(1);
 });
 
@@ -264,57 +268,83 @@ test("@mobile deep-linked style pill is visible in the rail", async ({ page }) =
 	expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-async function swipeImagePanel(page: Page, dx: number, dy: number) {
-	await page
-		.getByRole("dialog")
-		.locator("figure")
-		.evaluate(
-			(figure, delta) => {
-				const panel = figure.parentElement as HTMLElement;
-				const touchAt = (x: number, y: number) =>
-					new Touch({ identifier: 1, target: panel, clientX: x, clientY: y });
-				const start = touchAt(200, 300);
-				const end = touchAt(200 + delta.dx, 300 + delta.dy);
-				panel.dispatchEvent(
-					new TouchEvent("touchstart", {
-						bubbles: true,
-						cancelable: true,
-						touches: [start],
-						changedTouches: [start],
-					}),
-				);
-				panel.dispatchEvent(
-					new TouchEvent("touchend", {
-						bubbles: true,
-						cancelable: true,
-						touches: [],
-						changedTouches: [end],
-					}),
-				);
-			},
-			{ dx, dy },
-		);
+/** Drive the Motion drag with trusted touch input (CDP), stepping so velocity
+ *  stays controllable: slow steps stay under DRAG_VELOCITY_PX_S, a short step
+ *  time flings. */
+async function touchDrag(
+	page: Page,
+	from: { x: number; y: number },
+	to: { x: number; y: number },
+	stepMs = 40,
+) {
+	const cdp = await page.context().newCDPSession(page);
+	const steps = 6;
+	await cdp.send("Input.dispatchTouchEvent", {
+		type: "touchStart",
+		touchPoints: [{ x: from.x, y: from.y }],
+	});
+	for (let i = 1; i <= steps; i++) {
+		await page.waitForTimeout(stepMs);
+		await cdp.send("Input.dispatchTouchEvent", {
+			type: "touchMove",
+			touchPoints: [
+				{
+					x: from.x + ((to.x - from.x) * i) / steps,
+					y: from.y + ((to.y - from.y) * i) / steps,
+				},
+			],
+		});
+	}
+	await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+	await cdp.detach();
 }
 
-test("@mobile swipe locks to the horizontal axis", async ({ page }) => {
+async function figureCentre(page: Page) {
+	const box = await page.getByRole("dialog").locator("figure").boundingBox();
+	expect(box).not.toBeNull();
+	return {
+		x: (box?.x ?? 0) + (box?.width ?? 0) / 2,
+		y: (box?.y ?? 0) + (box?.height ?? 0) / 2,
+		width: box?.width ?? 0,
+		height: box?.height ?? 0,
+	};
+}
+
+test("@mobile a short slow drag springs back; past the threshold it pages", async ({ page }) => {
 	await page.goto("/work/");
 	await galleryCards(page).first().click();
 	const title = page.getByRole("dialog").locator("#lightbox-title");
 	const initial = await title.innerText();
-	await swipeImagePanel(page, 40, 120);
+	const centre = await figureCentre(page);
+	// 40px at low velocity: under DRAG_CLOSE_FRACTION (0.25) of the figure width.
+	await touchDrag(page, centre, { x: centre.x - 40, y: centre.y }, 60);
 	await expect(title).toHaveText(initial);
-	await swipeImagePanel(page, 80, 10);
+	// Past 30 percent of the figure width: commits to the next piece.
+	await touchDrag(page, centre, { x: centre.x - Math.max(120, centre.width * 0.45), y: centre.y });
 	await expect(title).not.toHaveText(initial);
 });
 
-/** The pill's offset inside its positioned plate and whether it is a full pill. */
+test("@mobile a downward drag past the threshold dismisses the viewer", async ({ page }) => {
+	await page.goto("/work/");
+	await galleryCards(page).first().click();
+	const dialog = page.getByRole("dialog");
+	await expect(dialog).toBeVisible();
+	const centre = await figureCentre(page);
+	await touchDrag(page, centre, { x: centre.x, y: centre.y + Math.max(160, centre.height * 0.6) });
+	await expect(dialog).toHaveCount(0);
+});
+
+/** The pill's offsets inside its positioned plate and whether it is a full pill. */
 async function pillPlacement(pill: Locator) {
 	return pill.evaluate((element) => {
-		const box = element.getBoundingClientRect();
-		const radius = Number.parseFloat(getComputedStyle(element).borderTopLeftRadius);
+		const el = element as HTMLElement;
+		const box = el.getBoundingClientRect();
+		const radius = Number.parseFloat(getComputedStyle(el).borderTopLeftRadius);
+		const parent = el.offsetParent as HTMLElement | null;
 		return {
-			left: (element as HTMLElement).offsetLeft,
-			top: (element as HTMLElement).offsetTop,
+			left: el.offsetLeft,
+			top: el.offsetTop,
+			bottomGap: parent ? parent.offsetHeight - el.offsetTop - el.offsetHeight : -1,
 			fullPill: radius >= box.height / 2,
 		};
 	});
@@ -324,18 +354,35 @@ test("status pill is one shape in all three views", async ({ page }) => {
 	await page.goto("/work/");
 	const soldCard = page.locator('main a[aria-label$=", sold"]').first();
 	const path = await soldCard.getAttribute("href");
-	const card = await pillPlacement(soldCard.getByText("Sold", { exact: true }));
-	expect(card).toEqual({ left: 12, top: 12, fullPill: true });
+	// Grid cards pin the pill to the frame's bottom-left so the plate's top edge
+	// stays clean (visual-direction 2.2); viewer and detail keep top-left.
+	const card = await pillPlacement(soldCard.getByText("Sold", { exact: true }).first());
+	expect(card.left).toBe(8);
+	expect(card.bottomGap).toBe(8);
+	expect(card.fullPill).toBe(true);
 	await soldCard.click();
 	const dialog = page.getByRole("dialog");
-	const viewer = await pillPlacement(dialog.locator("figure").getByText("Sold", { exact: true }));
-	expect(viewer).toEqual({ left: 12, top: 12, fullPill: true });
+	const viewer = await pillPlacement(
+		dialog.locator("figure").getByText("Sold", { exact: true }).first(),
+	);
+	expect({ left: viewer.left, top: viewer.top, fullPill: viewer.fullPill }).toEqual({
+		left: 12,
+		top: 12,
+		fullPill: true,
+	});
 	await page.keyboard.press("Escape");
 	await page.goto(path as string);
 	const detail = await pillPlacement(
-		page.locator("main img[fetchpriority=high]").locator("xpath=ancestor::div[1]").getByText("Sold", { exact: true }),
+		page
+			.locator("main img[fetchpriority=high]")
+			.locator("xpath=ancestor::div[1]")
+			.getByText("Sold", { exact: true }),
 	);
-	expect(detail).toEqual({ left: 12, top: 12, fullPill: true });
+	expect({ left: detail.left, top: detail.top, fullPill: detail.fullPill }).toEqual({
+		left: 12,
+		top: 12,
+		fullPill: true,
+	});
 });
 
 function enquiryBar(page: Page) {
@@ -410,5 +457,70 @@ test("artwork detail page has no accessibility violations", async ({ page }) => 
 		.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
 		.analyze();
 	expect(accessibility.violations).toEqual([]);
+});
+
+test("tile wall labels carry the catalogue counter and pills carry counts", async ({ page }) => {
+	await page.goto("/work/");
+	// Every tile caption opens with the museum counter (visual-direction 2.2).
+	const counters = galleryCards(page).locator("p").filter({ hasText: /^No\. \d{2}( of \d+)?$/ });
+	expect(await counters.count()).toBeGreaterThan(0);
+	await expect(counters.first()).toHaveText(/^No\. \d{2} of \d+$/);
+	// Filter pills show their counts as parenthesised numerals.
+	await expect(page.getByRole("button", { name: /^All \(\d+\)$/ })).toBeVisible();
+	await expect(page.getByRole("button", { name: /^Madhubani \(\d+\)$/ })).toBeVisible();
+});
+
+test("@mobile the lead tile spans the full grid width", async ({ page }) => {
+	await page.goto("/work/");
+	const grid = page.locator("main ul").first();
+	const lead = grid.locator("li").first();
+	const gridBox = await grid.boundingBox();
+	const leadBox = await lead.boundingBox();
+	expect(Math.abs((gridBox?.width ?? 0) - (leadBox?.width ?? 0))).toBeLessThanOrEqual(2);
+});
+
+test("detail orders price before the full-width enquiry, one price on the page", async ({
+	page,
+}) => {
+	await page.goto("/work/");
+	const path = await galleryCards(page).first().getAttribute("href");
+	await page.goto(path as string);
+	// The wall-label price is the one price outside the sticky bar; the CTA
+	// panel no longer repeats it (visual-direction 2.3, the B graft).
+	await expect(page.locator("main #enquire").getByText(/INR [\d,]+/)).toHaveCount(0);
+	const prices = page.locator("main > :not(div.fixed)").getByText(/^INR [\d,]+$/);
+	await expect(prices).toHaveCount(1);
+	// Art > label > price > CTA: the panel precedes the description in the DOM.
+	const panelBeforeDescription = await page.evaluate(() => {
+		const panel = document.querySelector("#enquire");
+		const description = document.querySelector("main .t-body");
+		if (!panel || !description) return description === null;
+		return Boolean(panel.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING);
+	});
+	expect(panelBeforeDescription).toBe(true);
+	// The gold wall-label bar sits above the label (2px x 32px).
+	const bar = page.locator("main span.block.h-0\\.5.w-8").first();
+	await expect(bar).toBeVisible();
+	// The Expand affordance opens the viewer and is 44px.
+	const expand = page.getByRole("button", { name: "View full screen" });
+	const expandBox = await expand.boundingBox();
+	expect(expandBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+	expect(expandBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+	await expand.click();
+	await expect(page.getByRole("dialog")).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(expand).toBeFocused();
+});
+
+test("sold detail offers the style's available pieces", async ({ page }) => {
+	await page.goto("/work/");
+	const path = await page.locator('main a[aria-label$=", sold"]').first().getAttribute("href");
+	await page.goto(path as string);
+	// No price renders; the wall label carries the status instead.
+	await expect(page.locator("main").getByText(/^INR [\d,]+$/)).toHaveCount(0);
+	await expect(page.locator("main").getByText("Sold", { exact: true }).first()).toBeVisible();
+	const related = page.getByRole("link", { name: /^More .+, available$/ });
+	await expect(related).toBeVisible();
+	expect(await related.getAttribute("href")).toContain("view=available");
 });
 

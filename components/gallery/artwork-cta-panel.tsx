@@ -3,7 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
-import { cn, formatInr } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { ShareButton } from "./share-button";
 
 interface ArtworkCtaPanelProps {
@@ -17,14 +17,17 @@ interface ArtworkCtaPanelProps {
 }
 
 /**
- * Detail-page price + enquiry inset. `id="enquire"` is observed by the phone
+ * Detail-page enquiry inset (visual-direction 2.3, the B graft). The price
+ * renders once, in the wall label above; the panel carries the full-width
+ * primary, the WhatsApp display fallback and the share row. Sold pieces get
+ * the commission intent as a secondary action plus a one-line jump to the
+ * style's available pieces. `id="enquire"` is observed by the phone
  * EnquiryBar, which hides itself while this panel is on screen.
  */
 export function ArtworkCtaPanel({
 	art,
 	whatsappLink,
 	cta,
-	isAvailable,
 	isSold,
 	whatsappDisplay,
 }: Readonly<ArtworkCtaPanelProps>) {
@@ -32,33 +35,33 @@ export function ArtworkCtaPanel({
 		<section
 			id="enquire"
 			aria-labelledby="enquire-heading"
-			className="mt-(--space-block) rounded-(--radius-md) border border-line bg-canvas p-(--card-pad)"
+			className="mt-(--space-block) rounded-(--radius-md) border-t-2 border-(--color-gold-hairline) bg-canvas p-(--card-pad) shadow-e1-edged"
 		>
 			<h2 id="enquire-heading" className="sr-only">
 				Price and enquiry
 			</h2>
-			{typeof art.priceInr === "number" ? (
-				<div className="mb-4 flex items-baseline justify-between gap-3">
-					<span className="t-meta normal-case tracking-normal">Price</span>
-					<span className="t-display whitespace-nowrap text-title text-(--section-accent) tabular-nums">
-						{formatInr(art.priceInr)}
-					</span>
-				</div>
-			) : null}
-			{/* Honest scarcity: every piece is a single physical original, so
-			    say so plainly on an available piece. No timers, no fake stock. */}
-			{isAvailable && !isSold ? (
-				<p className="mb-4 text-xs text-muted">One of a kind, the only original. Not a print.</p>
-			) : null}
 			<a
 				href={whatsappLink}
 				target="_blank"
 				rel="noopener noreferrer"
-				className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}
+				className={cn(
+					buttonVariants({ variant: isSold ? "secondary" : "primary", size: "lg" }),
+					"w-full",
+				)}
 			>
 				<MessageCircle size={16} aria-hidden="true" />
 				{cta.label}
 			</a>
+			{isSold ? (
+				<p className="mt-3 text-sm">
+					<Link
+						href={`/work?style=${encodeURIComponent(art.style)}&view=available`}
+						className="text-accent-text underline-offset-4 transition-colors hover:underline"
+					>
+						More {art.style}, available
+					</Link>
+				</p>
+			) : null}
 			<p className="mt-3 text-xs text-muted">{cta.note}</p>
 			{whatsappDisplay ? (
 				<p className="mt-1 text-xs text-muted">

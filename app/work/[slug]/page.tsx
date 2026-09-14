@@ -2,15 +2,15 @@ import { ArrowLeft, Calendar, ImageIcon, Palette, Ruler } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { CSSProperties } from "react";
-import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkCtaPanel } from "@/components/gallery/artwork-cta-panel";
 import { ArtworkSiblingsNav } from "@/components/gallery/artwork-siblings-nav";
-import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
 import { Chromacard } from "@/components/gallery/chromacard";
+import { DetailPlate } from "@/components/gallery/detail-plate";
 import { EnquiryBar } from "@/components/gallery/enquiry-bar";
+import { WallLabel } from "@/components/gallery/wall-label";
 import { Testimonials } from "@/components/home/testimonials";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { Container } from "@/components/ui/container";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import {
@@ -139,15 +139,12 @@ function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; n
 }
 
 /**
- * Artwork detail page.
- *
- * Mobile flow: full-bleed image plate at the piece's own ratio, then title +
- * style, then metadata stack, then description, then the buy/enquire panel,
- * with a sticky enquiry bar while the panel is off screen. Desktop splits
- * left (image) / right (info) at md.
- *
- * Prev/next links derive from sort order so the visitor can sweep through
- * the archive without bouncing back to /work.
+ * Artwork detail page (visual-direction 2.3, the B graft): art > label/name >
+ * price > full-width Enquire, then the prose. Mobile flow: full-bleed plate
+ * capped at 72dvh, gold wall-label bar, museum wall label with the price in
+ * the numeral voice, the CTA panel directly after, description and facts
+ * below, with a sticky enquiry bar while the panel is off screen. Desktop
+ * splits plate (sticky, 7 of 12) / info (5 of 12) at md.
  */
 export default async function ArtworkDetailPage({ params }: Readonly<PageProps>) {
 	const { slug } = await params;
@@ -159,6 +156,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 		getTestimonialsForArtwork(art.slug),
 	]);
 	const { prev, next } = getSiblings(all, art.slug);
+	const catalogIndex = all.findIndex((a) => a.slug === art.slug) + 1;
 
 	const { contact } = getSite();
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
@@ -170,6 +168,14 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 	const isAvailable = isPositivePrice(art.priceInr);
 	const isSold = art.status === "sold";
 	const cta = getCtaCopy(isAvailable, isSold);
+
+	let priceSlot: string | undefined;
+	if (isAvailable && typeof art.priceInr === "number" && !isSold) {
+		priceSlot = formatInr(art.priceInr);
+	}
+	let statusSlot: string | undefined;
+	if (isSold) statusSlot = "Sold";
+	else if (!isAvailable) statusSlot = "Not listed for sale";
 
 	return (
 		<Container as="main" className="py-(--section-py)">
@@ -204,36 +210,70 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			</Reveal>
 
 			<div className="mt-(--space-block) grid gap-(--space-block) md:grid-cols-12 md:gap-12">
-				{/* Image plate at the piece's own ratio, whole painting shown (D9). */}
-				<Reveal eager className="md:col-span-7">
-					<div
-						style={{ "--plate-ratio": art.aspectRatio } as CSSProperties}
-						className="relative w-full aspect-(--plate-ratio) overflow-hidden rounded-(--radius-lg) bg-canvas shadow-hairline"
-					>
-						<ArtImage
-							src={`/artworks/${art.image}`}
-							alt={art.description ?? artworkAlt(art)}
-							sizes={DETAIL_SIZES}
-							maxWidth={DETAIL_MAX_WIDTH}
-							priority
-							className="absolute inset-0 h-full w-full object-contain"
-						/>
-						<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} />
-					</div>
-				</Reveal>
+				{/* Image plate at the piece's own ratio, whole painting shown (D9);
+				    never inside a Reveal (LCP, performance guard 3). */}
+				<div className="md:col-span-7">
+					<DetailPlate
+						artwork={art}
+						siblings={all}
+						alt={art.description ?? artworkAlt(art)}
+						sizes={DETAIL_SIZES}
+						maxWidth={DETAIL_MAX_WIDTH}
+					/>
+				</div>
 
-				{/* Info column */}
+				{/* Info column: label bar, wall label (title as the h1), price,
+				    full-width Enquire, then the prose and facts. */}
 				<div className="md:col-span-5">
-					<Reveal eager>
-						<p className="t-eyebrow">{art.style}</p>
-					</Reveal>
-					<Reveal eager delayMs={staggerDelay(1)} as="h1" className="t-display mt-3 text-h1">
-						{art.title}
+					<span aria-hidden="true" className="block h-0.5 w-8 bg-(--color-gold-hairline)" />
+					<WallLabel
+						variant="full"
+						mark
+						stagger
+						index={catalogIndex}
+						total={all.length}
+						title={art.title}
+						meta={[
+							art.style,
+							art.medium,
+							art.year ? String(art.year) : "",
+							art.dimensions ?? "",
+						].filter(Boolean)}
+						price={priceSlot}
+						status={statusSlot}
+						headingLevel="h1"
+						titleClassName="md:text-h1"
+						className="mt-4"
+					/>
+					<AccentRule
+						variant="gold"
+						className="mt-2 w-10 [animation-delay:calc(5*var(--stagger-step))]"
+					/>
+
+					{/* Honest scarcity: every piece is a single physical original.
+					    No timers, no fake stock. */}
+					{isAvailable && !isSold ? (
+						<Reveal eager delayMs={staggerDelay(5)}>
+							<p className="t-meta mt-4 normal-case tracking-normal">
+								One of a kind, the only original. Not a print.
+							</p>
+						</Reveal>
+					) : null}
+
+					<Reveal delayMs={staggerDelay(5)}>
+						<ArtworkCtaPanel
+							art={art}
+							whatsappLink={whatsappLink}
+							cta={cta}
+							isAvailable={isAvailable}
+							isSold={isSold}
+							whatsappDisplay={contact.whatsapp.display}
+						/>
 					</Reveal>
 
 					{art.description ? (
 						<Reveal delayMs={staggerDelay(2)}>
-							<p className="t-lead mt-4">{art.description}</p>
+							<p className="t-body mt-(--space-block) max-w-(--measure-essay)">{art.description}</p>
 						</Reveal>
 					) : null}
 
@@ -282,25 +322,15 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 							</div>
 						</Reveal>
 					) : null}
-
-					<Reveal delayMs={staggerDelay(4)}>
-						<ArtworkCtaPanel
-							art={art}
-							whatsappLink={whatsappLink}
-							cta={cta}
-							isAvailable={isAvailable}
-							isSold={isSold}
-							whatsappDisplay={contact.whatsapp.display}
-						/>
-					</Reveal>
 				</div>
 			</div>
 
 			{/* Testimonials tied to this piece (renders nothing when none). The
 			    component brings its own max-width + padding, so drop it full-bleed
-			    here rather than nesting it in the detail grid. */}
+			    here rather than nesting it in the detail grid. The canyon seam
+			    separates the label block from the related-pieces tail (1.5). */}
 			{testimonials.length > 0 ? (
-				<div className="-mx-(--container-px)">
+				<div className="-mx-(--container-px) mt-(--space-canyon)">
 					<Testimonials testimonials={testimonials} heading="What collectors say" />
 				</div>
 			) : null}
@@ -308,12 +338,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<ArtworkSiblingsNav prev={prev} next={next} flush={testimonials.length > 0} />
 
 			{/* Phone-only sticky enquiry bar; hides while #enquire or the page end is on screen. */}
-			<EnquiryBar
-				price={typeof art.priceInr === "number" ? formatInr(art.priceInr) : undefined}
-				href={whatsappLink}
-				label={cta.label}
-				watchId="enquire"
-			/>
+			<EnquiryBar price={priceSlot} href={whatsappLink} label={cta.label} watchId="enquire" />
 		</Container>
 	);
 }

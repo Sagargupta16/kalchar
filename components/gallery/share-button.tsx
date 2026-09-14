@@ -22,7 +22,8 @@ export function ShareButton({
 	title,
 	url,
 	className,
-}: Readonly<{ title: string; url: string; className?: string }>) {
+	iconOnly = false,
+}: Readonly<{ title: string; url: string; className?: string; iconOnly?: boolean }>) {
 	const [copied, setCopied] = useState(false);
 
 	const onShare = useCallback(async () => {
@@ -53,10 +54,19 @@ export function ShareButton({
 			type="button"
 			onClick={onShare}
 			aria-label={copied ? "Link copied" : `Share ${title}`}
-			className={cn(buttonVariants({ variant: "ghost" }), className)}
+			className={cn(
+				iconOnly
+					? "grid size-control shrink-0 place-items-center rounded-full border border-line/40 bg-surface-raised/80 text-ink transition-ui pressable hover:text-accent-text"
+					: buttonVariants({ variant: "ghost" }),
+				className,
+			)}
 		>
-			{copied ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}
-			{copied ? "Link copied" : "Share"}
+			{copied ? (
+				<Check size={iconOnly ? 18 : 14} aria-hidden="true" />
+			) : (
+				<Share2 size={iconOnly ? 18 : 14} aria-hidden="true" />
+			)}
+			{iconOnly ? null : copied ? "Link copied" : "Share"}
 		</button>
 	);
 }

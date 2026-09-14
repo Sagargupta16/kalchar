@@ -83,7 +83,7 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 				inert={!visible || undefined}
 				aria-hidden={!visible}
 				className={cn(
-					"fixed inset-x-0 bottom-0 z-nav border-t border-line bg-surface-raised/95 pb-safe-bottom backdrop-blur md:hidden",
+					"fixed inset-x-0 bottom-0 z-nav border-t border-(--color-gold-hairline) bg-surface-raised/95 pb-safe-bottom backdrop-blur md:hidden",
 					"transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
 					visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
 					reduceMotion && "transition-none",
@@ -93,7 +93,7 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 					{price ? (
 						<div className="min-w-0">
 							<span className="t-meta block normal-case tracking-normal">Price</span>
-							<span className="t-display block whitespace-nowrap text-xl text-accent-text tabular-nums">
+							<span className="t-numeral block whitespace-nowrap text-xl text-accent-text tabular-nums">
 								{price}
 							</span>
 						</div>
