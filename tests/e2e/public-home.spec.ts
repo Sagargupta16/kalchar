@@ -201,6 +201,68 @@ test("one gold sheen loops on the hero front plate only", async ({ page }) => {
 	).toHaveCount(1);
 });
 
+test("hero plates idle-float out of phase and pause offscreen", async ({ page }) => {
+	await page.goto("/");
+	const floats = page.locator("[data-shuffle-status] .plate-float");
+	await expect(floats).toHaveCount(2);
+
+	// Back then front in DOM order: the pair breathes at different periods and
+	// phases (steering 2026-09-14), both running while the hero is on screen.
+	const probes = await floats.evaluateAll((els) =>
+		els.map((el) => {
+			const cs = getComputedStyle(el);
+			return {
+				name: cs.animationName,
+				duration: cs.animationDuration,
+				delay: cs.animationDelay,
+				state: cs.animationPlayState,
+			};
+		}),
+	);
+	for (const probe of probes) {
+		expect(probe.name).toBe("plate-float");
+		expect(probe.state).toBe("running");
+	}
+	expect(probes[0]?.duration).not.toBe(probes[1]?.duration);
+	expect(probes[0]?.delay).not.toBe(probes[1]?.delay);
+
+	// The loop stops once the stage scrolls out of view (--float-state gate).
+	await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+	await expect
+		.poll(() => floats.first().evaluate((el) => getComputedStyle(el).animationPlayState))
+		.toBe("paused");
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await expect
+		.poll(() => floats.first().evaluate((el) => getComputedStyle(el).animationPlayState))
+		.toBe("running");
+});
+
+test("hero plates rest still under reduced motion", async ({ page }) => {
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await page.goto("/");
+	const floats = page.locator("[data-shuffle-status] .plate-float");
+	await expect(floats).toHaveCount(2);
+	const names = await floats.evaluateAll((els) =>
+		els.map((el) => getComputedStyle(el).animationName),
+	);
+	for (const name of names) {
+		expect(name).toBe("none");
+	}
+});
+
+test("style chips carry restrained glass over the hero wash", async ({ page }) => {
+	await page.goto("/");
+	const badge = page.locator('main nav[aria-label="Browse by style"] a > span').first();
+	const surface = await badge.evaluate((el) => {
+		const cs = getComputedStyle(el);
+		return { backdropFilter: cs.backdropFilter, backgroundColor: cs.backgroundColor };
+	});
+	expect(surface.backdropFilter).toContain("blur");
+	expect(surface.backdropFilter).toContain("saturate");
+	// Translucent fill: the wash glows through while the chip stays legible.
+	expect(surface.backgroundColor).toContain("0.75");
+});
+
 test("the pigment wash sits behind the hero with no blur filter", async ({ page }) => {
 	await page.goto("/");
 	const wash = await page

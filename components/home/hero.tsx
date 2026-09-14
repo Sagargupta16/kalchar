@@ -118,6 +118,11 @@ export function Hero({
 
 					<Reveal eager delayMs={staggerDelay(4)}>
 						<nav aria-label="Browse by style">
+							{/* Restrained glass (steering 2026-09-14): the chip rail sits over
+							    the drifting pigment wash, so the chips take the system's photo-chip
+							    glass (Badge overlay: hairline + e1 + backdrop blur) with the fill
+							    eased to 75% and an iOS saturate so the wash glows through while
+							    the caps stay legible. Solid CTAs below stay solid. */}
 							<ul className="mt-6 flex flex-wrap gap-2">
 								{styles.map((style) => (
 									<li key={style}>
@@ -125,7 +130,10 @@ export function Hero({
 											href={`/work?style=${encodeURIComponent(style)}`}
 											className="group relative inline-flex rounded-full after:absolute after:inset-x-0 after:-inset-y-1"
 										>
-											<Badge className="min-h-9 px-3 transition-ui group-hover:border-accent group-hover:text-accent-text">
+											<Badge
+												variant="overlay"
+												className="min-h-9 bg-bg/75 px-3 backdrop-saturate-150 transition-ui group-hover:border-accent group-hover:text-accent-text"
+											>
 												{style}
 											</Badge>
 										</Link>

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { PlateFrame } from "@/components/gallery/plate-frame";
@@ -17,6 +18,25 @@ const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 const MIN_SHUFFLE_TILT = 3;
 const MAX_SHUFFLE_TILT = 7;
+
+/**
+ * Idle float knobs for the .plate-float recipe (app/animations.css, steering
+ * 2026-09-14): low-amplitude half-cycles at different periods and phases so
+ * the pair never crests together. The front plate rises 7px over 9s; the back
+ * rides the --duration-float default (7s) offset by -3s; each gets a whisper
+ * of counter-rotation. Travel stays inside the recipe's 8px cap, rotate
+ * inside its 0.5deg cap; the reduced-motion block removes the loop entirely.
+ */
+const FLOAT_FRONT = {
+	"--float-travel": "7px",
+	"--float-period": "9s",
+	"--float-rotate": "0.35deg",
+} as CSSProperties;
+const FLOAT_BACK = {
+	"--float-travel": "5px",
+	"--float-delay": "-3s",
+	"--float-rotate": "-0.25deg",
+} as CSSProperties;
 
 type ShuffleStatus = "pending" | "applied" | "skipped";
 
@@ -99,6 +119,15 @@ async function prepareShuffle(
  * rests at the top (no `group` on the link). Under the plates a museum wall
  * label carries the kept Featured glyph line as "✦ Featured · No. NN of T".
  *
+ * Steering 2026-09-14: each plate hangs inside a nested .plate-float wrapper
+ * so the artwork visibly floats between gestures, front and back out of
+ * phase (FLOAT_FRONT / FLOAT_BACK). The wrapper is deliberately separate
+ * from .hero-plate (which transitions the shuffle transform) and from
+ * PlateFrame (which owns the hover lift), per the animations.css recipe. An
+ * IntersectionObserver on the stage sets --float-state: paused once the hero
+ * scrolls out of view; the property inherits into both wrappers. Reduced
+ * motion never sees the loop (the CSS reduced block strips .plate-float).
+ *
  * Clicking the front plate opens the shared lightbox (same behavior as the
  * gallery cards), with the whole featured pool as the navigable set. Cmd/Ctrl
  * click still routes to /work/[slug] for new-tab + SEO.
@@ -119,6 +148,20 @@ export function HeroPlates({
 	// shuffle, swapped-in images load normally (they are no longer the LCP).
 	const [shuffled, setShuffled] = useState(false);
 	const [shuffleStatus, setShuffleStatus] = useState<ShuffleStatus>("pending");
+	// Out-of-view pause for the idle float. SSR renders "running" so the loop
+	// still breathes for no-JS visitors; the observer only pauses it offscreen.
+	const stageRef = useRef<HTMLDivElement>(null);
+	const [inView, setInView] = useState(true);
+
+	useEffect(() => {
+		const node = stageRef.current;
+		if (!node) return;
+		const observer = new IntersectionObserver(([entry]) => {
+			setInView(entry?.isIntersecting ?? true);
+		});
+		observer.observe(node);
+		return () => observer.disconnect();
+	}, []);
 
 	useEffect(() => {
 		if (globalThis.window === undefined) return;
@@ -167,7 +210,11 @@ export function HeroPlates({
 
 	return (
 		<div data-shuffle-status={shuffleStatus}>
-			<div className="relative aspect-3/4 max-h-[46dvh] md:max-h-none">
+			<div
+				ref={stageRef}
+				className="relative aspect-3/4 max-h-[46dvh] md:max-h-none"
+				style={{ "--float-state": inView ? "running" : "paused" } as CSSProperties}
+			>
 				{/* Back plate */}
 				{back ? (
 					<div
@@ -175,16 +222,18 @@ export function HeroPlates({
 						className="hero-plate absolute inset-0"
 						style={{ transform: `translate(6%, 4%) rotate(${backTilt}deg)` }}
 					>
-						<PlateFrame className="h-full">
-							<ArtImage
-								key={back.slug}
-								src={`/artworks/${back.image}`}
-								alt=""
-								sizes={FEATURED_SIZES}
-								maxWidth={800}
-								className="absolute inset-0 h-full w-full object-cover"
-							/>
-						</PlateFrame>
+						<div className="plate-float h-full" style={FLOAT_BACK}>
+							<PlateFrame className="h-full">
+								<ArtImage
+									key={back.slug}
+									src={`/artworks/${back.image}`}
+									alt=""
+									sizes={FEATURED_SIZES}
+									maxWidth={800}
+									className="absolute inset-0 h-full w-full object-cover"
+								/>
+							</PlateFrame>
+						</div>
 					</div>
 				) : null}
 
@@ -193,24 +242,26 @@ export function HeroPlates({
 					className="hero-plate absolute inset-0"
 					style={{ transform: `rotate(${frontTilt}deg)` }}
 				>
-					<Link
-						href={`/work/${front.slug}`}
-						onClick={handleClick}
-						className="pressable absolute inset-0 block rounded-(--radius-md)"
-						aria-label={`View ${front.title}`}
-					>
-						<PlateFrame goldRest sheen className="h-full">
-							<ArtImage
-								key={front.slug}
-								src={`/artworks/${front.image}`}
-								alt={front.description ?? front.title}
-								sizes={FEATURED_SIZES}
-								maxWidth={800}
-								priority={!shuffled}
-								className="absolute inset-0 h-full w-full object-cover"
-							/>
-						</PlateFrame>
-					</Link>
+					<div className="plate-float h-full" style={FLOAT_FRONT}>
+						<Link
+							href={`/work/${front.slug}`}
+							onClick={handleClick}
+							className="pressable absolute inset-0 block rounded-(--radius-md)"
+							aria-label={`View ${front.title}`}
+						>
+							<PlateFrame goldRest sheen className="h-full">
+								<ArtImage
+									key={front.slug}
+									src={`/artworks/${front.image}`}
+									alt={front.description ?? front.title}
+									sizes={FEATURED_SIZES}
+									maxWidth={800}
+									priority={!shuffled}
+									className="absolute inset-0 h-full w-full object-cover"
+								/>
+							</PlateFrame>
+						</Link>
+					</div>
 				</div>
 			</div>
 
