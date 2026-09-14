@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type BadgeVariant = "default" | "accent" | "accent-soft" | "sold" | "overlay" | "success" | "muted";
+type BadgeVariant = "default" | "accent" | "accent-soft" | "sold" | "overlay" | "muted";
 
 interface BadgeProps {
 	children: ReactNode;
@@ -20,8 +20,6 @@ const VARIANT_MAP: Record<BadgeVariant, string> = {
 	sold: "bg-ruby text-bg",
 	/** Chips on photos. */
 	overlay: "border border-line bg-bg/90 text-ink shadow-e1 backdrop-blur",
-	/** DEPRECATED alias of overlay (public-gallery renames its one use); integration deletes. */
-	success: "border border-line bg-bg/90 text-ink shadow-e1 backdrop-blur",
 	/** Archived, counts. */
 	muted: "bg-bg-muted text-muted",
 };

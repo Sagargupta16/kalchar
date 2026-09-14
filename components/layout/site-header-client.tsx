@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { WhatsAppIcon } from "@/components/ui/brand-icons";
+import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { Container } from "@/components/ui/container";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DUR, EASE_OUT, SPRING_INDICATOR } from "@/lib/motion";
@@ -26,10 +26,6 @@ const NAV: NavItem[] = [
 ];
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
-/** The hairline lives on the <li>: an <a> is always the last child of its own <li>, so `last:` there fires on every row. */
-const DRAWER_ITEM = "border-b border-line-soft last:border-b-0";
-const DRAWER_ROW =
-	"-mx-2 flex min-h-12 items-center justify-between rounded-(--radius-sm) px-2 py-3 text-sm transition-colors active:bg-canvas";
 
 interface Props {
 	latinPrefix: string;
@@ -100,31 +96,36 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 			<header
 				className={cn(
 					"sticky top-0 z-nav border-b bg-bg/90 backdrop-blur-md transition-[border-color,box-shadow] duration-(--duration-base) ease-(--ease-out)",
-					scrolled ? "border-line shadow-e3" : "border-transparent",
+					scrolled ? "border-(--color-gold-hairline) shadow-e3" : "border-transparent",
 				)}
 			>
-				<Container
-					className={cn(
-						"flex items-center justify-between gap-4 transition-[padding] duration-(--duration-base) ease-(--ease-out)",
-						scrolled ? "py-2" : "py-3 md:py-4",
-					)}
-				>
+				{/* One padding in both states: the bar is always --header-h-shrunk, so the
+				    shrink never animates layout (motion addendum C5); the brand mark carries
+				    the cue by scaling instead. z-10 keeps the bar above the open drawer sheet. */}
+				<Container className="relative z-10 flex items-center justify-between gap-4 py-2">
 					{/* Brand mark */}
 					<Link
 						href="/"
 						className="group flex min-h-control items-center gap-3 transition-colors hover:text-accent-text"
 						aria-label="Home"
 					>
-						<Image
-							src="/logo.jpg"
-							alt=""
-							width={36}
-							height={36}
-							priority
-							className="size-8 rounded-full ring-1 ring-line transition-ui group-hover:ring-accent md:size-9"
-						/>
-						<span className="t-display text-xl tracking-tight md:text-2xl">
-							<span className="not-italic">{latinPrefix}</span>
+						<span
+							className={cn(
+								"inline-flex shrink-0 origin-left transition-ui",
+								scrolled && "scale-90",
+							)}
+						>
+							<Image
+								src="/logo.jpg"
+								alt=""
+								width={36}
+								height={36}
+								priority
+								className="size-8 rounded-full ring-1 ring-line transition-ui group-hover:ring-accent md:size-9"
+							/>
+						</span>
+						<span className="t-headline text-xl md:text-2xl">
+							<span>{latinPrefix}</span>
 							<span lang="hi" className="devanagari-display text-accent">
 								{devanagariCore}
 							</span>
@@ -148,11 +149,13 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 												)}
 											>
 												{item.label}
+												{/* 1px gold hairline indicator; decorative-contrast, so the
+												    accent text and aria-current carry the state (2.12). */}
 												{active ? (
 													<motion.span
 														aria-hidden="true"
 														layoutId="nav-indicator"
-														className="pointer-events-none absolute inset-x-0 bottom-2 h-0.5 rounded-full bg-accent"
+														className="pointer-events-none absolute inset-x-0 bottom-1 h-px bg-(--color-gold-hairline)"
 														transition={SPRING_INDICATOR}
 													/>
 												) : null}
@@ -185,79 +188,32 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 							aria-expanded={open}
 							aria-controls="mobile-menu"
 							aria-label={open ? "Close menu" : "Open menu"}
-							className="grid size-control place-items-center rounded-(--radius-sm) text-ink transition-ui pressable hover:bg-canvas hover:text-accent-text active:bg-canvas"
+							className="relative grid size-control place-items-center rounded-(--radius-sm) text-ink transition-ui pressable hover:bg-canvas hover:text-accent-text active:bg-canvas"
 						>
-							{open ? <X size={20} /> : <Menu size={20} />}
+							{/* Hamburger and X cross-fade with a quarter turn (motion addendum C6). */}
+							<AnimatePresence mode="wait" initial={false}>
+								<motion.span
+									key={open ? "close" : "open"}
+									initial={{ rotate: -90, opacity: 0 }}
+									animate={{ rotate: 0, opacity: 1 }}
+									exit={{ rotate: 90, opacity: 0 }}
+									transition={{ duration: DUR.fast, ease: EASE_OUT }}
+									className="absolute inset-0 grid place-items-center"
+								>
+									{open ? <X size={20} /> : <Menu size={20} />}
+								</motion.span>
+							</AnimatePresence>
 						</button>
 					</div>
 				</Container>
 
-				{/* Mobile drawer: floats over the page on opacity + transform (never height). */}
-				<AnimatePresence>
-					{open ? (
-						<>
-							<motion.div
-								key="scrim"
-								aria-hidden="true"
-								onClick={() => setOpen(false)}
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								exit={{ opacity: 0 }}
-								transition={{ duration: DUR.base, ease: EASE_OUT }}
-								className="absolute inset-x-0 top-full h-dvh bg-scrim/40 lg:hidden"
-							/>
-							<motion.div
-								key="panel"
-								id="mobile-menu"
-								initial={{ opacity: 0, y: -8 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -8 }}
-								transition={{ duration: DUR.base, ease: EASE_OUT }}
-								className="absolute inset-x-0 top-full lg:hidden"
-							>
-								<nav
-									aria-label="Primary mobile"
-									className="border-y border-line bg-surface-raised px-(--container-px) py-2 shadow-e3"
-								>
-									<ul className="flex flex-col">
-										<li className={DRAWER_ITEM}>
-											<a
-												href={whatsappHref}
-												target="_blank"
-												rel="noopener noreferrer"
-												className={DRAWER_ROW}
-											>
-												<span className="flex items-center gap-3 font-medium">
-													<WhatsAppIcon className="size-4 text-accent-text" aria-hidden="true" />
-													Message on WhatsApp
-												</span>
-												<ArrowRight size={16} aria-hidden="true" className="text-muted" />
-											</a>
-										</li>
-										{[...NAV, CONTACT].map((item) => {
-											const active = isActive(item.href);
-											return (
-												<li key={item.href} className={DRAWER_ITEM}>
-													<Link
-														href={item.href}
-														aria-current={active ? "page" : undefined}
-														className={cn(
-															DRAWER_ROW,
-															active ? "font-medium text-accent-text" : "text-ink",
-														)}
-													>
-														<span>{item.label}</span>
-														<ArrowRight size={16} aria-hidden="true" className="text-muted" />
-													</Link>
-												</li>
-											);
-										})}
-									</ul>
-								</nav>
-							</motion.div>
-						</>
-					) : null}
-				</AnimatePresence>
+				<MobileDrawer
+					open={open}
+					items={[...NAV, CONTACT]}
+					isActive={isActive}
+					whatsappHref={whatsappHref}
+					onClose={() => setOpen(false)}
+				/>
 			</header>
 		</>
 	);

@@ -48,7 +48,7 @@ export function ChannelLink({
 			<ArrowRight
 				size={16}
 				aria-hidden="true"
-				className="mt-1 shrink-0 text-muted transition-[translate,color] group-hover:translate-x-1 group-hover:text-(--section-accent)"
+				className="mt-1 shrink-0 text-muted transition-[translate,color] group-hover:translate-x-0.5 group-hover:text-(--section-accent)"
 			/>
 		</a>
 	);

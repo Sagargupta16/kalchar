@@ -141,7 +141,9 @@ export function ThemeToggle({
 					className,
 				)}
 			>
-				<NextIcon size={16} aria-hidden="true" />
+				{/* key remounts the glyph so it rotates in from -90deg on each flip
+				    (motion addendum C4); the page colours still swap in one frame. */}
+				<NextIcon key={mode} size={16} aria-hidden="true" className="theme-icon-in" />
 			</button>
 		);
 	}

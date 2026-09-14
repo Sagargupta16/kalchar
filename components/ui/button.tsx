@@ -15,7 +15,7 @@ const buttonVariants = cva(
 					"rounded-(--radius-sm) border border-line bg-transparent text-ink hover:border-accent hover:bg-canvas hover:text-accent-text",
 				outline:
 					"rounded-(--radius-sm) border border-accent bg-transparent text-accent-text hover:bg-accent hover:text-bg",
-				link: "h-auto bg-transparent p-0 text-accent-text underline decoration-accent/40 underline-offset-4 hover:decoration-accent",
+				link: "relative h-auto bg-transparent p-0 text-accent-text underline decoration-accent/40 underline-offset-4 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform hover:after:scale-x-100 focus-visible:after:scale-x-100",
 			},
 			size: {
 				sm: "min-h-9 px-3.5 py-1.5 text-xs uppercase tracking-eyebrow pointer-coarse:min-h-control",
