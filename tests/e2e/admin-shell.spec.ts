@@ -243,6 +243,7 @@ test("More sheet foot row keeps theme and sign out reachable on phones", async (
 	const sheet = page.getByRole("dialog", { name: "More tools" });
 	await expect(sheet.getByRole("link", { name: "Workshops", exact: true })).toBeVisible();
 	await expect(sheet.getByRole("button", { name: /Switch to (dark|light) theme/ })).toBeVisible();
+	await expect(sheet.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
 });
 
 test("Enquiries pill caps at 9+ while the accessible name keeps the real count", async ({

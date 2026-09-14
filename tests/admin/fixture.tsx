@@ -213,7 +213,11 @@ function NavFixture({ counts }: Readonly<{ counts?: NavCounts }>) {
 				Page control
 			</button>
 			<output>{taps}</output>
-			<AdminNavMobile email="megha@example.invalid" counts={counts} />
+			<AdminNavMobile
+				email="megha@example.invalid"
+				counts={counts}
+				signOut={<button type="button">Sign out</button>}
+			/>
 		</AddSheetProvider>
 	);
 }

@@ -11,8 +11,15 @@ import {
 	FeaturedToggle,
 	useArtworkStatusOptions,
 } from "./artwork-quick-state";
-import { adminIconBtnDestructive, adminRow, adminThumb, adminTileBadge, ICON_MD } from "./controls";
-import { Segmented } from "./segmented";
+import {
+	adminHelp,
+	adminIconBtnDestructive,
+	adminRow,
+	adminThumb,
+	adminTileBadge,
+	ICON_MD,
+} from "./controls";
+import { Segmented, segmentedHelperText } from "./segmented";
 
 export interface ArtworkRowProps {
 	art: Artwork;
@@ -61,6 +68,9 @@ export function ArtworkRow({
 }: Readonly<ArtworkRowProps>) {
 	const statusOptions = useArtworkStatusOptions(art.priceInr);
 	const status = art.status ?? "archive";
+	// Rendered as the grid's own second row, not inside the Segmented cell, so
+	// the track stays on the one-line row's centre line at @xl/row (Tier 1b).
+	const statusLine = segmentedHelperText(artworkStatusHelper(status), statusOptions);
 	return (
 		<li
 			id={`piece-${art.slug}`}
@@ -113,7 +123,7 @@ export function ArtworkRow({
 					value={status}
 					options={statusOptions}
 					disabled={pending}
-					helper={artworkStatusHelper(status)}
+					showHelper={false}
 					onChange={onSetStatus}
 					className="col-span-3 mt-3 @xl/row:col-span-1 @xl/row:col-start-3 @xl/row:row-start-1 @xl/row:mt-0"
 				/>
@@ -135,6 +145,17 @@ export function ArtworkRow({
 						<Trash2 size={ICON_MD} aria-hidden="true" />
 					</button>
 				</div>
+				{statusLine ? (
+					// -mt-2 nets the grid's gap-3 down to the helper's 4px rhythm under the track.
+					<p
+						className={cn(
+							adminHelp,
+							"col-span-3 -mt-2 @xl/row:col-span-1 @xl/row:col-start-3 @xl/row:row-start-2",
+						)}
+					>
+						{statusLine}
+					</p>
+				) : null}
 			</div>
 			{error ? (
 				<AdminNotice variant="error" className="mt-3">

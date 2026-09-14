@@ -237,6 +237,9 @@ function MobileNavLink({
  * collar, lifted out of the bar, one hit target with the label. Motion owns
  * every transform on the button (never pair with CSS pressable); the Plus
  * rotates to an X while an add surface is open and snaps under reduced motion.
+ * Focus draws the standard 2px accent ring around the round disc at 3px
+ * offset (1.3 focus note), not around the rectangular cell; outline-hidden
+ * keeps the forced-colors fallback that outline-none would drop.
  */
 function RaisedAddCell() {
 	const addContext = useAddContext();
@@ -251,13 +254,13 @@ function RaisedAddCell() {
 			onClick={addContext === "piece" ? openPiece : addContext === "event" ? openEvent : openChoice}
 			aria-label={label}
 			aria-haspopup={addContext === "choice" ? "dialog" : undefined}
-			className="relative flex h-full w-full flex-col items-center justify-end pb-1"
+			className="group relative flex h-full w-full flex-col items-center justify-end pb-1 outline-hidden"
 		>
 			<span
 				aria-hidden="true"
 				className="grid size-[4.25rem] -translate-y-4 place-items-center rounded-full bg-surface shadow-hairline"
 			>
-				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3">
+				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3 group-focus-visible:outline-2 group-focus-visible:outline-accent group-focus-visible:outline-offset-3">
 					<Plus
 						size={24}
 						className={cn(

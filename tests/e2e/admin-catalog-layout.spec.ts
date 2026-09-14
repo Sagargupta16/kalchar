@@ -72,6 +72,17 @@ test.describe("layout @preview", () => {
 		expect(Math.abs(editCentre - segmentedCentre)).toBeLessThanOrEqual(4);
 	});
 
+	// Tier 1a acceptance: the localStorage view preference survives a reload.
+	test("reload restores the chosen view", async ({ page }) => {
+		await openList(page);
+		await page.reload();
+		await expect(page.getByRole("button", { name: "List view" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		await expect(page.locator("#pieces li").first().getByRole("radiogroup")).toBeVisible();
+	});
+
 	for (const width of [390, 1280]) {
 		test(`dark rows sit lighter than the ground at ${width}px`, async ({ page }) => {
 			await page.setViewportSize({ width, height: 844 });

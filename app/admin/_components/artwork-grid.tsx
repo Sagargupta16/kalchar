@@ -371,7 +371,9 @@ export function ArtworkGrid({
 								aria-label={tileLabel(item.art, index)}
 								className={cn(
 									"group relative block aspect-square w-full overflow-hidden bg-canvas pressable [-webkit-touch-callout:none] disabled:pointer-events-none disabled:opacity-50",
-									highlight === item.art.slug && "ring-2 ring-accent ring-inset",
+									// Tier 1a highlight: an inset outline, not ring/border, so the 2px
+									// seams never shift and the focus-ring guard stays quiet.
+									highlight === item.art.slug && "outline-2 -outline-offset-2 outline-accent",
 								)}
 							>
 								{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}

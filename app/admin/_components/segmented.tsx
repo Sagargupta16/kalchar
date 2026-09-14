@@ -26,8 +26,24 @@ interface SegmentedProps<V extends string = string> {
 	disabled?: boolean;
 	/** Helper line under the track for the selected value (1.8: NFS reads its gallery line). */
 	helper?: string;
+	/**
+	 * Render the helper/blocked-reason line under the track (default). One-line
+	 * grid rows (1.11) opt out and render segmentedHelperText as their own grid
+	 * row so the track stays on the row's centre line.
+	 */
+	showHelper?: boolean;
 	onChange: (value: V) => void;
 	className?: string;
+}
+
+/** The line Segmented renders under its track: the helper, else the first blocked reason. */
+export function segmentedHelperText(
+	helper: string | undefined,
+	options: readonly SegmentedOption[],
+): string | undefined {
+	return (
+		helper ?? options.find((option) => option.disabled && option.disabledReason)?.disabledReason
+	);
 }
 
 /**
@@ -45,6 +61,7 @@ export function Segmented<V extends string = string>({
 	options,
 	disabled = false,
 	helper,
+	showHelper = true,
 	onChange,
 	className,
 }: Readonly<SegmentedProps<V>>) {
@@ -76,7 +93,7 @@ export function Segmented<V extends string = string>({
 			?.focus();
 	};
 
-	const reason = options.find((option) => option.disabled && option.disabledReason)?.disabledReason;
+	const line = showHelper ? segmentedHelperText(helper, options) : undefined;
 
 	return (
 		<div className={cn("min-w-0", className)}>
@@ -125,7 +142,7 @@ export function Segmented<V extends string = string>({
 					})}
 				</LayoutGroup>
 			</div>
-			{helper || reason ? <p className={cn(adminHelp, "mt-1")}>{helper ?? reason}</p> : null}
+			{line ? <p className={cn(adminHelp, "mt-1")}>{line}</p> : null}
 		</div>
 	);
 }

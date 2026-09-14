@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // or a database. The same specs also run in the normal browser suite.
 export default defineConfig({
 	testDir: "../e2e",
-	testMatch: /admin-(components|shell|catalog|catalog-add|content-mobile|settings|leads)\.spec\.ts/,
+	testMatch: /admin-(components|shell|catalog|catalog-add|catalog-layout|content-mobile|settings|leads)\.spec\.ts/,
 	outputDir: "../../.cache/admin-components",
 	fullyParallel: true,
 	workers: 2,
