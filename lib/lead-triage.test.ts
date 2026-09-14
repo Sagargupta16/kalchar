@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+	formatLeadShortDate,
 	formatLeadTimestamp,
 	LEAD_STATUS_LABEL,
+	leadInitials,
 	leadReplyLinks,
 	leadReplyMessage,
+	leadSnippet,
 	parseLeadContact,
 } from "./lead-triage";
 import type { Lead } from "./types";
@@ -104,5 +107,59 @@ describe("formatLeadTimestamp", () => {
 describe("LEAD_STATUS_LABEL", () => {
 	it("is sentence case for every status", () => {
 		expect(Object.values(LEAD_STATUS_LABEL)).toEqual(["New", "Contacted", "Closed"]);
+	});
+});
+
+describe("leadInitials", () => {
+	it("takes the first letters of the first and last words, uppercased", () => {
+		expect(leadInitials("Priya Sharma")).toBe("PS");
+		expect(leadInitials("Anna Maria Ortiz")).toBe("AO");
+		expect(leadInitials("rahul mehta")).toBe("RM");
+	});
+	it("uses one letter for a single word", () => {
+		expect(leadInitials("Priya")).toBe("P");
+	});
+	it("falls back to a question mark for empty input", () => {
+		expect(leadInitials("   ")).toBe("?");
+		expect(leadInitials(undefined)).toBe("?");
+	});
+});
+
+describe("leadSnippet", () => {
+	it("joins the chosen options and quotes the brief", () => {
+		expect(leadSnippet(lead())).toBe(
+			'Pichwai, A3, Under INR 5,000, Within a month, "A lotus pond."',
+		);
+	});
+	it("is the bare brief when no options were chosen", () => {
+		const bare = lead({
+			style: undefined,
+			size: undefined,
+			budget: undefined,
+			timeline: undefined,
+		});
+		expect(leadSnippet(bare)).toBe("A lotus pond.");
+	});
+});
+
+describe("formatLeadShortDate", () => {
+	const now = new Date("2026-09-14T10:00:00Z");
+	it("prints now, minutes and hours within a day", () => {
+		expect(formatLeadShortDate("2026-09-14T09:59:30Z", now)).toBe("now");
+		expect(formatLeadShortDate("2026-09-14T09:55:00Z", now)).toBe("5m");
+		expect(formatLeadShortDate("2026-09-14T08:00:00Z", now)).toBe("2h");
+	});
+	it("prints the weekday within a week, in India Standard Time", () => {
+		expect(formatLeadShortDate("2026-09-11T12:00:00Z", now)).toBe("Fri");
+		// 2026-09-07 20:00 UTC is already Tuesday 01:30 in IST.
+		expect(formatLeadShortDate("2026-09-07T20:00:00Z", now)).toBe("Tue");
+	});
+	it("prints day and short month beyond a week", () => {
+		expect(formatLeadShortDate("2026-03-12T12:00:00Z", now)).toBe("12 Mar");
+	});
+	it("clamps future stamps to now and rejects bad input", () => {
+		expect(formatLeadShortDate("2026-09-14T10:05:00Z", now)).toBe("now");
+		expect(formatLeadShortDate("", now)).toBe("");
+		expect(formatLeadShortDate("not-a-date", now)).toBe("");
 	});
 });

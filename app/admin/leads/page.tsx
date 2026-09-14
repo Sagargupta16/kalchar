@@ -11,18 +11,24 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLeadsPage({
 	searchParams,
-}: Readonly<{ searchParams: Promise<{ page?: string }> }>) {
+}: Readonly<{ searchParams: Promise<{ page?: string; lead?: string }> }>) {
 	await requireAdminPage();
-	const requestedPage = Number((await searchParams).page ?? 1);
+	const params = await searchParams;
+	const requestedPage = Number(params.page ?? 1);
 	const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 	const { leads, hasNextPage } = await getLeadsPage(page);
+	const newCount = leads.filter((lead) => lead.status === "new").length;
 
 	return (
 		<AdminPage
 			title="Enquiries"
-			description="Enquiries from the custom-order form, newest first. Reply from the card, mark each one Contacted or Closed, and delete it when the details are no longer needed."
+			description={`Enquiries from the custom-order form, newest first. Open one to reply on WhatsApp, mark it Contacted or Closed, and delete it when the details are no longer needed.${newCount > 0 ? ` ${newCount} new.` : ""}`}
 		>
-			<LeadsManager leads={[...leads]} siteName={getSite().brand.publicName} />
+			<LeadsManager
+				leads={[...leads]}
+				siteName={getSite().brand.publicName}
+				initialLeadId={params.lead ?? null}
+			/>
 			{page > 1 || hasNextPage ? (
 				<nav aria-label="Enquiry pages" className="flex items-center justify-between gap-4">
 					{page > 1 ? (

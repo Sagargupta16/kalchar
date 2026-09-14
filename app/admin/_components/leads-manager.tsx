@@ -1,15 +1,15 @@
 "use client";
 
-import { useOptimistic, useState } from "react";
+import { useEffect, useOptimistic, useState, useSyncExternalStore } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LEAD_STATUS_LABEL, LEAD_STATUSES } from "@/lib/lead-triage";
+import { LEAD_STATUS_LABEL } from "@/lib/lead-triage";
 import type { Lead, LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";
 import { AdminNotice } from "./admin-notice";
-import { useConfirm } from "./confirm-dialog";
 import { adminBtn } from "./controls";
-import { LeadCard } from "./lead-card";
+import { LeadPane, LeadSheet } from "./lead-detail";
+import { LeadRow } from "./lead-row";
 import { UndoBar, useUndo } from "./undo-bar";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -17,22 +17,65 @@ import { useServerSyncedList } from "./use-server-synced-list";
 type Lens = "all" | LeadStatus;
 
 const LENS_LABEL: Record<Lens, string> = { all: "All", ...LEAD_STATUS_LABEL };
+/** Chip order per the Tier 2a composition: New first, All last. Only New carries its count. */
+const LENSES: readonly Lens[] = ["new", "contacted", "closed", "all"];
 
 /**
- * Admin queue for captured custom-order enquiries. Each card shows the brief,
- * the chosen options, one-tap reply links, a status select whose flips are
- * optimistic with an Undo offer (D26), and a delete control (the PII-removal
- * path). Failures render inside the card they belong to.
+ * The split-pane breakpoint, kept in sync with the lg: classes on the grid
+ * below (Tailwind lg = 64rem). Local per BUILD-RULES: no shared media-query
+ * hook exists and lib/hooks is not owned here.
+ */
+const DESKTOP_QUERY = "(min-width: 64rem)";
+
+function subscribeToDesktop(onChange: () => void): () => void {
+	const query = window.matchMedia(DESKTOP_QUERY);
+	query.addEventListener("change", onChange);
+	return () => query.removeEventListener("change", onChange);
+}
+
+/** False on the server: the phone sheet is the default until the client measures. */
+function useIsDesktop(): boolean {
+	return useSyncExternalStore(
+		subscribeToDesktop,
+		() => window.matchMedia(DESKTOP_QUERY).matches,
+		() => false,
+	);
+}
+
+/** Mirror the selection into ?lead= so a triage position is shareable (Tier 2a). */
+function setLeadParam(id: string | null) {
+	try {
+		const url = new URL(window.location.href);
+		if (id) url.searchParams.set("lead", id);
+		else url.searchParams.delete("lead");
+		window.history.replaceState(window.history.state, "", url);
+	} catch {
+		// A host without a rewritable URL (the component harness): selection still works in state.
+	}
+}
+
+/**
+ * The enquiries DM inbox (visual-direction-admin Tier 2a): rows open a
+ * full-detent sheet on phones and an inline pane from lg, status lives in the
+ * detail as a Segmented control whose flips are optimistic with an Undo offer
+ * (D26, D37), and delete is the confirmed PII-removal path. Failures render
+ * inside the enquiry they belong to.
  */
 export function LeadsManager({
 	leads: initial,
 	siteName = "Kalchar",
-}: Readonly<{ leads: Lead[]; siteName?: string }>) {
+	initialLeadId = null,
+}: Readonly<{ leads: Lead[]; siteName?: string; initialLeadId?: string | null }>) {
 	const { pending, err, run } = useAdminAction();
 	const [leads, setLeads] = useServerSyncedList(initial);
-	const confirm = useConfirm();
 	const [failedId, setFailedId] = useState<string | null>(null);
 	const [lens, setLens] = useState<Lens>("all");
+	const [selectedId, setSelectedId] = useState<string | null>(initialLeadId);
+	const isDesktop = useIsDesktop();
+	// The sheet is a modal dialog, so it mounts only after the client has
+	// measured the viewport; the pane column is CSS-hidden below lg.
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => setHydrated(true), []);
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
 	// Status flips paint before the round trip; the value reverts by itself on
 	// failure because the dispatch runs inside run()'s transition (React 19).
@@ -42,7 +85,12 @@ export function LeadsManager({
 			state.map((l) => (l.id === patch.id ? { ...l, status: patch.status } : l)),
 	);
 
-	/** Run a mutation and remember which card it belongs to, for error routing. */
+	const select = (id: string | null) => {
+		setSelectedId(id);
+		setLeadParam(id);
+	};
+
+	/** Run a mutation and remember which enquiry it belongs to, for error routing. */
 	const act = (id: string, fn: () => Promise<unknown>, after?: () => void) => {
 		setFailedId(null);
 		return run(fn, after).then((ok) => {
@@ -77,20 +125,27 @@ export function LeadsManager({
 		);
 	};
 
-	const onDelete = async (lead: Lead) => {
-		const ok = await confirm({
-			title: `Delete the enquiry from ${lead.name || "this visitor"}?`,
-			body: "This permanently removes the enquiry and the contact details it holds.",
-			confirmLabel: "Delete enquiry",
-			cancelLabel: "Keep enquiry",
-		});
-		if (!ok) return;
+	/**
+	 * A successful flip from the phone sheet also closes it: the full-height
+	 * sheet sits in the top layer, which leaves the Undo toast underneath
+	 * inert, so the offer is only reachable back on the inbox. Failures keep
+	 * the sheet open with the error inline.
+	 */
+	const onStatusFromSheet = async (id: string, status: LeadStatus) => {
+		const ok = await onStatus(id, status);
+		if (ok) select(null);
+		return ok;
+	};
+
+	const onDelete = (lead: Lead) =>
 		act(
 			lead.id,
 			() => deleteLead(lead.id),
-			() => setLeads((prev) => prev.filter((l) => l.id !== lead.id)),
+			() => {
+				setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+				select(null);
+			},
 		);
-	};
 
 	const counts = shownLeads.reduce<Record<Lens, number>>(
 		(acc, l) => {
@@ -101,58 +156,110 @@ export function LeadsManager({
 		{ all: 0, new: 0, contacted: 0, closed: 0 },
 	);
 	const shown = lens === "all" ? shownLeads : shownLeads.filter((l) => l.status === lens);
+	const selectedLead = shownLeads.find((l) => l.id === selectedId) ?? null;
+
+	const detailProps = selectedLead
+		? {
+				lead: selectedLead,
+				siteName,
+				pending,
+				error: failedId === selectedLead.id ? err : null,
+				onDelete: () => onDelete(selectedLead),
+			}
+		: null;
 
 	return (
 		<div className="space-y-group">
 			{leads.length > 0 ? (
 				<div role="group" aria-label="Filter enquiries" className="flex flex-wrap gap-2">
-					{(["all", ...LEAD_STATUSES] as Lens[]).map((key) => (
+					{LENSES.map((key) => (
 						<button
 							key={key}
 							type="button"
 							aria-pressed={lens === key}
+							// Adjacent text and span concatenate to "New2" in the accessible
+							// name; the label keeps the space ("New 2").
+							aria-label={key === "new" ? `${LENS_LABEL.new} ${counts.new}` : undefined}
 							onClick={() => setLens(key)}
 							className={cn(adminBtn, "rounded-full")}
 						>
-							{LENS_LABEL[key]} <span className="tabular-nums text-muted">{counts[key]}</span>
+							{LENS_LABEL[key]}
+							{key === "new" ? (
+								<span aria-hidden="true" className="text-muted tabular-nums">
+									{counts.new}
+								</span>
+							) : null}
 						</button>
 					))}
 				</div>
 			) : null}
-			{err && !undo && (failedId === null || !shown.some((l) => l.id === failedId)) ? (
+			{err && !undo && (failedId === null || failedId !== selectedId) ? (
 				<AdminNotice variant="error">{err}</AdminNotice>
 			) : null}
 			{leads.length === 0 ? (
-				<EmptyState variant="compact" voice="tool">
-					No enquiries on this page. Briefs sent from the custom-order form appear here.
-				</EmptyState>
-			) : null}
-			{shown.length === 0 && leads.length > 0 ? (
 				<EmptyState
 					variant="compact"
 					voice="tool"
-					body={`No ${LENS_LABEL[lens].toLowerCase()} enquiries on this page.`}
-					action={
-						<button type="button" onClick={() => setLens("all")} className={adminBtn}>
-							Show all
-						</button>
-					}
+					title="No enquiries yet"
+					body="New enquiries from the site appear here."
 				/>
 			) : null}
+			{shown.length === 0 && leads.length > 0 ? (
+				lens === "new" ? (
+					<EmptyState
+						variant="compact"
+						voice="tool"
+						title="All caught up"
+						body="New enquiries from the site appear here."
+					/>
+				) : (
+					<EmptyState
+						variant="compact"
+						voice="tool"
+						body={`No ${LENS_LABEL[lens].toLowerCase()} enquiries on this page.`}
+						action={
+							<button type="button" onClick={() => setLens("all")} className={adminBtn}>
+								Show all
+							</button>
+						}
+					/>
+				)
+			) : null}
 			{shown.length > 0 ? (
-				<ul className="space-y-tight">
-					{shown.map((lead) => (
-						<LeadCard
-							key={lead.id}
-							lead={lead}
-							siteName={siteName}
-							pending={pending}
-							error={failedId === lead.id ? err : null}
-							onStatus={(status) => onStatus(lead.id, status)}
-							onDelete={() => onDelete(lead)}
-						/>
-					))}
-				</ul>
+				<div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-page">
+					<ul className="space-y-tight lg:col-span-5">
+						{shown.map((lead) => (
+							<LeadRow
+								key={lead.id}
+								lead={lead}
+								selected={lead.id === selectedId}
+								onOpen={() => select(lead.id)}
+							/>
+						))}
+					</ul>
+					<div className="hidden lg:block lg:col-span-7">
+						{detailProps && isDesktop ? (
+							<LeadPane
+								key={detailProps.lead.id}
+								{...detailProps}
+								onStatus={(status) => onStatus(detailProps.lead.id, status)}
+							/>
+						) : (
+							<EmptyState
+								variant="compact"
+								voice="tool"
+								body="Select an enquiry to read and reply."
+							/>
+						)}
+					</div>
+				</div>
+			) : null}
+			{hydrated && !isDesktop && detailProps ? (
+				<LeadSheet
+					{...detailProps}
+					onStatus={(status) => onStatusFromSheet(detailProps.lead.id, status)}
+					onClose={() => select(null)}
+				/>
 			) : null}
 			{undo ? (
 				<UndoBar

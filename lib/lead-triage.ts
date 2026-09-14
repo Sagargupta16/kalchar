@@ -119,3 +119,47 @@ export function formatLeadTimestamp(iso: string): string {
 		timeZone: "Asia/Kolkata",
 	});
 }
+
+/** Uppercase initials for the inbox disc: first and last word ("Priya Sharma" -> "PS"). */
+export function leadInitials(name: string | undefined): string {
+	const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+	const first = parts[0]?.charAt(0);
+	if (!first) return "?";
+	const last = parts.length > 1 ? (parts.at(-1)?.charAt(0) ?? "") : "";
+	return `${first}${last}`.toUpperCase();
+}
+
+/** One truncating inbox line: the chosen options, then the brief in quotes when options exist. */
+export function leadSnippet(lead: Lead): string {
+	const values = [lead.style, lead.size, lead.budget, lead.timeline].filter(Boolean).join(", ");
+	return values ? `${values}, "${lead.brief}"` : lead.brief;
+}
+
+const MINUTE_S = 60;
+const HOUR_S = 3600;
+const DAY_S = 86400;
+const WEEK_S = 7 * DAY_S;
+
+/**
+ * DM-style short stamp for the inbox date column: "now", "5m", "2h" within a
+ * day, the weekday ("Mon") within a week, then "12 Mar". Day boundaries use
+ * the artist's zone like formatLeadTimestamp; `now` is injectable for tests.
+ * Returns "" for empty or invalid input.
+ */
+export function formatLeadShortDate(iso: string, now: Date = new Date()): string {
+	if (!iso) return "";
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return "";
+	const seconds = Math.max(0, (now.getTime() - d.getTime()) / 1000);
+	if (seconds < MINUTE_S) return "now";
+	if (seconds < HOUR_S) return `${Math.floor(seconds / MINUTE_S)}m`;
+	if (seconds < DAY_S) return `${Math.floor(seconds / HOUR_S)}h`;
+	if (seconds < WEEK_S) {
+		return d.toLocaleDateString("en-IN", { weekday: "short", timeZone: "Asia/Kolkata" });
+	}
+	return d.toLocaleDateString("en-IN", {
+		day: "numeric",
+		month: "short",
+		timeZone: "Asia/Kolkata",
+	});
+}
