@@ -11,8 +11,13 @@ import {
 import Link from "next/link";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 import { Reveal } from "@/components/motion/reveal";
+import { AccentRule } from "@/components/ui/accent-rule";
 import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
+import { Container } from "@/components/ui/container";
+import { IconCircle } from "@/components/ui/icon-circle";
 import { getSite } from "@/lib/data";
+import { staggerDelay } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 type BrandIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -33,6 +38,11 @@ const NAV_ICON: Record<string, LucideIcon> = {
 	"custom-orders": Brush,
 	contact: Mail,
 };
+
+/** Underline draw for the bottom-bar text links (motion addendum C7): a 1px
+ *  line grows from the left on hover/focus; inherits fast/ease-out. */
+const DRAW_UNDERLINE =
+	"after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-current after:origin-left after:scale-x-0 after:transition-transform hover:after:scale-x-100 focus-visible:after:scale-x-100";
 
 function navKey(href: string): string {
 	return href.replace(/^[#/]+/, "");
@@ -65,7 +75,7 @@ export function SiteFooter() {
 	];
 
 	return (
-		<footer className="relative mt-24 overflow-hidden border-t border-line bg-bg-soft">
+		<footer className="relative overflow-hidden border-t border-line bg-canvas">
 			{/* Artistic top rule -- a hairline that fades through accent, replacing
 			    the flat border for a more crafted seam (decorative). */}
 			<div
@@ -83,28 +93,28 @@ export function SiteFooter() {
 				className="pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-accent-soft/8 blur-3xl"
 			/>
 
-			<div className="relative z-10 mx-auto max-w-6xl px-(--container-px)">
+			<Container className="relative z-raised">
 				{/* ── Top: links + channels ── */}
-				<div className="grid gap-10 py-14 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto] md:gap-16 sm:py-16">
+				<div className="grid gap-10 py-14 sm:grid-cols-2 sm:py-16 lg:grid-cols-[1fr_1fr_auto] lg:gap-16">
 					{/* Brand */}
-					<Reveal as="div" delayMs={0} className="sm:col-span-2 md:col-span-1">
+					<Reveal as="div" delayMs={staggerDelay(0)} className="sm:col-span-2 lg:col-span-1">
 						<Link
 							href="/"
 							aria-label="Home"
-							className="group inline-flex min-h-11 items-center gap-2"
+							className="group inline-flex min-h-control items-baseline gap-2"
 						>
-							<span className="t-display text-3xl leading-none tracking-[var(--tracking-tight)] sm:text-[2rem]">
-								<span className="not-italic transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent">
+							<span className="t-display text-3xl tracking-tight">
+								<span className="not-italic transition-colors group-hover:text-accent-text">
 									{brand.headline.latinPrefix}
 								</span>
-								<span lang="hi" className="font-devanagari not-italic text-accent">
+								<span lang="hi" className="devanagari-display text-accent">
 									{brand.headline.devanagariCore}
 								</span>
 							</span>
 							<span className="text-sm text-muted">by {brand.headline.suffix}</span>
 						</Link>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
-						<p className="mt-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-[var(--tracking-meta)] text-muted">
+						<p className="t-meta mt-3 inline-flex items-center gap-1.5">
 							<span aria-hidden="true" className="inline-block h-1 w-1 rounded-full bg-accent" />
 							{brand.location}
 						</p>
@@ -113,26 +123,32 @@ export function SiteFooter() {
 					{/* Explore -- icon-led index. Each row is a self-contained chip
 					    (icon pellet + label) so the list reads as a structured menu
 					    rather than a sparse column, and rhymes with Reach out. */}
-					<Reveal as="div" delayMs={80}>
+					<Reveal as="div" delayMs={staggerDelay(1)}>
 						<nav aria-label="Footer">
-							<p className="t-eyebrow">Explore</p>
+							<p className="t-eyebrow flex items-center gap-2">
+								<AccentRule />
+								Explore
+							</p>
 							<ul className="mt-5 space-y-1">
 								{nav.map((item) => {
 									const Icon = NAV_ICON[navKey(item.href)];
 									return (
 										<li key={item.href}>
 											<Link
-												className="group -mx-2 flex min-h-11 items-center gap-3 rounded-(--radius-md) px-2 py-2 text-sm text-ink transition-colors duration-(--duration-base) ease-(--ease-out) hover:bg-bg/60"
+												className="group -mx-2 flex min-h-control items-center gap-3 rounded-(--radius-sm) px-2 py-2 text-sm text-ink transition-colors hover:bg-surface/60 active:bg-surface/60"
 												href={item.href.startsWith("#") ? `/${item.href.slice(1)}` : item.href}
 											>
-												<span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-bg-soft text-muted ring-1 ring-line transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent group-hover:ring-accent/60">
+												<IconCircle
+													size="xs"
+													className="bg-surface text-muted group-hover:text-accent-text group-hover:ring-accent/60"
+												>
 													{Icon ? (
-														<Icon size={15} aria-hidden="true" />
+														<Icon size={16} aria-hidden="true" />
 													) : (
 														<span aria-hidden="true" className="h-1 w-1 rounded-full bg-current" />
 													)}
-												</span>
-												<span className="transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-accent">
+												</IconCircle>
+												<span className="transition-colors group-hover:text-accent-text">
 													{item.label}
 												</span>
 											</Link>
@@ -143,37 +159,49 @@ export function SiteFooter() {
 						</nav>
 					</Reveal>
 
-					{/* Reach out -- pigment pellets with an always-visible caption. The
-					    caption (Art / Workshops / WhatsApp / Email) is what tells the two
-					    Instagram channels apart without a hover, which phones don't have.
-					    The full handle still surfaces in a hover/focus tooltip + aria-label. */}
-					<Reveal as="div" delayMs={160}>
-						<p className="t-eyebrow">Reach out</p>
-						<ul className="mt-5 flex flex-wrap gap-x-5 gap-y-4">
+					{/* Reach out -- pigment pellets. On phones each channel is a 44px
+					    row (pellet, caption, then the actual handle or number) so
+					    "Art" and "Workshops" say which account opens without a hover;
+					    from sm the pellets wrap with a hover/focus tooltip. */}
+					<Reveal as="div" delayMs={staggerDelay(2)}>
+						<p className="t-eyebrow flex items-center gap-2">
+							<AccentRule />
+							Reach out
+						</p>
+						<ul className="mt-5 grid gap-1 sm:flex sm:max-w-[19rem] sm:flex-wrap sm:gap-x-5 sm:gap-y-4">
 							{channels.map((c) => {
 								const Icon = ICON_FOR_KEY[c.key];
 								const handle = c.display ?? c.label;
 								return (
 									<li key={c.url} style={{ "--ch-accent": c.tint } as CSSProperties}>
 										<a
-											className="group flex flex-col items-center gap-2 text-muted transition-colors duration-(--duration-base) ease-(--ease-out) hover:text-(--ch-accent) focus-visible:text-(--ch-accent)"
+											className="group -mx-2 flex min-h-control items-center gap-3 rounded-(--radius-sm) px-2 py-1 text-muted transition-colors hover:text-(--ch-accent) focus-visible:text-(--ch-accent) active:bg-surface/60 sm:mx-0 sm:flex-col sm:items-center sm:gap-2 sm:px-0 sm:py-0"
 											href={c.url}
 											aria-label={`${c.label}: ${handle}`}
+											title={handle}
 											target={c.url.startsWith("http") ? "_blank" : undefined}
 											rel={c.url.startsWith("http") ? "noopener noreferrer" : undefined}
 										>
-											<span className="relative grid h-12 w-12 place-items-center rounded-full border border-line bg-bg/60 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:-translate-y-0.5 group-hover:border-(--ch-accent)/60 group-hover:shadow-e1">
-												{Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
-												{/* Tooltip -- full handle on hover/focus (pointer + keyboard). */}
+											<IconCircle
+												size="md"
+												className="relative bg-surface text-current pressable group-hover:-translate-y-0.5 group-hover:ring-(--ch-accent)/60 group-hover:shadow-e1"
+											>
+												{Icon ? <Icon className="size-5" aria-hidden="true" /> : null}
+												{/* Tooltip: full handle on hover/focus from sm up (phones read the handle inline below). */}
 												<span
 													aria-hidden="true"
-													className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-(--radius-sm) bg-ink px-2 py-1 text-[0.6875rem] font-medium tracking-normal text-bg opacity-0 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+													className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-(--radius-sm) bg-scrim px-2 py-1 text-micro font-medium tracking-normal text-bg opacity-0 transition-[opacity,translate] group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:block dark:text-ink"
 												>
 													{handle}
 												</span>
-											</span>
-											<span className="text-[0.6875rem] font-medium uppercase tracking-[var(--tracking-meta)]">
-												{c.caption}
+											</IconCircle>
+											<span className="flex min-w-0 flex-col sm:items-center">
+												<span className="text-micro font-medium uppercase tracking-meta">
+													{c.caption}
+												</span>
+												<span className="truncate text-xs normal-case tracking-normal text-muted sm:hidden">
+													{handle}
+												</span>
 											</span>
 										</a>
 									</li>
@@ -186,50 +214,67 @@ export function SiteFooter() {
 				{/* ── Bottom bar ── centered + stacked on mobile, split on desktop.
 				    `eager` (CSS reveal, not whileInView): this sits at the very page
 				    bottom where the in-view trigger can fail to fire and leave it
-				    stuck at opacity:0. Eager renders it visible on mount. ── */}
-				<Reveal
-					as="div"
-					eager
-					delayMs={120}
-					className="flex flex-col items-center gap-3 border-t border-line/70 pt-6 pb-24 text-center text-xs uppercase tracking-[var(--tracking-meta)] text-muted sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-left"
-				>
-					<p>
-						&copy; {year} {brand.title}. All rights reserved.
-					</p>
-					<div className="flex items-center gap-3">
-						<Link
-							href="/trust"
-							className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-accent"
-						>
-							FAQ
-						</Link>
-						<span aria-hidden="true" className="h-3 w-px bg-line" />
-						<Link
-							href="/admin"
-							className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-accent"
-						>
-							<Lock size={11} aria-hidden="true" />
-							Admin
-						</Link>
-						<span aria-hidden="true" className="h-3 w-px bg-line" />
-						<span>
-							Developed by{" "}
-							{developer ? (
-								<a
-									href={developer.instagram}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="inline-flex min-h-11 items-center underline underline-offset-3 decoration-line/50 transition-colors hover:text-accent hover:decoration-accent"
-								>
-									{developer.name}
-								</a>
-							) : (
-								"Sagar Gupta"
-							)}
-						</span>
-					</div>
-				</Reveal>
-			</div>
+				    stuck at opacity:0. The wrapper div is the sentinel BackToTop
+				    observes to yield these links (Reveal forwards no data-* props). ── */}
+				<div data-fab-sentinel="">
+					<Reveal
+						as="div"
+						eager
+						delayMs={staggerDelay(2)}
+						className="t-meta flex flex-col items-center gap-3 border-t border-line/70 pt-6 pb-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left"
+					>
+						<p>
+							&copy; {year}{" "}
+							<span className="normal-case">
+								{brand.headline.latinPrefix}
+								<span lang="hi" className="devanagari-display">
+									{brand.headline.devanagariCore}
+								</span>{" "}
+								{brand.headline.connector} {brand.headline.suffix}
+							</span>
+							. All rights reserved.
+						</p>
+						<div className="flex items-center gap-3">
+							<Link
+								href="/trust"
+								className={cn(
+									"relative inline-flex min-h-control min-w-control items-center justify-center transition-colors hover:text-accent-text",
+									DRAW_UNDERLINE,
+								)}
+							>
+								FAQ
+							</Link>
+							<span aria-hidden="true" className="h-3 w-px bg-line" />
+							<Link
+								href="/admin"
+								className={cn(
+									"relative inline-flex min-h-control items-center gap-1.5 transition-colors hover:text-accent-text",
+									DRAW_UNDERLINE,
+								)}
+							>
+								<Lock size={12} aria-hidden="true" />
+								Admin
+							</Link>
+							<span aria-hidden="true" className="h-3 w-px bg-line" />
+							<span>
+								Developed by{" "}
+								{developer ? (
+									<a
+										href={developer.instagram}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="inline-flex min-h-control items-center underline decoration-line/50 underline-offset-3 transition-colors hover:text-accent-text hover:decoration-accent"
+									>
+										{developer.name}
+									</a>
+								) : (
+									"Sagar Gupta"
+								)}
+							</span>
+						</div>
+					</Reveal>
+				</div>
+			</Container>
 		</footer>
 	);
 }

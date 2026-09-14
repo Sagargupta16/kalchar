@@ -263,6 +263,16 @@ test("theme toggle drives the browser theme colour", async ({ page }) => {
 	expect(await page.evaluate(() => localStorage.getItem("theme"))).toBe("dark");
 });
 
+test("back to top yields to the footer bottom bar", async ({ page }) => {
+	await page.goto("/");
+	const fab = page.getByRole("button", { name: "Back to top" });
+	await page.evaluate(() => globalThis.scrollTo(0, document.documentElement.scrollHeight));
+	await expect(fab).toHaveCSS("opacity", "0");
+	await expect(page.getByRole("contentinfo").getByRole("link", { name: "FAQ" })).toBeInViewport();
+	await page.mouse.wheel(0, -400);
+	await expect(fab).toHaveCSS("opacity", "1");
+});
+
 test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await page.goto("/work/");
 	const style = page.getByRole("button", { name: "Madhubani", exact: true });
