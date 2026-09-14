@@ -41,9 +41,12 @@ const NAV_ICON: Record<string, LucideIcon> = {
 };
 
 /** Underline draw for the bottom-bar text links (motion addendum C7): a 1px
- *  line grows from the left on hover/focus; inherits fast/ease-out. */
+ *  line grows from the left on hover/focus; inherits fast/ease-out. The tween
+ *  is motion-safe gated so the line appears instantly under reduced motion
+ *  (C7 RM clause): the reduced block kills only bare .transition-transform,
+ *  and the after: variant compiles to a class it never matches. */
 const DRAW_UNDERLINE =
-	"after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-current after:origin-left after:scale-x-0 after:transition-transform hover:after:scale-x-100 focus-visible:after:scale-x-100";
+	"after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-current after:origin-left after:scale-x-0 motion-safe:after:transition-transform hover:after:scale-x-100 focus-visible:after:scale-x-100";
 
 function navKey(href: string): string {
 	return href.replace(/^[#/]+/, "");

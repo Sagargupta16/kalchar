@@ -317,6 +317,15 @@ test("floating WhatsApp disc follows the route policy", async ({ page }) => {
 	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
 	await page.goto("/custom-orders/");
 	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
+	// Detail pages hand the action to the enquiry bar (2.14): never mounted.
+	await page.goto("/work/");
+	const detailPath = await page
+		.locator('main a[aria-label][href^="/work/"]')
+		.first()
+		.getAttribute("href");
+	expect(detailPath).not.toBeNull();
+	await page.goto(detailPath as string);
+	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
 });
 
 test("gallery filter state is reflected in the URL", async ({ page }) => {
