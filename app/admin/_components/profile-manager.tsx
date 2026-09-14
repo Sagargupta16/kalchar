@@ -136,8 +136,14 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 						<div className="relative size-32 shrink-0">
 							<div className="size-full overflow-hidden rounded-full bg-canvas ring-1 ring-line">
 								{previewSrc ? (
+									// Keyed by imageKey so a saved swap remounts the img and crossfades in at base (Tier 2f).
 									// biome-ignore lint/performance/noImgElement: admin-only preview, R2 origin, next/image not configured for this host
-									<img src={previewSrc} alt="Current profile" className="size-full object-cover" />
+									<img
+										key={imageKey}
+										src={previewSrc}
+										alt="Current profile"
+										className="size-full object-cover starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-base)"
+									/>
 								) : (
 									<span className="grid size-full place-items-center text-muted">
 										<UserCircle size={32} aria-hidden="true" />
