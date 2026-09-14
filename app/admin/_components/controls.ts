@@ -53,7 +53,8 @@ export const adminIconBtnPrimary = `${ICON_BTN_BASE} bg-accent text-bg hover:bg-
 export const adminIconBtnDestructive = `${ICON_BTN_BASE} border border-ruby-line text-ruby hover:bg-ruby hover:text-bg`;
 export const adminIconBtnGhost = `${ICON_BTN_BASE} text-muted hover:bg-canvas hover:text-ink`;
 
-export const adminPanel = "rounded-(--radius-md) border border-line bg-surface p-(--card-pad)";
+export const adminPanel =
+	"rounded-(--radius-md) border border-line bg-surface p-(--card-pad) shadow-e1";
 export const adminPanelInset = "rounded-(--radius-md) border border-line bg-canvas p-(--card-pad)";
 export const adminRow = "rounded-(--radius-sm) border border-line bg-surface p-3 transition-ui";
 export const adminRowInset = "rounded-(--radius-sm) border border-line bg-canvas p-3 transition-ui";
@@ -72,3 +73,15 @@ export const adminSwitch =
 	"group relative inline-flex h-6 min-h-0 w-11 shrink-0 items-center rounded-full border border-line bg-canvas transition-colors pressable aria-checked:border-accent aria-checked:bg-accent before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-['']";
 export const adminSwitchThumb =
 	"block size-5 translate-x-0.5 rounded-full bg-surface shadow-e1 transition-ui group-aria-checked:translate-x-5";
+
+/** Chip-shaped inline add field (categories, presets, maintainers invite): field left, a round primary + inside its right end. */
+export const adminChipField =
+	"flex min-h-control w-full items-center gap-2 rounded-full border border-line-strong bg-canvas pl-4 pr-1 transition-ui";
+/** Position badge on photo tiles (lifted from artwork-row.tsx, one source). */
+export const adminTileBadge =
+	"rounded-full bg-scrim/80 px-1.5 py-0.5 text-micro leading-none tabular-nums text-bg dark:text-ink";
+/** Status dot base; colour via bg-status-available / bg-status-sold / bg-status-nfs at the call site. */
+export const adminStatusDot = "shrink-0 rounded-full";
+/** Initials disc for enquiries, maintainers and the header avatar (one people-shape). */
+export const adminInitialsDisc =
+	"grid shrink-0 place-items-center rounded-full bg-bg-muted text-sm font-semibold uppercase text-ink ring-1 ring-line";

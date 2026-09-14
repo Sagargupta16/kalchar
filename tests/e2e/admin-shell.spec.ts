@@ -193,3 +193,122 @@ test("useOptimisticAction flips at once and reverts on failure", async ({ page }
 	await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
 	expect(await page.evaluate(() => window.adminTest.refreshes)).toBe(0);
 });
+
+test("raised Add opens the piece sheet on the dashboard and renames per route", async ({
+	page,
+}) => {
+	await mountAdmin(page, "nav");
+	const add = page.getByRole("button", { name: "Add a piece" });
+	await expect(add).toBeVisible();
+	await add.click();
+	await expect(page.getByRole("dialog", { name: "New piece" })).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(page.locator("dialog[open]")).toHaveCount(0);
+	await navigateTo(page, "/admin/events");
+	await expect(page.getByRole("button", { name: "Add an event", exact: true })).toBeVisible();
+	await navigateTo(page, "/admin/workshops");
+	await expect(page.getByRole("button", { name: "Add", exact: true })).toHaveAttribute(
+		"aria-haspopup",
+		"dialog",
+	);
+});
+
+test("Add choice sheet lists the four creates and routes the workshop row", async ({ page }) => {
+	await mountAdmin(page, "nav");
+	await navigateTo(page, "/admin/profile");
+	await page.getByRole("button", { name: "Add", exact: true }).click();
+	const sheet = page.getByRole("dialog", { name: "Add", exact: true });
+	await expect(sheet).toBeVisible();
+	await expect(sheet.locator("[data-grabber]")).toHaveCount(1);
+	for (const label of ["Add piece", "Add event", "Add workshop", "Add testimonial"]) {
+		await expect(sheet.getByRole("button", { name: label, exact: true })).toBeVisible();
+	}
+	await sheet.getByRole("button", { name: "Add workshop", exact: true }).click();
+	await expect(sheet).toHaveCount(0);
+	expect(await page.evaluate(() => window.adminTest.pathname)).toBe("/admin/workshops");
+});
+
+test("Add choice piece row opens the New piece sheet in the same tap", async ({ page }) => {
+	await mountAdmin(page, "nav");
+	await navigateTo(page, "/admin/profile");
+	await page.getByRole("button", { name: "Add", exact: true }).click();
+	await page.getByRole("button", { name: "Add piece", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "New piece" })).toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Add", exact: true })).toHaveCount(0);
+});
+
+test("More sheet foot row keeps theme and sign out reachable on phones", async ({ page }) => {
+	await mountAdmin(page, "nav");
+	await page.getByRole("button", { name: "More", exact: true }).click();
+	const sheet = page.getByRole("dialog", { name: "More tools" });
+	await expect(sheet.getByRole("link", { name: "Workshops", exact: true })).toBeVisible();
+	await expect(sheet.getByRole("button", { name: /Switch to (dark|light) theme/ })).toBeVisible();
+});
+
+test("Enquiries pill caps at 9+ while the accessible name keeps the real count", async ({
+	page,
+}) => {
+	await mountAdmin(page, "navBadged12");
+	const link = page.getByRole("link", { name: "Enquiries, 12 new", exact: true });
+	await expect(link).toBeVisible();
+	await expect(link.locator("[aria-hidden='true']", { hasText: "9+" })).toHaveCount(1);
+});
+
+test("segmented control is a radiogroup whose arrow keys move and apply", async ({ page }) => {
+	await mountAdmin(page, "segmented");
+	const group = page.getByRole("radiogroup", { name: "Status of Alpha" });
+	await expect(group).toBeVisible();
+	await expect(group.getByRole("radio", { checked: true })).toHaveText(/Available/);
+	await expect(group.getByRole("radio")).toHaveCount(3);
+	await group.getByRole("radio", { checked: true }).press("ArrowRight");
+	await expect(group.getByRole("radio", { checked: true })).toHaveText(/Sold/);
+	await expect(page.locator("output")).toHaveText("sold");
+	await expect(group.getByRole("radio", { name: "Sold" })).toBeFocused();
+	await group.getByRole("radio", { checked: true }).press("ArrowRight");
+	await expect(page.locator("output")).toHaveText("archive");
+	await expect(page.getByText("Shown in the gallery without a price")).toBeVisible();
+	await group.getByRole("radio", { name: "Available" }).click();
+	await expect(page.locator("output")).toHaveText("available");
+});
+
+test("a blocked segment is disabled and its reason shows under the track", async ({ page }) => {
+	await mountAdmin(page, "segmentedBlocked");
+	const group = page.getByRole("radiogroup", { name: "Status of Bravo" });
+	await expect(group.getByRole("radio", { name: "Not for sale" })).toBeDisabled();
+	await expect(page.getByText("Remove the price first.")).toBeVisible();
+	await group.getByRole("radio", { checked: true }).press("ArrowRight");
+	await expect(group.getByRole("radio", { checked: true })).toHaveText(/Sold/);
+	await group.getByRole("radio", { checked: true }).press("ArrowRight");
+	await expect(group.getByRole("radio", { checked: true })).toHaveText(/Available/);
+});
+
+test("toast with actions renders both buttons and no Undo", async ({ page }) => {
+	await mountAdmin(page, "bars");
+	await page.getByRole("button", { name: "Show add toast" }).click();
+	const bar = page.getByRole("status");
+	await expect(bar).toContainText('Added "Alpha" to the gallery');
+	await expect(bar.getByRole("button", { name: "Undo" })).toHaveCount(0);
+	await expect(bar.getByRole("button", { name: "View", exact: true })).toBeVisible();
+	await bar.getByRole("button", { name: "Add another", exact: true }).click();
+	await expect(page.locator("[data-viewed]")).toHaveText("1");
+	await bar.getByRole("button", { name: "Dismiss" }).click();
+	await expect(bar).toHaveCount(0);
+});
+
+test("undo toast pauses its countdown while the tab is hidden", async ({ page }) => {
+	await mountAdmin(page, "bars");
+	await page.getByRole("button", { name: "Mark Alpha sold" }).click();
+	const bar = page.getByRole("status");
+	await expect(bar).toBeVisible();
+	await page.evaluate(() => {
+		Object.defineProperty(document, "hidden", { value: true, configurable: true });
+		document.dispatchEvent(new Event("visibilitychange"));
+	});
+	await page.waitForTimeout(600);
+	await expect(bar).toBeVisible();
+	await page.evaluate(() => {
+		Object.defineProperty(document, "hidden", { value: false, configurable: true });
+		document.dispatchEvent(new Event("visibilitychange"));
+	});
+	await expect(bar).toHaveCount(0, { timeout: 1500 });
+});

@@ -8,6 +8,7 @@ import {
 	ListChecks,
 	MessageSquareQuote,
 	Palette,
+	Plus,
 	Tags,
 	UserCircle,
 	Users,
@@ -16,11 +17,14 @@ import {
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
-import { SPRING_INDICATOR } from "@/lib/motion";
+import { PRESS_SCALE, SPRING_INDICATOR, SPRING_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { adminIconBtnGhost, ICON_MD, ICON_TAB } from "./controls";
+import { useAddSheet } from "./add-sheet";
+import { adminBtn, adminBtnPrimary, adminIconBtnGhost, ICON_MD, ICON_TAB } from "./controls";
+import { MODAL_EXIT_MS } from "./modal";
 
 // Grouped so related destinations cluster instead of reading as one long,
 // arbitrary row: the catalog, then community content, then the enquiry inbox,
@@ -44,12 +48,9 @@ const NAV_GROUPS = [
 ];
 
 const NAV = NAV_GROUPS.flat();
-const MOBILE_PRIMARY_HREFS = new Set([
-	"/admin",
-	"/admin/events",
-	"/admin/workshops",
-	"/admin/leads",
-]);
+// Workshops leaves the bar for the More sheet: the middle cell is the raised
+// Add (1.3, decision D-A2). Nothing is removed; it joins MORE_GROUPS below.
+const MOBILE_PRIMARY_HREFS = new Set(["/admin", "/admin/events", "/admin/leads"]);
 const MOBILE_PRIMARY_NAV = NAV.filter((item) => MOBILE_PRIMARY_HREFS.has(item.href));
 const MOBILE_MORE_NAV = NAV.filter((item) => !MOBILE_PRIMARY_HREFS.has(item.href));
 const MORE_GROUPS = NAV_GROUPS.map((group) =>
@@ -77,8 +78,10 @@ const PILL =
 function CountPill({ count, className }: Readonly<{ count: number; className?: string }>) {
 	return (
 		// Not cn(): tailwind-merge would drop the custom text-micro size in favour of text-bg.
+		// Cap 9+ (was 99+): a three-digit badge teaches her to stop looking (D-A4);
+		// the accessible name keeps the real count.
 		<span aria-hidden="true" className={className ? `${PILL} ${className}` : PILL}>
-			{count > 99 ? "99+" : count}
+			{count > 9 ? "9+" : count}
 		</span>
 	);
 }
@@ -94,15 +97,26 @@ function useIsActive() {
 	};
 }
 
+/** piece on /admin, event on /admin/events, the choice sheet everywhere else (1.3). */
+function useAddContext(): "piece" | "event" | "choice" {
+	const pathname = usePathname();
+	const path = pathname.replace(/\/$/, "") || "/";
+	if (path === "/admin") return "piece";
+	if (path === "/admin/events" || path.startsWith("/admin/events/")) return "event";
+	return "choice";
+}
+
 // transition-ui, not transition-colors: Tailwind's transition-colors also animates
 // outline-color, so the focus outline faded in from the muted text colour instead of
 // appearing in accent at once. transition-ui lists its properties explicitly.
 const DESKTOP_LINK =
 	"relative isolate inline-flex min-h-control items-center gap-1.5 whitespace-nowrap rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable";
 
-/** Desktop horizontal nav, grouped with separators between clusters. */
+/** Desktop horizontal nav, grouped with separators; ends with the context Add (1.3). */
 export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {}) {
 	const isActive = useIsActive();
+	const addContext = useAddContext();
+	const { openPiece, openEvent, openChoice } = useAddSheet();
 	return (
 		<nav aria-label="Admin" className="flex min-h-14 items-center gap-1 overflow-x-auto">
 			<LayoutGroup id="admin-nav-desktop">
@@ -146,6 +160,26 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 					</div>
 				))}
 			</LayoutGroup>
+			{addContext === "choice" ? (
+				<button
+					type="button"
+					onClick={openChoice}
+					aria-haspopup="dialog"
+					className={cn(adminBtn, "ml-auto shrink-0")}
+				>
+					<Plus size={ICON_MD} aria-hidden="true" />
+					Add
+				</button>
+			) : (
+				<button
+					type="button"
+					onClick={addContext === "piece" ? openPiece : openEvent}
+					className={cn(adminBtnPrimary, "ml-auto shrink-0")}
+				>
+					<Plus size={ICON_MD} aria-hidden="true" />
+					{addContext === "piece" ? "Add piece" : "Add event"}
+				</button>
+			)}
 		</nav>
 	);
 }
@@ -198,39 +232,116 @@ function MobileNavLink({
 	);
 }
 
+/**
+ * The raised Add cell (1.3): a terracotta size-fab disc on a bg-surface
+ * collar, lifted out of the bar, one hit target with the label. Motion owns
+ * every transform on the button (never pair with CSS pressable); the Plus
+ * rotates to an X while an add surface is open and snaps under reduced motion.
+ */
+function RaisedAddCell() {
+	const addContext = useAddContext();
+	const { openPiece, openEvent, openChoice, addOpen } = useAddSheet();
+	const label =
+		addContext === "piece" ? "Add a piece" : addContext === "event" ? "Add an event" : "Add";
+	return (
+		<motion.button
+			type="button"
+			whileTap={{ scale: PRESS_SCALE }}
+			transition={SPRING_PRESS}
+			onClick={addContext === "piece" ? openPiece : addContext === "event" ? openEvent : openChoice}
+			aria-label={label}
+			aria-haspopup={addContext === "choice" ? "dialog" : undefined}
+			className="relative flex h-full w-full flex-col items-center justify-end pb-1"
+		>
+			<span
+				aria-hidden="true"
+				className="grid size-[4.25rem] -translate-y-4 place-items-center rounded-full bg-surface shadow-hairline"
+			>
+				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3">
+					<Plus
+						size={24}
+						className={cn(
+							"transition-transform duration-(--duration-base) ease-(--ease-in-out)",
+							addOpen && "rotate-45",
+						)}
+					/>
+				</span>
+			</span>
+			<span className={cn("absolute bottom-1 font-medium text-muted", TAB_LABEL)}>Add</span>
+		</motion.button>
+	);
+}
+
 /** Compact mobile/tablet navigation with secondary tools behind one sheet. */
-export function AdminNavMobile({ email, counts }: Readonly<{ email: string; counts?: NavCounts }>) {
+export function AdminNavMobile({
+	email,
+	counts,
+	signOut,
+}: Readonly<{ email: string; counts?: NavCounts; signOut?: ReactNode }>) {
 	const isActive = useIsActive();
 	const pathname = usePathname();
+	const reduce = usePrefersReducedMotion();
 	const sheetTitleId = useId();
-	const [moreOpen, setMoreOpen] = useState(false);
+	const [morePhase, setMorePhase] = useState<"closed" | "open" | "closing">("closed");
 	const moreButtonRef = useRef<HTMLButtonElement>(null);
 	const firstMoreLinkRef = useRef<HTMLAnchorElement>(null);
+	const closeTimer = useRef<number | null>(null);
+	const moreOpen = morePhase === "open";
 	const moreActive = MOBILE_MORE_NAV.some((item) => isActive(item.href));
 
-	const close = () => {
-		setMoreOpen(false);
-		moreButtonRef.current?.focus();
-	};
+	// A4: the sheet and scrim exit at fast/ease-in before unmount; a route
+	// change or reduced motion unmounts at once.
+	const close = useCallback(
+		(animated = true) => {
+			if (closeTimer.current !== null) return;
+			moreButtonRef.current?.focus();
+			if (!animated || reduce) {
+				setMorePhase("closed");
+				return;
+			}
+			setMorePhase("closing");
+			closeTimer.current = window.setTimeout(() => {
+				closeTimer.current = null;
+				setMorePhase("closed");
+			}, MODAL_EXIT_MS);
+		},
+		[reduce],
+	);
 
 	useEffect(() => {
-		if (!moreOpen) return;
-		firstMoreLinkRef.current?.focus();
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				setMoreOpen(false);
-				moreButtonRef.current?.focus();
-			}
+		return () => {
+			if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
 		};
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [moreOpen]);
+	}, []);
+
+	useEffect(() => {
+		if (morePhase !== "open") return;
+		firstMoreLinkRef.current?.focus();
+	}, [morePhase]);
 
 	// Hardware Back / any route change closes the sheet.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, not a value we read
 	useEffect(() => {
-		setMoreOpen(false);
+		if (closeTimer.current !== null) {
+			window.clearTimeout(closeTimer.current);
+			closeTimer.current = null;
+		}
+		setMorePhase("closed");
 	}, [pathname]);
+
+	useEffect(() => {
+		if (!moreOpen) return;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") close();
+		};
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [moreOpen, close]);
+
+	const closingClasses =
+		morePhase === "closing"
+			? "opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)"
+			: undefined;
 
 	return (
 		<>
@@ -240,7 +351,21 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 			>
 				<LayoutGroup id="admin-nav-mobile">
 					<ul className="mx-auto grid h-tabbar max-w-lg grid-cols-5 gap-1 px-2">
-						{MOBILE_PRIMARY_NAV.map((item) => (
+						{MOBILE_PRIMARY_NAV.slice(0, 2).map((item) => (
+							<li key={item.href}>
+								<MobileNavLink
+									href={item.href}
+									label={item.label}
+									icon={item.icon}
+									active={isActive(item.href)}
+									count={badgeCount(counts, item.href)}
+								/>
+							</li>
+						))}
+						<li>
+							<RaisedAddCell />
+						</li>
+						{MOBILE_PRIMARY_NAV.slice(2).map((item) => (
 							<li key={item.href}>
 								<MobileNavLink
 									href={item.href}
@@ -255,7 +380,7 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 							<button
 								ref={moreButtonRef}
 								type="button"
-								onClick={() => setMoreOpen((open) => !open)}
+								onClick={() => (moreOpen ? close() : setMorePhase("open"))}
 								aria-expanded={moreOpen}
 								aria-haspopup="dialog"
 								aria-controls="admin-more-tools"
@@ -274,20 +399,27 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 				</LayoutGroup>
 			</nav>
 
-			{moreOpen ? (
+			{morePhase !== "closed" ? (
 				<>
 					<button
 						type="button"
 						tabIndex={-1}
 						aria-label="Close more tools"
-						onClick={close}
-						className="fixed inset-0 z-nav bg-scrim/40 dark:bg-scrim/60 xl:hidden starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-base)"
+						onClick={() => close()}
+						className={cn(
+							"fixed inset-0 z-nav bg-scrim/40 dark:bg-scrim/60 xl:hidden starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-base)",
+							closingClasses,
+						)}
 					/>
 					<div
 						id="admin-more-tools"
 						role="dialog"
 						aria-labelledby={sheetTitleId}
-						className="fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-w-md rounded-(--radius-md) border border-line bg-surface-raised p-3 shadow-e5 xl:hidden starting:translate-y-3 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)"
+						className={cn(
+							"fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-w-md rounded-(--radius-md) border border-line bg-surface-raised p-3 shadow-e5 xl:hidden starting:translate-y-3 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)",
+							closingClasses,
+							morePhase === "closing" && "translate-y-3",
+						)}
 					>
 						<div className="mb-2 flex items-start justify-between gap-3 px-3">
 							<div className="min-w-0 py-2">
@@ -298,7 +430,7 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 							</div>
 							<button
 								type="button"
-								onClick={close}
+								onClick={() => close()}
 								aria-label="Close more tools"
 								className={adminIconBtnGhost}
 							>
@@ -316,7 +448,7 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 												<Link
 													ref={gi === 0 && index === 0 ? firstMoreLinkRef : undefined}
 													href={item.href}
-													onClick={() => setMoreOpen(false)}
+													onClick={() => setMorePhase("closed")}
 													aria-current={active ? "page" : undefined}
 													className={cn(
 														"flex min-h-12 items-center gap-2 rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable",
@@ -332,6 +464,11 @@ export function AdminNavMobile({ email, counts }: Readonly<{ email: string; coun
 								</ul>
 							</Fragment>
 						))}
+						<hr className="my-1 border-line" />
+						<div className="flex items-center justify-between gap-3 pt-2">
+							<ThemeToggle compact />
+							{signOut}
+						</div>
 					</div>
 				</>
 			) : null}

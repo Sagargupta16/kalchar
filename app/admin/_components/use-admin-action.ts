@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { isFailure } from "@/lib/action-result";
+import { PENDING_MIN_MS, PENDING_SHOW_MS } from "@/lib/motion";
 
 /**
  * How long a success line stays up before the caller clears it. 4 s is the
@@ -11,24 +12,34 @@ import { isFailure } from "@/lib/action-result";
  */
 export const SAVED_BADGE_DURATION_MS = 4000;
 
-/** Spinners wait this long before appearing, so a fast save never flashes a glyph. */
-export const PENDING_VISIBLE_DELAY_MS = 200;
+/** @deprecated alias of PENDING_SHOW_MS in lib/motion.ts (single source, motion-elevation A3). */
+export const PENDING_VISIBLE_DELAY_MS = PENDING_SHOW_MS;
 
 const GENERIC_FAILURE = "Something went wrong. Refresh and try again.";
 
 /**
- * True PENDING_VISIBLE_DELAY_MS after `pending` turns true, false the moment it
- * settles. Controls still disable and set aria-busy on `pending` itself; only
- * the spinner glyph keys off this value.
+ * True PENDING_SHOW_MS after `pending` turns true; once shown it stays for at
+ * least PENDING_MIN_MS so a spinner never blinks (motion-elevation A3, Vercel
+ * guidelines). Controls still disable and set aria-busy on `pending` itself;
+ * only the spinner glyph keys off this value.
  */
 export function usePendingVisible(pending: boolean): boolean {
 	const [visible, setVisible] = useState(false);
+	const shownAt = useRef(0);
 	useEffect(() => {
-		if (!pending) {
+		if (pending) {
+			const id = window.setTimeout(() => {
+				shownAt.current = Date.now();
+				setVisible(true);
+			}, PENDING_SHOW_MS);
+			return () => window.clearTimeout(id);
+		}
+		const shownFor = Date.now() - shownAt.current;
+		if (shownFor >= PENDING_MIN_MS) {
 			setVisible(false);
 			return;
 		}
-		const id = window.setTimeout(() => setVisible(true), PENDING_VISIBLE_DELAY_MS);
+		const id = window.setTimeout(() => setVisible(false), PENDING_MIN_MS - shownFor);
 		return () => window.clearTimeout(id);
 	}, [pending]);
 	return visible;

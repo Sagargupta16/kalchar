@@ -3,22 +3,33 @@
 import { LoaderCircle, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { UNDO_HOLD_MS } from "@/lib/motion";
 import { AdminNotice } from "./admin-notice";
 import { adminBtn, adminIconBtnGhost, ICON_MD } from "./controls";
+import { MODAL_EXIT_MS } from "./modal";
 import { BottomBar } from "./reorder-bar";
 import { usePendingVisible } from "./use-admin-action";
 
-/** How long an undo offer stays before it dismisses itself (D26: 6 s). Restarts after hover, focus or a pending undo ends. */
-export const UNDO_DURATION_MS = 6000;
+/** @deprecated alias of UNDO_HOLD_MS in lib/motion.ts (single source; D26 superseded by the visual pass, D-A3). */
+export const UNDO_DURATION_MS = UNDO_HOLD_MS;
 
 const GENERIC_FAILURE = "Something went wrong. Refresh and try again.";
+
+/** Secondary toast actions (the add-piece success: View + Add another). Max 2. */
+export interface UndoBarAction {
+	label: string;
+	onClick: () => void;
+}
 
 interface UndoBarProps {
 	/** Past-participle line naming the thing: `"Lotus garden" marked as sold`. */
 	message: string;
 	actionLabel?: string;
 	/** The reverse action. Return the run() promise so the bar can show pending and failure. */
-	onAction: () => unknown;
+	onAction?: () => unknown;
+	/** Plain actions for toasts with no undo (View, Add another). Never together with onAction. */
+	actions?: readonly UndoBarAction[];
 	onDismiss: () => void;
 	pending?: boolean;
 	error?: string | null;
@@ -26,41 +37,88 @@ interface UndoBarProps {
 }
 
 /**
- * Undo v1 (D26): one offer at a time, in the ReorderBar slot above the tab
- * bar, for status flips whose reverse action exists (status, featured,
- * pinned, lead status). Never for deletes (soft delete is DEF3 / DEF16).
- * Polite live region; dismisses on route change, on Dismiss, on Undo
- * success, or after `duration`. A manager renders ReorderBar OR UndoBar,
- * never both.
+ * The admin's general toast (1.6), one bar at a time in the BottomBar slot:
+ * status flips carry Undo (`onAction`); the add-piece success carries plain
+ * `actions` (View, Add another). Never for deletes and never for errors (a
+ * failed undo renders AdminNotice inside the bar and the bar stays). Polite
+ * live region; dismisses on route change, on Dismiss, on Undo success, or
+ * after `duration` (UNDO_HOLD_MS); the countdown pauses on hover, focus and
+ * while the tab is hidden, and the bar exits at fast/ease-in (A2).
  */
 export function UndoBar({
 	message,
 	actionLabel = "Undo",
 	onAction,
+	actions,
 	onDismiss,
 	pending = false,
 	error,
-	duration = UNDO_DURATION_MS,
+	duration = UNDO_HOLD_MS,
 }: Readonly<UndoBarProps>) {
 	const pathname = usePathname();
 	const mountedPath = useRef(pathname);
 	const [held, setHeld] = useState(false);
+	const [hidden, setHidden] = useState(false);
+	const [closing, setClosing] = useState(false);
 	const spinning = usePendingVisible(pending);
+	const reduce = usePrefersReducedMotion();
+	const closeTimer = useRef<number | null>(null);
+	const dismissRef = useRef(onDismiss);
+	dismissRef.current = onDismiss;
+
+	// Dismiss with the A2 exit (8px drop + fade at fast/ease-in) before unmount.
+	const dismiss = useCallback(
+		(animated: boolean) => {
+			if (closeTimer.current !== null) return;
+			if (!animated || reduce) {
+				dismissRef.current();
+				return;
+			}
+			setClosing(true);
+			closeTimer.current = window.setTimeout(() => {
+				closeTimer.current = null;
+				dismissRef.current();
+			}, MODAL_EXIT_MS);
+		},
+		[reduce],
+	);
+
+	useEffect(() => {
+		return () => {
+			if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+		};
+	}, []);
 
 	// Hardware Back or any tab change: the offer belongs to the page it was made on.
 	useEffect(() => {
-		if (pathname !== mountedPath.current) onDismiss();
-	}, [pathname, onDismiss]);
+		if (pathname !== mountedPath.current) dismiss(false);
+	}, [pathname, dismiss]);
 
-	// Auto-dismiss, paused while hovered, focused, pending, or showing a failure.
+	// Switching apps mid-decision never eats the window (1.6, motion-elevation A2).
 	useEffect(() => {
-		if (held || pending || error) return;
-		const id = window.setTimeout(onDismiss, duration);
+		const sync = () => setHidden(document.hidden);
+		sync();
+		document.addEventListener("visibilitychange", sync);
+		return () => document.removeEventListener("visibilitychange", sync);
+	}, []);
+
+	// Auto-dismiss, paused while hovered, focused, hidden, pending, or showing a failure.
+	useEffect(() => {
+		if (held || hidden || pending || error || closing) return;
+		const id = window.setTimeout(() => dismiss(true), duration);
 		return () => window.clearTimeout(id);
-	}, [held, pending, error, duration, onDismiss]);
+	}, [held, hidden, pending, error, closing, duration, dismiss]);
 
 	return (
-		<BottomBar role="status" aria-live="polite">
+		<BottomBar
+			role="status"
+			aria-live="polite"
+			className={
+				closing
+					? "translate-y-2 opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)"
+					: undefined
+			}
+		>
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: hover and focus only pause the auto-dismiss timer; the buttons inside carry the interaction */}
 			<div
 				className="contents"
@@ -79,25 +137,38 @@ export function UndoBar({
 					<p className="min-w-0 flex-1 truncate text-sm text-ink">{message}</p>
 				)}
 				<div className="flex shrink-0 items-center gap-3">
+					{onAction ? (
+						<button
+							type="button"
+							onClick={() => void onAction()}
+							disabled={pending}
+							aria-busy={pending || undefined}
+							className={adminBtn}
+						>
+							{spinning ? (
+								<LoaderCircle
+									size={ICON_MD}
+									aria-hidden="true"
+									className="motion-safe:animate-spin"
+								/>
+							) : null}
+							{actionLabel}
+						</button>
+					) : (
+						actions?.slice(0, 2).map((toastAction) => (
+							<button
+								key={toastAction.label}
+								type="button"
+								onClick={toastAction.onClick}
+								className={adminBtn}
+							>
+								{toastAction.label}
+							</button>
+						))
+					)}
 					<button
 						type="button"
-						onClick={() => void onAction()}
-						disabled={pending}
-						aria-busy={pending || undefined}
-						className={adminBtn}
-					>
-						{spinning ? (
-							<LoaderCircle
-								size={ICON_MD}
-								aria-hidden="true"
-								className="motion-safe:animate-spin"
-							/>
-						) : null}
-						{actionLabel}
-					</button>
-					<button
-						type="button"
-						onClick={onDismiss}
+						onClick={() => dismiss(true)}
 						aria-label="Dismiss"
 						className={adminIconBtnGhost}
 					>

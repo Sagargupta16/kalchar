@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SkeletonHeader } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export type AdminPageWidth = "narrow" | "default" | "wide";
@@ -49,7 +49,7 @@ export function AdminPageHeader({
 			)}
 		>
 			<div className="min-w-0 max-w-(--header-max)">
-				<h1 className="t-heading text-xl text-ink sm:text-2xl">{title}</h1>
+				<h1 className="t-heading text-h1 text-ink">{title}</h1>
 				{description ? (
 					<p className="mt-2 text-pretty text-sm leading-relaxed text-muted">{description}</p>
 				) : null}
@@ -88,11 +88,17 @@ export function AdminPage({
 	);
 }
 
-/** The header shape at rest; sized by chrome's compact SkeletonHeader (D17), on the header's inset so nothing shifts on resolve. */
+/**
+ * The header shape at rest, on the header's inset so nothing shifts on
+ * resolve. Sized locally to the text-h1 rung (1.1): chrome's compact
+ * SkeletonHeader stayed on the old 20px bar and components/ui/skeleton.tsx is
+ * public-lane property, so the admin grows its own bars here.
+ */
 export function AdminPageHeaderSkeleton() {
 	return (
-		<div className={HEADER_INSET}>
-			<SkeletonHeader compact />
+		<div className={cn(HEADER_INSET, "max-w-(--header-max) space-y-3")}>
+			<Skeleton className="h-9 w-40 sm:h-12" />
+			<Skeleton className="h-4 w-64 max-w-full" />
 		</div>
 	);
 }

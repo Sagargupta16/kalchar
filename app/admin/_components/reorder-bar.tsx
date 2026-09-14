@@ -29,6 +29,7 @@ export function BottomBar({
 		<>
 			<div aria-hidden="true" className="h-18" />
 			<div
+				data-bottom-bar=""
 				role={role}
 				aria-live={ariaLive}
 				className={cn(

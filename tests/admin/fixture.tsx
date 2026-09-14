@@ -1,5 +1,6 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AddSheetProvider } from "../../app/admin/_components/add-sheet";
 import { AdminNavMobile, type NavCounts } from "../../app/admin/_components/admin-nav";
 import { ArtworkGrid } from "../../app/admin/_components/artwork-grid";
 import { CategoryManager } from "../../app/admin/_components/category-manager";
@@ -25,6 +26,7 @@ import {
 } from "../../app/admin/_components/use-admin-action";
 import { WorkshopManager } from "../../app/admin/_components/workshop-manager";
 import type { Artwork, Event } from "../../lib/types";
+import { SegmentedBlockedFixture, SegmentedFixture } from "./fixtures/segmented";
 import {
 	actionState,
 	deleteArtwork,
@@ -205,15 +207,17 @@ function SheetFixture() {
 function NavFixture({ counts }: Readonly<{ counts?: NavCounts }>) {
 	const [taps, setTaps] = useState(0);
 	return (
-		<>
+		<AddSheetProvider categories={["Gond"]}>
 			<button type="button" onClick={() => setTaps((n) => n + 1)}>
 				Page control
 			</button>
 			<output>{taps}</output>
 			<AdminNavMobile email="megha@example.invalid" counts={counts} />
-		</>
+		</AddSheetProvider>
 	);
 }
+
+/** Radiogroup keyboard path for the Segmented control (1.8): fixtures/segmented.tsx (500-line split). */
 
 function useBarState() {
 	const [shown, setShown] = useState(false);
@@ -241,9 +245,12 @@ function BarsFixture() {
 	const { err, run } = useAdminAction();
 	const bar = useBarState();
 	const inline = useBarState();
+	const [addToast, setAddToast] = useState(false);
+	const [viewed, setViewed] = useState(0);
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
 	return (
 		<>
+			<p data-viewed="">{viewed}</p>
 			<button type="button" onClick={bar.show}>
 				Show bar
 			</button>
@@ -280,6 +287,9 @@ function BarsFixture() {
 			>
 				Mark Alpha sold
 			</button>
+			<button type="button" onClick={() => setAddToast(true)}>
+				Show add toast
+			</button>
 			{inline.shown ? (
 				<InlineReorderControls
 					pending={inline.pending}
@@ -297,6 +307,16 @@ function BarsFixture() {
 					error={bar.error}
 					onSave={() => {}}
 					onReset={bar.hide}
+				/>
+			) : addToast ? (
+				<UndoBar
+					message='Added "Alpha" to the gallery'
+					actions={[
+						{ label: "View", onClick: () => setViewed((n) => n + 1) },
+						{ label: "Add another", onClick: () => setViewed((n) => n + 1) },
+					]}
+					onDismiss={() => setAddToast(false)}
+					duration={actionState.undoDuration}
 				/>
 			) : undo ? (
 				<UndoBar
@@ -413,6 +433,9 @@ const views = {
 	),
 	nav: <NavFixture />,
 	navBadged: <NavFixture counts={{ "/admin/leads": 3 }} />,
+	navBadged12: <NavFixture counts={{ "/admin/leads": 12 }} />,
+	segmented: <SegmentedFixture />,
+	segmentedBlocked: <SegmentedBlockedFixture />,
 	bars: <BarsFixture />,
 	optimistic: <OptimisticFixture />,
 };

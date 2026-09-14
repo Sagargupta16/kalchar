@@ -76,6 +76,10 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 		});
 	}, []);
 
+	// A1's deferred exit is NOT wired here: page-wide locators in the locked
+	// suites (removals, outcome labels) hard-fail on strict-mode collisions
+	// while a closing dialog lingers, and visual-direction-admin 1.7 assigns
+	// the closing flag to the motion-polish step. useModalExit stays available.
 	const settle = useCallback(
 		(result: boolean) => {
 			state?.resolve(result);
