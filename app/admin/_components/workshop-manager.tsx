@@ -89,9 +89,9 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 
 	return (
 		<div className="space-y-group">
-			{/* Ruling 42: the create area and the list are independent panels, side by side from lg. */}
-			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
-				<div className="min-w-0 space-y-group">
+			{/* Ruling 42 + Tier 2c: the create panel spans 4 of 12 columns beside the 8-column list from lg. */}
+			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
+				<div className="min-w-0 space-y-group lg:col-span-4">
 					{creating ? (
 						<CreateWorkshopForm onCancel={() => setCreating(false)} onCreated={onCreated} />
 					) : (
@@ -125,7 +125,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					) : null}
 				</div>
 
-				<section aria-labelledby={headingId} className="min-w-0">
+				<section aria-labelledby={headingId} className="min-w-0 lg:col-span-8">
 					<AdminPanelHeader
 						as="h2"
 						id={headingId}

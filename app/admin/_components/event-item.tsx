@@ -1,8 +1,10 @@
 "use client";
 
 import { CalendarDays, ChevronDown, Pin, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useId, useOptimistic, useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
+import { SPRING_INDICATOR } from "@/lib/motion";
 import type { Event } from "@/lib/types";
 import { cn, formatEventDateShort } from "@/lib/utils";
 import { deleteEvent, setEventFeatured } from "../event-actions";
@@ -14,6 +16,7 @@ import {
 	adminIconBtnDestructive,
 	adminRow,
 	adminThumb,
+	adminTileBadge,
 	ICON_MD,
 } from "./controls";
 import { EventImageManager } from "./event-image-manager";
@@ -57,9 +60,14 @@ export function EventItem({
 	const [expanded, setExpanded] = useState(defaultExpanded);
 	// Optimistic Pin (C12): flips the moment run starts, reverts by itself on failure.
 	const [featured, setOptimisticFeatured] = useOptimistic(event.featured);
+	// Remount key for the Pin glyph so each flip pops it with SPRING_INDICATOR (1.9); 0 = no mount pop.
+	const [pinPop, setPinPop] = useState(0);
+	// The image manager reports its staged first photo so the row's cover follows Make cover at once.
+	const [stagedCover, setStagedCover] = useState<string | null>(null);
 
-	const togglePin = () =>
-		run(
+	const togglePin = () => {
+		setPinPop((n) => n + 1);
+		return run(
 			() => {
 				setOptimisticFeatured(!event.featured);
 				return setEventFeatured(event.id, !event.featured);
@@ -73,6 +81,7 @@ export function EventItem({
 				});
 			},
 		);
+	};
 
 	const remove = async () => {
 		const ok = await confirm({
@@ -107,15 +116,25 @@ export function EventItem({
 					onClick={() => setExpanded((v) => !v)}
 					className="flex min-h-control min-w-0 flex-1 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text"
 				>
-					{event.images[0] ? (
-						// biome-ignore lint/performance/noImgElement: admin-only thumb from the R2 origin
-						<img
-							src={`${IMAGE_ORIGIN}/${event.images[0]}-400.webp`}
-							alt=""
-							className={cn(adminThumb, "size-12")}
-						/>
+					{(stagedCover ?? event.images[0]) ? (
+						<span className="relative shrink-0">
+							{/* biome-ignore lint/performance/noImgElement: admin-only thumb from the R2 origin */}
+							<img
+								src={`${IMAGE_ORIGIN}/${stagedCover ?? event.images[0]}-400.webp`}
+								alt=""
+								className={cn(adminThumb, "size-14 bg-canvas object-contain")}
+							/>
+							{event.images.length > 1 ? (
+								<span
+									aria-hidden="true"
+									className={cn(adminTileBadge, "absolute right-1 bottom-1")}
+								>
+									+{event.images.length - 1}
+								</span>
+							) : null}
+						</span>
 					) : (
-						<span className="grid size-12 shrink-0 place-items-center rounded-(--radius-sm) bg-canvas text-muted shadow-hairline">
+						<span className="grid size-14 shrink-0 place-items-center rounded-(--radius-sm) border border-dashed border-line bg-canvas text-muted">
 							<CalendarDays size={ICON_MD} aria-hidden="true" />
 						</span>
 					)}
@@ -123,7 +142,8 @@ export function EventItem({
 						<span className="block truncate text-sm font-medium text-ink">{event.title}</span>
 						<span className={cn(adminHelp, "mt-1 block truncate tabular-nums")}>
 							{formatEventDateShort(event.eventDate)}
-							<span aria-hidden="true"> · </span>
+							{event.category ? `, ${event.category}` : ""}
+							{", "}
 							{event.images.length} photo{event.images.length === 1 ? "" : "s"}
 						</span>
 						<span className="sr-only">{featured ? ", pinned to top" : ""}</span>
@@ -145,11 +165,20 @@ export function EventItem({
 						aria-label={`Pin ${event.title} to top`}
 						className={adminIconBtn}
 					>
-						<Pin
-							size={ICON_MD}
+						<motion.span
+							key={pinPop}
 							aria-hidden="true"
-							className={featured ? "fill-current" : undefined}
-						/>
+							initial={pinPop === 0 ? false : { scale: 0.6 }}
+							animate={{ scale: 1 }}
+							transition={SPRING_INDICATOR}
+							className="grid place-items-center"
+						>
+							<Pin
+								size={ICON_MD}
+								aria-hidden="true"
+								className={featured ? "fill-current text-gold-leaf" : undefined}
+							/>
+						</motion.span>
 					</button>
 					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
 						<button
@@ -164,7 +193,14 @@ export function EventItem({
 					</div>
 				</div>
 			</div>
-			{expanded ? <EventEditor event={event} categories={categories} editorId={editorId} /> : null}
+			{expanded ? (
+				<EventEditor
+					event={event}
+					categories={categories}
+					editorId={editorId}
+					onCoverChange={setStagedCover}
+				/>
+			) : null}
 			{err ? (
 				<AdminNotice variant="error" className="mt-3">
 					{err}
@@ -185,7 +221,14 @@ function EventEditor({
 	event,
 	categories,
 	editorId,
-}: Readonly<{ event: Event; categories: readonly string[]; editorId: string }>) {
+	onCoverChange,
+}: Readonly<{
+	event: Event;
+	categories: readonly string[];
+	editorId: string;
+	/** Reports the staged first photo so the row thumb follows Make cover at once (Tier 2b). */
+	onCoverChange: (keyBase: string | null) => void;
+}>) {
 	return (
 		<div id={editorId} className="mt-3 divide-y divide-line border-t border-line">
 			<section className="space-y-3 py-3" aria-labelledby={`${editorId}-details`}>
@@ -198,7 +241,7 @@ function EventEditor({
 				<h3 id={`${editorId}-photos`} className="t-meta">
 					Photos
 				</h3>
-				<EventImageManager event={event} />
+				<EventImageManager event={event} onCoverChange={onCoverChange} />
 			</section>
 		</div>
 	);

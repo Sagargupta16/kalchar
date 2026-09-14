@@ -1,8 +1,7 @@
 "use client";
 
-import { Check, ChevronDown, LoaderCircle, Trash2 } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle, Presentation, Trash2 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteWorkshop, updateWorkshop } from "../actions";
@@ -25,6 +24,36 @@ function formatHours(n: number): string {
 	return `${n} hour${n === 1 ? "" : "s"}`;
 }
 
+/**
+ * The duration disc leading every workshop row (visual-direction-admin Tier
+ * 2c): the public workshops surface makes duration the biggest fact, so the
+ * admin mirrors it. Decorative (aria-hidden); the meta line carries the
+ * duration in words. Without a duration the disc keeps the column with the
+ * workshop glyph so every row's title starts at the same x (alignment rule 1).
+ */
+function DurationDisc({ hours }: Readonly<{ hours?: number }>) {
+	if (!hours) {
+		return (
+			<span
+				aria-hidden="true"
+				data-duration-disc=""
+				className="grid size-12 shrink-0 place-items-center rounded-full bg-canvas text-muted shadow-hairline"
+			>
+				<Presentation size={ICON_MD} aria-hidden="true" />
+			</span>
+		);
+	}
+	return (
+		<span
+			aria-hidden="true"
+			data-duration-disc=""
+			className="grid size-12 shrink-0 place-items-center rounded-full bg-pichwai/12 text-sm font-semibold text-pichwai tabular-nums dark:bg-pichwai/24"
+		>
+			{hours}h
+		</span>
+	);
+}
+
 export interface WorkshopRowProps {
 	workshop: Workshop;
 	/** The manager's reorder-save flag: drag stays frozen during a list save. */
@@ -40,10 +69,11 @@ export interface WorkshopRowProps {
 }
 
 /**
- * The R6 row (D15) for one workshop: grip, Edit body (title + one-line blurb),
- * the read-only duration chip, and Delete at the far end behind a hairline with
- * at least 16px clear space. Two lines on phones, one from a 576px container
- * (@xl/row). The body expands an inline editor in the shared form rhythm.
+ * The R6 row (D15) for one workshop: a pichwai duration disc, the Edit body
+ * (title + duration-and-blurb meta line), then the Move column, a hairline and
+ * Delete in the trailing cluster with at least 16px clear space. Two lines on
+ * phones, one from a 576px container (@xl/row). The body expands an inline
+ * editor in the shared form rhythm.
  */
 export function WorkshopRow({
 	workshop,
@@ -148,38 +178,34 @@ export function WorkshopRow({
 			)}
 		>
 			<div className="flex flex-col gap-4 @xl/row:flex-row @xl/row:items-center @xl/row:gap-3">
-				{/* Line 1: grip + Edit body */}
-				<div className="flex min-w-0 flex-1 items-center gap-3">
-					{reorderHandle}
-					<button
-						type="button"
-						aria-expanded={editing}
-						aria-controls={editorId}
-						aria-label={`Edit ${workshop.title}`}
-						disabled={pending}
-						onClick={() => (editing ? cancelEdit() : startEditing())}
-						className="flex min-h-control min-w-0 flex-1 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text disabled:pointer-events-none disabled:opacity-50"
+				{/* Line 1: the Edit body, led by the duration disc */}
+				<button
+					type="button"
+					aria-expanded={editing}
+					aria-controls={editorId}
+					aria-label={`Edit ${workshop.title}`}
+					disabled={pending}
+					onClick={() => (editing ? cancelEdit() : startEditing())}
+					className="flex min-h-control min-w-0 flex-1 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text disabled:pointer-events-none disabled:opacity-50"
+				>
+					<DurationDisc hours={workshop.durationHours} />
+					<span className="min-w-0 flex-1">
+						<span className="block truncate text-sm font-medium text-ink">{workshop.title}</span>
+						<span className={cn(adminHelp, "mt-1 block truncate")}>
+							{workshop.durationHours ? `${formatHours(workshop.durationHours)}, ` : ""}
+							{workshop.blurb}
+						</span>
+					</span>
+					<span
+						aria-hidden="true"
+						className="grid size-control shrink-0 place-items-center text-muted"
 					>
-						<span className="min-w-0 flex-1">
-							<span className="block truncate text-sm font-medium text-ink">{workshop.title}</span>
-							<span className={cn(adminHelp, "mt-1 block truncate")}>{workshop.blurb}</span>
-						</span>
-						<span
-							aria-hidden="true"
-							className="grid size-control shrink-0 place-items-center text-muted"
-						>
-							<ChevronDown
-								size={ICON_MD}
-								className={cn("transition-ui", editing && "rotate-180")}
-							/>
-						</span>
-					</button>
-				</div>
-				{/* Line 2 (phone) / trailing cluster: read-only duration chip, divider, Delete */}
+						<ChevronDown size={ICON_MD} className={cn("transition-ui", editing && "rotate-180")} />
+					</span>
+				</button>
+				{/* Line 2 (phone) / trailing cluster: Move column, divider, Delete */}
 				<div className="flex items-center gap-2 @xl/row:shrink-0">
-					{workshop.durationHours ? (
-						<Badge variant="muted">{formatHours(workshop.durationHours)}</Badge>
-					) : null}
+					{reorderHandle}
 					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
 						<button
 							type="button"

@@ -1,10 +1,12 @@
 "use client";
 
 import { MessageSquareQuote, Star, Trash2 } from "lucide-react";
-import { useOptimistic } from "react";
+import { motion } from "motion/react";
+import { useOptimistic, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { ArtworkTitle } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
+import { SPRING_INDICATOR } from "@/lib/motion";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteTestimonial, setTestimonialFeatured } from "../testimonial-actions";
@@ -31,29 +33,40 @@ export interface TestimonialRowProps {
 	offerUndo: (offer: UndoOffer) => void;
 }
 
-/** Where this quote shows in public. Chips are read-only meta; the Star toggle is the tap target. */
+/** Where this quote shows in public. Chips are read-only meta on the author line; the Star toggle is the tap target. */
 function VisibilityBadge({
 	featured,
 	artworkTitle,
 }: Readonly<{ featured: boolean; artworkTitle?: string }>) {
-	if (featured) return <Badge variant="accent-soft">Home page</Badge>;
+	if (featured) {
+		return (
+			<Badge variant="accent-soft" className="h-6">
+				Home page
+			</Badge>
+		);
+	}
 	if (artworkTitle) {
 		return (
-			<Badge variant="default" className="max-w-32 truncate">
+			<Badge variant="default" className="h-6 max-w-32 truncate">
 				On {artworkTitle}
 			</Badge>
 		);
 	}
-	return <Badge variant="muted">Admin only</Badge>;
+	return (
+		<Badge variant="muted" className="h-6">
+			Admin only
+		</Badge>
+	);
 }
 
 /**
- * The R6 row (D15) for one testimonial: the quote body with the linked piece's
- * thumbnail, one meta line (titles, never slugs), the Featured quick state, a
- * visibility chip, and Delete at the far end behind a hairline with at least
- * 16px clear space. The body stays a plain <div> (not a dead button) until the
- * updateTestimonial server action exists (spec 7.4); the inline editor lands
- * with it.
+ * The R6 row (D15) for one testimonial, styled as a quote card (Tier 2d): a
+ * decorative marigold quote mark opens the clamped quote, the linked piece's
+ * thumbnail leads, the author line carries the visibility chip, and the
+ * trailing cluster is the gold Featured star, a hairline and Delete with at
+ * least 16px clear space. The body stays a plain <div> (not a dead button)
+ * until the updateTestimonial server action exists (spec 7.4); the inline
+ * editor lands with it.
  */
 export function TestimonialRow({
 	testimonial: t,
@@ -67,9 +80,12 @@ export function TestimonialRow({
 	const { pending, err, run } = useAdminAction();
 	// Optimistic Feature (C12): flips the moment run starts, reverts by itself on failure.
 	const [featured, setOptimisticFeatured] = useOptimistic(t.featured);
+	// Remount key for the star glyph so each flip pops it with SPRING_INDICATOR (1.9); 0 = no mount pop.
+	const [starPop, setStarPop] = useState(0);
 
-	const toggleFeatured = () =>
-		run(
+	const toggleFeatured = () => {
+		setStarPop((n) => n + 1);
+		return run(
 			() => {
 				setOptimisticFeatured(!t.featured);
 				return setTestimonialFeatured(t.id, !t.featured);
@@ -85,6 +101,7 @@ export function TestimonialRow({
 				});
 			},
 		);
+	};
 
 	const remove = async () => {
 		const ok = await confirm({
@@ -126,17 +143,26 @@ export function TestimonialRow({
 					)}
 					<span className="min-w-0 flex-1">
 						<blockquote className="line-clamp-3 text-sm text-ink @xl/row:line-clamp-2">
-							&ldquo;{t.quote}&rdquo;
+							<span
+								aria-hidden="true"
+								className="t-display float-left mr-2 text-h2 leading-none text-marigold/60"
+							>
+								{'"'}
+							</span>
+							{t.quote}
 						</blockquote>
-						<span className={cn(adminHelp, "mt-1 block truncate")}>
-							{t.authorName}
-							{t.authorLocation ? `, ${t.authorLocation}` : ""}
-							{artwork ? `, on ${artwork.title}` : ""}
+						<span className="mt-1 flex min-w-0 items-center gap-2">
+							<span className={cn(adminHelp, "min-w-0 truncate")}>
+								{t.authorName}
+								{t.authorLocation ? `, ${t.authorLocation}` : ""}
+								{artwork ? `, on ${artwork.title}` : ""}
+							</span>
+							<VisibilityBadge featured={featured} artworkTitle={artwork?.title} />
 						</span>
 						<span className="sr-only">{featured ? ", featured on the home page" : ""}</span>
 					</span>
 				</div>
-				{/* Line 2: quick state, visibility, divider, Delete */}
+				{/* Line 2: quick state, divider, Delete */}
 				<div className="flex items-center gap-2 @xl/row:shrink-0">
 					<button
 						type="button"
@@ -146,13 +172,21 @@ export function TestimonialRow({
 						aria-label={`Feature testimonial from ${t.authorName} on the home page`}
 						className={adminIconBtn}
 					>
-						<Star
-							size={ICON_MD}
+						<motion.span
+							key={starPop}
 							aria-hidden="true"
-							className={featured ? "fill-current" : undefined}
-						/>
+							initial={starPop === 0 ? false : { scale: 0.6 }}
+							animate={{ scale: 1 }}
+							transition={SPRING_INDICATOR}
+							className="grid place-items-center"
+						>
+							<Star
+								size={ICON_MD}
+								aria-hidden="true"
+								className={featured ? "fill-current text-gold-leaf" : undefined}
+							/>
+						</motion.span>
 					</button>
-					<VisibilityBadge featured={featured} artworkTitle={artwork?.title} />
 					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
 						<button
 							type="button"

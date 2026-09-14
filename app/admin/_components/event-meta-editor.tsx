@@ -49,7 +49,7 @@ export function EventMetaEditor({
 	return (
 		<div className="grid gap-(--form-gap)">
 			<div className="grid gap-(--form-gap) sm:grid-cols-2">
-				<div className={adminLabel}>
+				<div className={cn(adminLabel, "sm:col-span-2")}>
 					<label htmlFor={`event-title-${event.id}`}>Title *</label>
 					<input
 						disabled={pending}

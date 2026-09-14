@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 import { createTestimonial } from "../testimonial-actions";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
+import { AdminSwitch } from "./admin-switch";
 import {
 	adminBtn,
 	adminBtnPrimary,
-	adminCheckbox,
 	adminField,
 	adminHelp,
 	adminLabel,
@@ -111,9 +111,9 @@ export function TestimonialsManager({
 
 	return (
 		<div className="space-y-group">
-			{/* Ruling 42: the create area and the list are independent panels, side by side from lg. */}
-			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
-				<div className="min-w-0 space-y-group">
+			{/* Ruling 42 + Tier 2d: the create panel spans 4 of 12 columns beside the 8-column list from lg. */}
+			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
+				<div className="min-w-0 space-y-group lg:col-span-4">
 					{creating ? (
 						<CreateTestimonialForm
 							pending={createAction.pending}
@@ -158,7 +158,7 @@ export function TestimonialsManager({
 					) : null}
 				</div>
 
-				<section aria-labelledby={headingId} className="min-w-0">
+				<section aria-labelledby={headingId} className="min-w-0 lg:col-span-8">
 					<AdminPanelHeader
 						as="h2"
 						id={headingId}
@@ -229,10 +229,13 @@ function CreateTestimonialForm({
 	onCreate: (fd: FormData, reset: () => void) => void;
 }>) {
 	const headingId = useId();
+	const switchId = useId();
 	const formRef = useRef<HTMLFormElement>(null);
+	const [featured, setFeatured] = useState(false);
 
 	const cancel = () => {
 		formRef.current?.reset();
+		setFeatured(false);
 		onCancel();
 	};
 
@@ -243,7 +246,10 @@ function CreateTestimonialForm({
 			onSubmit={(e) => {
 				e.preventDefault();
 				const form = e.currentTarget;
-				onCreate(new FormData(form), () => form.reset());
+				onCreate(new FormData(form), () => {
+					form.reset();
+					setFeatured(false);
+				});
 			}}
 			className={adminPanelInset}
 		>
@@ -264,7 +270,7 @@ function CreateTestimonialForm({
 						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
 						autoFocus
 						placeholder="What they said"
-						className={cn(adminField, "resize-y")}
+						className={cn(adminField, "min-h-32 resize-y")}
 					/>
 				</div>
 				<div className={adminLabel}>
@@ -304,9 +310,21 @@ function CreateTestimonialForm({
 						))}
 					</select>
 				</div>
-				<label className="flex min-h-control items-center gap-2 text-sm text-ink sm:col-span-2">
-					<input type="checkbox" name="featured" className={adminCheckbox} />
+				{/* The Featured switch row (visual-direction-admin 1.9, Tier 2d): the label and the
+				    switch share one 44px hit target; a hidden input carries the form value. */}
+				<label
+					htmlFor={switchId}
+					className="flex min-h-control cursor-pointer items-center justify-between gap-3 text-sm text-ink sm:col-span-2"
+				>
 					Feature on home page
+					<AdminSwitch
+						id={switchId}
+						checked={featured}
+						onChange={setFeatured}
+						disabled={pending}
+						label="Feature on home page"
+					/>
+					{featured ? <input type="hidden" name="featured" value="on" /> : null}
 				</label>
 			</div>
 			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

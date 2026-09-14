@@ -32,7 +32,9 @@ export interface BatchHandlers {
 	/** Called as the masters upload to R2, with the share of bytes sent. */
 	onStaging?: (fraction: number) => void;
 	/** Called each time a photo finishes processing. */
-	onProgress: (progress: BatchProgress) => void;
+	onProgress?: (progress: BatchProgress) => void;
+	/** Called with the selection index as each photo finishes processing (per-tile progress edges, N1). */
+	onPhotoDone?: (index: number) => void;
 	/** Called once when some photos failed but the rest were saved. */
 	onPartial: (notice: string) => void;
 }
@@ -66,9 +68,12 @@ export async function createEventWithPhotos(
 	const reserved = await reserveEventId();
 	if (isFailure(reserved)) return reserved;
 
-	const outcome = await processInParallel(keys, (key) => processEventPhoto(reserved.id, key), {
-		onProgress: handlers.onProgress,
-	});
+	const outcome = await processInParallel(
+		keys,
+		(key, index) =>
+			processEventPhoto(reserved.id, key).finally(() => handlers.onPhotoDone?.(index)),
+		{ onProgress: handlers.onProgress },
+	);
 	if (keys.length > 0 && outcome.keyBases.length === 0) {
 		return { ok: false, message: firstFailureMessage(outcome) };
 	}
@@ -98,9 +103,11 @@ export async function addEventPhotos(
 	const keys = stagedKeys(formData);
 	if (keys.length === 0) return { ok: true };
 
-	const outcome = await processInParallel(keys, (key) => processEventPhoto(eventId, key), {
-		onProgress: handlers.onProgress,
-	});
+	const outcome = await processInParallel(
+		keys,
+		(key, index) => processEventPhoto(eventId, key).finally(() => handlers.onPhotoDone?.(index)),
+		{ onProgress: handlers.onProgress },
+	);
 	if (outcome.keyBases.length === 0) return { ok: false, message: firstFailureMessage(outcome) };
 
 	const attached = await attachEventPhotos(eventId, outcome.keyBases);

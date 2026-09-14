@@ -1,9 +1,8 @@
 "use client";
 
-import { ImagePlus, LoaderCircle, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ImagePlus, LoaderCircle, Plus, Star, Trash2 } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { progressLabel } from "@/lib/event-photo-batch";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,31 +19,38 @@ import {
 	ICON_MD,
 } from "./controls";
 import { addEventPhotos } from "./event-photo-batch";
-import { CoverBadge, PhotoStrip } from "./photo-preview";
+import { type EventBatchState, EventCoverChip, EventPhotoStrip } from "./event-photo-strip";
 import { InlineReorderControls } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
-import { UploadProgress, type UploadProgressState } from "./upload-progress";
 import { SAVED_BADGE_DURATION_MS, useAdminAction, usePendingVisible } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 /**
- * Photo manager for one event: figure tiles (the only thing on the image is
- * the Cover pill), a two-line tile footer with the Move pair and a separated
- * Remove, a one-tap "Cover" shortcut, drag on fine pointers, and an "add more"
- * multi-file picker whose upload state never relabels the other controls.
- * Order changes are staged locally and saved on demand through the shared
- * InlineReorderControls, matching the reorder pattern used across the admin.
+ * Photo manager for one event: figure tiles on painting-grid seams (the only
+ * thing on the image is the gold Cover chip), a two-line tile footer with the
+ * Move pair and a separated Remove, a one-tap "Cover" shortcut, drag on fine
+ * pointers, and a dashed square "Add photos" tile ending the grid. Batches
+ * render per-photo progress edges through EventPhotoStrip (N1); order changes
+ * are staged locally and saved through the shared InlineReorderControls.
  */
-export function EventImageManager({ event }: Readonly<{ event: Event }>) {
+export function EventImageManager({
+	event,
+	onCoverChange,
+}: Readonly<{
+	event: Event;
+	/** Reports the staged first photo (or null) so the row thumb follows Make cover at once. */
+	onCoverChange?: (keyBase: string | null) => void;
+}>) {
 	const confirm = useConfirm();
+	const formId = useId();
 	const { pending, err, run } = useAdminAction();
 	const [baseline, setBaseline] = useState(event.images);
 	// Adopt fresh server data after an upload (router.refresh), resetting the
 	// reorder baseline to match so new photos appear without a manual reload.
 	const [images, setImages] = useServerSyncedList(event.images, setBaseline);
 	const [files, setFiles] = useState<File[]>([]);
-	const [progress, setProgress] = useState<UploadProgressState | null>(null);
+	const [batch, setBatch] = useState<EventBatchState | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
 	// Uploads carry their own flag so a reorder save or a remove in flight never
@@ -54,6 +60,11 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
 	const uploadSpinning = usePendingVisible(uploading);
 	const { dragging, over, dragProps, move } = useReorder(images, setImages, pending);
+
+	const stagedCover = images[0] ?? null;
+	useEffect(() => {
+		onCoverChange?.(stagedCover);
+	}, [stagedCover, onCoverChange]);
 
 	const orderChanged =
 		images.some((k, i) => k !== baseline[i]) || images.length !== baseline.length;
@@ -101,13 +112,20 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 		setErrSlot("general");
 		setNotice(null);
 		setUploading(true);
+		setBatch({ staging: 0, done: new Set(), total: files.length });
 		run(
 			// Masters go straight to R2, then the server processes one photo per
 			// call, so a large batch never overruns the function budget.
 			() =>
 				addEventPhotos(event.id, fd, {
-					onStaging: (fraction) => setProgress({ label: "Uploading photos", fraction }),
-					onProgress: (p) => setProgress({ label: progressLabel(p), fraction: p.done / p.total }),
+					onStaging: (fraction) => setBatch((b) => (b ? { ...b, staging: fraction } : b)),
+					onPhotoDone: (index) =>
+						setBatch((b) => {
+							if (!b) return b;
+							const done = new Set(b.done);
+							done.add(index);
+							return { ...b, done };
+						}),
 					onPartial: setNotice,
 				}),
 			() => {
@@ -116,7 +134,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 			},
 		).finally(() => {
 			setUploading(false);
-			setProgress(null);
+			setBatch(null);
 		});
 	};
 
@@ -127,76 +145,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 				photo, or use the arrows under it, to change the order.
 			</p>
 
-			{images.length > 0 ? (
-				<ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-					{images.map((keyBase, i) => (
-						<li
-							key={keyBase}
-							{...dragProps(i)}
-							className={cn(
-								"grid gap-2 rounded-(--radius-sm) transition-ui",
-								dragging === i && "opacity-60 select-none",
-							)}
-						>
-							{/* Plate: the photo and, on the first tile only, the Cover pill. No control sits on the image. */}
-							<div
-								className={cn(
-									"relative aspect-square overflow-hidden rounded-(--radius-sm) border bg-canvas transition-ui",
-									over === i && dragging !== i ? "border-accent shadow-e1" : "border-line",
-								)}
-							>
-								{/* biome-ignore lint/performance/noImgElement: admin-only thumb, R2 origin */}
-								<img
-									src={`${IMAGE_ORIGIN}/${keyBase}-400.webp`}
-									alt={i === 0 ? "Cover" : `Photo ${i + 1}`}
-									className="h-full w-full object-cover"
-								/>
-								{i === 0 ? <CoverBadge /> : null}
-							</div>
-							{/* Footer line 1: the reorder control and the position. */}
-							<div className="flex items-center justify-between gap-2">
-								<ReorderHandle
-									label={`photo ${i + 1}`}
-									axis="horizontal"
-									index={i}
-									count={images.length}
-									disabled={pending || uploading}
-									onMove={(to) => move(i, to)}
-								/>
-								<span aria-hidden="true" className={cn(adminHelp, "tabular-nums")}>
-									{i + 1} / {images.length}
-								</span>
-							</div>
-							{/* Footer line 2: Make cover at the left, Remove at the far right (never beside the Move pair). */}
-							<div className="flex items-center justify-between gap-2">
-								{i === 0 ? (
-									<span />
-								) : (
-									<button
-										type="button"
-										disabled={pending || uploading}
-										onClick={() => move(i, 0)}
-										aria-label={`Make photo ${i + 1} the cover`}
-										className={adminBtn}
-									>
-										<Star size={ICON_MD} aria-hidden="true" />
-										Cover
-									</button>
-								)}
-								<button
-									type="button"
-									disabled={pending || uploading}
-									onClick={() => removeWithConfirm(keyBase, i)}
-									aria-label={`Remove photo ${i + 1}`}
-									className={adminIconBtnDestructive}
-								>
-									<Trash2 size={ICON_MD} aria-hidden="true" />
-								</button>
-							</div>
-						</li>
-					))}
-				</ul>
-			) : (
+			{images.length === 0 ? (
 				<EmptyState
 					variant="nested"
 					voice="tool"
@@ -204,7 +153,98 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 					title="No photos yet"
 					body="Add photos below; the first becomes the cover."
 				/>
-			)}
+			) : null}
+
+			<ul className="grid grid-cols-2 gap-(--grid-gap-tight) md:grid-cols-4">
+				{images.map((keyBase, i) => (
+					<li
+						key={keyBase}
+						{...dragProps(i)}
+						className={cn(
+							"grid gap-2 rounded-(--radius-sm) transition-ui",
+							dragging === i && "opacity-60 select-none",
+						)}
+					>
+						{/* Plate: the photo and, on the first tile only, the gold Cover chip. No control sits on the image. */}
+						<div
+							className={cn(
+								"relative aspect-square overflow-hidden rounded-(--radius-sm) border bg-canvas transition-ui",
+								over === i && dragging !== i ? "border-accent shadow-e1" : "border-line",
+							)}
+						>
+							{/* biome-ignore lint/performance/noImgElement: admin-only thumb, R2 origin */}
+							<img
+								src={`${IMAGE_ORIGIN}/${keyBase}-400.webp`}
+								alt={i === 0 ? "Cover" : `Photo ${i + 1}`}
+								className="h-full w-full object-cover motion-safe:transition-opacity motion-safe:duration-(--duration-fast) starting:opacity-0"
+							/>
+							{i === 0 ? <EventCoverChip /> : null}
+						</div>
+						{/* Footer line 1: the reorder control and the position. */}
+						<div className="flex items-center justify-between gap-2">
+							<ReorderHandle
+								label={`photo ${i + 1}`}
+								axis="horizontal"
+								index={i}
+								count={images.length}
+								disabled={pending || uploading}
+								onMove={(to) => move(i, to)}
+							/>
+							<span aria-hidden="true" className={cn(adminHelp, "tabular-nums")}>
+								{i + 1} / {images.length}
+							</span>
+						</div>
+						{/* Footer line 2: Make cover at the left, Remove at the far right (never beside the Move pair). */}
+						<div className="flex items-center justify-between gap-2">
+							{i === 0 ? (
+								<span />
+							) : (
+								<button
+									type="button"
+									disabled={pending || uploading}
+									onClick={() => move(i, 0)}
+									aria-label={`Make photo ${i + 1} the cover`}
+									className={adminBtn}
+								>
+									<Star size={ICON_MD} aria-hidden="true" />
+									Cover
+								</button>
+							)}
+							<button
+								type="button"
+								disabled={pending || uploading}
+								onClick={() => removeWithConfirm(keyBase, i)}
+								aria-label={`Remove photo ${i + 1}`}
+								className={adminIconBtnDestructive}
+							>
+								<Trash2 size={ICON_MD} aria-hidden="true" />
+							</button>
+						</div>
+					</li>
+				))}
+				{/* The dashed square Add-photos tile ends the grid; its input submits through the toolbar form. */}
+				<li>
+					<label
+						className={cn(
+							adminFilePicker,
+							"aspect-square w-full flex-col items-center justify-center gap-2 p-3 text-center",
+						)}
+					>
+						<Plus size={ICON_LG} aria-hidden="true" />
+						<span>{files.length > 0 ? `${files.length} selected` : "Add photos"}</span>
+						<input
+							form={formId}
+							disabled={pending || uploading}
+							name="images"
+							type="file"
+							accept="image/jpeg,image/png,image/webp"
+							multiple
+							onChange={(e) => setFiles(Array.from(e.currentTarget.files ?? []))}
+							className="sr-only"
+						/>
+					</label>
+				</li>
+			</ul>
 
 			<div className="flex flex-wrap items-center gap-2">
 				{orderChanged ? (
@@ -223,6 +263,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 				) : null}
 
 				<form
+					id={formId}
 					onSubmit={(e) => {
 						e.preventDefault();
 						handleAdd(e.currentTarget);
@@ -230,19 +271,6 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 					aria-busy={uploading || undefined}
 					className="flex items-center gap-2"
 				>
-					<label className={cn(adminFilePicker, "min-h-control")}>
-						<ImagePlus size={ICON_MD} aria-hidden="true" />
-						{files.length > 0 ? `${files.length} selected` : "Add photos"}
-						<input
-							disabled={pending || uploading}
-							name="images"
-							type="file"
-							accept="image/jpeg,image/png,image/webp"
-							multiple
-							onChange={(e) => setFiles(Array.from(e.currentTarget.files ?? []))}
-							className="sr-only"
-						/>
-					</label>
 					{files.length > 0 ? (
 						<button
 							type="submit"
@@ -266,8 +294,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 			{notice ? <AdminNotice variant="info">{notice}</AdminNotice> : null}
 			{err && errSlot === "general" ? <AdminNotice variant="error">{err}</AdminNotice> : null}
 
-			<PhotoStrip files={files} />
-			{uploading && progress ? <UploadProgress state={progress} /> : null}
+			<EventPhotoStrip files={files} batch={batch} />
 		</div>
 	);
 }

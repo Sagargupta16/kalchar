@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
-import { progressLabel } from "@/lib/event-photo-batch";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Event } from "@/lib/types";
 import { cn, formatBytes } from "@/lib/utils";
@@ -25,9 +24,8 @@ import {
 } from "./controls";
 import { EventItem } from "./event-item";
 import { createEventWithPhotos } from "./event-photo-batch";
-import { PhotoStrip } from "./photo-preview";
+import { type EventBatchState, EventPhotoStrip } from "./event-photo-strip";
 import { UndoBar, useUndo } from "./undo-bar";
-import { UploadProgress, type UploadProgressState } from "./upload-progress";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -80,7 +78,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 	);
 	const createdRef = useRef<typeof created>(null);
 	const [arrivedId, setArrivedId] = useState<string | null>(null);
-	const [progress, setProgress] = useState<UploadProgressState | null>(null);
+	const [batch, setBatch] = useState<EventBatchState | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const [items, setItems] = useServerSyncedList(initial, () => {
 		if (createdRef.current) setArrivedId(createdRef.current.id);
@@ -113,14 +111,21 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		const title = String(fd.get("title") ?? "").trim();
 		const photos = fd.getAll("images").filter((v) => v instanceof File && v.size > 0).length;
 		let createdId: string | null = null;
+		setBatch({ staging: 0, done: new Set(), total: photos });
 		createAction
 			.run(
 				// Masters go straight to R2, then the server processes one photo per
 				// call, so a large batch never overruns the function budget.
 				() =>
 					createEventWithPhotos(fd, {
-						onStaging: (fraction) => setProgress({ label: "Uploading photos", fraction }),
-						onProgress: (p) => setProgress({ label: progressLabel(p), fraction: p.done / p.total }),
+						onStaging: (fraction) => setBatch((b) => (b ? { ...b, staging: fraction } : b)),
+						onPhotoDone: (index) =>
+							setBatch((b) => {
+								if (!b) return b;
+								const done = new Set(b.done);
+								done.add(index);
+								return { ...b, done };
+							}),
 						onPartial: setNotice,
 					}).then((result) => {
 						if (!isFailure(result)) createdId = result.id;
@@ -136,7 +141,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 					}
 				},
 			)
-			.finally(() => setProgress(null));
+			.finally(() => setBatch(null));
 	};
 
 	return (
@@ -149,7 +154,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 							pending={createAction.pending}
 							pendingVisible={createAction.pendingVisible}
 							err={createAction.err}
-							progress={progress}
+							batch={batch}
 							onCancel={() => setCreating(false)}
 							onCreate={handleCreate}
 						/>
@@ -254,15 +259,15 @@ function CreateEventForm({
 	pending,
 	pendingVisible,
 	err,
-	progress,
+	batch,
 	onCancel,
 	onCreate,
 }: Readonly<{
 	pending: boolean;
 	pendingVisible: boolean;
 	err: string | null;
-	/** Upload and processing progress shown under the submit row while pending. */
-	progress: UploadProgressState | null;
+	/** Per-photo upload state rendered by the strip's tiles and counting label while pending. */
+	batch: EventBatchState | null;
 	onCancel: () => void;
 	onCreate: (fd: FormData, reset: () => void) => void;
 }>) {
@@ -329,7 +334,7 @@ function CreateEventForm({
 						JPG, PNG or WebP, up to 20 MB each, up to 12 photos at a time. The first photo is the
 						cover.
 					</p>
-					<PhotoStrip files={files} />
+					<EventPhotoStrip files={files} batch={batch} />
 					{fileProblem ? <AdminNotice variant="error">{fileProblem}</AdminNotice> : null}
 				</div>
 				<div className={adminLabel}>
@@ -399,11 +404,6 @@ function CreateEventForm({
 				<AdminNotice variant="error" className="mt-4">
 					{err}
 				</AdminNotice>
-			) : null}
-			{pending && progress ? (
-				<div className="mt-4">
-					<UploadProgress state={progress} />
-				</div>
 			) : null}
 		</form>
 	);

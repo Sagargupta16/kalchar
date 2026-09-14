@@ -302,7 +302,7 @@ test.describe("admin content @mobile", () => {
 		await expect(page.getByLabel("Quote *", { exact: true })).toBeFocused();
 		const select = page.getByLabel("Link to an artwork (optional)", { exact: true });
 		await expect(select.locator("option")).toHaveText(["None", "Alpha"]);
-		await expect(page.getByRole("checkbox", { name: "Feature on home page" })).toBeVisible();
+		await expect(page.getByRole("switch", { name: "Feature on home page" })).toBeVisible();
 		await page.getByLabel("Quote *", { exact: true }).fill("A treasured piece.");
 		await page.getByLabel("Author name *", { exact: true }).fill("Ravi");
 		await select.selectOption("alpha");
@@ -404,6 +404,82 @@ test.describe("admin content @mobile", () => {
 		await expect(page.getByRole("status").getByRole("alert")).toHaveText(
 			"Something went wrong. Refresh and try again.",
 		);
+	});
+});
+
+// Visual-upgrade pass (visual-direction-admin Tiers 2b-2d): batch strip tiles
+// with one gold Cover chip, the in-grid Add photos tile, the workshop duration
+// disc, the testimonial quote mark and the Featured switch. CSS-less harness:
+// DOM, ARIA, calls and copy only, never geometry.
+test.describe("admin content visual pass @mobile", () => {
+	test("events: the batch strip shows per-photo tiles with one Cover chip", async ({ page }) => {
+		await mountAdmin(page, "events");
+		await page.getByRole("button", { name: "Add event" }).click();
+		await page
+			.locator('input[name="images"]')
+			.setInputFiles([fixtureImage("a.jpg"), fixtureImage("b.jpg"), fixtureImage("c.jpg")]);
+		const form = page.locator("form");
+		await expect(form.locator("li img")).toHaveCount(3);
+		await expect(page.getByText("Cover", { exact: true })).toHaveCount(1);
+		await expect(page.getByText(/The first is the cover\./)).toBeVisible();
+		await expect(page.getByText("3 photos selected", { exact: true })).toBeVisible();
+	});
+
+	test("events: row meta joins date, category and photo count with commas", async ({ page }) => {
+		await mountAdmin(page, "events");
+		// The fixture events carry no category; en-IN ICU may print "Sep" or "Sept".
+		await expect(page.getByRole("listitem").first()).toContainText(/1 Sept? 2026, 3 photos/);
+	});
+
+	test("eventImages: the grid ends with the Add photos tile", async ({ page }) => {
+		await mountAdmin(page, "eventImages");
+		await expect(page.getByRole("listitem").last()).toContainText("Add photos");
+		await page.locator('input[name="images"]').setInputFiles(fixtureImage("more.jpg"));
+		await expect(page.getByText("1 selected", { exact: true })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Upload photos", exact: true })).toBeVisible();
+	});
+
+	test("workshops: every row leads with a decorative duration disc", async ({ page }) => {
+		await mountAdmin(page, "workshops");
+		const discs = page.locator("[data-duration-disc]");
+		await expect(discs).toHaveCount(3);
+		await expect(discs.first()).toHaveAttribute("aria-hidden", "true");
+	});
+
+	test("testimonials: the quote opens with a decorative mark, no smart quotes", async ({
+		page,
+	}) => {
+		await mountAdmin(page, "testimonials");
+		const quote = page.locator("blockquote").first();
+		await expect(quote).toContainText("Beautiful work.");
+		await expect(quote.locator('span[aria-hidden="true"]')).toHaveText('"');
+		await expect(page.getByText("\u201cBeautiful work.\u201d")).toHaveCount(0);
+	});
+
+	test("testimonials: the visibility chip sits on the author line", async ({ page }) => {
+		await mountAdmin(page, "testimonialsLinked");
+		const row = page.getByRole("listitem").first();
+		await expect(row.getByText("On Alpha", { exact: true })).toBeVisible();
+		await expect(row.getByText(/Mira, on Alpha/)).toBeVisible();
+	});
+
+	test("testimonials: the Featured switch submits the form value", async ({ page }) => {
+		await mountAdmin(page, "testimonials");
+		await page.getByRole("button", { name: "Add testimonial" }).click();
+		const featured = page.getByRole("switch", { name: "Feature on home page" });
+		await expect(featured).toHaveAttribute("aria-checked", "false");
+		await featured.click();
+		await expect(featured).toHaveAttribute("aria-checked", "true");
+		await page.getByLabel("Quote *", { exact: true }).fill("A treasured piece.");
+		await page.getByLabel("Author name *", { exact: true }).fill("Ravi");
+		await outcome(page, "success");
+		await page.getByRole("button", { name: "Add testimonial", exact: true }).click();
+		const sent = await page.evaluate(() => {
+			const call = window.adminTest.calls.find((c) => c.name === "createTestimonial");
+			const fd = call?.args[0] as FormData;
+			return { featured: fd.get("featured") };
+		});
+		expect(sent.featured).toBe("on");
 	});
 });
 
