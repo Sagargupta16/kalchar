@@ -69,7 +69,8 @@
   .elevate-e3 {
     --hover-shadow: var(--elev-e3);
   }
-  :is(.elevate-e2, .elevate-e3) {
+  /* A fallback only: explicit absolute, fixed, or sticky positioning must win. */
+  :where(.elevate-e2, .elevate-e3) {
     position: relative;
     isolation: isolate;
   }

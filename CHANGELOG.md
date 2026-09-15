@@ -26,6 +26,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Release the workshop list after successful creation before moving keyboard focus to its new row.
 - Keep the home page's main actions above the featured artwork on phones, so they remain easy to find without scrolling past a large image.
 - Use a short tween for the Featured star's scale pop, avoiding unsupported spring keyframes and browser errors.
+- Preserve explicit artwork-frame positioning when applying hover shadows, preventing loaded detail images from collapsing into a thin line.
 
 ## 1.38.2 (2026-09-13)
 

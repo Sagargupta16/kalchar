@@ -27,7 +27,9 @@ async function openPiece(page: Page, slug: string) {
 	const response = await page.goto(`/work/${slug}/`);
 	expect(response?.ok()).toBe(true);
 	await page.evaluate(() => document.fonts.ready);
-	await expect(page.locator('main img[fetchpriority="high"]')).toHaveJSProperty("complete", true);
+	const image = page.locator('main img[fetchpriority="high"]');
+	await expect(image).toHaveJSProperty("complete", true);
+	await expect(image).toBeVisible();
 }
 
 const bar = (page: Page) => page.locator("main > div.fixed");
@@ -44,6 +46,11 @@ for (const width of [320, 768]) {
 			const image = page.locator('main img[fetchpriority="high"]');
 			await expect(image).toHaveCSS("object-fit", "contain");
 			expect(await image.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+			const frame = image.locator("xpath=ancestor::*[contains(@style, '--plate-ratio')][1]");
+			const imageBox = (await image.boundingBox())!;
+			const frameBox = (await frame.boundingBox())!;
+			expect(imageBox.height).toBeGreaterThan(100);
+			expect(Math.abs(imageBox.height - frameBox.height)).toBeLessThan(1);
 			const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
 			for (const target of [image, page.getByRole("button", { name: "View full screen" })]) {
 				const box = await target.boundingBox();
