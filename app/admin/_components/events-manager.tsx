@@ -105,7 +105,9 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		};
 	}, [arrivedId]);
 
-	const categories = [...new Set(items.flatMap((e) => (e.category ? [e.category] : [])))].sort();
+	const categories = [...new Set(items.flatMap((e) => (e.category ? [e.category] : [])))].sort(
+		(a, b) => a.localeCompare(b),
+	);
 	const orderedItems = [...items].sort(
 		(a, b) =>
 			Number(b.featured) - Number(a.featured) ||
