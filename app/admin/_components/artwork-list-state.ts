@@ -49,6 +49,16 @@ export interface ArtworkListItem {
 	thumb: string;
 }
 
+/** Count the current rows, including optimistic changes that can still roll back. */
+export function countPieces(items: readonly ArtworkListItem[]): Record<PiecesFilter, number> {
+	const counts = { all: items.length, available: 0, sold: 0, archive: 0, featured: 0 };
+	for (const { art } of items) {
+		counts[art.status ?? "archive"] += 1;
+		if (art.featured) counts.featured += 1;
+	}
+	return counts;
+}
+
 export type Patch = Partial<Pick<Artwork, "status" | "featured">>;
 export type OptimisticPatch = Patch & { slug: string };
 /** Where the shared hook's one `err` renders: the reorder bar, one row, or the undo bar. */

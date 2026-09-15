@@ -1,6 +1,5 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { buttonVariants } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { cn } from "@/lib/utils";
@@ -10,7 +9,6 @@ export default function NotFound() {
 		<Section accent="peacock">
 			<main className="mx-auto flex min-h-[60svh] max-w-(--header-max) flex-col items-center justify-center px-(--container-px) py-(--section-py) text-center">
 				<p className="t-eyebrow">404</p>
-				<KachniRule form="short" className="mt-2" />
 				<h1 className="t-headline mt-3 text-display-sm">This page wandered off</h1>
 				<p className="t-lead mt-4">
 					The page you were looking for has moved or never existed. The work is still here.

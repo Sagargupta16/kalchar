@@ -148,6 +148,9 @@ describe.each(updates)("$name results", ({ action, query, value, message, path }
 		expect((await database.query(query)).rows).toEqual([{ value }]);
 		expect(fakes.query).toHaveBeenCalledTimes(1);
 		expect(fakes.revalidate).toHaveBeenCalledWith(path);
+		if (path === "/admin" || path === "/admin/workshops") {
+			expect(fakes.revalidate).toHaveBeenCalledWith("/about");
+		}
 	});
 
 	it("checks maintainer authorization before querying", async () => {

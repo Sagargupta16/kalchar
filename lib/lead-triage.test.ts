@@ -35,6 +35,13 @@ describe("parseLeadContact", () => {
 	it("keeps an international number of 11 to 15 digits as typed", () => {
 		expect(parseLeadContact("+44 7700 900123")).toEqual({ phone: "447700900123" });
 	});
+	it.each([
+		"+65 8123 4567",
+		"0065 8123 4567",
+		"WhatsApp: +65 8123 4567",
+	])("preserves an explicit international prefix in %s", (contact) => {
+		expect(parseLeadContact(contact)).toEqual({ phone: "6581234567" });
+	});
 	it("reads an email, and both when the visitor typed both", () => {
 		expect(parseLeadContact("priya@example.com")).toEqual({ email: "priya@example.com" });
 		expect(parseLeadContact("priya@example.com or 98765 43210")).toEqual({
@@ -63,6 +70,12 @@ describe("leadReplyLinks", () => {
 		expect(link?.href).toMatch(
 			/^mailto:priya@example\.com\?subject=Your\+Kalchar\+by\+Megha\+custom-order\+enquiry&body=/,
 		);
+	});
+	it("keeps international WhatsApp and call destinations when an email is also supplied", () => {
+		const links = leadReplyLinks(lead({ contact: "mira@example.com or +65 8123 4567" }), "Kalchar");
+		expect(new URL(links[0]!.href).pathname).toBe("/6581234567");
+		expect(links[1]?.href).toBe("tel:+6581234567");
+		expect(links[2]?.href).toMatch(/^mailto:mira@example\.com\?/);
 	});
 	it("returns no links without a usable contact", () => {
 		expect(leadReplyLinks(lead({ contact: undefined }), "Kalchar")).toEqual([]);

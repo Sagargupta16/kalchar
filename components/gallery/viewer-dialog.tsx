@@ -34,6 +34,8 @@ LightboxIconButton.displayName = "LightboxIconButton";
 
 interface ViewerDialogProps {
 	children: ReactNode;
+	/** Optional compact artwork navigation, grouped with the always-visible close control. */
+	toolbar?: ReactNode;
 	label?: string;
 	labelledBy?: string;
 	onClose: () => void;
@@ -58,6 +60,7 @@ interface ViewerDialogProps {
  *  track its opacity without fading the plate. */
 export function ViewerDialog({
 	children,
+	toolbar,
 	label,
 	labelledBy,
 	onClose,
@@ -104,11 +107,17 @@ export function ViewerDialog({
 			aria-modal="true"
 			data-lenis-prevent
 			onCancel={(event) => {
-				event.preventDefault();
+				if (event.cancelable) event.preventDefault();
 				onClose();
 			}}
 			onKeyDown={(event) => {
-				if (event.key === "Tab") {
+				// Thumbnail navigation owns its arrow keys; do not page twice.
+				if (event.defaultPrevented) return;
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					onClose();
+				} else if (event.key === "Tab") {
 					const controls = [
 						...event.currentTarget.querySelectorAll<HTMLElement>(
 							"a[href], button, input, select, textarea, [tabindex]",
@@ -131,6 +140,11 @@ export function ViewerDialog({
 						event.preventDefault();
 						(event.shiftKey ? last : first).focus();
 					}
+				} else if (
+					event.target instanceof HTMLElement &&
+					event.target.closest("input, textarea, select, [contenteditable=true]")
+				) {
+					return;
 				} else if (event.key === "ArrowRight" && onNext) {
 					event.preventDefault();
 					onNext();
@@ -167,7 +181,7 @@ export function ViewerDialog({
 			<motion.div
 				aria-hidden="true"
 				style={scrimOpacity ? { opacity: scrimOpacity } : undefined}
-				className="pointer-events-none absolute inset-0 bg-scrim-deep/95"
+				className="pointer-events-none absolute inset-0 bg-scrim-deep/95 backdrop-blur-(--glass-blur)"
 			/>
 			<button
 				type="button"
@@ -177,14 +191,27 @@ export function ViewerDialog({
 				onClick={onClose}
 				className="absolute inset-0 cursor-zoom-out"
 			/>
-			<LightboxIconButton
-				ref={closeRef}
-				onClick={onClose}
-				aria-label="Close"
-				className="absolute right-safe-right top-safe-top z-raised mr-4 mt-4"
+			<div
+				className={
+					toolbar
+						? "material-glass absolute left-1/2 top-[max(--spacing(3),var(--spacing-safe-top))] z-raised flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 rounded-full p-1"
+						: "absolute right-safe-right top-safe-top z-raised mr-4 mt-4"
+				}
 			>
-				<X size={18} aria-hidden="true" />
-			</LightboxIconButton>
+				<LightboxIconButton
+					ref={closeRef}
+					onClick={onClose}
+					aria-label="Close"
+					className={
+						toolbar
+							? "order-last border-transparent bg-transparent shadow-none backdrop-blur-none hover:bg-ink/5"
+							: undefined
+					}
+				>
+					<X size={18} aria-hidden="true" />
+				</LightboxIconButton>
+				{toolbar}
+			</div>
 			{children}
 		</motion.dialog>,
 		portalTarget,

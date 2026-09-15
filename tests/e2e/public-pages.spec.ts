@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
+import { settleAnimations } from "./helpers/animation-settle";
 
 const MEDIA_FIXTURE = readFileSync(resolve("public/artworks/twin-fish.jpg"));
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -34,6 +35,7 @@ async function expectModalFocus(page: Page, trigger: Locator, lastControl: Locat
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(true);
+	await settleAnimations(page, "dialog");
 	const accessibility = await new AxeBuilder({ page })
 		.include("dialog")
 		.withTags(AXE_TAGS)
@@ -82,9 +84,10 @@ test("@mobile conversion buttons meet the 44px floor", async ({ page }) => {
 	await expectTouchTarget(page.getByRole("link", { name: "Back to site" }));
 
 	await page.goto("/access-denied/");
-	const request = page.getByRole("link", { name: /^Request access from / });
-	await expect(request).toBeVisible();
-	await expectTouchTarget(request);
+	// Fixture mode deliberately has no root maintainer email to expose.
+	await expect(page.getByRole("link", { name: /^Request access/ })).toHaveCount(0);
+	await expectTouchTarget(page.getByRole("button", { name: "Try a different account" }));
+	await expectTouchTarget(page.getByRole("link", { name: "Back to site" }));
 });
 
 for (const theme of ["light", "dark"] as const) {
@@ -160,7 +163,9 @@ test("event overflow tile uses the scrim token with a paper label in dark", asyn
 	await expect(overlay).not.toHaveClass(/bg-black/);
 	const expected = await page.evaluate(() => {
 		const scratch = document.createElement("span");
-		scratch.style.color = getComputedStyle(document.documentElement).getPropertyValue("--color-ink");
+		scratch.style.color = getComputedStyle(document.documentElement).getPropertyValue(
+			"--color-ink",
+		);
 		document.body.append(scratch);
 		const color = getComputedStyle(scratch).color;
 		scratch.remove();
@@ -173,9 +178,12 @@ test("events carry anchors and the first two articles are server-visible", async
 	await page.goto("/events/#fixture-event-past");
 	const anchor = page.locator("#fixture-event-past");
 	await expect(anchor).toBeVisible();
-	const y = (await anchor.boundingBox())?.y ?? 0;
-	expect(y).toBeGreaterThanOrEqual(61);
-	expect(y).toBeLessThanOrEqual(120);
+	await expect
+		.poll(async () => {
+			const y = (await anchor.boundingBox())?.y;
+			return y !== undefined && y >= 61 && y <= 120;
+		})
+		.toBe(true);
 
 	await page.goto("/events/", { waitUntil: "commit" });
 	await expect(page.locator("main article")).toHaveCount(2);
@@ -258,7 +266,9 @@ test("idle enquiry copy describes only the control on screen", async ({ page }, 
 	// The old idle line described a WhatsApp control that was not on screen yet.
 	await expect(page.getByText("Open WhatsApp to review")).toHaveCount(0);
 	await expect(page.getByText("opens with your message ready to review")).toHaveCount(0);
-	await expect(page.getByText("We save your brief, then open WhatsApp")).toBeVisible();
+	await expect(form.locator("#whatsapp-hint")).toHaveText(
+		"Continue saves your brief and prepares a WhatsApp link. You review and send the message yourself.",
+	);
 	if (testInfo.project.name === "mobile-chromium") {
 		await button.scrollIntoViewIfNeeded();
 		await expectTouchTarget(button);
@@ -381,7 +391,9 @@ test("an old save response cannot mark an edited enquiry as saved", async ({ pag
 
 test("login and access-denied share one auth shell", async ({ page }) => {
 	await page.goto("/login/");
-	const loginHeading = await page.locator("main h1").evaluate((el) => getComputedStyle(el).fontSize);
+	const loginHeading = await page
+		.locator("main h1")
+		.evaluate((el) => getComputedStyle(el).fontSize);
 	await expect(page.locator("main > section > div > div")).toHaveCSS("max-width", "448px");
 	await expect(page.locator("main")).toHaveCSS("min-height", /^(0px|auto)$/);
 
@@ -400,6 +412,7 @@ for (const theme of ["light", "dark"] as const) {
 			await useTheme(page, theme);
 			const response = await page.goto(route);
 			expect(response?.ok()).toBe(true);
+			await settleAnimations(page);
 			const accessibility = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
 			expect(accessibility.violations).toEqual([]);
 		});

@@ -28,7 +28,8 @@ export const ICON_LG = 24;
 
 export const adminField =
 	"min-h-control w-full rounded-(--radius-sm) border border-line-strong bg-canvas px-3 py-2 text-base text-ink transition-ui placeholder:text-muted focus-visible:border-accent disabled:opacity-50";
-export const adminLabel = "grid gap-(--field-label-gap) text-label font-medium text-muted";
+export const adminLabel =
+	"grid content-start gap-(--field-label-gap) text-label font-medium text-muted";
 export const adminHelp = "text-label text-muted";
 export const adminError = "text-sm text-ruby";
 export const adminSectionTitle = "text-base font-semibold tracking-tight text-ink";
@@ -41,12 +42,12 @@ const ICON_BTN_BASE =
 	"grid size-control shrink-0 place-items-center rounded-(--radius-sm) transition-ui pressable disabled:pointer-events-none disabled:opacity-50";
 
 export const adminBtn = `${BTN_BASE} border border-line bg-surface px-3 py-2 text-ink hover:border-accent hover:text-accent-text aria-pressed:border-accent aria-pressed:text-accent-text`;
-export const adminBtnSm = `${BTN_BASE} border border-line bg-surface px-2.5 py-2 text-xs text-ink hover:border-accent hover:text-accent-text aria-pressed:border-accent aria-pressed:text-accent-text`;
+export const adminBtnSm = `${BTN_BASE} border border-line bg-surface px-3 py-2 text-xs text-ink hover:border-accent hover:text-accent-text aria-pressed:border-accent aria-pressed:text-accent-text`;
 /** Modifier for selected states that cannot carry aria-pressed; prefer aria-pressed. */
 export const adminBtnSelected = "border-accent text-accent-text";
 export const adminBtnPrimary = `${BTN_BASE} bg-accent px-4 py-2 text-bg hover:bg-accent-hover`;
 export const adminBtnDestructive = `${BTN_BASE} border border-ruby-line px-3 py-2 text-ruby hover:bg-ruby hover:text-bg`;
-export const adminBtnDangerSolid = `${BTN_BASE} bg-ruby px-4 py-2 text-bg hover:bg-ruby/90`;
+export const adminBtnDangerSolid = `${BTN_BASE} border border-ruby-line bg-ruby px-4 py-2 text-bg hover:bg-ruby-soft hover:text-ruby`;
 
 export const adminIconBtn = `${ICON_BTN_BASE} border border-line bg-surface text-muted hover:border-accent hover:text-accent-text aria-pressed:border-accent aria-pressed:text-accent-text`;
 export const adminIconBtnPrimary = `${ICON_BTN_BASE} bg-accent text-bg hover:bg-accent-hover`;
@@ -56,8 +57,10 @@ export const adminIconBtnGhost = `${ICON_BTN_BASE} text-muted hover:bg-canvas ho
 export const adminPanel =
 	"rounded-(--radius-md) border border-line bg-surface p-(--card-pad) shadow-e1";
 export const adminPanelInset = "rounded-(--radius-md) border border-line bg-canvas p-(--card-pad)";
-export const adminRow = "rounded-(--radius-sm) border border-line bg-surface p-3 transition-ui";
-export const adminRowInset = "rounded-(--radius-sm) border border-line bg-canvas p-3 transition-ui";
+export const adminRow =
+	"rounded-(--radius-sm) border border-line bg-surface p-(--card-pad-compact) transition-ui";
+export const adminRowInset =
+	"rounded-(--radius-sm) border border-line bg-canvas p-(--card-pad-compact) transition-ui";
 export const adminFilePicker = `flex min-h-control cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-ui hover:border-accent hover:text-accent-text has-disabled:pointer-events-none has-disabled:opacity-50 ${FOCUS_WITHIN}`;
 export const adminThumb = "shrink-0 rounded-(--radius-sm) object-cover shadow-hairline";
 
@@ -65,8 +68,7 @@ export const adminThumb = "shrink-0 rounded-(--radius-sm) object-cover shadow-ha
  * role="switch" track: the button carries aria-checked and `group`, the thumb
  * is a child span. The track recolours through transition-colors while the
  * thumb slides 18px on translate through transition-ui (fast, ease-out), so
- * both land in the same frame; reduced motion snaps the thumb and keeps the
- * colour ease. min-h-0 cancels the coarse-pointer 44px floor on the 24px
+ * both land in the same frame. min-h-0 cancels the coarse-pointer 44px floor on the 24px
  * track; the ::before hit area restores the 44px target around it.
  */
 export const adminSwitch =

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { settleAnimations } from "./helpers/animation-settle";
 
 const MEDIA_FIXTURE = readFileSync(resolve("public/artworks/twin-fish.jpg"));
 
@@ -27,6 +28,7 @@ async function expectModalFocus(page: Page, trigger: Locator, lastControl: Locat
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(true);
+	await settleAnimations(page, "dialog");
 	const accessibility = await new AxeBuilder({ page })
 		.include("dialog")
 		.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -54,7 +56,9 @@ test("artwork viewer contains forward/reverse focus and restores its trigger", a
 	// The buy bar puts the enquiry link and price on the first screen of the modal.
 	const enquiry = page.getByRole("dialog").getByRole("link", { name: "Enquire on WhatsApp" });
 	await expect(enquiry).toBeInViewport();
-	await expect(page.getByRole("dialog").getByText(/INR [\d,]+/).first()).toBeInViewport();
+	const price = page.getByRole("dialog").getByText(/INR [\d,]+/);
+	await expect(price).toHaveCount(1);
+	await expect(price).toBeInViewport();
 	await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).focus();
 	await page.screenshot({
 		path: test.info().outputPath("artwork-viewer.png"),
@@ -127,10 +131,56 @@ test("sold artwork uses the same commission intent on its page and in the viewer
 	expect(new URL(viewerHref as string).searchParams.get("text")).not.toContain("Listed price");
 });
 
+test("viewer thumbnails keep selection, keyboard focus and history together", async ({ page }) => {
+	await page.goto("/work/");
+	await settleAnimations(page);
+	const cards = galleryCards(page);
+	const targetPath = await cards.nth(1).getAttribute("href");
+	const trigger = cards.first();
+	await trigger.click();
+	const dialog = page.getByRole("dialog");
+	await expect(dialog).toBeVisible();
+	const rail = dialog.getByRole("navigation", { name: "Artwork thumbnails" });
+	const thumbnails = rail.getByRole("button");
+	expect(await thumbnails.count()).toBeGreaterThan(2);
+	await expect(rail.locator('[aria-current="true"]')).toHaveCount(1);
+	await expect(thumbnails.first()).toHaveAttribute("aria-current", "true");
+	const target = thumbnails.nth(1);
+	const title = (await target.getAttribute("aria-label"))?.replace(/^View /, "");
+	const size = await target.boundingBox();
+	expect(size?.width).toBeGreaterThanOrEqual(44);
+	expect(size?.height).toBeGreaterThanOrEqual(44);
+	await expect(target.locator("img")).toHaveCSS("object-fit", "contain");
+	await target.click();
+	await expect(target).toHaveAttribute("aria-current", "true");
+	await expect(dialog.locator("#lightbox-title")).toHaveText(title ?? "");
+	const targetSlug = targetPath?.split("/").filter(Boolean).at(-1);
+	await expect.poll(() => new URL(page.url()).searchParams.get("piece")).toBe(targetSlug);
+	await target.press("ArrowRight");
+	await expect(thumbnails.nth(2)).toHaveAttribute("aria-current", "true");
+	await expect(thumbnails.nth(2)).toBeFocused();
+	await thumbnails.nth(2).press("End");
+	await expect(thumbnails.last()).toHaveAttribute("aria-current", "true");
+	await expect(thumbnails.last()).toBeFocused();
+	await thumbnails.last().press("ArrowRight");
+	await expect(thumbnails.first()).toHaveAttribute("aria-current", "true");
+	await expect(thumbnails.first()).toBeFocused();
+	await thumbnails.first().press("ArrowLeft");
+	await expect(thumbnails.last()).toHaveAttribute("aria-current", "true");
+	await expect(thumbnails.last()).toBeFocused();
+	await thumbnails.last().press("Home");
+	await expect(thumbnails.first()).toHaveAttribute("aria-current", "true");
+	await expect(thumbnails.first()).toBeFocused();
+	// Browsing thumbnails replaces the current piece; one Back still closes the viewer.
+	await page.goBack();
+	await expect(dialog).toHaveCount(0);
+	await expect(trigger).toBeFocused();
+});
+
 test.describe("responsive artwork delivery", () => {
 	test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 
-	test("two-column cards use the small variant and neighbours preload the displayed source", async ({
+	test("uniform cards use compact variants and neighbours preload the viewer source", async ({
 		page,
 	}) => {
 		await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -141,6 +191,9 @@ test.describe("responsive artwork delivery", () => {
 			.poll(() => firstImage.evaluate((image: HTMLImageElement) => image.currentSrc))
 			.toMatch(/-400\.avif$/);
 		const neighbourImage = cards.nth(1).locator("img");
+		await expect
+			.poll(() => neighbourImage.evaluate((image: HTMLImageElement) => image.currentSrc))
+			.toMatch(/-400\.avif$/);
 		const neighbourPath = new URL(
 			await neighbourImage.evaluate((image: HTMLImageElement) => image.currentSrc),
 		).pathname.replace(/-\d+\.avif$/, "");
@@ -151,6 +204,7 @@ test.describe("responsive artwork delivery", () => {
 		const preloadedUrl = (await preload).url();
 		const dialog = page.getByRole("dialog");
 		await dialog.getByRole("button", { name: "Next artwork" }).click();
+		await expect(dialog.locator("figure img")).toHaveCount(1);
 		await expect
 			.poll(() =>
 				dialog.locator("figure img").evaluate((image: HTMLImageElement) => image.currentSrc),
@@ -159,11 +213,11 @@ test.describe("responsive artwork delivery", () => {
 	});
 });
 
-test("smooth scrolling follows a reduced-motion preference change during the session", async ({
+test("smooth scrolling retains its pointer gate across OS preference changes", async ({
 	page,
 }) => {
 	await page.emulateMedia({ reducedMotion: "no-preference" });
-	await page.goto("/work/");
+	await page.goto("/about/");
 	const finePointer = await page.evaluate(
 		() => matchMedia("(hover: hover) and (pointer: fine)").matches,
 	);
@@ -172,7 +226,8 @@ test("smooth scrolling follows a reduced-motion preference change during the ses
 	else await expect(root).not.toHaveClass(/\blenis\b/);
 
 	await page.emulateMedia({ reducedMotion: "reduce" });
-	await expect(root).not.toHaveClass(/\blenis\b/);
+	if (finePointer) await expect(root).toHaveClass(/\blenis\b/);
+	else await expect(root).not.toHaveClass(/\blenis\b/);
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	if (finePointer) await expect(root).toHaveClass(/\blenis\b/);
 	else await expect(root).not.toHaveClass(/\blenis\b/);
@@ -223,6 +278,10 @@ test("buy bar is on the first screen of the viewer", async ({ page }) => {
 	await expect(dialog.getByText(/INR [\d,]+/)).toHaveCount(0);
 	await expect(dialog.getByText("Sold", { exact: true }).first()).toBeVisible();
 	await expect(dialog.getByRole("button", { name: /^Share / })).toHaveCount(1);
+	const navigation = dialog.getByRole("group", { name: "Artwork navigation" });
+	const navBox = await navigation.boundingBox();
+	const arrowBox = await navigation.getByRole("button").first().boundingBox();
+	expect(navBox?.height ?? 0).toBeLessThanOrEqual((arrowBox?.height ?? 0) + 1);
 });
 
 test("browser back closes the artwork viewer", async ({ page }) => {
@@ -246,25 +305,41 @@ test("browser back closes the artwork viewer", async ({ page }) => {
 test("@mobile filter count is visible and the rail never widens the page", async ({ page }) => {
 	await page.goto("/work/");
 	await expect(page.getByText(/^Showing all \d+ pieces$/)).toBeVisible();
-	await page.getByRole("button", { name: "Madhubani", exact: true }).click();
+	await page.getByRole("button", { name: /^Madhubani \d+$/ }).click();
 	await expect(page.getByText(/^Showing \d+ Madhubani pieces?$/)).toBeVisible();
 	const overflow = await page.evaluate(
 		() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
 	);
 	expect(overflow).toBeLessThanOrEqual(0);
 	await expect(page.locator("main fieldset")).toHaveCSS("overflow-x", "auto");
-	await expect(page.locator('main fieldset > span[aria-hidden="true"]')).toBeHidden();
 });
 
-test("filter rail wraps on desktop with the divider visible", async ({ page }) => {
-	await page.goto("/work/");
-	await expect(page.locator("main fieldset")).toHaveCSS("overflow-x", "visible");
-	await expect(page.locator('main fieldset > span[aria-hidden="true"]')).toBeVisible();
+test("availability toggles without clearing style or search on desktop", async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto("/work/?style=Pichwai");
+	const styles = page.locator("main fieldset");
+	const style = styles.getByRole("button", { name: /^Pichwai \d+$/ });
+	const availability = page.getByRole("button", { name: "Available to buy", exact: true });
+	const search = page.getByRole("searchbox", { name: "Find a piece you love" });
+	await expect(styles).toHaveCSS("overflow-x", "visible");
+	await expect(styles.getByRole("button", { name: "Available to buy" })).toHaveCount(0);
+	await search.fill("canvas");
+	await availability.click();
+	await expect(availability).toHaveAttribute("aria-pressed", "true");
+	await expect(style).toHaveAttribute("aria-pressed", "true");
+	await expect(search).toHaveValue("canvas");
+	expect(new URL(page.url()).searchParams.get("style")).toBe("Pichwai");
+	expect(new URL(page.url()).searchParams.get("view")).toBe("available");
+	await availability.click();
+	await expect(availability).toHaveAttribute("aria-pressed", "false");
+	await expect(style).toHaveAttribute("aria-pressed", "true");
+	await expect(search).toHaveValue("canvas");
+	expect(new URL(page.url()).searchParams.has("view")).toBe(false);
 });
 
 test("@mobile deep-linked style pill is visible in the rail", async ({ page }) => {
 	await page.goto("/work/?style=Gond");
-	await expect(page.getByRole("button", { name: "Gond", exact: true })).toBeInViewport();
+	await expect(page.getByRole("button", { name: /^Gond \d+$/ })).toBeInViewport();
 	expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
@@ -340,6 +415,7 @@ test("@mobile enquiry bar follows the panel", async ({ page }) => {
 });
 
 test("enquiry bar stays off desktop", async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto("/work/");
 	const path = await galleryCards(page).first().getAttribute("href");
 	await page.goto(path as string);
@@ -360,6 +436,7 @@ test("artwork detail page has no accessibility violations", async ({ page }) => 
 	await page.goto("/work/");
 	const path = await galleryCards(page).first().getAttribute("href");
 	await page.goto(path as string);
+	await settleAnimations(page);
 	const accessibility = await new AxeBuilder({ page })
 		.include("main")
 		.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -367,15 +444,16 @@ test("artwork detail page has no accessibility violations", async ({ page }) => 
 	expect(accessibility.violations).toEqual([]);
 });
 
-test("tile wall labels carry the catalogue counter and pills carry counts", async ({ page }) => {
+test("cards retain screen-reader positions and filters show counts", async ({ page }) => {
 	await page.goto("/work/");
-	// Every tile caption opens with the museum counter (visual-direction 2.2).
-	const counters = galleryCards(page).locator("p").filter({ hasText: /^No\. \d{2}( of \d+)?$/ });
-	expect(await counters.count()).toBeGreaterThan(0);
-	await expect(counters.first()).toHaveText(/^No\. \d{2} of \d+$/);
-	// Filter pills show their counts as parenthesised numerals.
-	await expect(page.getByRole("button", { name: /^All \(\d+\)$/ })).toBeVisible();
-	await expect(page.getByRole("button", { name: /^Madhubani \(\d+\)$/ })).toBeVisible();
+	const cards = galleryCards(page);
+	await expect(cards.first()).toBeVisible();
+	const total = await cards.count();
+	const positions = cards.locator("span.sr-only").filter({ hasText: /^Piece \d+ of \d+$/ });
+	await expect(positions).toHaveCount(total);
+	await expect(positions.first()).toHaveText(`Piece 1 of ${total}`);
+	await expect(page.getByRole("button", { name: `All ${total}`, exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: /^Madhubani \d+$/ })).toBeVisible();
 });
 
 test("detail orders price before the full-width enquiry, one price on the page", async ({
@@ -397,9 +475,8 @@ test("detail orders price before the full-width enquiry, one price on the page",
 		return Boolean(panel.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING);
 	});
 	expect(panelBeforeDescription).toBe(true);
-	// The gold wall-label bar sits above the label (2px x 32px).
-	const bar = page.locator("main span.block.h-0\\.5.w-8").first();
-	await expect(bar).toBeVisible();
+	// The artwork and its label no longer carry decorative divider rules.
+	await expect(page.locator("main .rule-draw")).toHaveCount(0);
 	// The Expand affordance opens the viewer and is 44px.
 	const expand = page.getByRole("button", { name: "View full screen" });
 	const expandBox = await expand.boundingBox();
@@ -411,15 +488,14 @@ test("detail orders price before the full-width enquiry, one price on the page",
 	await expect(expand).toBeFocused();
 });
 
-test("sold detail offers the style's available pieces", async ({ page }) => {
+test("sold detail offers the available artwork collection", async ({ page }) => {
 	await page.goto("/work/");
 	const path = await page.locator('main a[aria-label$=", sold"]').first().getAttribute("href");
 	await page.goto(path as string);
 	// No price renders; the wall label carries the status instead.
 	await expect(page.locator("main").getByText(/^INR [\d,]+$/)).toHaveCount(0);
 	await expect(page.locator("main").getByText("Sold", { exact: true }).first()).toBeVisible();
-	const related = page.getByRole("link", { name: /^More .+, available$/ });
+	const related = page.getByRole("link", { name: "Browse available artwork" });
 	await expect(related).toBeVisible();
 	expect(await related.getAttribute("href")).toContain("view=available");
 });
-

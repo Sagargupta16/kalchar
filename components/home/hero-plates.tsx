@@ -1,19 +1,18 @@
 "use client";
 
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { PlateFrame } from "@/components/gallery/plate-frame";
-import { WallLabel } from "@/components/gallery/wall-label";
-import { AccentRule } from "@/components/ui/accent-rule";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
-import { HERO_SHUFFLE_DELAY_MS } from "@/lib/motion";
+import { DUR, EASE_OUT, HERO_SHUFFLE_DELAY_MS } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 
-/** Shared with hero.tsx: the front plate caps at 35rem in the md+ seven-column cell. */
-const FEATURED_SIZES = "(min-width: 768px) 35rem, 85vw";
+/** Shared with hero.tsx: the front plate caps at 22rem on desktop. */
+const FEATURED_SIZES = "(min-width: 768px) 22rem, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 const MIN_SHUFFLE_TILT = 3;
@@ -25,7 +24,7 @@ const MAX_SHUFFLE_TILT = 7;
  * the pair never crests together. The front plate rises 7px over 9s; the back
  * rides the --duration-float default (7s) offset by -3s; each gets a whisper
  * of counter-rotation. Travel stays inside the recipe's 8px cap, rotate
- * inside its 0.5deg cap; the reduced-motion block removes the loop entirely.
+ * inside its 0.5deg cap.
  */
 const FLOAT_FRONT = {
 	"--float-travel": "7px",
@@ -109,8 +108,7 @@ async function prepareShuffle(
  *
  * Server renders the deterministic default pair at the resting tilt (-5deg
  * front, +4deg back) -- that front plate is the preloaded LCP. After mount,
- * if the visitor has not asked for reduced motion, we shuffle to two random
- * featured pieces at random opposite-leaning angles, so the hero feels alive
+ * we shuffle to two random featured pieces at opposite-leaning angles, so the hero feels alive
  * and different on each reload.
  *
  * The front plate sits in a PlateFrame with the resting gold inset and the
@@ -125,8 +123,7 @@ async function prepareShuffle(
  * from .hero-plate (which transitions the shuffle transform) and from
  * PlateFrame (which owns the hover lift), per the animations.css recipe. An
  * IntersectionObserver on the stage sets --float-state: paused once the hero
- * scrolls out of view; the property inherits into both wrappers. Reduced
- * motion never sees the loop (the CSS reduced block strips .plate-float).
+ * scrolls out of view; the property inherits into both wrappers.
  *
  * Clicking the front plate opens the shared lightbox (same behavior as the
  * gallery cards), with the whole featured pool as the navigable set. Cmd/Ctrl
@@ -165,12 +162,7 @@ export function HeroPlates({
 
 	useEffect(() => {
 		if (globalThis.window === undefined) return;
-		// Release the pending will-change promise (H1): a skipped shuffle must not
-		// leave the plates promoted forever under reduced motion or an empty pool.
-		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			setShuffleStatus("skipped");
-			return;
-		}
+		// An empty pool must also release the pending transform layer.
 		if (pool.length < 1) {
 			setShuffleStatus("skipped");
 			return;
@@ -212,7 +204,7 @@ export function HeroPlates({
 		<div data-shuffle-status={shuffleStatus}>
 			<div
 				ref={stageRef}
-				className="relative aspect-3/4 max-h-[46dvh] md:max-h-none"
+				className="relative aspect-4/5 max-h-[46dvh] md:max-h-none"
 				style={{ "--float-state": inView ? "running" : "paused" } as CSSProperties}
 			>
 				{/* Back plate */}
@@ -224,14 +216,7 @@ export function HeroPlates({
 					>
 						<div className="plate-float h-full" style={FLOAT_BACK}>
 							<PlateFrame className="h-full">
-								<ArtImage
-									key={back.slug}
-									src={`/artworks/${back.image}`}
-									alt=""
-									sizes={FEATURED_SIZES}
-									maxWidth={800}
-									className="absolute inset-0 h-full w-full object-cover"
-								/>
+								<HeroPlateImage artwork={back} decorative />
 							</PlateFrame>
 						</div>
 					</div>
@@ -249,42 +234,54 @@ export function HeroPlates({
 							className="pressable absolute inset-0 block rounded-(--radius-md)"
 							aria-label={`View ${front.title}`}
 						>
-							<PlateFrame goldRest sheen className="h-full">
-								<ArtImage
-									key={front.slug}
-									src={`/artworks/${front.image}`}
-									alt={front.description ?? front.title}
-									sizes={FEATURED_SIZES}
-									maxWidth={800}
-									priority={!shuffled}
-									className="absolute inset-0 h-full w-full object-cover"
-								/>
+							<PlateFrame className="h-full bg-surface-raised shadow-e4">
+								<HeroPlateImage artwork={front} priority={!shuffled} />
 							</PlateFrame>
 						</Link>
 					</div>
 				</div>
 			</div>
 
-			{/* Museum wall label: "✦ Featured · No. NN of T" / italic title / STYLE · YEAR */}
-			<div className="mt-6">
-				<WallLabel
-					variant="compact"
-					index={index >= 0 ? index + 1 : 1}
-					total={totalCount}
-					title={front.title}
-					meta={[front.style, front.year ? String(front.year) : ""]}
-					stagger
-					prefix={
-						<>
-							<span aria-hidden="true" className="text-gold-leaf">
-								✦
-							</span>
-							<span>Featured ·</span>
-						</>
-					}
-				/>
-				<AccentRule variant="gold" className="mt-3 w-6" />
+			<div className="mt-7 flex items-center justify-between gap-4">
+				<div className="min-w-0">
+					<p className="text-base font-semibold tracking-tight text-ink">{front.title}</p>
+					<p className="mt-1 text-sm text-muted">{front.style}</p>
+				</div>
+				<span className="shrink-0 rounded-full bg-surface px-3 py-2 text-xs font-medium text-muted shadow-e1">
+					Featured
+					<span className="sr-only">
+						, piece {index >= 0 ? index + 1 : 1} of {totalCount}
+					</span>
+				</span>
 			</div>
 		</div>
+	);
+}
+
+function HeroPlateImage({
+	artwork,
+	priority = false,
+	decorative = false,
+}: Readonly<{ artwork: Artwork; priority?: boolean; decorative?: boolean }>) {
+	return (
+		<AnimatePresence initial={false}>
+			<motion.div
+				key={artwork.slug}
+				className="absolute inset-0"
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				exit={{ opacity: 0 }}
+				transition={{ duration: DUR.base, ease: EASE_OUT }}
+			>
+				<ArtImage
+					src={`/artworks/${artwork.image}`}
+					alt={decorative ? "" : (artwork.description ?? artwork.title)}
+					sizes={FEATURED_SIZES}
+					maxWidth={800}
+					priority={priority}
+					className="absolute inset-0 h-full w-full object-contain p-3"
+				/>
+			</motion.div>
+		</AnimatePresence>
 	);
 }

@@ -10,7 +10,6 @@ import { EnquiryBar } from "@/components/gallery/enquiry-bar";
 import { WallLabel } from "@/components/gallery/wall-label";
 import { Testimonials } from "@/components/home/testimonials";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
 import { Container } from "@/components/ui/container";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import {
@@ -141,7 +140,7 @@ function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; n
 /**
  * Artwork detail page (visual-direction 2.3, the B graft): art > label/name >
  * price > full-width Enquire, then the prose. Mobile flow: full-bleed plate
- * capped at 72dvh, gold wall-label bar, museum wall label with the price in
+ * capped at 72dvh, museum wall label with the price in
  * the numeral voice, the CTA panel directly after, description and facts
  * below, with a sticky enquiry bar while the panel is off screen. Desktop
  * splits plate (sticky, 7 of 12) / info (5 of 12) at md.
@@ -212,7 +211,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 			<div className="mt-(--space-block) grid gap-(--space-block) md:grid-cols-12 md:gap-12">
 				{/* Image plate at the piece's own ratio, whole painting shown (D9);
 				    never inside a Reveal (LCP, performance guard 3). */}
-				<div className="md:col-span-7">
+				<div className="min-w-0 md:col-span-7">
 					<DetailPlate
 						artwork={art}
 						siblings={all}
@@ -222,10 +221,9 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 					/>
 				</div>
 
-				{/* Info column: label bar, wall label (title as the h1), price,
+				{/* Info column: wall label (title as the h1), price,
 				    full-width Enquire, then the prose and facts. */}
-				<div className="md:col-span-5">
-					<span aria-hidden="true" className="block h-0.5 w-8 bg-(--color-gold-hairline)" />
+				<div className="min-w-0 md:col-span-5">
 					<WallLabel
 						variant="full"
 						mark
@@ -245,11 +243,6 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 						titleClassName="md:text-h1"
 						className="mt-4"
 					/>
-					<AccentRule
-						variant="gold"
-						className="mt-2 w-10 [animation-delay:calc(5*var(--stagger-step))]"
-					/>
-
 					{/* Honest scarcity: every piece is a single physical original.
 					    No timers, no fake stock. */}
 					{isAvailable && !isSold ? (

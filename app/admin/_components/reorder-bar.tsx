@@ -1,9 +1,10 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { adminBtn, adminBtnPrimary, ICON_MD } from "./controls";
 import { usePendingVisible } from "./use-admin-action";
@@ -37,7 +38,7 @@ export function BottomBar({
 				role={role}
 				aria-live={ariaLive}
 				className={cn(
-					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line material-glass xl:bottom-0 starting:translate-y-2 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)",
+					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line material-glass xl:bottom-0 starting:translate-y-2 starting:opacity-0 transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
 					className,
 				)}
 			>
@@ -64,7 +65,7 @@ function SaveButton({
 			className={cn(adminBtnPrimary, "min-w-28")}
 		>
 			{spinning ? (
-				<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+				<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 			) : null}
 			{label}
 		</button>
@@ -98,15 +99,7 @@ export function ReorderBar({
 	onSave,
 	onReset,
 }: Readonly<ReorderBarProps>) {
-	// Staged order is unsaved work: warn before the tab closes or reloads.
-	useEffect(() => {
-		if (saved) return;
-		const guard = (event: BeforeUnloadEvent) => {
-			event.preventDefault();
-		};
-		window.addEventListener("beforeunload", guard);
-		return () => window.removeEventListener("beforeunload", guard);
-	}, [saved]);
+	useAdminDraftGuard(!saved);
 
 	return (
 		<BottomBar>

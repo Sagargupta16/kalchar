@@ -1,6 +1,5 @@
 import { Clock } from "lucide-react";
 import Link from "next/link";
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { SectionCta } from "@/components/home/section-cta";
 import { Spread } from "@/components/home/spread";
 import { Reveal } from "@/components/motion/reveal";
@@ -31,7 +30,6 @@ export function WorkshopsTeaser({
 }: Readonly<WorkshopsTeaserProps>) {
 	return (
 		<Section id="workshops" accent="pichwai" padded rhythm="grand">
-			<KachniRule form="long" className="mb-(--space-block)" />
 			<Spread
 				header={
 					<Reveal>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Brush, Check, Sparkles } from "lucide-react";
-import { type CSSProperties, useState } from "react";
+import type { CSSProperties } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import type { ArtStyle } from "@/lib/types";
@@ -17,6 +17,8 @@ interface StylePickerProps {
 	styles: readonly ArtStyle[];
 	/** style -> representative artwork thumbnail. Missing = brush-glyph plate. */
 	samples: Record<string, StyleSample>;
+	value: string;
+	onChange: (value: string) => void;
 }
 
 const OPEN = "" as const;
@@ -32,8 +34,14 @@ const OPEN = "" as const;
  * default. Styles with a catalog thumbnail show the art; the rest fall back
  * to a brush glyph plate (the name already prints in the label).
  */
-export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps>) {
-	const [selected, setSelected] = useState<string>(OPEN);
+export function StylePicker({
+	name,
+	styles,
+	samples,
+	value,
+	onChange,
+}: Readonly<StylePickerProps>) {
+	const choices = value && !styles.includes(value) ? [...styles, value] : styles;
 	// The page's one floating plate (steering 2026-09-14): the first
 	// artwork-backed sample idles on the shared float breath. One plate only,
 	// never the whole picker grid; purely decorative, so radio semantics and
@@ -42,29 +50,29 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 
 	return (
 		<fieldset>
-			<legend className="flex items-baseline justify-between text-sm font-medium text-ink">
+			<legend className="flex w-full flex-wrap items-baseline justify-between gap-x-3 text-sm font-medium text-ink">
 				<span>Preferred style</span>
 				<span className="text-xs text-muted">optional</span>
 			</legend>
 			<div
 				role="radiogroup"
 				aria-label="Preferred style"
-				className="mt-(--field-label-gap) grid grid-cols-2 gap-3 sm:grid-cols-3"
+				className="mt-(--field-label-gap) grid grid-cols-2 gap-3 @md:grid-cols-3"
 			>
 				{/* Open to suggestion */}
 				<OptionCard
 					name={name}
 					value={OPEN}
 					label="Open to suggestion"
-					checked={selected === OPEN}
-					onSelect={setSelected}
+					checked={value === OPEN}
+					onSelect={onChange}
 				>
 					<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
 						<Sparkles size={22} aria-hidden="true" />
 					</div>
 				</OptionCard>
 
-				{styles.map((style) => {
+				{choices.map((style) => {
 					const sample = samples[style];
 					return (
 						<OptionCard
@@ -72,9 +80,9 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 							name={name}
 							value={style}
 							label={style}
-							checked={selected === style}
+							checked={value === style}
 							floating={style === floatingStyle}
-							onSelect={setSelected}
+							onSelect={onChange}
 						>
 							{sample ? (
 								<ArtImage
@@ -121,7 +129,7 @@ function OptionCard({
 		<PlateFrame
 			goldRest={checked}
 			className={cn(
-				"aspect-4/3",
+				"aspect-2/1",
 				checked && "ring-2 ring-(--section-accent) ring-offset-2 ring-offset-bg",
 			)}
 		>
@@ -144,7 +152,7 @@ function OptionCard({
 		// Selection carries two non-colour cues (visual-direction 2.8): the 2px
 		// section-pigment ring offset 2px on the plate AND the resting gold inset
 		// line (goldRest), plus the check badge.
-		<label className="group relative block cursor-pointer transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2">
+		<label className="group relative block min-h-control min-w-0 cursor-pointer rounded-md transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2">
 			<input
 				type="radio"
 				name={name}
@@ -155,8 +163,7 @@ function OptionCard({
 			/>
 			{/* The float wrapper sits between the pressable label and the
 			    hover-lifting frame so no transform fights another; travel is
-			    trimmed to 4px for the tile scale, and reduced motion removes the
-			    loop in animations.css. */}
+			    trimmed to 4px for the tile scale. */}
 			{floating ? (
 				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
 					{plate}

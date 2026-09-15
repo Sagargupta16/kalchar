@@ -4,9 +4,10 @@ const ADMIN_HOME = "/admin";
 const SPACE_CODE_POINT = 0x20;
 
 /** Only local admin destinations may be used after sign-in. */
-export function safeAdminCallback(value: string | undefined): string {
+export function safeAdminCallback(value: unknown): string {
 	if (
-		!value?.startsWith("/") ||
+		typeof value !== "string" ||
+		!value.startsWith("/") ||
 		[...value].some(
 			(character) => character === "\\" || (character.codePointAt(0) ?? 0) <= SPACE_CODE_POINT,
 		)

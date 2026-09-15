@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import { PigmentWash } from "@/components/decor/pigment-wash";
-import { AccentRule } from "@/components/ui/accent-rule";
 import { Container, type ContainerSize } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +30,7 @@ interface SectionProps {
 	background?: SectionBackground;
 	/** Wrap children in <Container> with the section rhythm (py-(--section-py)). */
 	padded?: boolean;
-	/** grand = museum breathing (--section-py-grand): home hero and shells, public page headers. */
+	/** grand = museum breathing (--section-py-grand) for home sections. */
 	rhythm?: "default" | "grand";
 	/** Render an organic <PigmentWash /> as the first child (hero and closing-CTA key moments). */
 	wash?: boolean;
@@ -98,16 +97,12 @@ interface SectionHeaderProps {
 	centered?: boolean;
 	/** Right-aligned slot (e.g. "View all" link) on sm+; stacks under the lead on phones. */
 	action?: ReactNode;
-	/** Gold hairline drawn under the title (the standard header); "none" opts out. */
-	rule?: "gold" | "none";
 	className?: string;
 }
 
 /**
- * Eyebrow + display heading + optional lead, sized from the header token.
- * The title carries the roman headline voice (t-headline text-display-sm)
- * with a gold AccentRule drawn beneath it (visual-direction 2.1 change 4).
- * Does NOT wrap in Reveal: the eager CSS reveal belongs to the caller.
+ * Section heading with the same simple eyebrow and text rhythm as PageHeader.
+ * The caller owns its reveal so a section can enter as one composition.
  */
 export function SectionHeader({
 	eyebrow,
@@ -116,7 +111,6 @@ export function SectionHeader({
 	as: Heading = "h2",
 	centered = false,
 	action,
-	rule = "gold",
 	className,
 }: Readonly<SectionHeaderProps>) {
 	return (
@@ -128,14 +122,8 @@ export function SectionHeader({
 			)}
 		>
 			<div className={cn("max-w-(--header-max)", centered && "mx-auto")}>
-				<p className={cn("t-eyebrow flex items-center gap-2", centered && "justify-center")}>
-					<AccentRule />
-					{eyebrow}
-					{/* Centered headers keep today's flanking rules (public-home About teaser). */}
-					{centered ? <AccentRule /> : null}
-				</p>
-				<Heading className="t-headline mt-3 text-display-sm">{title}</Heading>
-				{rule === "gold" ? <AccentRule variant="gold" className="mt-5 w-12" /> : null}
+				<p className="t-eyebrow">{eyebrow}</p>
+				<Heading className="t-headline mt-3 text-h2">{title}</Heading>
 				{lead ? <p className="t-lead mt-4">{lead}</p> : null}
 			</div>
 			{action ? <div className="shrink-0">{action}</div> : null}

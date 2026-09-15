@@ -1,10 +1,8 @@
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { SectionCta } from "@/components/home/section-cta";
-import { Spread } from "@/components/home/spread";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { ChannelLink } from "@/components/ui/channel-link";
-import { Section, SectionHeader } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
 import { staggerDelay } from "@/lib/motion";
 import type { Contact } from "@/lib/types";
 
@@ -25,16 +23,19 @@ export function ContactTeaser({
 	whatsappHref,
 }: Readonly<ContactTeaserProps>) {
 	return (
-		<Section id="contact" accent="peacock" padded rhythm="grand">
-			<KachniRule form="long" className="mb-(--space-block)" />
-			<Spread
-				header={
-					<Reveal>
-						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
-					</Reveal>
-				}
-			>
-				<div className="grid gap-(--grid-gap) sm:grid-cols-3">
+		<Section id="contact" accent="peacock" padded containerClassName="py-(--space-block)">
+			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
+				<Reveal>
+					<header className="max-w-lg">
+						<p className="t-eyebrow">{eyebrow}</p>
+						<h2 className="t-headline mt-3 text-h2">{title}</h2>
+						{lead ? <p className="t-lead mt-4">{lead}</p> : null}
+					</header>
+					<SectionCta href="/contact" className="mt-6">
+						Full contact page
+					</SectionCta>
+				</Reveal>
+				<div className="grid gap-3">
 					<Reveal delayMs={staggerDelay(0)}>
 						<ChannelLink
 							href={whatsappHref}
@@ -64,13 +65,7 @@ export function ContactTeaser({
 						/>
 					</Reveal>
 				</div>
-
-				<Reveal delayMs={staggerDelay(3)}>
-					<div className="mt-(--space-block)">
-						<SectionCta href="/contact">Full contact page</SectionCta>
-					</div>
-				</Reveal>
-			</Spread>
+			</div>
 		</Section>
 	);
 }

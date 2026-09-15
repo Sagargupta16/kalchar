@@ -19,7 +19,7 @@ export function AdminPanelHeader({
 	as: Heading = "h2",
 }: Readonly<AdminPanelHeaderProps>) {
 	return (
-		<div className="mb-4 flex items-start justify-between gap-3">
+		<div className="mb-(--form-gap) flex items-start justify-between gap-3">
 			<div className="min-w-0">
 				<Heading id={id} className={adminSectionTitle}>
 					{title}
@@ -45,7 +45,7 @@ interface AdminPanelProps {
 }
 
 /**
- * The one admin panel: border-only depth (dense tool, no shadow), padding from
+ * The one admin panel: a subtle border and shared elevation, padding from
  * --card-pad, heading wired to aria-labelledby. Create forms that need a
  * <form> root use the adminPanelInset string with a nested AdminPanelHeader.
  */

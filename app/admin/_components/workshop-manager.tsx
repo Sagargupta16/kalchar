@@ -2,10 +2,9 @@
 
 import { ExternalLink, LoaderCircle, Plus, Presentation } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createWorkshop, reorderWorkshops } from "../actions";
@@ -26,66 +25,138 @@ import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
-import { useServerSyncedList } from "./use-server-synced-list";
-import { WorkshopRow } from "./workshop-row";
+import {
+	focusWorkshopField,
+	parseWorkshopDraft,
+	useWorkshopDraftGuard,
+	type WorkshopDraftError,
+	WorkshopRow,
+} from "./workshop-row";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
-	// The manager's action serves the reorder save only; the create form and the
-	// rows each own theirs (C10, C12).
-	const { pending, err, run } = useAdminAction();
-	const reduceMotion = usePrefersReducedMotion();
+	const { pending: orderPending, err, run } = useAdminAction();
 	const headingId = useId();
+	const addRef = useRef<HTMLButtonElement>(null);
 	const [baseline, setBaseline] = useState(initial);
+	const [items, setItems] = useState(initial);
+	const [seenServerKey, setSeenServerKey] = useState(() => JSON.stringify(initial));
 	const [creating, setCreating] = useState(false);
+	const [createPending, setCreatePending] = useState(false);
+	const [pendingRows, setPendingRows] = useState(() => new Set<string>());
 	const [created, setCreated] = useState<{ id: string; title: string } | null>(null);
-	const createdRef = useRef<typeof created>(null);
 	const [arrivedId, setArrivedId] = useState<string | null>(null);
-	// Adopt fresh server data after a create (router.refresh), resetting the
-	// reorder baseline to match so a new row doesn't read as an unsaved move.
-	const [items, setItems] = useServerSyncedList(initial, (next) => {
-		setBaseline(next);
-		if (createdRef.current) setArrivedId(createdRef.current.id);
-	});
 	const [saved, setSaved] = useState(false);
-	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
+	const [showOrderError, setShowOrderError] = useState(false);
+	const pending = orderPending || createPending || pendingRows.size > 0;
+	const hasOrderChanges =
+		items.length !== baseline.length || items.some((item, i) => item.slug !== baseline[i]?.slug);
+
+	// Refresh row contents and membership without throwing away a staged order.
+	const serverKey = JSON.stringify(initial);
+	if (seenServerKey !== serverKey) {
+		setSeenServerKey(serverKey);
+		setBaseline(initial);
+		const incoming = new Map(initial.map((item) => [item.slug, item]));
+		const previousSlugs = new Set(items.map((item) => item.slug));
+		setItems(
+			hasOrderChanges
+				? [
+						...items.flatMap((item) => incoming.get(item.slug) ?? []),
+						...initial.filter((item) => !previousSlugs.has(item.slug)),
+					]
+				: initial,
+		);
+	}
+
+	const onPendingChange = useCallback((slug: string, busy: boolean) => {
+		setPendingRows((previous) => {
+			if (previous.has(slug) === busy) return previous;
+			const next = new Set(previous);
+			if (busy) next.add(slug);
+			else next.delete(slug);
+			return next;
+		});
+	}, []);
+
+	const changeOrder = (next: Workshop[]) => {
+		setSaved(false);
+		setShowOrderError(false);
+		setItems(next);
+	};
+	const { dragging, over, dragProps, move } = useReorder(items, changeOrder, pending);
+
+	useEffect(() => {
+		if (!saved) return;
+		const timer = window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timer);
+	}, [saved]);
 
 	// Scroll the just-created row into view and highlight it (C13); workshops append last.
 	useEffect(() => {
 		if (!arrivedId) return;
-		requestAnimationFrame(() => {
-			document
-				.getElementById(`workshop-${arrivedId}`)
-				?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+		const frame = requestAnimationFrame(() => {
+			const row = document.getElementById(`workshop-${arrivedId}`);
+			row
+				?.querySelector<HTMLButtonElement>("button[aria-expanded]")
+				?.focus({ preventScroll: true });
+			row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		});
 		const timer = window.setTimeout(() => setArrivedId(null), SAVED_BADGE_DURATION_MS);
-		return () => window.clearTimeout(timer);
-	}, [arrivedId, reduceMotion]);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.clearTimeout(timer);
+		};
+	}, [arrivedId]);
 
 	const handleSaveOrder = () => {
+		if (pending || !hasOrderChanges) return;
 		setSaved(false);
+		setShowOrderError(true);
 		return run(
 			() => reorderWorkshops(items.map((i) => i.slug)),
 			() => {
 				setBaseline(items);
 				setSaved(true);
-				window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
 
 	const openPanel = () => {
 		setCreated(null);
-		createdRef.current = null;
 		setCreating(true);
 	};
 
-	const onCreated = (next: { id: string; title: string }) => {
-		setCreated(next);
-		createdRef.current = next;
+	const closePanel = () => {
+		setCreating(false);
+		requestAnimationFrame(() => addRef.current?.focus());
+	};
+
+	const onCreated = (fields: Omit<Workshop, "order">) => {
+		const next = { ...fields, order: Math.max(0, ...baseline.map((item) => item.order)) + 1 };
+		const append = (previous: Workshop[]) =>
+			previous.some((item) => item.slug === next.slug) ? previous : [...previous, next];
+		setItems(append);
+		setBaseline(append);
+		setCreated({ id: next.slug, title: next.title });
+		setArrivedId(next.slug);
 		setCreating(false);
 	};
 
-	const hasOrderChanges = items.some((item, i) => item.slug !== baseline[i]?.slug);
+	const onDeleted = (slug: string) => {
+		const index = items.findIndex((item) => item.slug === slug);
+		const nextFocus = items[index + 1] ?? items[index - 1];
+		setItems((previous) => previous.filter((item) => item.slug !== slug));
+		setBaseline((previous) => previous.filter((item) => item.slug !== slug));
+		setShowOrderError(false);
+		requestAnimationFrame(() => {
+			const button = nextFocus
+				? document
+						.getElementById(`workshop-${nextFocus.slug}`)
+						?.querySelector<HTMLButtonElement>("button[aria-expanded]")
+				: addRef.current;
+			(button ?? addRef.current ?? document.getElementById("new-workshop-title"))?.focus();
+		});
+	};
 
 	return (
 		<div className="space-y-group">
@@ -93,10 +164,17 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
 				<div className="min-w-0 space-y-group lg:col-span-4">
 					{creating ? (
-						<CreateWorkshopForm onCancel={() => setCreating(false)} onCreated={onCreated} />
+						<CreateWorkshopForm
+							listPending={orderPending || pendingRows.size > 0}
+							onPendingChange={setCreatePending}
+							onCancel={closePanel}
+							onCreated={onCreated}
+						/>
 					) : (
 						<button
+							ref={addRef}
 							type="button"
+							disabled={pending}
 							onClick={openPanel}
 							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
 						>
@@ -157,10 +235,8 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 										prev.map((item) => (item.slug === next.slug ? next : item)),
 									);
 								}}
-								onDeleted={(slug) => {
-									setItems((prev) => prev.filter((item) => item.slug !== slug));
-									setBaseline((prev) => prev.filter((item) => item.slug !== slug));
-								}}
+								onDeleted={onDeleted}
+								onPendingChange={onPendingChange}
 							/>
 						))}
 						{items.length === 0 ? (
@@ -173,7 +249,12 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 								body="Add one and it appears on the public workshops page."
 								action={
 									creating ? null : (
-										<button type="button" onClick={openPanel} className={adminBtn}>
+										<button
+											type="button"
+											disabled={pending}
+											onClick={openPanel}
+											className={adminBtn}
+										>
 											Add workshop
 										</button>
 									)
@@ -185,37 +266,84 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			</div>
 
 			{hasOrderChanges || saved ? (
-				<ReorderBar
-					label="Workshop order changed"
-					pending={pending}
-					saved={saved}
-					error={err}
-					onSave={handleSaveOrder}
-					onReset={() => setItems(baseline)}
-				/>
+				<fieldset
+					disabled={createPending || pendingRows.size > 0}
+					aria-label="Workshop order"
+					className="contents"
+				>
+					<ReorderBar
+						label="Workshop order changed"
+						pending={orderPending}
+						saved={saved && !hasOrderChanges}
+						error={showOrderError ? err : null}
+						onSave={handleSaveOrder}
+						onReset={() => changeOrder(baseline)}
+					/>
+				</fieldset>
 			) : null}
 		</div>
 	);
 }
 
 function CreateWorkshopForm({
+	listPending,
+	onPendingChange,
 	onCancel,
 	onCreated,
 }: Readonly<{
+	listPending: boolean;
+	onPendingChange: (pending: boolean) => void;
 	onCancel: () => void;
-	onCreated: (created: { id: string; title: string }) => void;
+	onCreated: (created: Omit<Workshop, "order">) => void;
 }>) {
-	const { pending, pendingVisible, err, run } = useAdminAction();
+	const { pending: createPending, pendingVisible, err, run } = useAdminAction();
 	const headingId = useId();
+	const errorId = useId();
+	const formRef = useRef<HTMLFormElement>(null);
+	const [dirty, setDirty] = useState(false);
+	const [localErr, setLocalErr] = useState<WorkshopDraftError | null>(null);
+	const [showActionError, setShowActionError] = useState(false);
+	const pending = createPending || listPending;
+	const canDiscard = useWorkshopDraftGuard({ dirty, pending });
+	const error = localErr?.message ?? (showActionError ? err : null);
+
+	useEffect(() => {
+		onPendingChange(createPending);
+		return () => onPendingChange(false);
+	}, [createPending, onPendingChange]);
 
 	return (
 		<form
+			ref={formRef}
+			noValidate
 			aria-labelledby={headingId}
+			onChange={(event) => {
+				const values = new FormData(event.currentTarget);
+				setDirty([...values.values()].some((value) => String(value) !== ""));
+				setLocalErr(null);
+				setShowActionError(false);
+			}}
 			onSubmit={(e) => {
 				e.preventDefault();
-				const form = e.currentTarget;
-				const fd = new FormData(form);
-				const title = String(fd.get("title") ?? "").trim();
+				if (pending) return;
+				setLocalErr(null);
+				setShowActionError(false);
+				const fd = new FormData(e.currentTarget);
+				const result = parseWorkshopDraft({
+					title: String(fd.get("title") ?? ""),
+					blurb: String(fd.get("blurb") ?? ""),
+					durationHours: String(fd.get("durationHours") ?? ""),
+				});
+				if ("error" in result) {
+					setLocalErr(result.error);
+					focusWorkshopField(formRef.current, result.error.field);
+					return;
+				}
+				const { fields } = result;
+				fd.set("title", fields.title);
+				fd.set("blurb", fields.blurb);
+				fd.set("durationHours", fields.durationHours?.toString() ?? "");
+				setShowActionError(true);
 				let createdSlug: string | null = null;
 				run(
 					() =>
@@ -224,8 +352,13 @@ function CreateWorkshopForm({
 							return result;
 						}),
 					() => {
-						form.reset();
-						if (createdSlug) onCreated({ id: createdSlug, title });
+						setDirty(false);
+						if (createdSlug)
+							onCreated({
+								slug: createdSlug,
+								...fields,
+								durationHours: fields.durationHours ?? undefined,
+							});
 					},
 				);
 			}}
@@ -237,7 +370,10 @@ function CreateWorkshopForm({
 				description="What participants will make and learn, and how long it takes."
 			/>
 			<p className={adminHelp}>Fields marked * are required.</p>
-			<div className="mt-4 grid gap-(--form-gap) sm:grid-cols-2">
+			<fieldset
+				disabled={pending}
+				className="mt-(--form-gap) grid min-w-0 gap-(--form-gap) sm:grid-cols-2"
+			>
 				<div className={adminLabel}>
 					<label htmlFor="new-workshop-title">Title *</label>
 					<input
@@ -245,6 +381,8 @@ function CreateWorkshopForm({
 						name="title"
 						placeholder="e.g. Gond painting"
 						required
+						aria-invalid={localErr?.field === "title" || undefined}
+						aria-describedby={localErr?.field === "title" ? errorId : undefined}
 						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
 						autoFocus
 						autoCorrect="off"
@@ -259,8 +397,15 @@ function CreateWorkshopForm({
 						type="text"
 						inputMode="decimal"
 						placeholder="e.g. 2"
+						aria-invalid={localErr?.field === "durationHours" || undefined}
+						aria-describedby={
+							localErr?.field === "durationHours" ? errorId : "new-workshop-duration-hint"
+						}
 						className={adminField}
 					/>
+					<p id="new-workshop-duration-hint" className={adminHelp}>
+						Use hours, for example 1.5 for 90 minutes. Leave blank if the length varies.
+					</p>
 				</div>
 				<div className={cn(adminLabel, "sm:col-span-2")}>
 					<label htmlFor="new-workshop-blurb">Description *</label>
@@ -270,12 +415,21 @@ function CreateWorkshopForm({
 						placeholder="What participants will make and learn"
 						rows={3}
 						required
+						aria-invalid={localErr?.field === "blurb" || undefined}
+						aria-describedby={localErr?.field === "blurb" ? errorId : undefined}
 						className={adminField}
 					/>
 				</div>
-			</div>
+			</fieldset>
 			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-				<button type="button" disabled={pending} onClick={onCancel} className={adminBtn}>
+				<button
+					type="button"
+					disabled={pending}
+					onClick={async () => {
+						if (await canDiscard()) onCancel();
+					}}
+					className={adminBtn}
+				>
 					Cancel
 				</button>
 				<button
@@ -285,16 +439,16 @@ function CreateWorkshopForm({
 					className={cn(adminBtnPrimary, "w-full sm:w-auto")}
 				>
 					{pendingVisible ? (
-						<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 					) : (
 						<Plus size={ICON_MD} aria-hidden="true" />
 					)}
 					Add workshop
 				</button>
 			</div>
-			{err ? (
-				<AdminNotice variant="error" className="mt-4">
-					{err}
+			{error ? (
+				<AdminNotice id={errorId} variant="error" className="mt-(--form-gap)">
+					{error}
 				</AdminNotice>
 			) : null}
 		</form>

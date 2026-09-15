@@ -8,8 +8,7 @@ import { adminSwitch, adminSwitchThumb } from "./controls";
  * the button is the 24x44 track with a ::before hit area restoring the 44px
  * target, the thumb slides 18px on translate at --duration-fast and the track
  * recolours through transition-colors, so both land in the same frame. Focus
- * is the global outline (3px offset on rounded-full). Colour changes survive
- * reduced motion.
+ * is the global outline (3px offset on rounded-full).
  */
 export function AdminSwitch({
 	checked,

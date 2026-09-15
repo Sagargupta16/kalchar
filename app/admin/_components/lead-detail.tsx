@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
 	formatLeadTimestamp,
@@ -19,7 +19,7 @@ import {
 	adminPanel,
 	adminSectionTitle,
 } from "./controls";
-import { Modal, ModalBody, ModalFooter } from "./modal";
+import { Modal, ModalBody, ModalFooter, useModalExit } from "./modal";
 import { Segmented, type SegmentedOption } from "./segmented";
 
 /** How long "Email copied" stays before the label reverts. A UX hold, not a motion token. */
@@ -51,6 +51,32 @@ function leadName(lead: Lead): string {
 	return lead.name?.trim() || "Someone";
 }
 
+function useLeadDeleteConfirmation(pending: boolean) {
+	const [confirmingDelete, setConfirmingDelete] = useState(false);
+	const deleteButtonRef = useRef<HTMLButtonElement>(null);
+	const restoreDeleteFocus = useRef(false);
+
+	useEffect(() => {
+		if (!confirmingDelete && restoreDeleteFocus.current) {
+			restoreDeleteFocus.current = false;
+			deleteButtonRef.current?.focus();
+		}
+	}, [confirmingDelete]);
+
+	return {
+		confirmingDelete,
+		deleteButtonRef,
+		requestDelete: () => {
+			if (!pending) setConfirmingDelete(true);
+		},
+		cancelDelete: () => {
+			if (pending) return;
+			restoreDeleteFocus.current = true;
+			setConfirmingDelete(false);
+		},
+	};
+}
+
 /** The enquiry body shared by the phone sheet and the desktop pane. */
 function LeadDetailContent({
 	lead,
@@ -58,17 +84,22 @@ function LeadDetailContent({
 	error,
 	onStatus,
 	onRequestDelete,
+	deleteButtonRef,
 }: Readonly<
 	Omit<LeadDetailProps, "siteName" | "onDelete"> & {
 		onRequestDelete: () => void;
+		deleteButtonRef: RefObject<HTMLButtonElement | null>;
 	}
 >) {
 	const who = leadName(lead);
-	const chips = [lead.style, lead.size, lead.budget, lead.timeline].filter(
-		(value): value is string => Boolean(value),
-	);
+	const chips = Object.entries({
+		style: lead.style,
+		size: lead.size,
+		budget: lead.budget,
+		timeline: lead.timeline,
+	}).filter(([, value]) => Boolean(value));
 	return (
-		<div className="space-y-group">
+		<div className="space-y-group" aria-busy={pending || undefined}>
 			<Segmented
 				name={`lead-status-${lead.id}`}
 				label={`Status of the enquiry from ${who}`}
@@ -80,14 +111,14 @@ function LeadDetailContent({
 			{error ? <AdminNotice variant="error">{error}</AdminNotice> : null}
 			{chips.length > 0 ? (
 				<div className="flex flex-wrap gap-2">
-					{chips.map((chip) => (
-						<Badge key={chip} variant="muted" className="h-6">
+					{chips.map(([field, chip]) => (
+						<Badge key={field} variant="muted" className="min-h-6 max-w-full wrap-anywhere">
 							{chip}
 						</Badge>
 					))}
 				</div>
 			) : null}
-			<p className="max-w-(--prose-max) whitespace-pre-wrap text-sm leading-relaxed text-ink">
+			<p className="max-w-(--prose-max) whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
 				{lead.brief}
 			</p>
 			<div className="space-y-1">
@@ -100,8 +131,9 @@ function LeadDetailContent({
 					</p>
 				) : null}
 			</div>
-			<div className="border-t border-line pt-group">
+			<div className="border-t border-line pt-(--space-group)">
 				<button
+					ref={deleteButtonRef}
 					type="button"
 					disabled={pending}
 					onClick={onRequestDelete}
@@ -127,6 +159,7 @@ async function writeClipboard(text: string, host: HTMLElement): Promise<boolean>
 		await navigator.clipboard.writeText(text);
 		return true;
 	} catch {
+		const focused = document.activeElement;
 		const area = document.createElement("textarea");
 		area.value = text;
 		area.setAttribute("readonly", "");
@@ -137,8 +170,11 @@ async function writeClipboard(text: string, host: HTMLElement): Promise<boolean>
 		let copied = false;
 		try {
 			copied = document.execCommand("copy");
+		} catch {
+			copied = false;
 		} finally {
 			area.remove();
+			if (focused instanceof HTMLElement) focused.focus({ preventScroll: true });
 		}
 		return copied;
 	}
@@ -153,9 +189,11 @@ async function writeClipboard(text: string, host: HTMLElement): Promise<boolean>
 function LeadReplyActions({
 	lead,
 	siteName,
+	pending,
 	onStatus,
-}: Readonly<Pick<LeadDetailProps, "lead" | "siteName" | "onStatus">>) {
+}: Readonly<Pick<LeadDetailProps, "lead" | "siteName" | "pending" | "onStatus">>) {
 	const [copied, setCopied] = useState(false);
+	const [copyFailed, setCopyFailed] = useState(false);
 	const timer = useRef<number | null>(null);
 	useEffect(() => {
 		return () => {
@@ -168,7 +206,13 @@ function LeadReplyActions({
 	if (!whatsapp && !email) return null;
 
 	const copyEmail = async (host: HTMLElement) => {
-		if (!email || !(await writeClipboard(email, host))) return;
+		if (!email) return;
+		setCopyFailed(false);
+		if (!(await writeClipboard(email, host))) {
+			setCopied(false);
+			setCopyFailed(true);
+			return;
+		}
 		setCopied(true);
 		if (timer.current !== null) window.clearTimeout(timer.current);
 		timer.current = window.setTimeout(() => setCopied(false), EMAIL_COPIED_MS);
@@ -181,10 +225,19 @@ function LeadReplyActions({
 					href={whatsapp.href}
 					target="_blank"
 					rel="noopener noreferrer"
-					onClick={() => {
+					aria-disabled={pending || undefined}
+					tabIndex={pending ? -1 : undefined}
+					onClick={(event) => {
+						if (pending) {
+							event.preventDefault();
+							return;
+						}
 						if (lead.status === "new") void onStatus("contacted");
 					}}
-					className={cn(adminBtnPrimary, "flex-1")}
+					className={cn(
+						adminBtnPrimary,
+						"flex-1 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+					)}
 				>
 					Reply on WhatsApp
 				</a>
@@ -197,6 +250,12 @@ function LeadReplyActions({
 				>
 					{copied ? "Email copied" : "Copy email"}
 				</button>
+			) : null}
+			<output className="sr-only">{copied ? "Email copied" : ""}</output>
+			{copyFailed ? (
+				<AdminNotice variant="error" className="w-full">
+					Could not copy the email. Select the contact address above and copy it.
+				</AdminNotice>
 			) : null}
 		</div>
 	);
@@ -218,7 +277,9 @@ export function LeadSheet({
 	onDelete,
 	onClose,
 }: Readonly<LeadDetailProps & { onClose: () => void }>) {
-	const [step, setStep] = useState<"view" | "confirmDelete">("view");
+	const { confirmingDelete, deleteButtonRef, requestDelete, cancelDelete } =
+		useLeadDeleteConfirmation(pending);
+	const { closing, requestClose } = useModalExit(onClose);
 	const who = leadName(lead);
 	return (
 		<Modal
@@ -226,16 +287,22 @@ export function LeadSheet({
 			detent="full"
 			size="lg"
 			title={who}
-			onClose={step === "confirmDelete" ? () => setStep("view") : onClose}
+			closing={closing}
+			onClose={() => {
+				if (pending) return;
+				if (confirmingDelete) cancelDelete();
+				else requestClose();
+			}}
 		>
 			<ModalBody>
-				{step === "view" ? (
+				{!confirmingDelete ? (
 					<LeadDetailContent
 						lead={lead}
 						pending={pending}
 						error={error}
 						onStatus={onStatus}
-						onRequestDelete={() => setStep("confirmDelete")}
+						onRequestDelete={requestDelete}
+						deleteButtonRef={deleteButtonRef}
 					/>
 				) : (
 					<ConfirmPanel
@@ -244,14 +311,14 @@ export function LeadSheet({
 						pending={pending}
 						error={error}
 						onConfirm={() => void onDelete()}
-						onCancel={() => setStep("view")}
+						onCancel={cancelDelete}
 						{...DELETE_CONFIRM}
 					/>
 				)}
 			</ModalBody>
-			{step === "view" ? (
+			{!confirmingDelete ? (
 				<ModalFooter>
-					<LeadReplyActions lead={lead} siteName={siteName} onStatus={onStatus} />
+					<LeadReplyActions lead={lead} siteName={siteName} pending={pending} onStatus={onStatus} />
 				</ModalFooter>
 			) : null}
 		</Modal>
@@ -271,27 +338,26 @@ export function LeadPane({
 	onStatus,
 	onDelete,
 }: Readonly<LeadDetailProps>) {
-	const [step, setStep] = useState<"view" | "confirmDelete">("view");
+	const { confirmingDelete, deleteButtonRef, requestDelete, cancelDelete } =
+		useLeadDeleteConfirmation(pending);
 	const who = leadName(lead);
 	return (
 		<section
 			aria-label={`Enquiry from ${who}`}
-			className={cn(
-				adminPanel,
-				"starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-fast)",
-			)}
+			className={cn(adminPanel, "starting:opacity-0 transition-opacity duration-(--duration-fast)")}
 		>
-			{step === "view" ? (
+			{!confirmingDelete ? (
 				<div className="space-y-group">
-					<h2 className={adminSectionTitle}>{who}</h2>
+					<h2 className={cn(adminSectionTitle, "wrap-anywhere")}>{who}</h2>
 					<LeadDetailContent
 						lead={lead}
 						pending={pending}
 						error={error}
 						onStatus={onStatus}
-						onRequestDelete={() => setStep("confirmDelete")}
+						onRequestDelete={requestDelete}
+						deleteButtonRef={deleteButtonRef}
 					/>
-					<LeadReplyActions lead={lead} siteName={siteName} onStatus={onStatus} />
+					<LeadReplyActions lead={lead} siteName={siteName} pending={pending} onStatus={onStatus} />
 				</div>
 			) : (
 				<ConfirmPanel
@@ -300,7 +366,7 @@ export function LeadPane({
 					pending={pending}
 					error={error}
 					onConfirm={() => void onDelete()}
-					onCancel={() => setStep("view")}
+					onCancel={cancelDelete}
 					{...DELETE_CONFIRM}
 				/>
 			)}

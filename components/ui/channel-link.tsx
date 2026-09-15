@@ -23,6 +23,7 @@ export function ChannelLink({
 	highlight = false,
 	className,
 }: Readonly<ChannelLinkProps>) {
+	if (!href.trim()) return null;
 	const external = href.startsWith("http");
 
 	return (
@@ -32,7 +33,7 @@ export function ChannelLink({
 			rel={external ? "noopener noreferrer" : undefined}
 			className={cn(
 				cardVariants({ padding: "none", interactive: true }),
-				"group flex h-full items-start gap-4 p-(--card-pad)",
+				"group flex h-full min-w-0 items-center gap-3 p-4",
 				highlight && "border-(--section-accent)/40",
 				className,
 			)}
@@ -40,15 +41,15 @@ export function ChannelLink({
 			<IconCircle className="group-hover:ring-(--section-accent)">{icon}</IconCircle>
 			<div className="min-w-0 flex-1">
 				<p className="t-eyebrow">{label}</p>
-				<p className="t-display mt-1 truncate text-h3 transition-colors group-hover:text-(--section-accent)">
+				<p className="mt-1 text-base font-medium leading-snug text-ink [overflow-wrap:anywhere] transition-colors group-hover:text-accent-text">
 					{display}
 				</p>
-				{note ? <p className="mt-1 text-xs text-muted">{note}</p> : null}
+				{note ? <p className="mt-1 text-sm text-muted">{note}</p> : null}
 			</div>
 			<ArrowRight
 				size={16}
 				aria-hidden="true"
-				className="mt-1 shrink-0 text-muted transition-[translate,color] group-hover:translate-x-0.5 group-hover:text-(--section-accent)"
+				className="shrink-0 text-muted transition-ui group-hover:translate-x-1 group-hover:text-accent-text"
 			/>
 		</a>
 	);

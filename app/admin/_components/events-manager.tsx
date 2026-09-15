@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Event } from "@/lib/types";
-import { cn, formatBytes } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useEventPhotoDraft, useGlobalEventFiles } from "./add-sheet";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import {
@@ -23,16 +24,15 @@ import {
 	ICON_SM,
 } from "./controls";
 import { EventItem } from "./event-item";
-import { createEventWithPhotos } from "./event-photo-batch";
+import {
+	createEventWithPhotos,
+	EVENT_PHOTO_ACCEPT,
+	validateEventPhotos,
+} from "./event-photo-batch";
 import { type EventBatchState, EventPhotoStrip } from "./event-photo-strip";
 import { UndoBar, useUndo } from "./undo-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
-
-// TODO(admin-catalog): read MAX_BATCH / MAX_IMAGE_MB from stage-image.ts once exported.
-const PHOTO_BATCH_LIMIT = 12;
-const PHOTO_SIZE_LIMIT_MB = 20;
-const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /** Label for the multi-file photo picker, reflecting how many are selected. */
 function photoPickerLabel(count: number): string {
@@ -45,63 +45,85 @@ function todayIsoDate(): string {
 	return new Date().toLocaleDateString("en-CA");
 }
 
-/** The same rules assertUsable and stageFormImages enforce, run before the upload starts. */
-function validateSelection(files: readonly File[]): string | null {
-	if (files.length > PHOTO_BATCH_LIMIT) {
-		return `Choose up to ${PHOTO_BATCH_LIMIT} photos at a time. You picked ${files.length}.`;
-	}
-	for (const file of files) {
-		if (file.size > PHOTO_SIZE_LIMIT_MB * 1024 * 1024) {
-			return `"${file.name}" is ${formatBytes(file.size)}. Photos must be ${PHOTO_SIZE_LIMIT_MB} MB or smaller.`;
-		}
-		if (!PHOTO_TYPES.has(file.type)) {
-			return `"${file.name}" must be a JPG, PNG or WebP photo.`;
-		}
-	}
-	return null;
-}
-
-function successLine(created: Readonly<{ title: string; photos: number }>): string {
-	if (created.photos === 0) return `"${created.title}" added.`;
+function successLine(created: Readonly<{ title: string; photos: number | null }>): string {
+	if (!created.photos) return `"${created.title}" added.`;
 	return `"${created.title}" added with ${created.photos} photo${created.photos === 1 ? "" : "s"}.`;
 }
 
 export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>) {
 	const createAction = useAdminAction();
+	const globalEventFiles = useGlobalEventFiles();
 	const { run: undoRun } = useAdminAction();
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(undoRun);
-	const reduceMotion = usePrefersReducedMotion();
 	const headingId = useId();
+	const addButtonRef = useRef<HTMLButtonElement>(null);
+	const listRef = useRef<HTMLElement>(null);
 	const [creating, setCreating] = useState(false);
-	const [created, setCreated] = useState<{ id: string; title: string; photos: number } | null>(
-		null,
-	);
+	const [created, setCreated] = useState<{
+		id: string;
+		title: string;
+		photos: number | null;
+	} | null>(null);
 	const createdRef = useRef<typeof created>(null);
 	const [arrivedId, setArrivedId] = useState<string | null>(null);
 	const [batch, setBatch] = useState<EventBatchState | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
-	const [items, setItems] = useServerSyncedList(initial, () => {
-		if (createdRef.current) setArrivedId(createdRef.current.id);
-	});
+	const [items, setItems] = useServerSyncedList(initial);
+
+	useEffect(() => {
+		if (!globalEventFiles || createAction.pending) return;
+		setCreating(true);
+		setCreated(null);
+		setNotice(null);
+		createdRef.current = null;
+	}, [globalEventFiles, createAction.pending]);
+
+	useEffect(() => {
+		const createdId = created?.id;
+		if (
+			createdId &&
+			createdRef.current?.id === createdId &&
+			items.some((event) => event.id === createdId)
+		) {
+			setArrivedId(createdId);
+			createdRef.current = null;
+		}
+	}, [created, items]);
 
 	// Scroll the just-created row into view and highlight it while the timer runs (C13).
 	useEffect(() => {
 		if (!arrivedId) return;
-		requestAnimationFrame(() => {
-			document
-				.getElementById(`event-${arrivedId}`)
-				?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+		const frame = requestAnimationFrame(() => {
+			const row = document.getElementById(`event-${arrivedId}`);
+			row?.querySelector("button")?.focus({ preventScroll: true });
+			row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		});
 		const timer = window.setTimeout(() => setArrivedId(null), SAVED_BADGE_DURATION_MS);
-		return () => window.clearTimeout(timer);
-	}, [arrivedId, reduceMotion]);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.clearTimeout(timer);
+		};
+	}, [arrivedId]);
 
 	const categories = [...new Set(items.flatMap((e) => (e.category ? [e.category] : [])))].sort();
+	const orderedItems = [...items].sort(
+		(a, b) =>
+			Number(b.featured) - Number(a.featured) ||
+			Date.parse(b.eventDate) - Date.parse(a.eventDate) ||
+			a.order - b.order ||
+			a.id.localeCompare(b.id),
+	);
 
 	const openPanel = () => {
 		setCreated(null);
+		setNotice(null);
 		createdRef.current = null;
 		setCreating(true);
+	};
+
+	const closePanel = () => {
+		setCreating(false);
+		requestAnimationFrame(() => addButtonRef.current?.focus());
 	};
 
 	const handleCreate = (fd: FormData, reset: () => void) => {
@@ -111,6 +133,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		const title = String(fd.get("title") ?? "").trim();
 		const photos = fd.getAll("images").filter((v) => v instanceof File && v.size > 0).length;
 		let createdId: string | null = null;
+		let partialUpload = false;
 		setBatch({ staging: 0, done: new Set(), total: photos });
 		createAction
 			.run(
@@ -126,16 +149,19 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 								done.add(index);
 								return { ...b, done };
 							}),
-						onPartial: setNotice,
+						onPartial: (message) => {
+							partialUpload = true;
+							setNotice(message);
+						},
 					}).then((result) => {
 						if (!isFailure(result)) createdId = result.id;
 						return result;
 					}),
 				() => {
 					reset();
-					setCreating(false);
+					closePanel();
 					if (createdId) {
-						const next = { id: createdId, title, photos };
+						const next = { id: createdId, title, photos: partialUpload ? null : photos };
 						setCreated(next);
 						createdRef.current = next;
 					}
@@ -155,11 +181,12 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 							pendingVisible={createAction.pendingVisible}
 							err={createAction.err}
 							batch={batch}
-							onCancel={() => setCreating(false)}
+							onCancel={closePanel}
 							onCreate={handleCreate}
 						/>
 					) : (
 						<button
+							ref={addButtonRef}
 							type="button"
 							onClick={openPanel}
 							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
@@ -193,7 +220,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 					) : null}
 				</div>
 
-				<section aria-labelledby={headingId} className="min-w-0">
+				<section ref={listRef} tabIndex={-1} aria-labelledby={headingId} className="min-w-0">
 					<AdminPanelHeader
 						as="h2"
 						id={headingId}
@@ -201,17 +228,22 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 						description="Newest first. A pinned event stays at the top whatever its date."
 					/>
 					<ul aria-labelledby={headingId} className="space-y-tight">
-						{items.map((event) => (
+						{orderedItems.map((event) => (
 							<EventItem
 								key={event.id}
 								event={event}
 								categories={categories}
 								defaultExpanded={event.id === created?.id}
 								highlighted={event.id === arrivedId}
-								onChanged={(next) =>
-									setItems((prev) => prev.map((e) => (e.id === next.id ? next : e)))
+								onChanged={(patch) =>
+									setItems((prev) =>
+										prev.map((item) => (item.id === event.id ? { ...item, ...patch } : item)),
+									)
 								}
-								onDeleted={(id) => setItems((prev) => prev.filter((e) => e.id !== id))}
+								onDeleted={(id) => {
+									setItems((prev) => prev.filter((e) => e.id !== id));
+									requestAnimationFrame(() => listRef.current?.focus());
+								}}
 								offerUndo={offerUndo}
 							/>
 						))}
@@ -273,12 +305,23 @@ function CreateEventForm({
 }>) {
 	const headingId = useId();
 	const formRef = useRef<HTMLFormElement>(null);
-	const [files, setFiles] = useState<File[]>([]);
-	const [fileProblem, setFileProblem] = useState<string | null>(null);
+	const photoInputRef = useRef<HTMLInputElement>(null);
+	const [files, setFiles] = useEventPhotoDraft(pending);
+	const [titleProblem, setTitleProblem] = useState<string | null>(null);
+	const [submitted, setSubmitted] = useState(false);
+	const [initialDate] = useState(todayIsoDate);
+	const [textDirty, setTextDirty] = useState(false);
+	const fileProblem = validateEventPhotos(files);
+	useAdminDraftGuard(textDirty || files.length > 0 || pending);
 
 	const clearSelection = () => {
 		setFiles([]);
-		setFileProblem(null);
+	};
+
+	const updateFiles = (next: File[]) => {
+		setFiles(next);
+		if (photoInputRef.current) photoInputRef.current.value = "";
+		if (next.length === 0) photoInputRef.current?.focus();
 	};
 
 	const cancel = () => {
@@ -291,19 +334,36 @@ function CreateEventForm({
 		<form
 			ref={formRef}
 			aria-labelledby={headingId}
+			onChange={(e) => {
+				const fields = new FormData(e.currentTarget);
+				setTextDirty(
+					["title", "category", "description"].some(
+						(name) => String(fields.get(name) ?? "") !== "",
+					) || fields.get("eventDate") !== initialDate,
+				);
+			}}
 			onSubmit={(e) => {
 				e.preventDefault();
+				if (pending || fileProblem) return;
 				const form = e.currentTarget;
 				const fd = new FormData(form);
+				const title = String(fd.get("title") ?? "").trim();
+				if (!title) {
+					setTitleProblem("Enter a title.");
+					(form.elements.namedItem("title") as HTMLInputElement | null)?.focus();
+					return;
+				}
+				fd.set("title", title);
 				// The files state is the FormData source: what the strip shows is what uploads (C9).
 				fd.delete("images");
 				for (const file of files) fd.append("images", file);
+				setSubmitted(true);
 				onCreate(fd, () => {
 					form.reset();
 					clearSelection();
 				});
 			}}
-			className={adminPanelInset}
+			className={cn(adminPanelInset, "@container/create")}
 		>
 			<AdminPanelHeader
 				id={headingId}
@@ -311,22 +371,31 @@ function CreateEventForm({
 				description="Photos first, then the details. You can add more photos later."
 			/>
 			<p className={adminHelp}>Fields marked * are required.</p>
-			<div className="mt-4 grid gap-(--form-gap) sm:grid-cols-2">
-				<div className="space-y-2 sm:col-span-2">
+			<fieldset
+				disabled={pending}
+				className="mt-(--form-gap) grid min-w-0 gap-(--form-gap) @lg/create:grid-cols-2"
+			>
+				<div className="space-y-2 @lg/create:col-span-2">
 					<label className={adminFilePicker}>
 						<ImagePlus size={ICON_MD} aria-hidden="true" />
 						<span>{photoPickerLabel(files.length)}</span>
 						<input
+							ref={photoInputRef}
 							className="sr-only"
 							name="images"
 							type="file"
-							accept="image/jpeg,image/png,image/webp"
+							accept={EVENT_PHOTO_ACCEPT}
 							multiple
 							disabled={pending}
+							aria-invalid={fileProblem ? true : undefined}
+							aria-describedby={
+								fileProblem
+									? "new-event-photos-hint new-event-photos-error"
+									: "new-event-photos-hint"
+							}
 							onChange={(e) => {
 								const next = Array.from(e.currentTarget.files ?? []);
-								setFiles(next);
-								setFileProblem(validateSelection(next));
+								if (next.length > 0) setFiles(next);
 							}}
 						/>
 					</label>
@@ -334,8 +403,17 @@ function CreateEventForm({
 						JPG, PNG or WebP, up to 20 MB each, up to 12 photos at a time. The first photo is the
 						cover.
 					</p>
-					<EventPhotoStrip files={files} batch={batch} />
-					{fileProblem ? <AdminNotice variant="error">{fileProblem}</AdminNotice> : null}
+					<EventPhotoStrip
+						files={files}
+						batch={batch}
+						disabled={pending}
+						onFilesChange={updateFiles}
+					/>
+					{fileProblem ? (
+						<AdminNotice id="new-event-photos-error" variant="error">
+							{fileProblem}
+						</AdminNotice>
+					) : null}
 				</div>
 				<div className={adminLabel}>
 					<label htmlFor="new-event-title">Title *</label>
@@ -344,11 +422,20 @@ function CreateEventForm({
 						name="title"
 						placeholder="e.g. Monsoon exhibition"
 						required
+						aria-invalid={titleProblem ? true : undefined}
+						aria-describedby={titleProblem ? "new-event-title-error" : undefined}
+						onInvalid={() => setTitleProblem("Enter a title.")}
+						onChange={() => setTitleProblem(null)}
 						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
 						autoFocus
 						autoCorrect="off"
 						className={adminField}
 					/>
+					{titleProblem ? (
+						<AdminNotice id="new-event-title-error" variant="error">
+							{titleProblem}
+						</AdminNotice>
+					) : null}
 				</div>
 				<div className={adminLabel}>
 					<label htmlFor="new-event-date">Event date *</label>
@@ -357,11 +444,11 @@ function CreateEventForm({
 						name="eventDate"
 						type="date"
 						required
-						defaultValue={todayIsoDate()}
+						defaultValue={initialDate}
 						className={adminField}
 					/>
 				</div>
-				<div className={cn(adminLabel, "sm:col-span-2")}>
+				<div className={cn(adminLabel, "@lg/create:col-span-2")}>
 					<label htmlFor="new-event-category">Category (optional)</label>
 					<input
 						id="new-event-category"
@@ -371,7 +458,7 @@ function CreateEventForm({
 						className={adminField}
 					/>
 				</div>
-				<div className={cn(adminLabel, "sm:col-span-2")}>
+				<div className={cn(adminLabel, "@lg/create:col-span-2")}>
 					<label htmlFor="new-event-description">Description (optional)</label>
 					<textarea
 						id="new-event-description"
@@ -381,7 +468,7 @@ function CreateEventForm({
 						className={adminField}
 					/>
 				</div>
-			</div>
+			</fieldset>
 			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 				<button type="button" disabled={pending} onClick={cancel} className={adminBtn}>
 					Cancel
@@ -393,15 +480,15 @@ function CreateEventForm({
 					className={cn(adminBtnPrimary, "w-full sm:w-auto")}
 				>
 					{pendingVisible ? (
-						<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 					) : (
 						<Plus size={ICON_MD} aria-hidden="true" />
 					)}
 					Add event
 				</button>
 			</div>
-			{err ? (
-				<AdminNotice variant="error" className="mt-4">
+			{submitted && err ? (
+				<AdminNotice variant="error" className="mt-(--form-gap)">
 					{err}
 				</AdminNotice>
 			) : null}

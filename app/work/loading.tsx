@@ -1,33 +1,24 @@
-import { GalleryGrid } from "@/components/gallery/gallery-grid";
+import { GallerySkeleton } from "@/components/gallery/gallery-grid";
 import { Section } from "@/components/ui/section";
-import { Skeleton, SkeletonCard, SkeletonHeader } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 
 /** Structural twin of app/work/page.tsx + WorkFilter so the swap shifts nothing. */
 export default function WorkLoading() {
 	return (
-		<main role="status" aria-busy="true">
-			<span className="sr-only">Loading</span>
-			<Section accent="ruby" background="wash" rhythm="grand" padded>
+		<main aria-busy="true">
+			<Section
+				accent="accent"
+				background="wash"
+				padded
+				containerClassName="grid gap-4 py-(--space-page) lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"
+			>
 				<SkeletonHeader />
-				{/* Count numeral + word */}
-				<Skeleton className="mt-6 h-7 w-24" />
-			</Section>
-			<Section accent="ruby" padded containerClassName="pt-(--space-block)">
-				{/* Filter pill rail */}
-				<div className="flex gap-2 overflow-hidden py-3">
-					{[0, 1, 2, 3, 4, 5, 6].map((i) => (
-						<Skeleton key={i} className="h-control w-20 shrink-0 rounded-full" />
-					))}
+				<div className="lg:w-64">
+					<Skeleton className="h-5 w-48" />
 				</div>
-				{/* Visible result count */}
-				<Skeleton className="mt-4 h-3 w-40" />
-				<GalleryGrid spanLead className="mt-(--space-block)">
-					{[0, 1, 2, 3, 4, 5].map((i) => (
-						<li key={i}>
-							<SkeletonCard />
-						</li>
-					))}
-				</GalleryGrid>
+			</Section>
+			<Section accent="accent" padded containerClassName="pt-6">
+				<GallerySkeleton />
 			</Section>
 		</main>
 	);

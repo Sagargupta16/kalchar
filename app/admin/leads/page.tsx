@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getLeadsPage, getSite } from "@/lib/data";
 import { AdminPage } from "../_components/admin-page";
@@ -22,15 +23,33 @@ export default async function AdminLeadsPage({
 	return (
 		<AdminPage
 			title="Enquiries"
-			description={`Enquiries from the custom-order form, newest first. Open one to reply on WhatsApp, mark it Contacted or Closed, and delete it when the details are no longer needed.${newCount > 0 ? ` ${newCount} new.` : ""}`}
+			description={`Custom-order enquiries, newest first. Open one to see the contact details and reply. Mark it Contacted after replying, or Closed when resolved. Filters apply to this page.${newCount > 0 ? ` ${newCount} new on this page.` : ""}`}
 		>
-			<LeadsManager
-				leads={[...leads]}
-				siteName={getSite().brand.publicName}
-				initialLeadId={params.lead ?? null}
-			/>
-			{page > 1 || hasNextPage ? (
-				<nav aria-label="Enquiry pages" className="flex items-center justify-between gap-4">
+			{leads.length === 0 && page > 1 ? (
+				<EmptyState
+					variant="compact"
+					voice="tool"
+					title="No enquiries on this page"
+					body="Return to the newest enquiries to continue."
+					action={
+						<Link href="/admin/leads" className={adminBtn}>
+							Newest enquiries
+						</Link>
+					}
+				/>
+			) : (
+				<LeadsManager
+					key={page}
+					leads={[...leads]}
+					siteName={getSite().brand.publicName}
+					initialLeadId={params.lead ?? null}
+				/>
+			)}
+			{leads.length > 0 && (page > 1 || hasNextPage) ? (
+				<nav
+					aria-label="Enquiry pages"
+					className="grid grid-cols-2 items-center gap-3 sm:flex sm:justify-between sm:gap-4"
+				>
 					{page > 1 ? (
 						<Link href={`/admin/leads?page=${page - 1}`} className={adminBtn}>
 							Newer enquiries
@@ -38,7 +57,9 @@ export default async function AdminLeadsPage({
 					) : (
 						<span />
 					)}
-					<span className="text-sm text-muted tabular-nums">Page {page}</span>
+					<span className="col-span-2 row-start-1 text-center text-sm text-muted tabular-nums">
+						Page {page}
+					</span>
 					{hasNextPage ? (
 						<Link href={`/admin/leads?page=${page + 1}`} className={adminBtn}>
 							Older enquiries

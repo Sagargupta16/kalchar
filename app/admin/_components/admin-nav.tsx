@@ -1,25 +1,11 @@
 "use client";
 
-import {
-	CalendarDays,
-	Ellipsis,
-	GraduationCap,
-	Inbox,
-	ListChecks,
-	MessageSquareQuote,
-	Palette,
-	Plus,
-	Tags,
-	UserCircle,
-	Users,
-	X,
-} from "lucide-react";
+import { Ellipsis, Plus, X } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import {
 	DUR,
 	EASE_IN,
@@ -30,166 +16,29 @@ import {
 } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useAddSheet } from "./add-sheet";
-import { adminBtn, adminBtnPrimary, adminIconBtnGhost, ICON_MD, ICON_TAB } from "./controls";
+import {
+	ADMIN_NAV_GROUPS,
+	badgeCount,
+	badgeName,
+	CountPill,
+	type NavCounts,
+	useAddContext,
+	useIsActive,
+} from "./admin-nav-shared";
+import { adminIconBtnGhost, ICON_MD, ICON_TAB } from "./controls";
 import { MODAL_EXIT_MS } from "./modal";
 
-// Grouped so related destinations cluster instead of reading as one long,
-// arbitrary row: the catalog, then community content, then the enquiry inbox,
-// then site settings. A separator is drawn between groups on desktop.
-const NAV_GROUPS = [
-	[
-		{ label: "Pieces", href: "/admin", icon: Palette },
-		{ label: "Categories", href: "/admin/categories", icon: Tags },
-		{ label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
-	],
-	[
-		{ label: "Events", href: "/admin/events", icon: CalendarDays },
-		{ label: "Workshops", href: "/admin/workshops", icon: GraduationCap },
-	],
-	[{ label: "Enquiries", href: "/admin/leads", icon: Inbox }],
-	[
-		{ label: "Presets", href: "/admin/presets", icon: ListChecks },
-		{ label: "Profile", href: "/admin/profile", icon: UserCircle },
-		{ label: "Maintainers", href: "/admin/maintainers", icon: Users },
-	],
-];
+export { AdminNavDesktop } from "./admin-nav-desktop";
+export type { NavCounts } from "./admin-nav-shared";
 
-const NAV = NAV_GROUPS.flat();
-// Workshops leaves the bar for the More sheet: the middle cell is the raised
-// Add (1.3, decision D-A2). Nothing is removed; it joins MORE_GROUPS below.
+const NAV = ADMIN_NAV_GROUPS.flatMap((group) => group.items);
 const MOBILE_PRIMARY_HREFS = new Set(["/admin", "/admin/events", "/admin/leads"]);
 const MOBILE_PRIMARY_NAV = NAV.filter((item) => MOBILE_PRIMARY_HREFS.has(item.href));
 const MOBILE_MORE_NAV = NAV.filter((item) => !MOBILE_PRIMARY_HREFS.has(item.href));
-const MORE_GROUPS = NAV_GROUPS.map((group) =>
-	group.filter((item) => !MOBILE_PRIMARY_HREFS.has(item.href)),
-).filter((group) => group.length > 0);
-
-/** The one tab that may carry a badge (new enquiries); every other href is ignored. */
-const BADGE_HREF = "/admin/leads";
-
-/** Counts keyed by href; the shell renders a pill only for BADGE_HREF and only when > 0. */
-export type NavCounts = Readonly<Partial<Record<string, number>>>;
-
-function badgeCount(counts: NavCounts | undefined, href: string): number {
-	if (href !== BADGE_HREF) return 0;
-	return counts?.[href] ?? 0;
-}
-
-function badgeName(label: string, count: number): string | undefined {
-	return count > 0 ? `${label}, ${count} new` : undefined;
-}
-
-const PILL =
-	"grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-micro font-semibold tabular-nums text-bg";
-
-function CountPill({ count, className }: Readonly<{ count: number; className?: string }>) {
-	return (
-		// Not cn(): tailwind-merge would drop the custom text-micro size in favour of text-bg.
-		// Cap 9+ (was 99+): a three-digit badge teaches her to stop looking (D-A4);
-		// the accessible name keeps the real count.
-		<span aria-hidden="true" className={className ? `${PILL} ${className}` : PILL}>
-			{count > 9 ? "9+" : count}
-		</span>
-	);
-}
-
-function useIsActive() {
-	const pathname = usePathname();
-	const path = pathname.replace(/\/$/, "") || "/";
-	return (href: string) => {
-		// /admin is exact-match only (every other route starts with /admin too);
-		// the rest match on the route or a true sub-path.
-		if (href === "/admin") return path === "/admin";
-		return path === href || path.startsWith(`${href}/`);
-	};
-}
-
-/** piece on /admin, event on /admin/events, the choice sheet everywhere else (1.3). */
-function useAddContext(): "piece" | "event" | "choice" {
-	const pathname = usePathname();
-	const path = pathname.replace(/\/$/, "") || "/";
-	if (path === "/admin") return "piece";
-	if (path === "/admin/events" || path.startsWith("/admin/events/")) return "event";
-	return "choice";
-}
-
-// transition-ui, not transition-colors: Tailwind's transition-colors also animates
-// outline-color, so the focus outline faded in from the muted text colour instead of
-// appearing in accent at once. transition-ui lists its properties explicitly.
-const DESKTOP_LINK =
-	"relative isolate inline-flex min-h-control items-center gap-1.5 whitespace-nowrap rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable";
-
-/** Desktop horizontal nav, grouped with separators; ends with the context Add (1.3). */
-export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {}) {
-	const isActive = useIsActive();
-	const addContext = useAddContext();
-	const { openPiece, openEvent, openChoice } = useAddSheet();
-	return (
-		<nav aria-label="Admin" className="flex min-h-14 items-center gap-1 overflow-x-auto">
-			<LayoutGroup id="admin-nav-desktop">
-				{NAV_GROUPS.map((group, gi) => (
-					<div key={group[0]?.href ?? gi} className="flex items-center gap-1">
-						{gi > 0 ? (
-							<span aria-hidden="true" className="mx-1.5 h-5 shrink-0 border-l border-line" />
-						) : null}
-						{group.map((item) => {
-							const active = isActive(item.href);
-							const count = badgeCount(counts, item.href);
-							return (
-								<Link
-									key={item.href}
-									href={item.href}
-									aria-current={active ? "page" : undefined}
-									aria-label={badgeName(item.label, count)}
-									className={cn(
-										DESKTOP_LINK,
-										active ? "text-ink" : "text-muted hover:bg-bg-muted hover:text-ink",
-									)}
-								>
-									{active ? (
-										<motion.span
-											layoutId="admin-nav-active"
-											aria-hidden="true"
-											className="absolute inset-0 -z-10 rounded-(--radius-sm) bg-bg-muted"
-											transition={SPRING_INDICATOR}
-										/>
-									) : null}
-									<item.icon
-										size={ICON_MD}
-										aria-hidden="true"
-										className={active ? "text-accent-text" : undefined}
-									/>
-									{item.label}
-									{count > 0 ? <CountPill count={count} className="ml-1.5" /> : null}
-								</Link>
-							);
-						})}
-					</div>
-				))}
-			</LayoutGroup>
-			{addContext === "choice" ? (
-				<button
-					type="button"
-					onClick={openChoice}
-					aria-haspopup="dialog"
-					className={cn(adminBtn, "ml-auto shrink-0")}
-				>
-					<Plus size={ICON_MD} aria-hidden="true" />
-					Add
-				</button>
-			) : (
-				<button
-					type="button"
-					onClick={addContext === "piece" ? openPiece : openEvent}
-					className={cn(adminBtnPrimary, "ml-auto shrink-0")}
-				>
-					<Plus size={ICON_MD} aria-hidden="true" />
-					{addContext === "piece" ? "Add piece" : "Add event"}
-				</button>
-			)}
-		</nav>
-	);
-}
+const MORE_GROUPS = ADMIN_NAV_GROUPS.map((group) => ({
+	...group,
+	items: group.items.filter((item) => !MOBILE_PRIMARY_HREFS.has(item.href)),
+})).filter((group) => group.items.length > 0);
 
 const TAB_CELL =
 	"relative isolate flex h-full w-full flex-col items-center justify-center gap-1 rounded-(--radius-sm) px-1 font-medium transition-ui pressable focus-visible:-outline-offset-2";
@@ -210,7 +59,6 @@ function MobileNavLink({
 	active: boolean;
 	count: number;
 }>) {
-	const reduce = usePrefersReducedMotion();
 	return (
 		<Link
 			href={href}
@@ -220,7 +68,7 @@ function MobileNavLink({
 				// Re-tapping the active tab resets scroll instead of re-navigating.
 				if (!active) return;
 				event.preventDefault();
-				window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+				window.scrollTo({ top: 0, behavior: "smooth" });
 			}}
 			className={cn(TAB_CELL, active ? "text-accent-text" : "text-muted hover:text-ink")}
 		>
@@ -245,7 +93,7 @@ function MobileNavLink({
  * hairline + e2, opaque fallback), lifted out of the bar, one hit target with
  * the label. Motion owns every transform on the button (never pair with CSS
  * pressable); the Plus rotates to an X on SPRING_INDICATOR while an add
- * surface is open and snaps under reduced motion (MotionConfig). The accent
+ * surface is open. The accent
  * disc dips e3 -> e2 while pressed (shadow only; Motion keeps the transform).
  * Focus draws the standard 2px accent ring around the round disc at 3px
  * offset (1.3 focus note), not around the rectangular cell; outline-hidden
@@ -294,35 +142,28 @@ export function AdminNavMobile({
 }: Readonly<{ email: string; counts?: NavCounts; signOut?: ReactNode }>) {
 	const isActive = useIsActive();
 	const pathname = usePathname();
-	const reduce = usePrefersReducedMotion();
 	const sheetTitleId = useId();
 	const [morePhase, setMorePhase] = useState<"closed" | "open" | "closing">("closed");
 	const moreButtonRef = useRef<HTMLButtonElement>(null);
 	const firstMoreLinkRef = useRef<HTMLAnchorElement>(null);
+	const moreSheetRef = useRef<HTMLDivElement>(null);
 	const closeTimer = useRef<number | null>(null);
 	const moreOpen = morePhase === "open";
 	const moreActive = MOBILE_MORE_NAV.some((item) => isActive(item.href));
 
 	// A4: the sheet and scrim exit at fast/ease-in before unmount; a route
-	// change or reduced motion unmounts at once. The sheet itself is Motion
+	// change unmounts at once. The sheet itself is Motion
 	// (SPRING_PANEL settle in, DUR.fast EASE_IN tween out, steering 2026-09-14);
 	// the scrim keeps the CSS fade below.
-	const close = useCallback(
-		(animated = true) => {
-			if (closeTimer.current !== null) return;
-			moreButtonRef.current?.focus();
-			if (!animated || reduce) {
-				setMorePhase("closed");
-				return;
-			}
-			setMorePhase("closing");
-			closeTimer.current = window.setTimeout(() => {
-				closeTimer.current = null;
-				setMorePhase("closed");
-			}, MODAL_EXIT_MS);
-		},
-		[reduce],
-	);
+	const close = useCallback(() => {
+		if (closeTimer.current !== null) return;
+		moreButtonRef.current?.focus();
+		setMorePhase("closing");
+		closeTimer.current = window.setTimeout(() => {
+			closeTimer.current = null;
+			setMorePhase("closed");
+		}, MODAL_EXIT_MS);
+	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -348,16 +189,50 @@ export function AdminNavMobile({
 	useEffect(() => {
 		if (!moreOpen) return;
 		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") close();
+			if (event.key === "Escape") {
+				event.preventDefault();
+				close();
+				return;
+			}
+			if (event.key !== "Tab") return;
+			const controls = moreSheetRef.current?.querySelectorAll<HTMLElement>(
+				'a[href], button:not([disabled]), [tabindex="0"]',
+			);
+			const first = controls?.[0];
+			const last = controls?.[controls.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last?.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first?.focus();
+			}
 		};
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [moreOpen, close]);
 
+	useEffect(() => {
+		if (morePhase === "closed") return;
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		const desktop = window.matchMedia("(min-width: 80rem)");
+		const closeOnDesktop = () => {
+			if (!desktop.matches) return;
+			setMorePhase("closed");
+			document
+				.querySelector<HTMLElement>('#admin-desktop-navigation [aria-current="page"]')
+				?.focus();
+		};
+		desktop.addEventListener("change", closeOnDesktop);
+		return () => {
+			document.body.style.overflow = previousOverflow;
+			desktop.removeEventListener("change", closeOnDesktop);
+		};
+	}, [morePhase]);
+
 	const closingClasses =
-		morePhase === "closing"
-			? "opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)"
-			: undefined;
+		morePhase === "closing" ? "opacity-0 duration-(--duration-fast) ease-(--ease-in)" : undefined;
 
 	return (
 		<>
@@ -423,22 +298,24 @@ export function AdminNavMobile({
 						aria-label="Close more tools"
 						onClick={() => close()}
 						className={cn(
-							"fixed inset-0 z-nav bg-scrim/40 dark:bg-scrim/60 xl:hidden starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-base)",
+							"fixed inset-0 z-nav bg-scrim/40 dark:bg-scrim/60 xl:hidden starting:opacity-0 transition-opacity duration-(--duration-base)",
 							closingClasses,
 						)}
 					/>
 					<motion.div
+						ref={moreSheetRef}
 						id="admin-more-tools"
 						role="dialog"
+						aria-modal="true"
 						aria-labelledby={sheetTitleId}
 						initial={{ opacity: 0, y: 12 }}
 						animate={morePhase === "closing" ? { opacity: 0, y: 12 } : { opacity: 1, y: 0 }}
 						transition={
 							morePhase === "closing" ? { duration: DUR.fast, ease: EASE_IN } : SPRING_PANEL
 						}
-						className="fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-w-md rounded-(--radius-md) material-glass-strong p-3 xl:hidden"
+						className="fixed inset-x-3 bottom-[calc(var(--tabbar-offset)+var(--space-tight))] z-overlay mx-auto max-h-[calc(100dvh-var(--tabbar-offset)-var(--space-group))] max-w-md overflow-y-auto overscroll-contain rounded-(--radius-md) material-glass-strong p-3 xl:hidden"
 					>
-						<div className="mb-2 flex items-start justify-between gap-3 px-3">
+						<div className="mb-4 flex items-start justify-between gap-3 px-3">
 							<div className="min-w-0 py-2">
 								<p id={sheetTitleId} className="text-sm font-semibold text-ink">
 									More tools
@@ -455,10 +332,10 @@ export function AdminNavMobile({
 							</button>
 						</div>
 						{MORE_GROUPS.map((group, gi) => (
-							<Fragment key={group[0]?.href ?? gi}>
-								{gi > 0 ? <hr className="my-1 border-line" /> : null}
-								<ul className="grid gap-1">
-									{group.map((item, index) => {
+							<div key={group.label} className="py-2">
+								<p className="px-3 pb-1 text-label font-medium text-muted">{group.label}</p>
+								<ul aria-label={group.label} className="grid gap-1">
+									{group.items.map((item, index) => {
 										const active = isActive(item.href);
 										return (
 											<li key={item.href}>
@@ -468,7 +345,7 @@ export function AdminNavMobile({
 													onClick={() => setMorePhase("closed")}
 													aria-current={active ? "page" : undefined}
 													className={cn(
-														"flex min-h-12 items-center gap-2 rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable",
+														"flex min-h-control items-center gap-3 rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable",
 														active ? "bg-canvas text-accent-text" : "text-ink hover:bg-canvas",
 													)}
 												>
@@ -479,10 +356,9 @@ export function AdminNavMobile({
 										);
 									})}
 								</ul>
-							</Fragment>
+							</div>
 						))}
-						<hr className="my-1 border-line" />
-						<div className="flex items-center justify-between gap-3 pt-2">
+						<div className="mt-2 flex items-center justify-between gap-3 pt-2">
 							<ThemeToggle compact />
 							{signOut}
 						</div>

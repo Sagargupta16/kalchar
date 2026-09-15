@@ -19,8 +19,6 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
  * effect twice: without the ref the second run would see the flag its own
  * first run had just set and fade the initial load in.
  *
- * Reduced-motion makes `.page-enter` a no-op (handled in globals.css).
- *
  * No fade under /admin (D18): tab-to-tab navigation in a tool is instant.
  */
 let seenFirstMount = false;

@@ -3,7 +3,6 @@
 import { motion, useSpring } from "motion/react";
 import type { PointerEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { SPRING_ZOOM, TILT_MAX_DEG, TILT_PERSPECTIVE_PX } from "@/lib/motion";
 
 /**
@@ -11,8 +10,7 @@ import { SPRING_ZOOM, TILT_MAX_DEG, TILT_PERSPECTIVE_PX } from "@/lib/motion";
  * Wraps a whole card so frame, shadow and caption rotate together; rotateX/Y
  * ride SPRING_ZOOM within TILT_MAX_DEG (3deg -- a painting must not read as
  * warped) at TILT_PERSPECTIVE_PX. Mounts only on `(hover: hover) and
- * (pointer: fine)` devices without reduced motion; phones and reduced-motion
- * visitors get the children unchanged. The host grid carries overflow-x: clip
+ * (pointer: fine)` devices; phones get the children unchanged. The host grid carries overflow-x: clip
  * so a mid-tilt corner never widens the page.
  */
 
@@ -24,7 +22,6 @@ interface TiltPlateProps {
 }
 
 export function TiltPlate({ children, className }: Readonly<TiltPlateProps>) {
-	const reduceMotion = usePrefersReducedMotion();
 	const [finePointer, setFinePointer] = useState(false);
 	const rotateX = useSpring(0, SPRING_ZOOM);
 	const rotateY = useSpring(0, SPRING_ZOOM);
@@ -37,7 +34,7 @@ export function TiltPlate({ children, className }: Readonly<TiltPlateProps>) {
 		return () => mql.removeEventListener("change", handler);
 	}, []);
 
-	if (!finePointer || reduceMotion) return <>{children}</>;
+	if (!finePointer) return <>{children}</>;
 
 	const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
 		const rect = event.currentTarget.getBoundingClientRect();

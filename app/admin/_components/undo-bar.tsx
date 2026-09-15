@@ -3,7 +3,6 @@
 import { LoaderCircle, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { UNDO_HOLD_MS } from "@/lib/motion";
 import { AdminNotice } from "./admin-notice";
 import { adminBtn, adminIconBtnGhost, ICON_MD } from "./controls";
@@ -61,27 +60,23 @@ export function UndoBar({
 	const [hidden, setHidden] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const spinning = usePendingVisible(pending);
-	const reduce = usePrefersReducedMotion();
 	const closeTimer = useRef<number | null>(null);
 	const dismissRef = useRef(onDismiss);
 	dismissRef.current = onDismiss;
 
 	// Dismiss with the A2 exit (8px drop + fade at fast/ease-in) before unmount.
-	const dismiss = useCallback(
-		(animated: boolean) => {
-			if (closeTimer.current !== null) return;
-			if (!animated || reduce) {
-				dismissRef.current();
-				return;
-			}
-			setClosing(true);
-			closeTimer.current = window.setTimeout(() => {
-				closeTimer.current = null;
-				dismissRef.current();
-			}, MODAL_EXIT_MS);
-		},
-		[reduce],
-	);
+	const dismiss = useCallback((animated: boolean) => {
+		if (closeTimer.current !== null) return;
+		if (!animated) {
+			dismissRef.current();
+			return;
+		}
+		setClosing(true);
+		closeTimer.current = window.setTimeout(() => {
+			closeTimer.current = null;
+			dismissRef.current();
+		}, MODAL_EXIT_MS);
+	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -114,9 +109,7 @@ export function UndoBar({
 			role="status"
 			aria-live="polite"
 			className={
-				closing
-					? "translate-y-2 opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)"
-					: undefined
+				closing ? "translate-y-2 opacity-0 duration-(--duration-fast) ease-(--ease-in)" : undefined
 			}
 		>
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: hover and focus only pause the auto-dismiss timer; the buttons inside carry the interaction */}
@@ -141,16 +134,12 @@ export function UndoBar({
 						<button
 							type="button"
 							onClick={() => void onAction()}
-							disabled={pending}
+							disabled={pending || closing}
 							aria-busy={pending || undefined}
 							className={adminBtn}
 						>
 							{spinning ? (
-								<LoaderCircle
-									size={ICON_MD}
-									aria-hidden="true"
-									className="motion-safe:animate-spin"
-								/>
+								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 							) : null}
 							{actionLabel}
 						</button>
@@ -160,6 +149,7 @@ export function UndoBar({
 								key={toastAction.label}
 								type="button"
 								onClick={toastAction.onClick}
+								disabled={pending || closing}
 								className={adminBtn}
 							>
 								{toastAction.label}
@@ -169,6 +159,7 @@ export function UndoBar({
 					<button
 						type="button"
 						onClick={() => dismiss(true)}
+						disabled={pending || closing}
 						aria-label="Dismiss"
 						className={adminIconBtnGhost}
 					>

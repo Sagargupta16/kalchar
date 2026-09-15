@@ -25,12 +25,12 @@ const EVENT_DATE_LOCALE = "en-IN";
 /** Split an ISO date into wall-date parts ("24", "Sep", "2026"); null when invalid. */
 function wallDateParts(iso: string): { day: string; month: string; year: string } | null {
 	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return null;
 	return {
-		day: String(d.getDate()),
-		month: d.toLocaleDateString(EVENT_DATE_LOCALE, { month: "short" }),
-		year: String(d.getFullYear()),
+		day: String(date.getUTCDate()),
+		month: date.toLocaleDateString(EVENT_DATE_LOCALE, { month: "short", timeZone: "UTC" }),
+		year: String(date.getUTCFullYear()),
 	};
 }
 
@@ -79,18 +79,24 @@ function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean
 
 export default async function EventsPage() {
 	const events = await getAllEvents();
+	const firstGalleryIndex = events.findIndex((event) => event.images.length > 0);
 
 	return (
 		<main>
-			{/* The standard public page header (2.0): grand rhythm on the peacock
-			    wash band, short kachni under the eyebrow. */}
-			<Section accent="peacock" background="wash" rhythm="grand" padded>
+			<Section accent="peacock" background="wash" padded containerClassName="py-(--space-block)">
 				<PageHeader
-					kachni
 					eyebrow="Events"
 					title="Workshops, exhibitions, and gatherings"
-					lead="Moments from the louder room: hands-on sessions, shows, and the community that gathers around folk art."
-				/>
+					lead="A look back at hands-on sessions, exhibitions, and the community that gathers around folk art."
+				>
+					<Link
+						href="/workshops"
+						className={cn(buttonVariants({ variant: "secondary" }), "mt-5 w-full sm:w-auto")}
+					>
+						Find a workshop
+						<ArrowRight size={16} aria-hidden="true" />
+					</Link>
+				</PageHeader>
 			</Section>
 
 			<Section accent="peacock" padded containerClassName="pt-(--space-block)">
@@ -107,13 +113,16 @@ export default async function EventsPage() {
 								<div
 									key={event.id}
 									id={event.id}
-									className="border-t border-(--color-gold-hairline) first:border-t-0"
+									className="scroll-mt-(--space-page) border-t border-(--color-gold-hairline) first:border-t-0"
 								>
 									<Reveal
 										as="article"
 										eager={i < 2}
 										delayMs={staggerDelay(i)}
-										className="grid gap-4 py-(--section-py) lg:grid-cols-[10rem_1fr] lg:gap-10"
+										className={cn(
+											"grid gap-4 py-(--space-block) lg:grid-cols-[10rem_1fr] lg:gap-10",
+											i === 0 && "pt-0",
+										)}
 									>
 										<WallDate
 											iso={event.eventDate}
@@ -126,7 +135,7 @@ export default async function EventsPage() {
 													{event.featured ? (
 														<Badge variant="accent-soft">
 															<Pin size={12} aria-hidden="true" />
-															Pinned
+															Featured
 														</Badge>
 													) : null}
 												</div>
@@ -144,9 +153,15 @@ export default async function EventsPage() {
 													<p className="t-body mt-2 max-w-(--measure-essay)">{event.description}</p>
 												</Reveal>
 											) : null}
-											<div className="mt-6">
-												<EventGallery images={event.images} title={event.title} lead={i === 0} />
-											</div>
+											{event.images.length > 0 ? (
+												<div className="mt-6">
+													<EventGallery
+														images={event.images}
+														title={event.title}
+														lead={i === firstGalleryIndex}
+													/>
+												</div>
+											) : null}
 										</div>
 									</Reveal>
 								</div>
@@ -169,7 +184,7 @@ export default async function EventsPage() {
 						<EmptyState
 							icon={<CalendarDays size={24} aria-hidden="true" />}
 							title="No events posted yet"
-							body="Workshops, exhibitions, and gatherings will appear here. Follow along on Instagram for the latest."
+							body="Workshops, exhibitions, and gatherings will appear here. Explore our workshops to enquire about a session."
 							action={
 								<Link
 									href="/workshops"

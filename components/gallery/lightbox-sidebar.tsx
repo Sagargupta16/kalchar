@@ -1,158 +1,114 @@
 "use client";
 
-import { Calendar, ImageIcon, MessageCircle, Ruler } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { isPositivePrice } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site-config";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
-import { Chromacard } from "./chromacard";
 import { ShareButton } from "./share-button";
-import { WallLabel } from "./wall-label";
 
 interface LightboxSidebarProps {
 	artwork: Artwork;
-	position: number;
-	total: number;
 	whatsappLink: string;
 	ctaLabel: string;
 	isSold: boolean;
-	/** Single-tap chrome toggle: the caption fades, the buy bar never does. */
+	/** A single tap quiets the details; the enquiry action remains available. */
 	chromeHidden?: boolean;
 }
 
-/**
- * Lightbox caption column (visual-direction 2.4): the museum wall label in
- * scrim tone on the deep room, the description (clamp-3 on phones, tap
- * expands), the metadata rows on bg/15 hairlines, and the buy bar (the C
- * graft) pinned to the panel's bottom edge on phones with the price, the one
- * primary and Share as a 44px icon. Share stays the last control (the
- * focus-trap test relies on it).
- */
+/** A compact bottom card on phones becomes a reading column on desktop.
+ * Only the information scrolls: the primary action and Share stay in view. */
 export function LightboxSidebar({
 	artwork,
-	position,
-	total,
 	whatsappLink,
 	ctaLabel,
 	isSold,
 	chromeHidden = false,
 }: Readonly<LightboxSidebarProps>) {
-	const [expanded, setExpanded] = useState(false);
+	const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+	const expanded = expandedSlug === artwork.slug;
 	const isAvailable = isPositivePrice(artwork.priceInr);
 	const hasPrice = isAvailable && !isSold && typeof artwork.priceInr === "number";
 
-	let statusSlot: string | undefined;
-	if (isSold) statusSlot = "Sold";
-	else if (!isAvailable) statusSlot = "Not listed for sale";
-
 	return (
-		<div className="flex flex-col p-(--card-pad) md:col-span-4 md:min-h-0 md:overflow-y-auto">
-			{/* Hidden chrome goes inert with the fade so the expand button leaves
-			    the tab order, not just the paint. */}
+		<aside
+			aria-label="About this artwork"
+			className={cn(
+				"flex max-h-[48dvh] min-h-0 flex-col overflow-hidden rounded-md border text-ink transition-ui md:max-h-full",
+				chromeHidden
+					? "border-transparent bg-transparent"
+					: "border-line/40 bg-surface-raised shadow-e2",
+			)}
+		>
 			<div
 				inert={chromeHidden || undefined}
-				className={cn("transition-ui md:flex-1", chromeHidden && "pointer-events-none opacity-0")}
+				className={cn(
+					"min-h-0 overflow-y-auto overscroll-contain p-4 transition-ui md:flex-1 md:p-6",
+					chromeHidden && "pointer-events-none opacity-0",
+				)}
 			>
-				{/* The visual counters are chrome (aria-hidden); one sr-only live
-				    region announces paging for everyone. */}
-				{total > 1 ? (
-					<p
-						aria-hidden="true"
-						className="t-meta mb-3 hidden tabular-nums text-bg/80 dark:text-ink/80 md:block"
-					>
-						{String(position).padStart(2, "0")} / {total}
-					</p>
+				<p className="t-meta text-muted">{artwork.style}</p>
+				<h2
+					id="lightbox-title"
+					className="t-display mt-2 text-title text-balance [overflow-wrap:anywhere] md:text-h2"
+				>
+					{artwork.title}
+				</h2>
+				{!hasPrice ? (
+					<p className="mt-2 text-sm text-muted">{isSold ? "Sold" : "Not listed for sale"}</p>
 				) : null}
-				<WallLabel
-					variant="full"
-					tone="scrim"
-					mark
-					stagger
-					title={artwork.title}
-					meta={[artwork.style, artwork.medium, artwork.year ? String(artwork.year) : ""].filter(
-						Boolean,
-					)}
-					price={hasPrice ? formatInr(artwork.priceInr as number) : undefined}
-					status={statusSlot}
-					headingLevel="h2"
-					titleId="lightbox-title"
-				/>
+				<dl className="mt-4 grid grid-cols-3 gap-3 md:mt-6 md:grid-cols-1 md:gap-4">
+					<MetaRow label="Medium" value={artwork.medium} />
+					{artwork.year ? <MetaRow label="Year" value={String(artwork.year)} /> : null}
+					{artwork.dimensions ? <MetaRow label="Dimensions" value={artwork.dimensions} /> : null}
+				</dl>
 				{artwork.description ? (
-					<button
-						type="button"
-						aria-expanded={expanded}
-						onClick={() => setExpanded((current) => !current)}
-						className="mt-3 block text-left"
-					>
+					<div className="mt-2 md:mt-6">
+						<button
+							type="button"
+							aria-expanded={expanded}
+							aria-controls="lightbox-description"
+							onClick={() => setExpandedSlug(expanded ? null : artwork.slug)}
+							className="flex min-h-control w-full items-center justify-between gap-3 text-left text-sm font-medium md:hidden"
+						>
+							{expanded ? "Less about this piece" : "About this piece"}
+							<ChevronDown
+								size={16}
+								aria-hidden="true"
+								className={cn("transition-ui", expanded && "rotate-180")}
+							/>
+						</button>
 						<p
+							id="lightbox-description"
 							className={cn(
-								"text-sm leading-relaxed text-bg/80 dark:text-ink/80",
-								!expanded && "line-clamp-3 md:line-clamp-none",
+								"text-sm leading-relaxed text-ink-soft md:block",
+								!expanded && "hidden",
 							)}
 						>
 							{artwork.description}
 						</p>
-					</button>
-				) : null}
-				<dl className="mt-5 space-y-3 border-t border-bg/15 pt-4 text-sm dark:border-ink/15">
-					<MetaRow
-						icon={<ImageIcon size={13} aria-hidden="true" />}
-						label="Medium"
-						value={artwork.medium}
-					/>
-					{artwork.year ? (
-						<MetaRow
-							icon={<Calendar size={13} aria-hidden="true" />}
-							label="Year"
-							value={String(artwork.year)}
-						/>
-					) : null}
-					{artwork.dimensions ? (
-						<MetaRow
-							icon={<Ruler size={13} aria-hidden="true" />}
-							label="Dimensions"
-							value={artwork.dimensions}
-						/>
-					) : null}
-				</dl>
-				{artwork.palette && artwork.palette.length > 0 ? (
-					<div className="mt-6">
-						<p className="t-meta text-bg/70 dark:text-ink/70">Palette</p>
-						<Chromacard
-							palette={artwork.palette}
-							ariaLabel={`Palette for ${artwork.title}`}
-							className="mt-2"
-						/>
 					</div>
 				) : null}
 			</div>
-
-			{/* Buy bar (the C graft): pinned to the panel's bottom edge on phones so
-			    price and the WhatsApp action are on the first screen of the modal;
-			    a surface block in the column flow at md+. Never hidden by the
-			    chrome toggle. material-glass-strong (steering 2026-09-14) carries
-			    the raised fill, static blur + saturate, hairline and e4 depth over
-			    the deep room, with the opaque raised-surface fallback where
-			    backdrop-filter is unsupported. */}
-			<div className="material-glass-strong sticky bottom-0 z-raised -mx-(--card-pad) mt-6 flex items-center gap-3 border-t border-(--color-gold-hairline) px-4 py-3 pb-[max(--spacing(3),var(--spacing-safe-bottom))] md:static md:mx-0 md:rounded-(--radius-md) md:pb-3">
+			<div className="flex shrink-0 items-center gap-2 rounded-md bg-surface-raised p-3 pt-0 md:p-4 md:pt-0">
 				{hasPrice ? (
-					<span className="t-numeral min-w-0 shrink-0 whitespace-nowrap text-title text-accent-text tabular-nums">
+					<p className="t-numeral shrink-0 whitespace-nowrap text-sm tabular-nums md:text-base">
 						{formatInr(artwork.priceInr as number)}
-					</span>
+					</p>
 				) : null}
 				<a
 					href={whatsappLink}
 					target="_blank"
 					rel="noopener noreferrer"
+					aria-label={ctaLabel}
 					className={cn(
-						buttonVariants({ variant: isSold ? "secondary" : "primary", size: "lg" }),
-						"min-w-0 flex-1 whitespace-normal text-center",
+						buttonVariants({ variant: "primary", size: "lg" }),
+						"min-w-0 flex-1 whitespace-normal px-3 text-center",
 					)}
 				>
-					<MessageCircle size={16} aria-hidden="true" />
-					{ctaLabel}
+					{hasPrice ? "Enquire" : ctaLabel}
 				</a>
 				<ShareButton
 					iconOnly
@@ -160,21 +116,15 @@ export function LightboxSidebar({
 					url={`${siteConfig.url}/work/${artwork.slug}/`}
 				/>
 			</div>
-		</div>
+		</aside>
 	);
 }
 
-function MetaRow({
-	icon,
-	label,
-	value,
-}: Readonly<{ icon: ReactNode; label: string; value: string }>) {
+function MetaRow({ label, value }: Readonly<{ label: string; value: string }>) {
 	return (
-		<div className="flex justify-between gap-4">
-			<dt className="t-meta flex shrink-0 items-center gap-1.5 normal-case tracking-normal text-bg/70 dark:text-ink/70">
-				{icon} {label}
-			</dt>
-			<dd className="min-w-0 text-right font-medium text-bg text-pretty dark:text-ink">{value}</dd>
+		<div className="min-w-0 md:flex md:justify-between md:gap-4">
+			<dt className="text-xs text-muted">{label}</dt>
+			<dd className="mt-1 text-sm font-medium text-pretty md:mt-0 md:text-right">{value}</dd>
 		</div>
 	);
 }

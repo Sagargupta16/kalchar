@@ -2,9 +2,9 @@ import { expect, test } from "@playwright/test";
 import { mountAdmin, outcome } from "../admin/browser-fixture";
 
 // Tier 2a (visual-direction-admin): the enquiries DM inbox. Phone flows run at
-// 390; the split pane runs at the config's desktop default. The lead cases that
-// lived in admin-settings.spec.ts and admin-components.spec.ts moved here when
-// the card became a row + sheet.
+// 390; the split pane explicitly uses desktop settings in either root project.
+// The lead cases that lived in admin-settings.spec.ts and admin-components.spec.ts
+// moved here when the card became a row + sheet.
 
 test.describe("enquiries inbox at 390", () => {
 	test.use({ viewport: { width: 390, height: 844 } });
@@ -231,6 +231,8 @@ test.describe("enquiries inbox at 390", () => {
 });
 
 test.describe("enquiries split pane at desktop", () => {
+	test.use({ viewport: { width: 1280, height: 720 }, isMobile: false, hasTouch: false });
+
 	test("selecting renders the enquiry inline with no sheet, marks the row and sets ?lead=", async ({
 		page,
 	}) => {

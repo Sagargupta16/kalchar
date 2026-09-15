@@ -1,16 +1,15 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { HeroPlates } from "@/components/home/hero-plates";
 import { Reveal } from "@/components/motion/reveal";
-import { Badge } from "@/components/ui/badge";
-import { WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { artworkPreloadSrcset } from "@/lib/image-base";
 import { staggerDelay } from "@/lib/motion";
 import type { Artwork, Site } from "@/lib/types";
 
-/** Shared with hero-plates.tsx: the front plate caps at 35rem in the md+ seven-column cell. */
-const FEATURED_SIZES = "(min-width: 768px) 35rem, 85vw";
+/** Shared with hero-plates.tsx: the front plate caps at 22rem on desktop. */
+const FEATURED_SIZES = "(min-width: 768px) 22rem, 85vw";
 
 interface HeroProps {
 	site: Site;
@@ -23,20 +22,9 @@ interface HeroProps {
 	totalCount: number;
 	/** Category names for the chip rail (DB-backed, falls back to site.json). */
 	styles: readonly string[];
-	/** Prefilled wa.me greeting, shared with the contact teaser (C1/C4). */
-	whatsappHref: string;
 }
 
-/**
- * Editorial museum hero (visual-direction 2.1). Phone order is Head, Plate,
- * Body so the painting sits inside the first screen; md+ gives the plates the
- * majority column (copy 5 / plates 7) inside a viewport-height shell capped
- * at 52rem, with the organic pigment wash drifting behind (Section `wash`).
- * The h1 carries the roman headline voice on the display rung. Ruling 44:
- * the h1 and the lead render in full immediately (no Reveal of any kind);
- * the eager stagger covers only the secondary elements and skips their
- * indexes (1 and 3) so the rhythm holds.
- */
+/** The artwork and two clear actions lead; the headline paints before hydration. */
 export function Hero({
 	site,
 	featured,
@@ -45,15 +33,9 @@ export function Hero({
 	catalogIndex,
 	totalCount,
 	styles,
-	whatsappHref,
 }: Readonly<HeroProps>) {
 	return (
-		<Section
-			padded
-			rhythm="grand"
-			wash
-			className="md:grid md:content-center md:max-h-[52rem] md:min-h-[calc(100dvh-var(--header-h-shrunk))]"
-		>
+		<Section padded wash containerClassName="pt-8 pb-12 md:py-12">
 			{featured ? (
 				<link
 					rel="preload"
@@ -65,31 +47,15 @@ export function Hero({
 				/>
 			) : null}
 
-			<div className="grid gap-8 md:grid-cols-12 md:grid-rows-[auto_auto] md:gap-x-12 md:gap-y-6">
+			<div className="grid gap-7 md:grid-cols-12 md:grid-rows-[auto_auto] md:gap-x-12 md:gap-y-6">
 				{/* Head: eyebrow + h1 */}
 				<div className="md:col-span-5 md:row-start-1 md:self-end">
 					<Reveal eager>
-						<p className="t-eyebrow flex items-center gap-2">
-							<span aria-hidden="true" className="text-gold-leaf">
-								✦
-							</span>
-							{site.brand.tagline}
-						</p>
+						<p className="text-sm font-medium text-accent-text">{site.brand.tagline}</p>
 					</Reveal>
 
-					<h1 className="t-headline mt-4 text-display [--devanagari-shift:-0.02em]">
-						<span className="block">
-							{site.brand.headline.latinPrefix}
-							<span
-								lang="hi"
-								className="devanagari-display flare-after relative inline-block text-accent"
-							>
-								{site.brand.headline.devanagariCore}
-							</span>
-						</span>
-						<span className="t-headline mt-3 block text-title text-muted">
-							{site.brand.headline.connector} {site.brand.headline.suffix}
-						</span>
+					<h1 className="t-headline mt-4 whitespace-pre-line text-display">
+						{site.sections.hero?.title ?? site.brand.title}
 					</h1>
 				</div>
 
@@ -98,7 +64,7 @@ export function Hero({
 					<Reveal
 						eager
 						delayMs={staggerDelay(2)}
-						className="mx-auto w-full max-w-xs sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[35rem] md:self-center"
+						className="mx-auto w-full max-w-xs py-4 sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[22rem] md:self-center"
 					>
 						<HeroPlates
 							pool={pool}
@@ -112,55 +78,34 @@ export function Hero({
 
 				{/* Body: lead + chips + CTAs */}
 				<div className="md:col-span-5 md:col-start-1 md:row-start-2 md:self-start">
-					<p className="t-lead line-clamp-2 max-w-xl md:line-clamp-none">
-						{site.brand.description}
-					</p>
+					<p className="t-lead max-w-xl">{site.brand.description}</p>
 
 					<Reveal eager delayMs={staggerDelay(4)}>
-						<nav aria-label="Browse by style">
-							{/* Restrained glass (steering 2026-09-14): the chip rail sits over
-							    the drifting pigment wash, so the chips take the system's photo-chip
-							    glass (Badge overlay: hairline + e1 + backdrop blur) with the fill
-							    eased to 75% and an iOS saturate so the wash glows through while
-							    the caps stay legible. Solid CTAs below stay solid. */}
-							<ul className="mt-6 flex flex-wrap gap-2">
-								{styles.map((style) => (
-									<li key={style}>
-										<Link
-											href={`/work?style=${encodeURIComponent(style)}`}
-											className="group relative inline-flex rounded-full after:absolute after:inset-x-0 after:-inset-y-1"
-										>
-											<Badge
-												variant="overlay"
-												className="min-h-9 bg-bg/75 px-3 backdrop-saturate-150 transition-ui group-hover:border-accent group-hover:text-accent-text"
-											>
-												{style}
-											</Badge>
-										</Link>
-									</li>
-								))}
-							</ul>
-						</nav>
-					</Reveal>
-
-					<Reveal eager delayMs={staggerDelay(5)}>
-						<div className="mt-8 flex flex-wrap gap-3">
+						<div className="mt-6 flex flex-wrap gap-3">
 							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
 								See the artwork
+								<ArrowUpRight size={18} aria-hidden="true" />
 							</Link>
 							<Link href="/custom-orders" className={buttonVariants({ variant: "secondary" })}>
 								Order a custom piece
 							</Link>
 						</div>
-						<a
-							href={whatsappHref}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="mt-4 inline-flex min-h-control items-center gap-2 text-sm font-medium text-accent-text underline-offset-4 transition-colors pressable hover:underline"
-						>
-							<WhatsAppIcon className="size-4" aria-hidden="true" />
-							Message on WhatsApp
-						</a>
+					</Reveal>
+					<Reveal eager delayMs={staggerDelay(5)}>
+						<nav aria-label="Browse by style" className="mt-4">
+							<ul className="flex flex-wrap gap-x-4">
+								{styles.map((style) => (
+									<li key={style}>
+										<Link
+											href={`/work?style=${encodeURIComponent(style)}`}
+											className="inline-flex min-h-control items-center text-sm text-muted underline-offset-4 transition-colors hover:text-accent-text hover:underline"
+										>
+											{style}
+										</Link>
+									</li>
+								))}
+							</ul>
+						</nav>
 					</Reveal>
 				</div>
 			</div>

@@ -2,7 +2,8 @@
 
 import { CalendarDays, ChevronDown, Pin, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
-import { useId, useOptimistic, useState } from "react";
+import { useEffect, useId, useOptimistic, useState } from "react";
+import { isFailure } from "@/lib/action-result";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import { SPRING_INDICATOR } from "@/lib/motion";
 import type { Event } from "@/lib/types";
@@ -32,7 +33,7 @@ export interface EventItemProps {
 	defaultExpanded?: boolean;
 	/** Accent border on the just-created row; adminRow's transition-ui fades it. */
 	highlighted?: boolean;
-	onChanged: (next: Event) => void;
+	onChanged: (patch: Partial<Event>) => void;
 	onDeleted: (id: string) => void;
 	offerUndo: (offer: UndoOffer) => void;
 }
@@ -57,13 +58,22 @@ export function EventItem({
 	const confirm = useConfirm();
 	const editorId = useId();
 	const { pending, err, run } = useAdminAction();
-	const [expanded, setExpanded] = useState(defaultExpanded);
+	const [editorState, setEditorState] = useState<"closed" | "open" | "hidden">(
+		defaultExpanded ? "open" : "closed",
+	);
+	const expanded = editorState === "open";
+	const [editorPending, setEditorPending] = useState(false);
+	const busy = pending || editorPending;
+	useEffect(() => {
+		if (defaultExpanded) setEditorState("open");
+	}, [defaultExpanded]);
 	// Optimistic Pin (C12): flips the moment run starts, reverts by itself on failure.
 	const [featured, setOptimisticFeatured] = useOptimistic(event.featured);
 	// Remount key for the Pin glyph so each flip pops it with SPRING_INDICATOR (1.9); 0 = no mount pop.
 	const [pinPop, setPinPop] = useState(0);
 	// The image manager reports its staged first photo so the row's cover follows Make cover at once.
-	const [stagedCover, setStagedCover] = useState<string | null>(null);
+	const [stagedCover, setStagedCover] = useState<string | null | undefined>(undefined);
+	const cover = stagedCover === undefined ? event.images[0] : stagedCover;
 
 	const togglePin = () => {
 		setPinPop((n) => n + 1);
@@ -73,11 +83,15 @@ export function EventItem({
 				return setEventFeatured(event.id, !event.featured);
 			},
 			() => {
-				onChanged({ ...event, featured: !event.featured });
+				onChanged({ featured: !event.featured });
 				// The raw reverse action, never wrapped in run (the inFlight guard would no-op it).
 				offerUndo({
 					message: event.featured ? `"${event.title}" unpinned` : `"${event.title}" pinned to top`,
-					action: () => setEventFeatured(event.id, event.featured),
+					action: async () => {
+						const result = await setEventFeatured(event.id, event.featured);
+						if (!isFailure(result)) onChanged({ featured: event.featured });
+						return result;
+					},
 				});
 			},
 		);
@@ -100,6 +114,7 @@ export function EventItem({
 	return (
 		<li
 			id={`event-${event.id}`}
+			aria-busy={busy || undefined}
 			className={cn(
 				adminRow,
 				"@container/row scroll-mt-(--header-h-shrunk)",
@@ -110,17 +125,18 @@ export function EventItem({
 				{/* Line 1: the Edit body */}
 				<button
 					type="button"
+					disabled={busy}
 					aria-expanded={expanded}
 					aria-controls={editorId}
 					aria-label={`Edit ${event.title}`}
-					onClick={() => setExpanded((v) => !v)}
+					onClick={() => setEditorState(expanded ? "hidden" : "open")}
 					className="flex min-h-control min-w-0 flex-1 items-center gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text"
 				>
-					{(stagedCover ?? event.images[0]) ? (
+					{cover ? (
 						<span className="relative shrink-0">
 							{/* biome-ignore lint/performance/noImgElement: admin-only thumb from the R2 origin */}
 							<img
-								src={`${IMAGE_ORIGIN}/${stagedCover ?? event.images[0]}-400.webp`}
+								src={`${IMAGE_ORIGIN}/${cover}-400.webp`}
 								alt=""
 								className={cn(adminThumb, "size-14 bg-canvas object-contain")}
 							/>
@@ -159,7 +175,7 @@ export function EventItem({
 				<div className="flex items-center gap-2 @xl/row:shrink-0">
 					<button
 						type="button"
-						disabled={pending}
+						disabled={busy}
 						onClick={togglePin}
 						aria-pressed={featured}
 						aria-label={`Pin ${event.title} to top`}
@@ -183,7 +199,7 @@ export function EventItem({
 					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
 						<button
 							type="button"
-							disabled={pending}
+							disabled={busy}
 							onClick={remove}
 							aria-label={`Delete ${event.title}`}
 							className={adminIconBtnDestructive}
@@ -193,12 +209,16 @@ export function EventItem({
 					</div>
 				</div>
 			</div>
-			{expanded ? (
+			{editorState !== "closed" ? (
 				<EventEditor
 					event={event}
 					categories={categories}
 					editorId={editorId}
+					hidden={!expanded}
+					disabled={pending}
 					onCoverChange={setStagedCover}
+					onPendingChange={setEditorPending}
+					onChanged={onChanged}
 				/>
 			) : null}
 			{err ? (
@@ -221,27 +241,53 @@ function EventEditor({
 	event,
 	categories,
 	editorId,
+	hidden,
+	disabled,
 	onCoverChange,
+	onPendingChange,
+	onChanged,
 }: Readonly<{
 	event: Event;
 	categories: readonly string[];
 	editorId: string;
+	hidden: boolean;
+	disabled: boolean;
 	/** Reports the staged first photo so the row thumb follows Make cover at once (Tier 2b). */
 	onCoverChange: (keyBase: string | null) => void;
+	onPendingChange: (pending: boolean) => void;
+	onChanged: (patch: Partial<Event>) => void;
 }>) {
+	const [detailsPending, setDetailsPending] = useState(false);
+	const [photosPending, setPhotosPending] = useState(false);
+	useEffect(() => {
+		onPendingChange(detailsPending || photosPending);
+	}, [detailsPending, photosPending, onPendingChange]);
+
 	return (
-		<div id={editorId} className="mt-3 divide-y divide-line border-t border-line">
+		<div id={editorId} hidden={hidden} className="mt-3 divide-y divide-line border-t border-line">
 			<section className="space-y-3 py-3" aria-labelledby={`${editorId}-details`}>
 				<h3 id={`${editorId}-details`} className="t-meta">
 					Details
 				</h3>
-				<EventMetaEditor event={event} categories={categories} />
+				<EventMetaEditor
+					event={event}
+					categories={categories}
+					disabled={disabled || photosPending}
+					onPendingChange={setDetailsPending}
+					onChanged={onChanged}
+				/>
 			</section>
 			<section className="space-y-3 pt-3" aria-labelledby={`${editorId}-photos`}>
 				<h3 id={`${editorId}-photos`} className="t-meta">
 					Photos
 				</h3>
-				<EventImageManager event={event} onCoverChange={onCoverChange} />
+				<EventImageManager
+					event={event}
+					disabled={disabled || detailsPending}
+					onCoverChange={onCoverChange}
+					onPendingChange={setPhotosPending}
+					onChanged={onChanged}
+				/>
 			</section>
 		</div>
 	);

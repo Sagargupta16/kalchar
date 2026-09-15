@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
  * PlateFrame -- the standard museum plate (visual-direction 1.9). Rests on the
  * edged warm ladder so plates read as floating even when still (steering
  * 2026-09-14): grid plates at shadow-e1-edged, goldRest plates (hero front,
- * detail, featured) at shadow-e3-edged, matching the elevation role map. Hover
- * crossfades elevate-e3 with a 4px group lift, plus a concentric gold inset
+ * detail, featured) at shadow-e2-edged, matching the elevation role map. Hover
+ * rises one level with a 2px group lift, plus a concentric gold inset
  * line 6px in (rest at opacity 0, full on group hover, or always on via
  * `goldRest`). `sheen` runs the approved gold-leaf loop (deferred 23; hero
  * front plate only, --sheen-every 8s). `glow` feeds --plate-glow for the
@@ -49,12 +49,13 @@ export function PlateFrame({
 					...(glow ? { "--plate-glow": glow } : null),
 				} as CSSProperties)
 			: undefined;
-	const edgedRest = goldRest ? "shadow-e3-edged" : "shadow-e1-edged";
+	const edgedRest = goldRest ? "shadow-e2-edged" : "shadow-e1-edged";
 	return (
 		<div
 			style={style}
 			className={cn(
-				"relative overflow-hidden bg-canvas transition-ui elevate-e3 group-hover:-translate-y-1",
+				"relative overflow-hidden bg-canvas transition-ui group-hover:-translate-y-0.5",
+				goldRest ? "elevate-e3" : "elevate-e2",
 				glow ? "shadow-glow" : edgedRest,
 				radius === "lg" ? "rounded-(--radius-lg)" : "rounded-(--radius-md)",
 				className,

@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { WhatsAppIcon } from "@/components/ui/brand-icons";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,8 +29,7 @@ interface EnquireFabProps {
  * while hidden (inert, so it leaves the tab order and the a11y tree): the
  * html:has([data-enquire-fab]) rule keys off DOM presence to
  * lift BackToTop one FAB slot, and unmount-on-hide would make that offset
- * jump. Enters at DUR.base ease-out, exits at DUR.fast ease-in; reduced
- * motion drops the travel and keeps the fade.
+ * jump. Enters at DUR.base ease-out and exits at DUR.fast ease-in.
  *
  * Steering 2026-09-14: the disc face is a nested span so the visuals never
  * fight the anchor's own transforms (pressable presses the anchor; show/hide
@@ -41,15 +39,13 @@ interface EnquireFabProps {
  * accent-hover, an affordance and a contrast floor in one), a bg-tinted
  * hairline, and the e3 layered shadow. It also breathes on .plate-float, a
  * 3px half-cycle every 7s: slow enough to read as idle life, not a bid for
- * attention; paused while the disc is hidden and removed entirely under
- * prefers-reduced-motion by the shared reduced block.
+ * attention; paused while the disc is hidden.
  */
 export function EnquireFab({ whatsappHref }: Readonly<EnquireFabProps>) {
 	const pathname = usePathname();
 	const [scrolledPast, setScrolledPast] = useState(false);
 	const [channelsInView, setChannelsInView] = useState(false);
 	const sentinelRef = useRef<HTMLSpanElement>(null);
-	const reduceMotion = usePrefersReducedMotion();
 
 	const eligible = FAB_ROUTES.has((pathname ?? "").replace(/\/+$/, ""));
 
@@ -96,7 +92,7 @@ export function EnquireFab({ whatsappHref }: Readonly<EnquireFabProps>) {
 					shown
 						? "pointer-events-auto opacity-100 duration-(--duration-base) ease-(--ease-out)"
 						: "pointer-events-none opacity-0 duration-(--duration-fast) ease-(--ease-in)",
-					!reduceMotion && (shown ? "translate-y-0" : "translate-y-2"),
+					shown ? "translate-y-0" : "translate-y-2",
 				)}
 			>
 				<span

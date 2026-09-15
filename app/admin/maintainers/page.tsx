@@ -10,7 +10,7 @@ export default async function MaintainersPage() {
 	return (
 		<AdminPage
 			title="Maintainers"
-			description="Anyone listed here can sign in with Google and manage the site. Add people by their Google email; nothing is emailed to them."
+			description="Anyone listed here can sign in with Google and manage the site, including other maintainers. Add their Google email to grant access immediately; no email is sent. Root access cannot be removed."
 		>
 			<MaintainerManager
 				roster={roster.map((m) => ({

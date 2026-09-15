@@ -94,15 +94,15 @@ describe("WallLabel", () => {
 		expect(html).toContain("Radha and Krishna");
 	});
 
-	it("stagger rises each line on the eager reveal rhythm (60ms steps from step 1)", () => {
+	it("stagger rises each line on the eager reveal rhythm (50ms steps from step 1)", () => {
 		const html = renderToStaticMarkup(
 			<WallLabel stagger index={7} total={21} title="T" meta={["Madhubani"]} price="INR 1" />,
 		);
 		expect(html).toContain("reveal-up");
-		expect(html).toContain("animation-delay:60ms");
-		expect(html).toContain("animation-delay:120ms");
-		expect(html).toContain("animation-delay:180ms");
-		expect(html).toContain("animation-delay:240ms");
+		expect(html).toContain("animation-delay:50ms");
+		expect(html).toContain("animation-delay:100ms");
+		expect(html).toContain("animation-delay:150ms");
+		expect(html).toContain("animation-delay:200ms");
 	});
 
 	it("renders as figcaption when asked and keeps the 4px line grid", () => {

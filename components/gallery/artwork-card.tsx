@@ -1,19 +1,21 @@
 "use client";
 
+import { ArrowUpRight } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useId } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
-import { Chromacard } from "@/components/gallery/chromacard";
 import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
-import { PlateFrame } from "@/components/gallery/plate-frame";
-import { WallLabel } from "@/components/gallery/wall-label";
 import { TiltPlate } from "@/components/motion/tilt-plate";
 import { isPositivePrice } from "@/lib/catalog";
-import { STAGGER } from "@/lib/motion";
+import { PRESS_SCALE, SPRING_PRESS, STAGGER } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
+
+const AnimatedLink = motion.create(Link);
+const CARD_LIFT = { y: -6 } as const;
 
 interface ArtworkCardProps {
 	artwork: Artwork;
@@ -22,21 +24,15 @@ interface ArtworkCardProps {
 	siblings?: readonly Artwork[];
 	/** Image sizes hint; defaults to the 3-column gallery grid's. */
 	sizes?: string;
-	/** 1-based catalogue position for the wall-label counter ("No. 07"). */
+	/** Position announced to screen readers when browsing a collection. */
 	index?: number;
-	/** Catalogue size for the counter's "of {total}" tail. */
+	/** Number of pieces in the current collection. */
 	total?: number;
-	/** Present = this card paints eagerly and its plate clip-unveils with this
-	 *  delay. The clip lives on the image layer inside the frame (overflow is
-	 *  already hidden there) so the hover shadow and 2px lift are never cropped
-	 *  by a lingering clip-path (anti-pattern 3). */
+	/** Eager image reveal, staggered within the visible row. */
 	unveilDelayMs?: number;
 	/** Slower 700ms unveil for the spanning lead tile. */
 	unveilSlow?: boolean;
-	/** Idle plate float for the grid's lead tile only (steering 2026-09-14):
-	 *  one breathing plate reads alive, a whole floating grid reads busy. The
-	 *  loop rides a nested wrapper so it never fights TiltPlate's tilt or the
-	 *  PlateFrame hover lift; reduced motion removes it in animations.css. */
+	/** A gentle idle float for a featured piece. */
 	float?: boolean;
 }
 
@@ -53,15 +49,22 @@ export function ArtworkCard({
 	float = false,
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
+	const positionId = useId();
 
 	const handleClick = (e: React.MouseEvent) => {
-		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
-			e.preventDefault();
-			openLightbox(artwork, siblings, {
-				xPct: (e.clientX / window.innerWidth) * 100,
-				yPct: (e.clientY / window.innerHeight) * 100,
-			});
-		}
+		if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+			return;
+		e.preventDefault();
+		openLightbox(
+			artwork,
+			siblings,
+			e.detail === 0
+				? undefined
+				: {
+						xPct: (e.clientX / window.innerWidth) * 100,
+						yPct: (e.clientY / window.innerHeight) * 100,
+					},
+		);
 	};
 
 	const imgSrc = `/artworks/${artwork.image}`;
@@ -78,18 +81,10 @@ export function ArtworkCard({
 	if (isAvailable && typeof artwork.priceInr === "number" && !isSold) {
 		priceSlot = formatInr(artwork.priceInr);
 	}
-	let statusSlot: string | undefined;
-	if (isSold) statusSlot = "Sold";
-	else if (!isAvailable) statusSlot = "Not listed for sale";
-
 	const unveiling = typeof unveilDelayMs === "number";
 
-	/* Image plate: uniform 3:4 crop in the grid (D9). PlateFrame owns the
-	   e1-edged rest, the elevate-e3 crossfade, the 4px lift and the gold inset
-	   hover cue; a single gold-sheen pass crosses on hover (G9); the image
-	   itself never scales (G1). */
 	const plate = (
-		<PlateFrame className="aspect-3/4">
+		<div className="relative aspect-4/5 overflow-hidden rounded-md bg-canvas">
 			<div
 				className={cn(
 					"absolute inset-0",
@@ -102,64 +97,62 @@ export function ArtworkCard({
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
 					sizes={sizes}
-					className="absolute inset-0 h-full w-full object-cover"
+					className="absolute inset-0 h-full w-full object-contain p-3 sm:p-4"
 					priority={priority}
 				/>
 			</div>
-			<span
-				aria-hidden="true"
-				className="gold-sheen pointer-events-none absolute inset-0 hidden rounded-[inherit] [@media(hover:hover)_and_(pointer:fine)]:block"
-			/>
 			<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
-		</PlateFrame>
+		</div>
 	);
 
 	return (
-		<Link
+		<AnimatedLink
 			href={`/work/${artwork.slug}`}
 			onClick={handleClick}
-			className={cn("group @container block pressable", className)}
+			className={cn(
+				"group @container flex h-full flex-col rounded-md border border-line/60 bg-surface p-1.5 shadow-e1 elevate-e3 transition-colors hover:border-accent/30",
+				className,
+			)}
 			aria-label={ariaLabel}
+			aria-describedby={index ? positionId : undefined}
+			whileHover={CARD_LIFT}
+			whileFocus={CARD_LIFT}
+			whileTap={{ scale: PRESS_SCALE }}
+			transition={SPRING_PRESS}
 		>
 			<TiltPlate>
 				{float ? <div className="plate-float [--float-travel:5px]">{plate}</div> : plate}
 			</TiltPlate>
 
-			{/* Caption rises one stagger step after its plate on the eager path
-			    (visual-direction 2.2 motion). */}
 			<div
-				className={cn("mt-4", unveiling && "reveal-up")}
+				className={cn("flex flex-1 flex-col gap-2 p-3 sm:p-4", unveiling && "reveal-up")}
 				style={
 					unveiling
 						? ({ animationDelay: `${unveilDelayMs + STAGGER.stepMs}ms` } as CSSProperties)
 						: undefined
 				}
 			>
-				<WallLabel
-					variant="compact"
-					index={index}
-					total={total}
-					title={artwork.title}
-					meta={[artwork.style, artwork.medium, artwork.year ? String(artwork.year) : ""].filter(
-						Boolean,
-					)}
-					price={priceSlot}
-					status={statusSlot}
-				/>
-
-				{artwork.description ? (
-					<p className="mt-2 hidden line-clamp-1 text-sm text-muted @xs:block">
-						{artwork.description}
-					</p>
+				<div className="flex items-start justify-between gap-2">
+					<h3 className="min-w-0 text-base leading-snug font-semibold tracking-tight text-ink sm:text-lg">
+						{artwork.title}
+					</h3>
+					<ArrowUpRight
+						size={18}
+						aria-hidden="true"
+						className="mt-1 shrink-0 text-muted transition-[color,translate] duration-(--duration-fast) group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-accent-text"
+					/>
+				</div>
+				<div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+					<p className="text-muted">{artwork.style}</p>
+					{priceSlot ? <p className="font-semibold tabular-nums text-ink">{priceSlot}</p> : null}
+				</div>
+				{index ? (
+					<span id={positionId} className="sr-only">
+						Piece {index}
+						{total ? ` of ${total}` : ""}
+					</span>
 				) : null}
-
-				<Chromacard
-					palette={artwork.palette}
-					ariaLabel={`Palette from ${artwork.title}`}
-					className="mt-2"
-					groupHoverBloom
-				/>
 			</div>
-		</Link>
+		</AnimatedLink>
 	);
 }

@@ -49,11 +49,9 @@
     color: var(--color-bg);
   }
 
-  /* One focus treatment: 2px accent outline, offset 2px. A solid 2px outline
-     passes WCAG 2.4.13; an inset 2px line does not, so never ring-inset, never
-     ring-1, never :focus on tap targets (system-6, chrome-2, D12). :where()
-     keeps specificity at zero so a leftover focus-visible:outline-none still
-     wins during migration (and the guard removes it at integration). */
+  /* A shared 2px accent outline, offset 2px, for keyboard focus.
+     :where() keeps specificity low so controls can adjust the offset
+     without replacing the indicator. */
   :where(a, button, [role="button"], summary, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;

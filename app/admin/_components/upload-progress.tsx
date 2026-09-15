@@ -42,7 +42,7 @@ export function UploadProgress({ state }: Readonly<{ state: UploadProgressState 
 			>
 				{percent !== null ? (
 					<div
-						className="h-full w-full origin-left rounded-full bg-accent motion-safe:transition-transform"
+						className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-(--duration-fast) ease-(--ease-out)"
 						style={{ transform: `scaleX(${percent / 100})` }}
 					/>
 				) : null}
@@ -73,7 +73,7 @@ export function UploadProgressEdge({ state }: Readonly<{ state: UploadProgressSt
 		>
 			{percent !== null ? (
 				<div
-					className="h-full w-full origin-left bg-accent motion-safe:transition-transform"
+					className="h-full w-full origin-left bg-accent transition-transform duration-(--duration-fast) ease-(--ease-out)"
 					style={{ transform: `scaleX(${percent / 100})` }}
 				/>
 			) : null}

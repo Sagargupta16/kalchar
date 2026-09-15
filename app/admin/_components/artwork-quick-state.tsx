@@ -60,7 +60,7 @@ interface FeaturedToggleProps {
  * The row star (1.9): gold-leaf fill when on, a sub-300ms scale pop on the
  * flip (Motion animate keyed on the pressed state, SPRING_INDICATOR; press-in
  * comes from pressable). The label stays the verb phrase in both states (the
- * state is aria-pressed); reduced motion snaps via MotionConfig.
+ * state is aria-pressed).
  */
 export function FeaturedToggle({
 	title,

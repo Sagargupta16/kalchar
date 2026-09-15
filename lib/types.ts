@@ -142,6 +142,8 @@ export interface SectionCopy {
 	eyebrow?: string;
 	title: string;
 	lead?: string;
+	pageTitle?: string;
+	pageLead?: string;
 	[key: string]: unknown;
 }
 

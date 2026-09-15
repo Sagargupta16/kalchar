@@ -1,10 +1,12 @@
 "use client";
 
 import { Check, ChevronDown, LoaderCircle, Presentation, Trash2 } from "lucide-react";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { isFailure } from "@/lib/action-result";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteWorkshop, updateWorkshop } from "../actions";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { useConfirm } from "./confirm-dialog";
 import {
@@ -18,6 +20,59 @@ import {
 	ICON_MD,
 } from "./controls";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+
+export interface WorkshopDraft {
+	title: string;
+	blurb: string;
+	durationHours: string;
+}
+
+export interface WorkshopDraftError {
+	field: keyof WorkshopDraft;
+	message: string;
+}
+
+export function parseWorkshopDraft(
+	draft: WorkshopDraft,
+):
+	| { error: WorkshopDraftError }
+	| { fields: { title: string; blurb: string; durationHours: number | null } } {
+	const title = draft.title.trim();
+	const blurb = draft.blurb.trim();
+	if (!title) return { error: { field: "title", message: "Enter a title." } };
+	if (!blurb) return { error: { field: "blurb", message: "Enter a description." } };
+	const durationHours = draft.durationHours.trim() ? Number(draft.durationHours) : null;
+	if (
+		durationHours !== null &&
+		(!Number.isFinite(Math.fround(durationHours)) || Math.fround(durationHours) <= 0)
+	) {
+		return {
+			error: { field: "durationHours", message: "Duration must be a positive number." },
+		};
+	}
+	return { fields: { title, blurb, durationHours } };
+}
+
+export function focusWorkshopField(form: HTMLFormElement | null, field: keyof WorkshopDraft) {
+	const control = form?.elements.namedItem(field);
+	if (control instanceof HTMLElement) control.focus();
+}
+
+export function useWorkshopDraftGuard({ dirty, pending }: { dirty: boolean; pending: boolean }) {
+	const confirm = useConfirm();
+	useAdminDraftGuard(dirty || pending);
+
+	return async () => {
+		if (pending) return false;
+		if (!dirty) return true;
+		return confirm({
+			title: "Discard changes?",
+			body: "Your unsaved workshop changes will be lost.",
+			confirmLabel: "Discard changes",
+			cancelLabel: "Keep editing",
+		});
+	};
+}
 
 /** "1 hour" / "2.5 hours": matches the public copy; "3 H" reads as a unit code (flow 12). */
 function formatHours(n: number): string {
@@ -66,6 +121,7 @@ export interface WorkshopRowProps {
 	highlighted: boolean;
 	onChanged: (next: Workshop) => void;
 	onDeleted: (slug: string) => void;
+	onPendingChange: (slug: string, pending: boolean) => void;
 }
 
 /**
@@ -85,90 +141,147 @@ export function WorkshopRow({
 	highlighted,
 	onChanged,
 	onDeleted,
+	onPendingChange,
 }: Readonly<WorkshopRowProps>) {
 	const confirm = useConfirm();
 	const editorId = useId();
+	const errorId = useId();
+	const formRef = useRef<HTMLFormElement>(null);
+	const editRef = useRef<HTMLButtonElement>(null);
 	const { pending: rowPending, pendingVisible, err, run } = useAdminAction();
 	const [editing, setEditing] = useState(false);
 	const [saved, setSaved] = useState(false);
-	const [localErr, setLocalErr] = useState<string | null>(null);
+	const [localErr, setLocalErr] = useState<WorkshopDraftError | null>(null);
+	const [showActionError, setShowActionError] = useState(false);
 	const [title, setTitle] = useState(workshop.title);
 	const [blurb, setBlurb] = useState(workshop.blurb);
 	const [duration, setDuration] = useState(workshop.durationHours?.toString() ?? "");
+	const [draftBase, setDraftBase] = useState(workshop);
 	const pending = rowPending || listPending;
+	const dirty =
+		editing &&
+		(title !== draftBase.title ||
+			blurb !== draftBase.blurb ||
+			duration !== (draftBase.durationHours?.toString() ?? ""));
+
+	if (
+		workshop.title !== draftBase.title ||
+		workshop.blurb !== draftBase.blurb ||
+		workshop.durationHours !== draftBase.durationHours
+	) {
+		setDraftBase(workshop);
+		if (!dirty) {
+			setTitle(workshop.title);
+			setBlurb(workshop.blurb);
+			setDuration(workshop.durationHours?.toString() ?? "");
+		}
+	}
+
+	const canDiscard = useWorkshopDraftGuard({
+		dirty,
+		pending,
+	});
+
+	useEffect(() => {
+		onPendingChange(workshop.slug, rowPending);
+		return () => onPendingChange(workshop.slug, false);
+	}, [onPendingChange, rowPending, workshop.slug]);
+
+	useEffect(() => {
+		if (editing) focusWorkshopField(formRef.current, "title");
+	}, [editing]);
+
+	useEffect(() => {
+		if (!saved) return;
+		const timer = window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timer);
+	}, [saved]);
 
 	const startEditing = () => {
 		setTitle(workshop.title);
 		setBlurb(workshop.blurb);
 		setDuration(workshop.durationHours?.toString() ?? "");
 		setLocalErr(null);
+		setShowActionError(false);
+		setSaved(false);
 		setEditing(true);
 	};
 
-	const cancelEdit = () => {
+	const cancelEdit = async () => {
+		if (!(await canDiscard())) return;
 		setLocalErr(null);
+		setShowActionError(false);
+		setSaved(false);
 		setEditing(false);
+		requestAnimationFrame(() => editRef.current?.focus());
 	};
 
-	// Blank and duration checks run locally so a bad draft never round-trips to
-	// the DB constraint's generic message (flows 19 / 31 / 32).
 	const save = () => {
+		if (pending) return;
 		setLocalErr(null);
-		const trimmedTitle = title.trim();
-		const trimmedBlurb = blurb.trim();
-		if (!trimmedTitle) {
-			setLocalErr("Enter a title.");
+		setSaved(false);
+		setShowActionError(false);
+		const result = parseWorkshopDraft({ title, blurb, durationHours: duration });
+		if ("error" in result) {
+			setLocalErr(result.error);
+			focusWorkshopField(formRef.current, result.error.field);
 			return;
 		}
-		if (!trimmedBlurb) {
-			setLocalErr("Enter a description.");
-			return;
-		}
-		let durationHours: number | null = null;
-		if (duration.trim()) {
-			const parsed = Number(duration);
-			if (Number.isNaN(parsed) || parsed <= 0) {
-				setLocalErr("Duration must be a positive number.");
-				return;
-			}
-			durationHours = parsed;
-		}
+		const { fields } = result;
+		setShowActionError(true);
 		run(
-			() =>
-				updateWorkshop(workshop.slug, { title: trimmedTitle, blurb: trimmedBlurb, durationHours }),
+			() => updateWorkshop(workshop.slug, fields),
 			() => {
+				setTitle(fields.title);
+				setBlurb(fields.blurb);
+				setDuration(fields.durationHours?.toString() ?? "");
 				setSaved(true);
-				window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 				onChanged({
 					...workshop,
-					title: trimmedTitle,
-					blurb: trimmedBlurb,
-					durationHours: durationHours ?? undefined,
+					...fields,
+					durationHours: fields.durationHours ?? undefined,
 				});
 			},
 		);
 	};
 
 	const remove = async () => {
+		if (pending) return;
+		setShowActionError(false);
 		const ok = await confirm({
 			title: `Delete "${workshop.title}"?`,
 			body: "The workshop leaves the public workshops page.",
 			confirmLabel: "Delete workshop",
 			cancelLabel: "Keep workshop",
+			action: async () => {
+				let failure: unknown;
+				const deleted = await run(async () => {
+					try {
+						const result = await deleteWorkshop(workshop.slug);
+						if (isFailure(result)) throw new Error(result.message);
+						return result;
+					} catch (error) {
+						failure = error;
+						throw error;
+					}
+				});
+				if (failure) throw failure;
+				return deleted;
+			},
 		});
-		if (ok)
-			run(
-				() => deleteWorkshop(workshop.slug),
-				() => onDeleted(workshop.slug),
-			);
+		if (ok) onDeleted(workshop.slug);
 	};
 
-	const rowError = localErr ?? err;
+	const rowError = localErr?.message ?? (showActionError ? err : null);
 
 	return (
 		<li
 			id={`workshop-${workshop.slug}`}
 			{...dragProps}
+			draggable={!editing && !pending && dragProps.draggable}
+			onDragStart={(event) => {
+				if (!editing && !pending) dragProps.onDragStart?.(event);
+			}}
 			className={cn(
 				adminRow,
 				"@container/row scroll-mt-(--header-h-shrunk)",
@@ -180,6 +293,7 @@ export function WorkshopRow({
 			<div className="flex flex-col gap-4 @xl/row:flex-row @xl/row:items-center @xl/row:gap-3">
 				{/* Line 1: the Edit body, led by the duration disc */}
 				<button
+					ref={editRef}
 					type="button"
 					aria-expanded={editing}
 					aria-controls={editorId}
@@ -221,13 +335,31 @@ export function WorkshopRow({
 			</div>
 
 			{editing ? (
-				<div id={editorId} className="mt-3 border-t border-line pt-3">
+				<form
+					ref={formRef}
+					id={editorId}
+					noValidate
+					aria-label={`Edit ${workshop.title}`}
+					className="mt-3 border-t border-line pt-3"
+					onChange={() => {
+						setLocalErr(null);
+						setShowActionError(false);
+						setSaved(false);
+					}}
+					onSubmit={(e) => {
+						e.preventDefault();
+						save();
+					}}
+				>
 					<div className="grid gap-(--form-gap) sm:grid-cols-2">
 						<div className={cn(adminLabel, "sm:col-span-2")}>
 							<label htmlFor={`workshop-title-${workshop.slug}`}>Title *</label>
 							<input
 								id={`workshop-title-${workshop.slug}`}
+								name="title"
 								required
+								aria-invalid={localErr?.field === "title" || undefined}
+								aria-describedby={localErr?.field === "title" ? errorId : undefined}
 								autoCorrect="off"
 								disabled={pending}
 								value={title}
@@ -239,7 +371,10 @@ export function WorkshopRow({
 							<label htmlFor={`workshop-blurb-${workshop.slug}`}>Description *</label>
 							<textarea
 								id={`workshop-blurb-${workshop.slug}`}
+								name="blurb"
 								required
+								aria-invalid={localErr?.field === "blurb" || undefined}
+								aria-describedby={localErr?.field === "blurb" ? errorId : undefined}
 								rows={3}
 								disabled={pending}
 								value={blurb}
@@ -253,8 +388,11 @@ export function WorkshopRow({
 							</label>
 							<input
 								id={`workshop-duration-${workshop.slug}`}
+								name="durationHours"
 								type="text"
 								inputMode="decimal"
+								aria-invalid={localErr?.field === "durationHours" || undefined}
+								aria-describedby={localErr?.field === "durationHours" ? errorId : undefined}
 								placeholder="e.g. 2"
 								disabled={pending}
 								value={duration}
@@ -268,18 +406,13 @@ export function WorkshopRow({
 							Cancel
 						</button>
 						<button
-							type="button"
+							type="submit"
 							disabled={pending}
 							aria-busy={pending}
-							onClick={save}
 							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
 						>
 							{pendingVisible ? (
-								<LoaderCircle
-									size={ICON_MD}
-									aria-hidden="true"
-									className="motion-safe:animate-spin"
-								/>
+								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 							) : (
 								<Check size={ICON_MD} aria-hidden="true" />
 							)}
@@ -287,11 +420,11 @@ export function WorkshopRow({
 						</button>
 						{saved ? <AdminNotice variant="success">Saved</AdminNotice> : null}
 					</div>
-				</div>
+				</form>
 			) : null}
 
 			{rowError ? (
-				<AdminNotice variant="error" className="mt-3">
+				<AdminNotice id={errorId} variant="error" className="mt-3">
 					{rowError}
 				</AdminNotice>
 			) : null}

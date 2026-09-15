@@ -1,8 +1,8 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { Artwork, ArtworkStatus } from "@/lib/types";
+import { useEffect, useId, useRef, useState } from "react";
+import type { Artwork } from "@/lib/types";
 import { cn, formatBytes } from "@/lib/utils";
 import {
 	deleteArtwork,
@@ -10,10 +10,11 @@ import {
 	replaceArtworkImage,
 	updateArtwork,
 } from "../artwork-actions";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { ArtworkEditFields } from "./artwork-edit-fields";
 import {
-	type EditorFields,
+	type ArtworkEditorFields,
 	type FieldErrors,
 	fieldsFromArtwork,
 	parseFields,
@@ -22,7 +23,7 @@ import {
 } from "./artwork-edit-state";
 import { ConfirmPanel } from "./confirm-dialog";
 import { adminBtn, adminBtnPrimary, adminHelp, adminThumb, ICON_MD } from "./controls";
-import { Modal, ModalBody, ModalFooter } from "./modal";
+import { Modal, ModalBody, ModalFooter, useModalExit } from "./modal";
 import { stageImage } from "./stage-image";
 import type { UploadProgressState } from "./upload-progress";
 import { SAVED_BADGE_DURATION_MS, useAdminAction, usePendingVisible } from "./use-admin-action";
@@ -32,7 +33,7 @@ export const DELETE_PIECE_BODY =
 	"The piece leaves the site and the admin list. Its photos stay in storage for recovery. To keep it in the gallery but off sale, set its status to Not for sale instead.";
 
 /** The fields a successful save changed, applied to the row behind the sheet at once. */
-export type ArtworkPatch = Pick<Artwork, "title" | "style" | "medium"> &
+export type ArtworkPatch = Pick<Artwork, "title" | "style" | "medium" | "status" | "featured"> &
 	Partial<Pick<Artwork, "dimensions" | "year" | "description" | "priceInr">>;
 
 type Step = "edit" | "confirmDelete" | "confirmDiscard";
@@ -41,13 +42,6 @@ interface ArtworkEditModalProps {
 	art: Artwork;
 	thumb: string;
 	categories: readonly string[];
-	/** A quick state in flight for this piece (status or featured flip). */
-	quickPending: boolean;
-	/** The last quick state's failure for this piece. */
-	quickError: string | null;
-	/** Quick states apply at once through the grid's optimistic path (D37). */
-	onSetStatus: (status: ArtworkStatus) => void;
-	onSetFeatured: (featured: boolean) => void;
 	onClose: () => void;
 	onSaved: (patch: ArtworkPatch) => void;
 	onDeleted: () => void;
@@ -63,24 +57,36 @@ export function ArtworkEditModal({
 	art,
 	thumb,
 	categories,
-	quickPending,
-	quickError,
-	onSetStatus,
-	onSetFeatured,
 	onClose,
 	onSaved,
 	onDeleted,
 }: Readonly<ArtworkEditModalProps>) {
 	const { pending, err, run } = useAdminAction();
+	const { closing, requestClose: closeEditor } = useModalExit(onClose);
+	const busy = pending || closing;
 	const spinning = usePendingVisible(pending);
-	const [fields, setFields] = useState<EditorFields>(() => fieldsFromArtwork(art));
+	const [fields, setFields] = useState<ArtworkEditorFields>(() => fieldsFromArtwork(art));
 	const [savedFields, setSavedFields] = useState(fields);
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+	const [validationAttempt, setValidationAttempt] = useState(0);
+	const [replacement, setReplacement] = useState<File | null>(null);
+	const formId = useId();
+	const form = useRef<HTMLFormElement>(null);
 	const [step, setStep] = useState<Step>("edit");
 	const [success, setSuccess] = useState<string | null>(null);
 	const [lastAction, setLastAction] = useState<"delete" | "other">("other");
 	const [progress, setProgress] = useState<UploadProgressState | null>(null);
 	const dirty = !sameFields(fields, savedFields);
+	const hasDraft = dirty || replacement !== null;
+	useAdminDraftGuard(hasDraft || pending);
+
+	useEffect(() => {
+		if (!validationAttempt) return;
+		const invalid = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+		const disclosure = invalid?.closest("details");
+		if (disclosure) disclosure.open = true;
+		invalid?.focus();
+	}, [validationAttempt]);
 
 	useEffect(() => {
 		if (!success) return;
@@ -88,7 +94,7 @@ export function ArtworkEditModal({
 		return () => window.clearTimeout(id);
 	}, [success]);
 
-	const update = (patch: Partial<EditorFields>) => {
+	const update = (patch: Partial<ArtworkEditorFields>) => {
 		setFields((current) => ({ ...current, ...patch }));
 		// Errors clear per keystroke once shown.
 		setFieldErrors((current) => {
@@ -108,13 +114,15 @@ export function ArtworkEditModal({
 	};
 
 	const handleSave = () => {
+		if (busy || !dirty) return;
 		const errors = validateFields(fields);
 		if (Object.keys(errors).length > 0) {
 			setFieldErrors(errors);
+			setValidationAttempt((attempt) => attempt + 1);
 			return;
 		}
 		const snapshot = fields;
-		const parsed = parseFields(snapshot, art);
+		const parsed = parseFields(snapshot);
 		return runEdit(
 			() => updateArtwork(art.slug, parsed),
 			"Piece updated",
@@ -128,15 +136,18 @@ export function ArtworkEditModal({
 					year: parsed.year ?? undefined,
 					description: parsed.description ?? undefined,
 					priceInr: parsed.priceInr ?? undefined,
+					status: parsed.status,
+					featured: parsed.featured,
 				});
 			},
 		);
 	};
 
 	const handleReplace = async (file: File) => {
+		if (busy) return false;
+		const sending = `Sending your photo (${formatBytes(file.size)})`;
+		setProgress({ label: sending, fraction: 0 });
 		const ok = await runEdit(async () => {
-			const sending = `Sending your photo (${formatBytes(file.size)})`;
-			setProgress({ label: sending, fraction: 0 });
 			// The master goes straight to R2; the action receives only its staged key.
 			const key = await stageImage(file, (fraction) => setProgress({ label: sending, fraction }));
 			setProgress({ label: "Preparing photo sizes and colours", fraction: null });
@@ -156,13 +167,14 @@ export function ArtworkEditModal({
 
 	/** X, backdrop and Escape all land here; the step decides what "close" means. */
 	const requestClose = () => {
+		if (busy) return;
 		if (step !== "edit") setStep("edit");
-		else if (dirty) setStep("confirmDiscard");
-		else onClose();
+		else if (hasDraft) setStep("confirmDiscard");
+		else closeEditor();
 	};
 
 	const footerError = lastAction === "delete" ? null : err;
-	const showFooter = step === "edit" && (dirty || success !== null || footerError !== null);
+	const showFooter = step === "edit" && (hasDraft || success !== null || footerError !== null);
 
 	return (
 		<Modal
@@ -176,22 +188,19 @@ export function ArtworkEditModal({
 				</span>
 			}
 			placement="sheet"
-			size="lg"
+			closing={closing}
+			size={step === "edit" ? "xl" : "lg"}
 			action={
 				step === "edit" && dirty ? (
 					<button
-						type="button"
-						onClick={handleSave}
-						disabled={pending}
+						type="submit"
+						form={formId}
+						disabled={busy}
 						aria-busy={pending || undefined}
 						className={adminBtnPrimary}
 					>
 						{spinning ? (
-							<LoaderCircle
-								size={ICON_MD}
-								aria-hidden="true"
-								className="motion-safe:animate-spin"
-							/>
+							<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 						) : null}
 						Save changes
 					</button>
@@ -201,23 +210,33 @@ export function ArtworkEditModal({
 		>
 			{step === "edit" ? (
 				<ModalBody>
-					<ArtworkEditFields
-						art={art}
-						thumb={thumb}
-						categories={categories}
-						fields={fields}
-						errors={fieldErrors}
-						pending={pending}
-						progress={progress}
-						quickPending={quickPending}
-						quickError={quickError}
-						onChange={update}
-						onSetStatus={onSetStatus}
-						onSetFeatured={onSetFeatured}
-						onRefreshPalette={() => runEdit(() => regeneratePalette(art.slug), "Colours refreshed")}
-						onReplace={handleReplace}
-						onRequestDelete={() => setStep("confirmDelete")}
-					/>
+					<form
+						ref={form}
+						id={formId}
+						noValidate
+						onSubmit={(event) => {
+							event.preventDefault();
+							void handleSave();
+						}}
+					>
+						<ArtworkEditFields
+							art={art}
+							thumb={thumb}
+							categories={categories}
+							fields={fields}
+							errors={fieldErrors}
+							pending={busy}
+							progress={progress}
+							replacement={replacement}
+							onReplacementChange={setReplacement}
+							onChange={update}
+							onRefreshPalette={() =>
+								runEdit(() => regeneratePalette(art.slug), "Colours refreshed")
+							}
+							onReplace={handleReplace}
+							onRequestDelete={() => setStep("confirmDelete")}
+						/>
+					</form>
 				</ModalBody>
 			) : null}
 			{step === "confirmDelete" ? (
@@ -228,7 +247,7 @@ export function ArtworkEditModal({
 						body={DELETE_PIECE_BODY}
 						confirmLabel="Delete piece"
 						cancelLabel="Keep piece"
-						pending={pending}
+						pending={busy}
 						error={lastAction === "delete" ? err : null}
 						onConfirm={handleDelete}
 						onCancel={() => setStep("edit")}
@@ -241,10 +260,15 @@ export function ArtworkEditModal({
 						headingLevel={3}
 						destructive={false}
 						title="Discard changes?"
-						body="Your edits to this piece will be lost."
+						body={
+							replacement
+								? "Your unsaved edits and selected photo will be lost."
+								: "Your edits to this piece will be lost."
+						}
 						confirmLabel="Discard"
 						cancelLabel="Keep editing"
-						onConfirm={onClose}
+						pending={busy}
+						onConfirm={closeEditor}
 						onCancel={() => setStep("edit")}
 					/>
 				</ModalBody>
@@ -257,14 +281,16 @@ export function ArtworkEditModal({
 						) : success ? (
 							<AdminNotice variant="success">{success}</AdminNotice>
 						) : (
-							<p className={adminHelp}>Unsaved changes</p>
+							<p className={adminHelp}>
+								{dirty ? "Unsaved changes" : "Photo selected. Choose Replace photo to save it."}
+							</p>
 						)}
 					</div>
-					{dirty ? (
+					{hasDraft ? (
 						<button
 							type="button"
 							onClick={() => setStep("confirmDiscard")}
-							disabled={pending}
+							disabled={busy}
 							className={adminBtn}
 						>
 							Discard

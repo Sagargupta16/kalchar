@@ -61,26 +61,21 @@ describe("SectionHeader", () => {
 		<SectionHeader eyebrow="Selected work" title="Original pieces" lead="A living archive." />,
 	);
 
-	it("titles in the roman headline voice at the display-sm rung", () => {
+	it("uses the shared section heading size and headline voice", () => {
 		expect(html).toContain("t-headline");
-		expect(html).toContain("text-display-sm");
-		expect(html).not.toContain("text-h2");
+		expect(html).toContain("text-h2");
 	});
 
-	it("draws a gold w-12 rule between title and lead by default", () => {
-		expect(html).toContain("bg-(--color-gold-hairline)");
-		expect(html).toContain("w-12");
-		expect(html.indexOf("Original pieces")).toBeLessThan(
-			html.indexOf("bg-(--color-gold-hairline)"),
-		);
-		expect(html.indexOf("bg-(--color-gold-hairline)")).toBeLessThan(
-			html.indexOf("A living archive."),
-		);
+	it("keeps the heading clear of decorative rules", () => {
+		expect(html).not.toContain("rule-draw");
+		expect(html).not.toContain("bg-(--color-gold-hairline)");
+		expect(html.indexOf("Original pieces")).toBeLessThan(html.indexOf("A living archive."));
 	});
 
-	it('rule="none" opts out of the gold rule', () => {
-		const bare = renderToStaticMarkup(<SectionHeader eyebrow="E" title="T" rule="none" />);
-		expect(bare).not.toContain("bg-(--color-gold-hairline)");
+	it("centering the heading does not add another decorative rule", () => {
+		const centered = renderToStaticMarkup(<SectionHeader eyebrow="E" title="T" centered />);
+		expect(centered).toContain("text-center");
+		expect(centered).not.toContain("rule-draw");
 	});
 
 	it("keeps the eyebrow, heading level and lead contract", () => {

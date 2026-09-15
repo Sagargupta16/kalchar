@@ -1,6 +1,7 @@
 import { type ReactNode, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AddSheetProvider } from "../../app/admin/_components/add-sheet";
+import { AdminDraftProvider } from "../../app/admin/_components/admin-draft-guard";
 import { AdminNavMobile, type NavCounts } from "../../app/admin/_components/admin-nav";
 import { ArtworkGrid } from "../../app/admin/_components/artwork-grid";
 import { CategoryManager } from "../../app/admin/_components/category-manager";
@@ -56,8 +57,6 @@ const artworks: Artwork[] = names.map((title, order) => ({
 	...artworkStates[order]!,
 }));
 const artworkItems = artworks.map((art) => ({ art, thumb: thumbnail }));
-const artworkCounts = { all: 3, available: 1, sold: 1, archive: 1, featured: 1 };
-const noPieces = { all: 0, available: 0, sold: 0, archive: 0, featured: 0 };
 const suggestions = {
 	mediums: ["Ink", "Natural pigment on handmade paper"],
 	dimensions: ["30 x 40 cm"],
@@ -363,15 +362,12 @@ const withAddSheet = (node: ReactNode) => (
 );
 
 const views = {
-	artworks: withAddSheet(
-		<ArtworkGrid items={artworkItems} categories={["Gond"]} counts={artworkCounts} />,
-	),
-	artworksEmpty: withAddSheet(<ArtworkGrid items={[]} categories={["Gond"]} counts={noPieces} />),
+	artworks: withAddSheet(<ArtworkGrid items={artworkItems} categories={["Gond"]} />),
+	artworksEmpty: withAddSheet(<ArtworkGrid items={[]} categories={["Gond"]} />),
 	artworksFiltered: withAddSheet(
 		<ArtworkGrid
 			items={artworkItems}
 			categories={["Gond"]}
-			counts={artworkCounts}
 			initialFilter="sold"
 		/>,
 	),
@@ -467,7 +463,9 @@ const root = createRoot(document.getElementById("fixture")!);
 window.mountAdmin = (view) => {
 	root.render(
 		<StrictMode>
-			<ConfirmProvider>{views[view]}</ConfirmProvider>
+			<ConfirmProvider>
+				<AdminDraftProvider>{views[view]}</AdminDraftProvider>
+			</ConfirmProvider>
 		</StrictMode>,
 	);
 };

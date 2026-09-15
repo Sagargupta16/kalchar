@@ -3,7 +3,6 @@
 import { motion, useInView } from "motion/react";
 import type { CSSProperties } from "react";
 import { useRef } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { DUR, LOOP_MOUNT_MARGIN, perSegmentEase } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +17,7 @@ import { cn } from "@/lib/utils";
  * `drift` (default) runs [from, to, from] transform keyframe loops over 30s
  * and 40s with one ease per segment, mounted only while the host is near the
  * viewport (LOOP_MOUNT_MARGIN) so document.getAnimations() drains once the
- * visitor scrolls past. Reduced motion and drift={false} render the identical
- * wash, static -- the ellipses stay visible.
+ * visitor scrolls past. drift={false} renders the same wash without a loop.
  */
 
 const DRIFT_TIMES = [0, 0.5, 1];
@@ -57,8 +55,7 @@ interface PigmentWashProps {
 export function PigmentWash({ drift = true, className }: Readonly<PigmentWashProps>) {
 	const ref = useRef<HTMLDivElement>(null);
 	const inView = useInView(ref, { margin: LOOP_MOUNT_MARGIN });
-	const reduceMotion = usePrefersReducedMotion();
-	const animate = drift && inView && !reduceMotion;
+	const animate = drift && inView;
 
 	return (
 		<div

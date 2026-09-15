@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DUR } from "../../lib/motion";
 import { mountAdmin, navigateTo, outcome } from "../admin/browser-fixture";
 
 test("More sheet opens as a dialog, closes on the scrim and returns focus", async ({ page }) => {
@@ -223,9 +224,31 @@ test("Add choice sheet lists the four creates and routes the workshop row", asyn
 	for (const label of ["Add piece", "Add event", "Add workshop", "Add testimonial"]) {
 		await expect(sheet.getByRole("button", { name: label, exact: true })).toBeVisible();
 	}
+	await page.clock.install();
+	await page.clock.pauseAt(new Date(Date.now() + DUR.base * 1000));
 	await sheet.getByRole("button", { name: "Add workshop", exact: true }).click();
-	await expect(sheet).toHaveCount(0);
 	expect(await page.evaluate(() => window.adminTest.pathname)).toBe("/admin/workshops");
+	await expect(sheet).toHaveCount(1);
+	await expect(sheet.getByRole("button", { name: "Add workshop", exact: true })).toBeDisabled();
+	await page.clock.runFor(DUR.fast * 1000);
+	await expect(sheet).toHaveCount(0);
+});
+
+test("Add choice dismissal finishes its exit before unmounting and restores focus", async ({ page }) => {
+	await mountAdmin(page, "nav");
+	await navigateTo(page, "/admin/profile");
+	const add = page.getByRole("button", { name: "Add", exact: true });
+	await add.click();
+	const sheet = page.getByRole("dialog", { name: "Add", exact: true });
+	await expect(sheet).toBeVisible();
+	await page.clock.install();
+	await page.clock.pauseAt(new Date(Date.now() + DUR.base * 1000));
+	await page.keyboard.press("Escape");
+	await expect(sheet).toHaveCount(1);
+	await expect(sheet.getByRole("button", { name: "Add piece", exact: true })).toBeDisabled();
+	await page.clock.runFor(DUR.fast * 1000);
+	await expect(sheet).toHaveCount(0);
+	await expect(add).toBeFocused();
 });
 
 test("Add choice piece row opens the New piece sheet in the same tap", async ({ page }) => {

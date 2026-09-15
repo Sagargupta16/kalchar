@@ -52,7 +52,6 @@ export function segmentedHelperText(
  * pill sliding with SPRING_INDICATOR. Arrow keys move selection per the APG
  * radio pattern (selection follows focus and applies at once); each segment
  * carries a leading status dot, never colour-only (the label names the state).
- * Reduced motion: the pill jumps (MotionConfig reducedMotion="user").
  */
 export function Segmented<V extends string = string>({
 	name,

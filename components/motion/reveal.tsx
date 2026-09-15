@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
-import { DUR, EASE_OUT, REVEAL_VIEWPORT_MARGIN } from "@/lib/motion";
+import type { CSSProperties, ReactNode } from "react";
+import { DUR, EASE_OUT, REVEAL_DISTANCE, REVEAL_VIEWPORT_MARGIN } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -14,14 +13,14 @@ interface RevealProps {
 	eager?: boolean;
 	direction?: "up" | "down" | "left" | "right";
 	distance?: number;
-	/** plate = clip-path unveil for artwork plates (the image is never resampled). */
-	variant?: "up" | "plate";
+	/** item = shorter list entrance; plate = clip-path unveil without image resampling. */
+	variant?: "up" | "item" | "plate";
 	/** Slower single-plate unveil (700ms, --ease-emphatic) on the eager plate path. */
 	unveil?: boolean;
 }
 
 const DIR = { up: "Y", down: "Y", left: "X", right: "X" } as const;
-const SIGN = { up: 1, down: -1, left: 1, right: -1 } as const;
+const SIGN = { up: 1, down: -1, left: -1, right: 1 } as const;
 
 export function Reveal({
 	children,
@@ -30,17 +29,14 @@ export function Reveal({
 	as = "div",
 	eager = false,
 	direction = "up",
-	distance = 20,
+	distance,
 	variant = "up",
 	unveil = false,
 }: Readonly<RevealProps>) {
-	const reduceMotion = usePrefersReducedMotion();
 	const plate = variant === "plate";
-	if (reduceMotion) {
-		// Plates included: clip-path none, plain presence.
-		const Tag = as;
-		return <Tag className={className}>{children}</Tag>;
-	}
+	const axis = DIR[direction];
+	const travel = distance ?? (variant === "item" ? REVEAL_DISTANCE.item : REVEAL_DISTANCE.block);
+	const offset = SIGN[direction] * travel;
 
 	if (eager) {
 		const Tag = as;
@@ -50,7 +46,13 @@ export function Reveal({
 					plate ? cn("reveal-plate", unveil && "reveal-plate-unveil") : "reveal-up",
 					className,
 				)}
-				style={{ animationDelay: `${delayMs}ms` }}
+				style={
+					{
+						animationDelay: `${delayMs}ms`,
+						"--reveal-offset-x": axis === "X" ? `${offset}px` : "0px",
+						"--reveal-offset-y": axis === "Y" ? `${offset}px` : "0px",
+					} as CSSProperties
+				}
 			>
 				{children}
 			</Tag>
@@ -58,8 +60,6 @@ export function Reveal({
 	}
 
 	const Tag = motion[as];
-	const axis = DIR[direction];
-	const offset = SIGN[direction] * distance;
 	// Plates clip-unveil at final size (never resampled); everything else fades up.
 	const initial = plate
 		? { clipPath: "inset(0% 0% 100% 0%)" }

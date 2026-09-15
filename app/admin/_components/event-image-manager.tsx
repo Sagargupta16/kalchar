@@ -1,12 +1,14 @@
 "use client";
 
 import { ImagePlus, LoaderCircle, Plus, Star, Trash2 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { isFailure } from "@/lib/action-result";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { removeEventImage, reorderEventImages } from "../event-actions";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { useConfirm } from "./confirm-dialog";
 import {
@@ -18,7 +20,7 @@ import {
 	ICON_LG,
 	ICON_MD,
 } from "./controls";
-import { addEventPhotos } from "./event-photo-batch";
+import { addEventPhotos, EVENT_PHOTO_ACCEPT, validateEventPhotos } from "./event-photo-batch";
 import { type EventBatchState, EventCoverChip, EventPhotoStrip } from "./event-photo-strip";
 import { InlineReorderControls } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
@@ -27,7 +29,7 @@ import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 /**
- * Photo manager for one event: figure tiles on painting-grid seams (the only
+ * Photo manager for one event: spaced tiles and controls (the only
  * thing on the image is the gold Cover chip), a two-line tile footer with the
  * Move pair and a separated Remove, a one-tap "Cover" shortcut, drag on fine
  * pointers, and a dashed square "Add photos" tile ending the grid. Batches
@@ -37,13 +39,20 @@ import { useServerSyncedList } from "./use-server-synced-list";
 export function EventImageManager({
 	event,
 	onCoverChange,
+	disabled = false,
+	onPendingChange,
+	onChanged,
 }: Readonly<{
 	event: Event;
 	/** Reports the staged first photo (or null) so the row thumb follows Make cover at once. */
 	onCoverChange?: (keyBase: string | null) => void;
+	disabled?: boolean;
+	onPendingChange?: (pending: boolean) => void;
+	onChanged?: (patch: Partial<Event>) => void;
 }>) {
 	const confirm = useConfirm();
 	const formId = useId();
+	const photoInputRef = useRef<HTMLInputElement>(null);
 	const { pending, err, run } = useAdminAction();
 	const [baseline, setBaseline] = useState(event.images);
 	// Adopt fresh server data after an upload (router.refresh), resetting the
@@ -57,9 +66,21 @@ export function EventImageManager({
 	// relabels the Upload button (admin-content-26).
 	const [uploading, setUploading] = useState(false);
 	// Which control the shared err belongs to: the order pair or the notices slot.
-	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
+	const [errSlot, setErrSlot] = useState<"order" | "general" | null>("general");
+	const blocked = pending || uploading || disabled;
+	const fileProblem = validateEventPhotos(files);
 	const uploadSpinning = usePendingVisible(uploading);
-	const { dragging, over, dragProps, move } = useReorder(images, setImages, pending);
+	const { dragging, over, dragProps, move } = useReorder(images, setImages, blocked);
+
+	useEffect(() => {
+		onPendingChange?.(pending || uploading);
+	}, [pending, uploading, onPendingChange]);
+
+	useEffect(() => {
+		if (!saved) return;
+		const timer = window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timer);
+	}, [saved]);
 
 	const stagedCover = images[0] ?? null;
 	useEffect(() => {
@@ -68,39 +89,48 @@ export function EventImageManager({
 
 	const orderChanged =
 		images.some((k, i) => k !== baseline[i]) || images.length !== baseline.length;
+	useAdminDraftGuard(files.length > 0 || orderChanged || pending || uploading);
 
 	const handleSaveOrder = () => {
+		if (blocked || !orderChanged) return;
 		setErrSlot("order");
 		setSaved(false);
 		return run(
 			() => reorderEventImages(event.id, images),
 			() => {
 				setBaseline(images);
+				onChanged?.({ images });
 				setSaved(true);
-				window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
 
 	const handleRemove = (keyBase: string) => {
+		if (blocked || orderChanged) return;
 		setErrSlot("general");
 		run(
 			() => removeEventImage(event.id, keyBase),
 			() => {
-				setImages((prev) => prev.filter((k) => k !== keyBase));
-				setBaseline((prev) => prev.filter((k) => k !== keyBase));
+				const next = images.filter((key) => key !== keyBase);
+				setImages(next);
+				setBaseline(next);
+				onChanged?.({ images: next });
+				requestAnimationFrame(() => photoInputRef.current?.focus());
 			},
 		);
 	};
 
 	// "Remove", not "Delete": the master stays in storage for recovery.
 	const removeWithConfirm = async (keyBase: string, i: number) => {
+		if (blocked || orderChanged) return;
 		const ok = await confirm({
 			title: `Remove photo ${i + 1}?`,
 			body:
-				i === 0
-					? "This is the cover. The next photo becomes the cover."
-					: "The photo leaves this event's gallery.",
+				images.length === 1
+					? "The event will have no photos. You can add a new cover later."
+					: i === 0
+						? "This is the cover. The next photo becomes the cover."
+						: "The photo leaves this event's gallery.",
 			confirmLabel: "Remove photo",
 			cancelLabel: "Keep photo",
 		});
@@ -108,11 +138,16 @@ export function EventImageManager({
 	};
 
 	const handleAdd = (form: HTMLFormElement) => {
+		if (blocked || orderChanged || fileProblem || files.length === 0) return;
 		const fd = new FormData(form);
+		fd.delete("images");
+		for (const file of files) fd.append("images", file);
 		setErrSlot("general");
 		setNotice(null);
 		setUploading(true);
 		setBatch({ staging: 0, done: new Set(), total: files.length });
+		let addedImages: string[] = [];
+		let partialUpload = false;
 		run(
 			// Masters go straight to R2, then the server processes one photo per
 			// call, so a large batch never overruns the function budget.
@@ -126,9 +161,22 @@ export function EventImageManager({
 							done.add(index);
 							return { ...b, done };
 						}),
-					onPartial: setNotice,
+					onPartial: (message) => {
+						partialUpload = true;
+						setNotice(message);
+					},
+				}).then((result) => {
+					if (!isFailure(result)) addedImages = result.images;
+					return result;
 				}),
 			() => {
+				const next = [...images, ...addedImages];
+				setImages(next);
+				setBaseline(next);
+				onChanged?.({ images: next });
+				if (!partialUpload) {
+					setNotice(`${addedImages.length} photo${addedImages.length === 1 ? "" : "s"} added.`);
+				}
 				form.reset();
 				setFiles([]);
 			},
@@ -138,11 +186,20 @@ export function EventImageManager({
 		});
 	};
 
+	const updateFiles = (next: File[]) => {
+		setFiles(next);
+		setNotice(null);
+		setErrSlot(null);
+		if (photoInputRef.current) photoInputRef.current.value = "";
+		if (next.length === 0) photoInputRef.current?.focus();
+	};
+
 	return (
-		<div className="space-y-3">
+		<div className="@container/photos space-y-3">
 			<p className={adminHelp}>
 				{images.length} photo{images.length === 1 ? "" : "s"}. The first photo is the cover. Drag a
-				photo, or use the arrows under it, to change the order.
+				photo, or use the arrows under it, to change the order. Choose Save order to publish
+				changes, including a new cover.
 			</p>
 
 			{images.length === 0 ? (
@@ -155,7 +212,7 @@ export function EventImageManager({
 				/>
 			) : null}
 
-			<ul className="grid grid-cols-2 gap-(--grid-gap-tight) md:grid-cols-4">
+			<ul className="grid grid-cols-2 gap-(--space-tight) @2xl/photos:grid-cols-3">
 				{images.map((keyBase, i) => (
 					<li
 						key={keyBase}
@@ -176,18 +233,18 @@ export function EventImageManager({
 							<img
 								src={`${IMAGE_ORIGIN}/${keyBase}-400.webp`}
 								alt={i === 0 ? "Cover" : `Photo ${i + 1}`}
-								className="h-full w-full object-cover motion-safe:transition-opacity motion-safe:duration-(--duration-fast) starting:opacity-0"
+								className="h-full w-full object-cover transition-opacity duration-(--duration-fast) starting:opacity-0"
 							/>
 							{i === 0 ? <EventCoverChip /> : null}
 						</div>
 						{/* Footer line 1: the reorder control and the position. */}
-						<div className="flex items-center justify-between gap-2">
+						<div className="flex flex-wrap items-center justify-between gap-2">
 							<ReorderHandle
 								label={`photo ${i + 1}`}
 								axis="horizontal"
 								index={i}
 								count={images.length}
-								disabled={pending || uploading}
+								disabled={blocked}
 								onMove={(to) => move(i, to)}
 							/>
 							<span aria-hidden="true" className={cn(adminHelp, "tabular-nums")}>
@@ -195,13 +252,13 @@ export function EventImageManager({
 							</span>
 						</div>
 						{/* Footer line 2: Make cover at the left, Remove at the far right (never beside the Move pair). */}
-						<div className="flex items-center justify-between gap-2">
+						<div className="flex flex-wrap items-center justify-between gap-2">
 							{i === 0 ? (
 								<span />
 							) : (
 								<button
 									type="button"
-									disabled={pending || uploading}
+									disabled={blocked}
 									onClick={() => move(i, 0)}
 									aria-label={`Make photo ${i + 1} the cover`}
 									className={adminBtn}
@@ -212,7 +269,8 @@ export function EventImageManager({
 							)}
 							<button
 								type="button"
-								disabled={pending || uploading}
+								disabled={blocked || orderChanged}
+								aria-describedby={orderChanged ? `${formId}-order-hint` : undefined}
 								onClick={() => removeWithConfirm(keyBase, i)}
 								aria-label={`Remove photo ${i + 1}`}
 								className={adminIconBtnDestructive}
@@ -233,28 +291,59 @@ export function EventImageManager({
 						<Plus size={ICON_LG} aria-hidden="true" />
 						<span>{files.length > 0 ? `${files.length} selected` : "Add photos"}</span>
 						<input
+							ref={photoInputRef}
 							form={formId}
-							disabled={pending || uploading}
+							disabled={blocked}
 							name="images"
 							type="file"
-							accept="image/jpeg,image/png,image/webp"
+							accept={EVENT_PHOTO_ACCEPT}
 							multiple
-							onChange={(e) => setFiles(Array.from(e.currentTarget.files ?? []))}
+							aria-invalid={fileProblem ? true : undefined}
+							aria-describedby={
+								fileProblem
+									? `${formId}-photos-hint ${formId}-photos-error`
+									: `${formId}-photos-hint`
+							}
+							onChange={(e) => {
+								const next = Array.from(e.currentTarget.files ?? []);
+								if (next.length > 0) {
+									setFiles(next);
+									setNotice(null);
+									setErrSlot(null);
+								}
+							}}
 							className="sr-only"
 						/>
 					</label>
 				</li>
 			</ul>
+			<p id={`${formId}-photos-hint`} className={adminHelp}>
+				JPG, PNG or WebP, up to 20 MB each. Choose up to 12 photos, then select Upload photos.
+			</p>
+			{fileProblem ? (
+				<AdminNotice id={`${formId}-photos-error`} variant="error">
+					{fileProblem}
+				</AdminNotice>
+			) : null}
+			{orderChanged ? (
+				<p id={`${formId}-order-hint`} className={adminHelp}>
+					Save or reset the photo order before uploading or removing photos.
+				</p>
+			) : null}
 
 			<div className="flex flex-wrap items-center gap-2">
 				{orderChanged ? (
 					<InlineReorderControls
 						layout="row"
-						pending={pending}
+						pending={blocked}
 						saved={false}
 						error={errSlot === "order" ? err : null}
 						onSave={handleSaveOrder}
-						onReset={() => setImages(baseline)}
+						onReset={() => {
+							setImages(baseline);
+							setSaved(false);
+							setErrSlot(null);
+						}}
 					/>
 				) : saved ? (
 					// The shell's InlineReorderControls keeps its buttons while `saved`, which
@@ -274,16 +363,13 @@ export function EventImageManager({
 					{files.length > 0 ? (
 						<button
 							type="submit"
-							disabled={pending || uploading}
+							disabled={blocked || orderChanged || !!fileProblem}
 							aria-busy={uploading || undefined}
+							aria-describedby={orderChanged ? `${formId}-order-hint` : undefined}
 							className={adminBtnPrimary}
 						>
 							{uploadSpinning ? (
-								<LoaderCircle
-									size={ICON_MD}
-									aria-hidden="true"
-									className="motion-safe:animate-spin"
-								/>
+								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 							) : null}
 							Upload photos
 						</button>
@@ -294,7 +380,13 @@ export function EventImageManager({
 			{notice ? <AdminNotice variant="info">{notice}</AdminNotice> : null}
 			{err && errSlot === "general" ? <AdminNotice variant="error">{err}</AdminNotice> : null}
 
-			<EventPhotoStrip files={files} batch={batch} />
+			<EventPhotoStrip
+				files={files}
+				batch={batch}
+				showCover={images.length === 0}
+				disabled={blocked}
+				onFilesChange={updateFiles}
+			/>
 		</div>
 	);
 }

@@ -2,7 +2,6 @@
 
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
 import { SPRING_ZOOM } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -28,20 +27,43 @@ interface PresetChipsProps {
 	/** First chip's label; its value is "" like the old select default. */
 	neutralLabel: string;
 	options: readonly string[];
+	value: string;
+	onChange: (value: string) => void;
 }
 
-export function PresetChips({ name, label, neutralLabel, options }: Readonly<PresetChipsProps>) {
-	const [selected, setSelected] = useState("");
-	// The neutral chip already carries the empty value; a data label that
-	// duplicates it (site.json budgets end in "Open / not sure") renders once
-	// so the same words never appear as two chips.
-	const items = options.filter(
-		(option) => option.trim().toLowerCase() !== neutralLabel.toLowerCase(),
-	);
+export function getPresetOptions(
+	options: readonly string[],
+	neutralLabel: string,
+	selected = "",
+): string[] {
+	const seen = new Set(["", neutralLabel.trim().toLowerCase()]);
+	const selectedLabel = selected.trim();
+	const selectedKey = selectedLabel.toLowerCase();
+	const items: string[] = [];
+	// Keep a restored preference visible even if the studio has changed its presets.
+	for (const option of [...options, selected]) {
+		const label = option.trim();
+		const key = label.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		items.push(key === selectedKey ? selectedLabel : label);
+	}
+	return items;
+}
+
+export function PresetChips({
+	name,
+	label,
+	neutralLabel,
+	options,
+	value,
+	onChange,
+}: Readonly<PresetChipsProps>) {
+	const items = getPresetOptions(options, neutralLabel, value);
 
 	return (
 		<fieldset>
-			<legend className="flex w-full items-baseline justify-between text-sm font-medium text-ink">
+			<legend className="flex w-full flex-wrap items-baseline justify-between gap-x-3 text-sm font-medium text-ink">
 				<span>{label}</span>
 				<span className="text-xs text-muted">optional</span>
 			</legend>
@@ -50,8 +72,8 @@ export function PresetChips({ name, label, neutralLabel, options }: Readonly<Pre
 					name={name}
 					value=""
 					label={neutralLabel}
-					checked={selected === ""}
-					onSelect={setSelected}
+					checked={value === ""}
+					onSelect={onChange}
 				/>
 				{items.map((option) => (
 					<Chip
@@ -59,8 +81,8 @@ export function PresetChips({ name, label, neutralLabel, options }: Readonly<Pre
 						name={name}
 						value={option}
 						label={option}
-						checked={selected === option}
-						onSelect={setSelected}
+						checked={value === option}
+						onSelect={onChange}
 					/>
 				))}
 			</div>
@@ -84,7 +106,7 @@ function Chip({
 	return (
 		<label
 			className={cn(
-				"inline-flex min-h-control cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-ink transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
+				"inline-flex min-h-control max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-ink transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
 				checked
 					? "border-(--section-accent) bg-(--section-accent)/10"
 					: "border-line-strong bg-canvas hover:border-(--section-accent)/50",
@@ -109,7 +131,7 @@ function Chip({
 					<Check size={14} />
 				</motion.span>
 			) : null}
-			{label}
+			<span className="min-w-0 break-words">{label}</span>
 		</label>
 	);
 }

@@ -11,8 +11,12 @@
  * preserving the hand-rolled responsive <picture> pipeline.
  */
 
+import { readdirSync } from "node:fs";
+
 const imageBaseUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.replace(/\/$/, "");
 const useImageFixtures = process.env.KALCHAR_TEST_FIXTURES === "1";
+const previewLocalArt =
+	useImageFixtures && process.env.KALCHAR_ADMIN_PREVIEW === "1" && process.env.VERCEL !== "1";
 
 // Only generated image paths may cross the same-origin media boundary.
 // Staged masters and future private/archive prefixes must never be proxied.
@@ -36,10 +40,29 @@ const nextConfig = {
 	productionBrowserSourceMaps: false,
 	async rewrites() {
 		if (!imageBaseUrl && !useImageFixtures) return [];
-		return mediaPaths.map(({ source, destination }) => ({
-			source: `/media/${source}`,
-			destination: useImageFixtures ? "/logo.jpg" : `${imageBaseUrl}/${destination}`,
-		}));
+		// Local admin previews use the real, already-public paintings. Keep CI's
+		// generic image fixtures and production's R2 routing independent.
+		const localArt = previewLocalArt
+			? readdirSync(new URL("./public/artworks/", import.meta.url))
+					.filter((name) => /^[A-Za-z0-9_-]+\.jpg$/.test(name))
+					.flatMap((name) => {
+						const slug = name.slice(0, -4);
+						return [
+							{
+								source: `/media/artworks/${slug}-:width(400|800|1200|1600).:format(avif|webp|jpg)`,
+								destination: `/artworks/${name}`,
+							},
+							{ source: `/media/artworks/${name}`, destination: `/artworks/${name}` },
+						];
+					})
+			: [];
+		return [
+			...localArt,
+			...mediaPaths.map(({ source, destination }) => ({
+				source: `/media/${source}`,
+				destination: useImageFixtures ? "/logo.jpg" : `${imageBaseUrl}/${destination}`,
+			})),
+		];
 	},
 	async headers() {
 		return [

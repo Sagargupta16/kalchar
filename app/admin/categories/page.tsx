@@ -16,7 +16,7 @@ export default async function AdminCategoriesPage() {
 	return (
 		<AdminPage
 			title="Categories"
-			description="The art styles a piece can belong to; they power the gallery filter, the custom-order style picker and the chips under the home headline. Drag a row, or use its arrows, to reorder."
+			description="Manage the art styles used in the gallery and custom-order form. Drag a row or use its arrows to reorder, then choose Save order to publish the change."
 		>
 			<CategoryManager categories={[...cats]} usage={usage} />
 		</AdminPage>

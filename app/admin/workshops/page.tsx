@@ -10,7 +10,7 @@ export default async function AdminWorkshopsPage() {
 	return (
 		<AdminPage
 			title="Workshops"
-			description="The sessions shown on the public workshops page, in this order. Drag a row on a desktop, or use its arrows on a phone, to move it."
+			description="Manage the sessions shown on the public workshops page. Open a workshop to edit it. Drag a row or use its arrows to move it, then choose Save order."
 		>
 			<WorkshopManager workshops={[...workshops]} />
 		</AdminPage>

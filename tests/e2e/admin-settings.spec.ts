@@ -200,6 +200,7 @@ for (const c of confirms) {
 			await expect(dialog.getByRole("button", { name: banned, exact: true })).toHaveCount(0);
 		}
 		await dialog.getByRole("button", { name: c.keep, exact: true }).click();
+		await expect(dialog).toHaveCount(0);
 		await expect(page.getByRole("button", { name: c.button, exact: true })).toBeVisible();
 	});
 }

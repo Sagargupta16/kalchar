@@ -1,8 +1,6 @@
 /**
- * Shown when a non-maintainer Google account completes Google sign-in but
- * fails the maintainer allowlist check in auth.ts (configured as Auth.js's
- * `pages.error`). Explains the situation and offers a way to request access
- * from the root maintainer. No auto-redirect -- a manual "Back to site" link.
+ * Handles Auth.js sign-in errors and denied maintainer access. Offers manual
+ * account recovery and owner contact without automatically redirecting.
  */
 import { Lock } from "lucide-react";
 import type { Metadata } from "next";
@@ -26,19 +24,19 @@ interface AccessDeniedPageProps {
 
 export default async function AccessDeniedPage({ searchParams }: Readonly<AccessDeniedPageProps>) {
 	const { error } = await searchParams;
-	const isConfigurationError = error === "Configuration";
+	const isSignInError = Boolean(error && error !== "AccessDenied");
 	const rootEmail = await getRootMaintainerEmail().catch(() => null);
-	const subject = isConfigurationError ? "Admin sign-in issue" : "Maintainer access request";
+	const subject = isSignInError ? "Admin sign-in issue" : "Maintainer access request";
 	const mailto = rootEmail ? `mailto:${rootEmail}?subject=${encodeURIComponent(subject)}` : null;
 
 	return (
 		<AuthShell
 			eyebrow="Admin access"
-			title={isConfigurationError ? "Sign-in unavailable" : "Access not granted"}
+			title={isSignInError ? "Sign-in unavailable" : "Access not granted"}
 			lead={
-				isConfigurationError
-					? "The site could not verify maintainer access because an authentication service is unavailable. Try again shortly or report the issue to the site owner."
-					: "This Google account isn’t on the maintainer list, so it can’t open the admin panel. If you should have access, ask the site owner to add you."
+				isSignInError
+					? "We couldn't complete sign-in. Try again shortly, or let the site owner know."
+					: "We couldn't grant admin access. Try a Google account on the maintainer list, or ask the site owner to check your access."
 			}
 			icon={
 				<IconCircle size="lg">
@@ -52,29 +50,45 @@ export default async function AccessDeniedPage({ searchParams }: Readonly<Access
 					href={mailto}
 					className={cn(
 						buttonVariants({ variant: "ghost" }),
-						"mt-6 max-w-full whitespace-normal normal-case tracking-normal",
+						"mt-6 w-full whitespace-normal break-words normal-case tracking-normal",
 					)}
 				>
 					<GmailIcon className="size-4 shrink-0" aria-hidden="true" />
-					{isConfigurationError ? "Report issue to" : "Request access from"} {rootEmail}
+					<span className="min-w-0">
+						{isSignInError ? "Report sign-in issue" : "Request access"}
+						<span className="mt-1 block break-all text-xs text-muted">{rootEmail}</span>
+					</span>
 				</a>
-			) : null}
-
-			<div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-				<Link href="/" className={buttonVariants({ variant: "primary" })}>
-					Back to site
+			) : (
+				<Link
+					href="/contact"
+					className={cn(buttonVariants({ variant: "ghost" }), "mt-6 w-full whitespace-normal")}
+				>
+					{isSignInError ? "Contact us about sign-in" : "Contact us about access"}
 				</Link>
+			)}
+
+			<div className="mt-6 flex flex-col gap-3">
 				<form
 					action={async () => {
 						"use server";
 						await signOut({ redirectTo: "/login" });
 					}}
 				>
-					<button type="submit" className={buttonVariants({ variant: "ghost" })}>
-						{isConfigurationError ? "Try sign-in again" : "Try a different account"}
+					<button
+						type="submit"
+						className={cn(buttonVariants({ variant: "primary" }), "w-full whitespace-normal")}
+					>
+						{isSignInError ? "Try sign-in again" : "Try a different account"}
 					</button>
 				</form>
+				<Link href="/" className={cn(buttonVariants({ variant: "ghost" }), "w-full")}>
+					Back to site
+				</Link>
 			</div>
+			<p className="mt-4 text-sm text-muted">
+				You can still browse artwork and contact us without signing in.
+			</p>
 		</AuthShell>
 	);
 }

@@ -15,12 +15,12 @@ const buttonVariants = cva(
 					"rounded-(--radius-sm) border border-line bg-transparent text-ink hover:border-accent hover:bg-canvas hover:text-accent-text",
 				outline:
 					"rounded-(--radius-sm) border border-accent bg-transparent text-accent-text hover:bg-accent hover:text-bg",
-				link: "relative h-auto bg-transparent p-0 text-accent-text underline decoration-accent/40 underline-offset-4 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-current motion-safe:after:transition-transform hover:after:scale-x-100 focus-visible:after:scale-x-100",
+				link: "h-auto bg-transparent p-0 text-accent-text underline decoration-accent/40 underline-offset-4 hover:decoration-current focus-visible:decoration-current",
 			},
 			size: {
-				sm: "min-h-9 px-3.5 py-1.5 text-xs uppercase tracking-eyebrow pointer-coarse:min-h-control",
-				md: "min-h-control px-5 py-2 text-sm uppercase tracking-meta",
-				lg: "min-h-12 px-7 py-3 text-sm uppercase tracking-meta",
+				sm: "min-h-control px-4 py-2 text-sm",
+				md: "min-h-control px-5 py-2 text-sm",
+				lg: "min-h-12 px-6 py-3 text-base",
 			},
 		},
 		defaultVariants: { variant: "primary", size: "md" },

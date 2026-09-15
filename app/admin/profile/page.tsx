@@ -16,7 +16,7 @@ export default async function AdminProfilePage() {
 	return (
 		<AdminPage
 			title="Artist profile"
-			description="The profile photo and the home-page intro. Changes appear on the About page and home straight away."
+			description="Choose and upload a profile photo for About and home. The home intro switch saves immediately."
 		>
 			<ProfileManager imageKey={imageKey} showHomeIntro={showHomeIntro ?? false} />
 		</AdminPage>

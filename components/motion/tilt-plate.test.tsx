@@ -5,7 +5,7 @@ import { TiltPlate } from "./tilt-plate";
 describe("TiltPlate", () => {
 	it("renders children unchanged before a fine pointer is confirmed (SSR, phones)", () => {
 		// The tilt wrapper mounts client-side only on (hover: hover) and
-		// (pointer: fine) without reduced motion; the server markup is the bare
+		// (pointer: fine); the server markup is the bare
 		// children so phones never carry the wrapper.
 		const wrapped = renderToStaticMarkup(
 			<TiltPlate>

@@ -1,12 +1,21 @@
 import { Section } from "@/components/ui/section";
 import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 
-/** Mirrors the page order: washed grand header, WhatsApp plate, catalogue,
+/** Mirrors the page order: wash header, WhatsApp plate, catalogue,
  *  email, Follow along (QR plate tiles), personal line, closing CTA. */
 export default function ContactLoading() {
 	return (
 		<main>
-			<Section accent="peacock" background="wash" rhythm="grand" padded size="narrow">
+			<p role="status" className="sr-only">
+				Loading contact options
+			</p>
+			<Section
+				accent="peacock"
+				background="wash"
+				padded
+				size="narrow"
+				containerClassName="py-(--space-block)"
+			>
 				<SkeletonHeader />
 			</Section>
 			<Section accent="peacock" padded size="narrow" containerClassName="pt-(--space-block)">
@@ -14,7 +23,7 @@ export default function ContactLoading() {
 				<Skeleton className="mt-4 h-11 w-full sm:w-72" />
 				<Skeleton className="mt-4 h-20 rounded-(--radius-md)" />
 				<Skeleton className="mt-(--space-block) h-3 w-24" />
-				<div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3">
+				<div className="mt-5 grid grid-cols-2 gap-x-(--grid-gap) gap-y-8 lg:grid-cols-3">
 					{[0, 1, 2].map((i) => (
 						<div key={i}>
 							<Skeleton className="aspect-square w-full rounded-(--radius-md)" />

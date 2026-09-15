@@ -1,10 +1,6 @@
-import type { Artwork } from "@/lib/types";
+import type { Artwork, ArtworkStatus } from "@/lib/types";
 
-/**
- * The editor's field state: strings as typed, so the dirty check is a plain
- * comparison. Status and Featured are NOT here: they apply immediately with
- * optimistic UI and the Undo toast (D37), independent of Save (Tier 1d).
- */
+/** Text fields shared by the editor and the upload composer. */
 export interface EditorFields {
 	title: string;
 	style: string;
@@ -15,9 +11,14 @@ export interface EditorFields {
 	price: string;
 }
 
+export interface ArtworkEditorFields extends EditorFields {
+	status: ArtworkStatus;
+	featured: boolean;
+}
+
 export type FieldErrors = Partial<Record<"title" | "style" | "medium" | "price" | "year", string>>;
 
-export function fieldsFromArtwork(art: Artwork): EditorFields {
+export function fieldsFromArtwork(art: Artwork): ArtworkEditorFields {
 	return {
 		title: art.title,
 		style: art.style,
@@ -26,11 +27,13 @@ export function fieldsFromArtwork(art: Artwork): EditorFields {
 		year: art.year?.toString() ?? "",
 		description: art.description ?? "",
 		price: art.priceInr?.toString() ?? "",
+		status: art.status ?? "archive",
+		featured: art.featured,
 	};
 }
 
-export function sameFields(a: EditorFields, b: EditorFields): boolean {
-	return (Object.keys(a) as (keyof EditorFields)[]).every((key) => a[key] === b[key]);
+export function sameFields(a: ArtworkEditorFields, b: ArtworkEditorFields): boolean {
+	return (Object.keys(a) as (keyof ArtworkEditorFields)[]).every((key) => a[key] === b[key]);
 }
 
 const MIN_YEAR = 1900;
@@ -44,6 +47,11 @@ export function validateFields(fields: EditorFields): FieldErrors {
 	if (!fields.medium.trim()) errors.medium = "Enter a medium";
 	if (fields.price !== "" && !/^\d+$/.test(fields.price)) {
 		errors.price = "Price must be a whole number";
+	} else if (
+		fields.price !== "" &&
+		(!Number.isSafeInteger(Number(fields.price)) || Number(fields.price) <= 0)
+	) {
+		errors.price = "Enter a price above zero, or leave it blank if it is not for sale.";
 	}
 	if (fields.year !== "") {
 		const year = Number(fields.year);
@@ -54,12 +62,8 @@ export function validateFields(fields: EditorFields): FieldErrors {
 	return errors;
 }
 
-/**
- * The payload updateArtwork expects. The action requires status and featured;
- * they ride along from the live (optimistically patched) artwork, never from
- * the form.
- */
-export function parseFields(fields: EditorFields, current: Artwork) {
+/** All editable fields travel together in the action's single update. */
+export function parseFields(fields: ArtworkEditorFields) {
 	return {
 		title: fields.title.trim(),
 		style: fields.style,
@@ -68,7 +72,7 @@ export function parseFields(fields: EditorFields, current: Artwork) {
 		year: fields.year ? Number(fields.year) : null,
 		description: fields.description.trim() || null,
 		priceInr: fields.price === "" ? null : Number(fields.price),
-		status: current.status ?? "archive",
-		featured: current.featured,
+		status: fields.status,
+		featured: fields.featured,
 	};
 }

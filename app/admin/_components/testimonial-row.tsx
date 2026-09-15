@@ -2,8 +2,10 @@
 
 import { MessageSquareQuote, Star, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useOptimistic, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { isFailure } from "@/lib/action-result";
 import type { ArtworkTitle } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { SPRING_INDICATOR } from "@/lib/motion";
@@ -28,6 +30,7 @@ export interface TestimonialRowProps {
 	/** The linked piece (title + image), resolved by the manager; never a raw slug. */
 	artwork?: ArtworkTitle;
 	highlighted?: boolean;
+	disabled?: boolean;
 	onChanged: (next: Testimonial) => void;
 	onDeleted: (id: string) => void;
 	offerUndo: (offer: UndoOffer) => void;
@@ -47,7 +50,7 @@ function VisibilityBadge({
 	}
 	if (artworkTitle) {
 		return (
-			<Badge variant="default" className="h-6 max-w-32 truncate">
+			<Badge variant="default" className="h-auto min-h-6 max-w-full whitespace-normal break-words">
 				On {artworkTitle}
 			</Badge>
 		);
@@ -72,11 +75,13 @@ export function TestimonialRow({
 	testimonial: t,
 	artwork,
 	highlighted = false,
+	disabled = false,
 	onChanged,
 	onDeleted,
 	offerUndo,
 }: Readonly<TestimonialRowProps>) {
 	const confirm = useConfirm();
+	const router = useRouter();
 	const { pending, err, run } = useAdminAction();
 	// Optimistic Feature (C12): flips the moment run starts, reverts by itself on failure.
 	const [featured, setOptimisticFeatured] = useOptimistic(t.featured);
@@ -84,6 +89,7 @@ export function TestimonialRow({
 	const [starPop, setStarPop] = useState(0);
 
 	const toggleFeatured = () => {
+		if (pending || disabled) return;
 		setStarPop((n) => n + 1);
 		return run(
 			() => {
@@ -97,29 +103,44 @@ export function TestimonialRow({
 					message: t.featured
 						? `Testimonial from ${t.authorName} no longer featured`
 						: `Testimonial from ${t.authorName} featured`,
-					action: () => setTestimonialFeatured(t.id, t.featured),
+					action: async () => {
+						const result = await setTestimonialFeatured(t.id, t.featured);
+						if (!isFailure(result)) {
+							onChanged(t);
+							requestAnimationFrame(() => {
+								document.getElementById(`testimonial-${t.id}`)?.focus();
+							});
+						}
+						return result;
+					},
 				});
 			},
 		);
 	};
 
 	const remove = async () => {
+		if (pending || disabled) return;
 		const ok = await confirm({
 			title: `Delete testimonial from ${t.authorName}?`,
 			body: "The quote leaves the site permanently.",
 			confirmLabel: "Delete testimonial",
 			cancelLabel: "Keep testimonial",
+			action: async () => {
+				const result = await deleteTestimonial(t.id);
+				if (isFailure(result)) throw new Error(result.message);
+				return true;
+			},
 		});
-		if (ok)
-			run(
-				() => deleteTestimonial(t.id),
-				() => onDeleted(t.id),
-			);
+		if (ok) {
+			onDeleted(t.id);
+			router.refresh();
+		}
 	};
 
 	return (
 		<li
 			id={`testimonial-${t.id}`}
+			tabIndex={-1}
 			className={cn(
 				adminRow,
 				"@container/row scroll-mt-(--header-h-shrunk)",
@@ -141,8 +162,8 @@ export function TestimonialRow({
 							<MessageSquareQuote size={ICON_MD} aria-hidden="true" />
 						</span>
 					)}
-					<span className="min-w-0 flex-1">
-						<blockquote className="line-clamp-3 text-sm text-ink @xl/row:line-clamp-2">
+					<div className="min-w-0 flex-1">
+						<blockquote className="whitespace-pre-wrap break-words text-sm text-ink">
 							<span
 								aria-hidden="true"
 								className="t-display float-left mr-2 text-h2 leading-none text-marigold/60"
@@ -151,8 +172,8 @@ export function TestimonialRow({
 							</span>
 							{t.quote}
 						</blockquote>
-						<span className="mt-1 flex min-w-0 items-center gap-2">
-							<span className={cn(adminHelp, "min-w-0 truncate")}>
+						<span className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+							<span className={cn(adminHelp, "min-w-0 break-words")}>
 								{t.authorName}
 								{t.authorLocation ? `, ${t.authorLocation}` : ""}
 								{artwork ? `, on ${artwork.title}` : ""}
@@ -160,13 +181,14 @@ export function TestimonialRow({
 							<VisibilityBadge featured={featured} artworkTitle={artwork?.title} />
 						</span>
 						<span className="sr-only">{featured ? ", featured on the home page" : ""}</span>
-					</span>
+					</div>
 				</div>
 				{/* Line 2: quick state, divider, Delete */}
 				<div className="flex items-center gap-2 @xl/row:shrink-0">
 					<button
 						type="button"
-						disabled={pending}
+						disabled={pending || disabled}
+						aria-busy={pending || undefined}
 						onClick={toggleFeatured}
 						aria-pressed={featured}
 						aria-label={`Feature testimonial from ${t.authorName} on the home page`}
@@ -190,7 +212,7 @@ export function TestimonialRow({
 					<div className="ml-auto flex items-center border-l border-line pl-4 @xl/row:ml-4">
 						<button
 							type="button"
-							disabled={pending}
+							disabled={pending || disabled}
 							onClick={remove}
 							aria-label={`Delete testimonial from ${t.authorName}`}
 							className={adminIconBtnDestructive}

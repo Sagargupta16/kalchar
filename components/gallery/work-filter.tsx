@@ -2,20 +2,16 @@
 
 import { Palette, ShoppingBag } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
-import {
-	EAGER_CARD_COUNT,
-	GALLERY_LEAD_SIZES,
-	GalleryGrid,
-} from "@/components/gallery/gallery-grid";
+import { EAGER_CARD_COUNT, GalleryGrid } from "@/components/gallery/gallery-grid";
+import { GallerySearch } from "@/components/gallery/gallery-search";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isForSale } from "@/lib/catalog";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import {
 	DUR,
 	EASE_IN,
@@ -34,16 +30,11 @@ import { cn } from "@/lib/utils";
  * the filter pill state and renders the visible subset. Filtering is local
  * (no re-fetch) so toggling between styles is instant.
  *
- * The pill row carries two axes in one single-select: the style chips (All +
- * each tradition) plus a distinct "Available to buy" chip that narrows to
- * for-sale pieces (priced and not yet sold). Sold pieces show under All with
- * their badge, and drop out the moment "Available to buy" is active.
+ * Style and availability are independent so visitors can browse, for example,
+ * available Pichwai pieces without losing their search.
  *
- * Visual pass (visual-direction 2.2): pills are wall text (t-meta) with the
- * active state carried by a sliding ink pill (layoutId, SPRING_INDICATOR) and
- * per-pill counts in tabular numerals; the rail sticks under the header on
- * phones; the grid reflows through AnimatePresence popLayout (G3) with
- * layout="position" so the 3:4 plates never stretch.
+ * The rail stays within reach on phones. Position-only layout animation
+ * moves cards between columns without stretching the artwork.
  */
 interface WorkFilterProps {
 	styles: readonly ArtStyle[];
@@ -52,26 +43,21 @@ interface WorkFilterProps {
 
 const ALL = "All" as const;
 const AVAILABLE = "Available to buy" as const;
-// A filter is either a style name or one of the two reserved sentinels. Since
-// ArtStyle is `string`, the sentinels would be absorbed into the union, so the
-// type is just `string` and the ALL/AVAILABLE consts carry the intent.
 type Filter = ArtStyle;
 
 /** One pill recipe for both axes; state colours are appended per pill. The
  *  isolate keeps the sliding ink span's -z-10 inside the pill instead of
  *  behind the rail's backdrop. */
 const PILL =
-	"t-meta relative isolate inline-flex min-h-control shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 transition-ui pressable";
+	"relative isolate inline-flex min-h-control shrink-0 snap-start items-center gap-2 rounded-full border px-4 text-sm font-medium transition-ui pressable";
 
 /**
- * Resolve the active filter from the URL: `?view=available` -> the buy lens,
- * `?style=<name>` -> that tradition (case-insensitive, validated against the
+ * Resolve the style from `?style=<name>` (case-insensitive, validated against the
  * real style list so a junk param falls back to All), else All. Keeping the
  * filter in the URL makes a filtered gallery a shareable link and lets the
  * "Explore this style" chips on the detail page deep-link straight to it.
  */
 function filterFromParams(params: URLSearchParams, styles: readonly ArtStyle[]): Filter {
-	if (params.get("view") === "available") return AVAILABLE;
 	const style = params.get("style");
 	if (style) {
 		const match = styles.find((s) => s.toLowerCase() === style.toLowerCase());
@@ -81,48 +67,104 @@ function filterFromParams(params: URLSearchParams, styles: readonly ArtStyle[]):
 }
 
 export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
-	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const reduceMotion = usePrefersReducedMotion();
+	const queryParam = searchParams.get("q") ?? "";
+	const [query, setQuery] = useState(queryParam);
+	const searchRef = useRef<HTMLInputElement>(null);
+	const allFilterRef = useRef<HTMLButtonElement>(null);
+	const resultsId = useId();
 	const active = filterFromParams(new URLSearchParams(searchParams.toString()), styles);
+	const availableOnly = searchParams.get("view") === "available";
+
+	// Keep typing synchronous, while Back/Forward and reload restore the URL's search.
+	// Read the live URL so a delayed navigation snapshot cannot overwrite newer typing.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: queryParam signals URL search changes
+	useEffect(() => {
+		setQuery(new URLSearchParams(window.location.search).get("q") ?? "");
+	}, [queryParam]);
+
+	const replaceParams = useCallback(
+		(params: URLSearchParams) => {
+			const qs = params.toString();
+			window.history.replaceState(
+				null,
+				"",
+				`${pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+			);
+		},
+		[pathname],
+	);
+	const changeQuery = (next: string) => {
+		setQuery(next);
+		const params = new URLSearchParams(window.location.search);
+		if (next) params.set("q", next);
+		else params.delete("q");
+		replaceParams(params);
+	};
+	const clearSearch = () => {
+		changeQuery("");
+		searchRef.current?.focus({ preventScroll: true });
+	};
+	const clearFilters = () => {
+		const params = new URLSearchParams(window.location.search);
+		params.delete("style");
+		params.delete("view");
+		params.delete("q");
+		setQuery("");
+		replaceParams(params);
+		allFilterRef.current?.focus({ preventScroll: true });
+	};
 
 	// Write the chosen filter to the URL (replace, no scroll jump) so it's the
 	// single source of truth and the view is shareable/back-button friendly.
 	const setActive = useCallback(
 		(next: Filter) => {
-			const params = new URLSearchParams();
-			if (next === AVAILABLE) params.set("view", "available");
-			else if (next !== ALL) params.set("style", next);
-			const qs = params.toString();
-			router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+			const params = new URLSearchParams(window.location.search);
+			if (next !== ALL) params.set("style", next);
+			else params.delete("style");
+			replaceParams(params);
 		},
-		[router, pathname],
+		[replaceParams],
 	);
 
+	const toggleAvailability = () => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("view") === "available") params.delete("view");
+		else params.set("view", "available");
+		replaceParams(params);
+	};
+
 	const forSaleCount = useMemo(() => items.filter(isForSale).length, [items]);
-	/** Count per style pill, derived from the catalog the client already holds. */
+	const matchingItems = useMemo(() => {
+		const terms = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+		return items.filter((item) => {
+			const text = `${item.title} ${item.style} ${item.medium}`.toLocaleLowerCase();
+			return terms.every((term) => text.includes(term)) && (!availableOnly || isForSale(item));
+		});
+	}, [items, query, availableOnly]);
+	/** Each count is the result of selecting that style with the current search and availability. */
 	const styleCounts = useMemo(() => {
 		const counts = new Map<string, number>();
-		for (const item of items) counts.set(item.style, (counts.get(item.style) ?? 0) + 1);
+		for (const item of matchingItems) {
+			counts.set(item.style, (counts.get(item.style) ?? 0) + 1);
+		}
 		return counts;
-	}, [items]);
-	/** 1-based catalogue position per piece: the wall-label "No. NN" is the
-	 *  piece's place in catalog sort order, stable under every filter. */
+	}, [matchingItems]);
+	/** Catalogue positions stay stable under every filter. */
 	const indexBySlug = useMemo(() => new Map(items.map((item, i) => [item.slug, i + 1])), [items]);
 
-	const visible = useMemo(() => {
-		if (active === ALL) return items;
-		if (active === AVAILABLE) return items.filter(isForSale);
-		return items.filter((i) => i.style === active);
-	}, [active, items]);
+	const visible = useMemo(
+		() => matchingItems.filter((item) => active === ALL || item.style === active),
+		[active, matchingItems],
+	);
 
-	// The eager plate unveils run only on the first paint; every reflow after a
-	// filter tap enters through the Motion whileInView path instead.
-	const initialRender = useRef(true);
-	useEffect(() => {
-		initialRender.current = false;
-	}, []);
+	// Keep each initial card's wrapper stable. Switching a bare card to a
+	// Reveal after mount replaces its link when the viewer opens, disconnecting
+	// the element that should receive focus when the viewer closes.
+	const eagerArtworkSlugs = useRef(
+		new Set(visible.slice(0, EAGER_CARD_COUNT).map((art) => art.slug)),
+	);
 
 	// Deep link: bring the active pill into the rail's visible box (scrolls the
 	// rail only, never the page, so ?style=Gond from a detail page lands at y=0).
@@ -161,15 +203,19 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		if (!match) return;
 		openedFromUrl.current = pieceParam;
 		pendingOpen.current = pieceParam;
-		openLightbox(match, items);
-	}, [pieceParam, items, openLightbox]);
+		openLightbox(match, visible.some((item) => item.slug === match.slug) ? visible : [match]);
+	}, [pieceParam, items, visible, openLightbox]);
 
 	// Lightbox state <-> URL. Open: push once, then replace while navigating.
 	// The URL losing ?piece= while we are open means the back button fired, so
 	// close. Closed: pop the entry we pushed, or replace when the visitor arrived
 	// on ?piece= directly and there is nothing of ours to pop.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: searchParams triggers Back/Forward reconciliation; read the current URL to avoid stale navigation snapshots
 	useEffect(() => {
-		const params = new URLSearchParams(searchParams.toString());
+		// This is local viewer state. Native history integrates with Next's
+		// search params without a server navigation that can replace the trigger
+		// while the dialog is opening or restoring keyboard focus.
+		const params = new URLSearchParams(window.location.search);
 		const urlPiece = params.get("piece");
 		if (isOpen && activeArtwork) {
 			pendingOpen.current = null;
@@ -189,10 +235,10 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 			openedFromUrl.current = activeArtwork.slug;
 			const url = `${pathname}?${params.toString()}`;
 			if (hadPiece || pushedRef.current) {
-				router.replace(url, { scroll: false });
+				window.history.replaceState(null, "", url);
 			} else {
 				pushedRef.current = true;
-				router.push(url, { scroll: false });
+				window.history.pushState(null, "", url);
 			}
 			return;
 		}
@@ -205,49 +251,74 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		openedFromUrl.current = null;
 		if (pushedRef.current) {
 			pushedRef.current = false;
-			router.back();
+			window.history.back();
 			return;
 		}
 		params.delete("piece");
 		const qs = params.toString();
-		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-	}, [isOpen, activeArtwork, searchParams, router, pathname, closeLightbox]);
+		window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+	}, [isOpen, activeArtwork, searchParams, pathname, closeLightbox]);
 
 	const styleFilters: Filter[] = [ALL, ...styles];
 
 	const pieceWord = visible.length === 1 ? "piece" : "pieces";
 	let statusMessage: string;
-	if (active === ALL) {
+	if (query.trim()) {
+		statusMessage = `${visible.length} ${pieceWord} matching "${query.trim()}"`;
+	} else if (availableOnly) {
+		statusMessage = `Showing ${visible.length} ${active === ALL ? "" : `${active} `}${pieceWord} available to buy`;
+	} else if (active === ALL) {
 		statusMessage = `Showing all ${visible.length} pieces`;
-	} else if (active === AVAILABLE) {
-		statusMessage = `Showing ${visible.length} ${pieceWord} available to buy`;
 	} else {
 		statusMessage = `Showing ${visible.length} ${active} ${pieceWord}`;
 	}
 
 	const exitTransition = { duration: DUR.fast, ease: EASE_IN } as const;
-	const cardExit = reduceMotion
-		? { opacity: 0, transition: exitTransition }
-		: { opacity: 0, scale: 0.96, transition: exitTransition };
+	const cardExit = { opacity: 0, scale: 0.96, transition: exitTransition };
 
 	return (
 		<>
 			<h2 className="sr-only">Gallery</h2>
+			<div className="mb-5 flex flex-wrap items-end gap-3 sm:gap-6">
+				<GallerySearch
+					query={query}
+					onQuery={changeQuery}
+					inputRef={searchRef}
+					resultsId={resultsId}
+				/>
+				{forSaleCount > 0 || availableOnly ? (
+					<button
+						type="button"
+						onClick={toggleAvailability}
+						aria-pressed={availableOnly}
+						className={cn(
+							PILL,
+							availableOnly
+								? "border-ink bg-ink text-bg"
+								: "border-line text-muted hover:border-accent hover:text-accent-text",
+						)}
+					>
+						<ShoppingBag size={16} aria-hidden="true" />
+						{AVAILABLE}
+					</button>
+				) : null}
+			</div>
 			{/* Single-row horizontal rail on phones (a half-cut last pill is the swipe
 			    cue), sticky under the shrunk header with a glass fill until lg, where
 			    it sits static and transparent (visual-direction 2.2). */}
 			<fieldset
 				ref={railRef}
-				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 border-b border-line bg-bg/90 px-(--container-px) py-3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 bg-bg/90 px-(--container-px) py-3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:bg-transparent lg:p-0"
 			>
 				<legend className="sr-only">Filter artwork</legend>
 				<LayoutGroup>
 					{styleFilters.map((f) => {
 						const isActive = f === active;
-						const count = f === ALL ? items.length : (styleCounts.get(f) ?? 0);
+						const count = f === ALL ? matchingItems.length : (styleCounts.get(f) ?? 0);
 						return (
 							<button
 								key={f}
+								ref={f === ALL ? allFilterRef : undefined}
 								type="button"
 								onClick={() => setActive(f)}
 								aria-pressed={isActive}
@@ -268,61 +339,26 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 									/>
 								) : null}
 								{f}
-								<span className={cn("tabular-nums", isActive ? "text-bg/70" : "text-muted")}>
-									({count})
+								<span
+									className={cn("text-xs tabular-nums", isActive ? "text-bg/70" : "text-muted")}
+								>
+									{count}
 								</span>
 							</button>
 						);
 					})}
-
-					{/* "Available to buy" -- a second axis on the same ink recipe, set
-					    apart by its icon and the gold hairline border. Hidden entirely
-					    when nothing is for sale, so the row never offers an empty filter. */}
-					{forSaleCount > 0 ? (
-						<>
-							<span aria-hidden="true" className="mx-1 hidden h-5 w-px bg-line sm:block" />
-							<button
-								type="button"
-								onClick={() => setActive(AVAILABLE)}
-								aria-pressed={active === AVAILABLE}
-								data-active={active === AVAILABLE || undefined}
-								className={cn(
-									PILL,
-									active === AVAILABLE
-										? "border-ink text-bg"
-										: "border-(--color-gold-hairline) text-muted hover:text-accent-text",
-								)}
-							>
-								{active === AVAILABLE ? (
-									<motion.span
-										aria-hidden="true"
-										layoutId="work-filter-pill"
-										transition={SPRING_INDICATOR}
-										className="absolute inset-0 -z-10 rounded-full bg-ink"
-									/>
-								) : null}
-								<ShoppingBag size={13} aria-hidden="true" />
-								{AVAILABLE}
-								<span
-									className={cn("tabular-nums", active === AVAILABLE ? "text-bg/70" : "text-muted")}
-								>
-									({forSaleCount})
-								</span>
-							</button>
-						</>
-					) : null}
 				</LayoutGroup>
 			</fieldset>
 
-			<p className="t-meta mt-4" aria-live="polite" aria-atomic="true">
+			<p id={resultsId} className="mt-5 text-sm text-muted" aria-live="polite" aria-atomic="true">
 				{statusMessage}
 			</p>
 
 			{visible.length > 0 ? (
-				<GalleryGrid spanLead className="mt-(--space-block)">
+				<GalleryGrid className="mt-5">
 					<AnimatePresence mode="popLayout" initial={false}>
 						{visible.map((art, i) => {
-							const eager = initialRender.current && i < EAGER_CARD_COUNT;
+							const eager = eagerArtworkSlugs.current.has(art.slug);
 							const card = (
 								<ArtworkCard
 									artwork={art}
@@ -330,16 +366,14 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 									priority={i < 3}
 									index={indexBySlug.get(art.slug)}
 									total={items.length}
-									sizes={i % 7 === 0 ? GALLERY_LEAD_SIZES : undefined}
 									unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
-									unveilSlow={i === 0}
-									float={i === 0}
 								/>
 							);
 							return (
 								<motion.li
 									key={art.slug}
 									layout="position"
+									className="min-w-0 [&>div]:h-full"
 									transition={SPRING_LAYOUT}
 									exit={cardExit}
 								>
@@ -363,20 +397,34 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 				<EmptyState
 					className="mt-(--space-block)"
 					icon={<Palette size={24} aria-hidden="true" />}
-					title={active === AVAILABLE ? "Nothing for sale right now" : "Nothing in this style yet"}
+					title={
+						items.length === 0
+							? "No artwork to show"
+							: query.trim()
+								? "No pieces found"
+								: availableOnly
+									? "No available pieces in this selection"
+									: "Nothing in this style yet"
+					}
 					body={
-						active === AVAILABLE
-							? "Every piece has found a home. Ask us about a commission any time."
-							: "Try another tradition, or see every piece."
+						items.length === 0
+							? "There are no pieces in the collection right now."
+							: query.trim()
+								? "Try a different title or medium, or clear the filters to explore the whole collection."
+								: availableOnly
+									? "Try another style, or explore the full collection."
+									: "Try another tradition, or see every piece."
 					}
 					action={
-						<button
-							type="button"
-							onClick={() => setActive(ALL)}
-							className={buttonVariants({ variant: "secondary" })}
-						>
-							Show all pieces
-						</button>
+						items.length > 0 ? (
+							<button
+								type="button"
+								onClick={query.trim() ? clearSearch : clearFilters}
+								className={buttonVariants({ variant: "secondary" })}
+							>
+								{query.trim() ? "Clear search" : "Show all pieces"}
+							</button>
+						) : undefined
 					}
 				/>
 			)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
 	type Dispatch,
 	type SetStateAction,
@@ -12,7 +12,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
 import { artworkStatusLabel } from "@/lib/artwork-status";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { DUR, EASE_OUT, SPRING_LAYOUT } from "@/lib/motion";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -27,6 +27,7 @@ import { ArtworkEditModal, type ArtworkPatch, DELETE_PIECE_BODY } from "./artwor
 import {
 	type ArtworkListItem,
 	applyStagedOrder,
+	countPieces,
 	type ErrorTarget,
 	isPiecesView,
 	matchesFilter,
@@ -37,12 +38,11 @@ import {
 	type PiecesView,
 	patchList,
 	STATUS_MESSAGE,
-	tileLabel,
 } from "./artwork-list-state";
-import { DOT } from "./artwork-quick-state";
 import { ArtworkRow } from "./artwork-row";
+import { ArtworkTile } from "./artwork-tile";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnPrimary, adminStatusDot, adminTileBadge } from "./controls";
+import { adminBtn, adminBtnPrimary } from "./controls";
 import { PiecesFilter as PiecesFilterBar } from "./pieces-filter";
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
@@ -54,8 +54,7 @@ import { useServerSyncedList } from "./use-server-synced-list";
 export type { ArtworkListItem, PiecesFilter } from "./artwork-list-state";
 
 /** Crossfade on a view switch: opacity only, fast (Tier 1a motion). */
-const VIEW_FADE =
-	"starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-fast)";
+const VIEW_FADE = "starting:opacity-0 transition-opacity duration-(--duration-fast)";
 
 /** First-run primary: the add sheet is the single create entry (D-A5). */
 function AddPieceButton() {
@@ -70,7 +69,6 @@ function AddPieceButton() {
 interface ArtworkGridProps {
 	items: ArtworkListItem[];
 	categories: readonly string[];
-	counts: Record<PiecesFilter, number>;
 	initialFilter?: PiecesFilter;
 }
 
@@ -84,11 +82,9 @@ interface ArtworkGridProps {
 export function ArtworkGrid({
 	items: initial,
 	categories,
-	counts,
 	initialFilter = "all",
 }: Readonly<ArtworkGridProps>) {
 	const confirm = useConfirm();
-	const reduce = usePrefersReducedMotion();
 	const { pending, err, run } = useAdminAction();
 	// Baseline = the last server-known order. Reset returns to it; deletes and
 	// quick states move it too, so neither reads as an unsaved reorder.
@@ -120,7 +116,6 @@ export function ArtworkGrid({
 		(state: ArtworkListItem[], { slug, ...patch }: OptimisticPatch) =>
 			patchList(state, slug, patch),
 	);
-	const [rowBusy, setRowBusy] = useState<string | null>(null);
 	const [errorTarget, setErrorTarget] = useState<ErrorTarget | null>(null);
 	const [editing, setEditing] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
@@ -180,10 +175,10 @@ export function ArtworkGrid({
 		if (!highlight) return;
 		document
 			.getElementById(`piece-${highlight}`)
-			?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+			?.scrollIntoView({ block: "center", behavior: "smooth" });
 		const id = window.setTimeout(() => setHighlight(null), SAVED_BADGE_DURATION_MS);
 		return () => window.clearTimeout(id);
-	}, [highlight, reduce]);
+	}, [highlight]);
 
 	const commitPatch = (slug: string, patch: Partial<Artwork>) => {
 		setItems((list) => patchList(list, slug, patch));
@@ -210,21 +205,20 @@ export function ArtworkGrid({
 		reverse: () => Promise<unknown>,
 	) => {
 		const slug = item.art.slug;
-		setErrorTarget({ kind: "row", slug });
-		setRowBusy(slug);
 		return run(
 			async () => {
+				setErrorTarget({ kind: "row", slug });
 				applyOptimistic({ slug, ...patch });
 				return action();
 			},
 			() => commitPatch(slug, patch),
 		).then((ok) => {
-			setRowBusy(null);
 			if (ok) {
 				offerUndo({
 					message,
 					// The raw action, never quick()/run(): useUndo hands it to this grid's run.
 					action: async () => {
+						setErrorTarget({ kind: "undo" });
 						applyOptimistic({ slug, ...reversePatch });
 						const result = await reverse();
 						if (!isFailure(result)) commitPatch(slug, reversePatch);
@@ -261,12 +255,8 @@ export function ArtworkGrid({
 		);
 	};
 
-	const onUndo = () => {
-		setErrorTarget({ kind: "undo" });
-		return undoNow();
-	};
-
 	const handleDelete = async (item: ArtworkListItem) => {
+		if (pending) return;
 		const ok = await confirm({
 			title: `Delete "${item.art.title}"?`,
 			body: DELETE_PIECE_BODY,
@@ -274,20 +264,22 @@ export function ArtworkGrid({
 			cancelLabel: "Keep piece",
 		});
 		if (!ok) return;
-		setErrorTarget({ kind: "row", slug: item.art.slug });
-		setRowBusy(item.art.slug);
 		await run(
-			() => deleteArtwork(item.art.slug),
+			() => {
+				setErrorTarget({ kind: "row", slug: item.art.slug });
+				return deleteArtwork(item.art.slug);
+			},
 			() => removeRow(item),
 		);
-		setRowBusy(null);
 	};
 
 	const handleSave = () => {
-		setErrorTarget({ kind: "list" });
-		setSaved(false);
 		return run(
-			() => reorderArtworks(items.map((item) => item.art.slug)),
+			() => {
+				setErrorTarget({ kind: "list" });
+				setSaved(false);
+				return reorderArtworks(items.map((item) => item.art.slug));
+			},
 			() => {
 				setBaseline(items);
 				setSaved(true);
@@ -305,12 +297,16 @@ export function ArtworkGrid({
 		setFilter("all");
 	};
 
-	const rowPending = (slug: string) => pending && (rowBusy === null || rowBusy === slug);
 	const rowError = (slug: string) =>
 		errorTarget?.kind === "row" && errorTarget.slug === slug ? err : null;
 	const visible = optimistic
 		.map((item, index) => ({ item, index }))
 		.filter(({ item }) => matchesFilter(item.art, filter, query));
+	const hiddenRowError =
+		errorTarget?.kind === "row" &&
+		(view !== "list" || !visible.some(({ item }) => item.art.slug === errorTarget.slug))
+			? err
+			: null;
 	const editingItem = editing ? optimistic.find((item) => item.art.slug === editing) : undefined;
 	const stateLabel =
 		filter === "featured" || filter === "all"
@@ -325,13 +321,18 @@ export function ArtworkGrid({
 					onQuery={setQuery}
 					filter={filter}
 					onFilter={setFilter}
-					counts={counts}
+					counts={countPieces(optimistic)}
 					shown={visible.length}
 					total={optimistic.length}
 					reorderLocked={filtered}
 					view={view}
 					onView={changeView}
 				/>
+			) : null}
+			{hiddenRowError ? (
+				<AdminNotice variant="error" className="mb-3">
+					{hiddenRowError}
+				</AdminNotice>
 			) : null}
 			{notice ? (
 				<AdminNotice variant="success" className="mb-3">
@@ -350,7 +351,7 @@ export function ArtworkGrid({
 				<EmptyState
 					variant="compact"
 					voice="tool"
-					title={query ? `No pieces match "${query}"` : `No ${stateLabel} pieces`}
+					title={query.trim() ? `No pieces match "${query.trim()}"` : `No ${stateLabel} pieces`}
 					action={
 						<button type="button" onClick={resetFilter} className={adminBtn}>
 							Show all pieces
@@ -360,43 +361,33 @@ export function ArtworkGrid({
 			) : view === "grid" ? (
 				<ul
 					key="grid"
-					className={cn("grid grid-cols-3 gap-(--grid-gap-tight) xl:grid-cols-6", VIEW_FADE)}
+					className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4", VIEW_FADE)}
 				>
-					{visible.map(({ item, index }) => (
-						<li key={item.art.slug} id={`piece-${item.art.slug}`}>
-							<button
-								type="button"
-								onClick={() => setEditing(item.art.slug)}
-								disabled={rowPending(item.art.slug)}
-								aria-label={tileLabel(item.art, index)}
-								className={cn(
-									"group relative block aspect-square w-full overflow-hidden bg-canvas pressable [-webkit-touch-callout:none] disabled:pointer-events-none disabled:opacity-50",
-									// Tier 1a highlight: an inset outline, not ring/border, so the 2px
-									// seams never shift and the focus-ring guard stays quiet.
-									highlight === item.art.slug && "outline-2 -outline-offset-2 outline-accent",
-								)}
+					<AnimatePresence initial={false} mode="popLayout">
+						{visible.map(({ item, index }) => (
+							<motion.li
+								key={item.art.slug}
+								id={`piece-${item.art.slug}`}
+								layout="position"
+								initial={{ opacity: 0, y: 12 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.96 }}
+								transition={{
+									layout: SPRING_LAYOUT,
+									default: { duration: DUR.fast, ease: EASE_OUT },
+								}}
 							>
-								{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
-								<img src={item.thumb} alt="" className="size-full object-cover" />
-								<span aria-hidden="true" className={cn(adminTileBadge, "absolute top-1 left-1")}>
-									{index + 1}
-								</span>
-								<span
-									aria-hidden="true"
-									className={cn(
-										adminStatusDot,
-										"absolute bottom-1.5 left-1.5 size-2.5",
-										DOT[item.art.status ?? "archive"],
-									)}
+								<ArtworkTile
+									art={item.art}
+									thumb={item.thumb}
+									index={index}
+									pending={pending}
+									highlighted={highlight === item.art.slug}
+									onEdit={() => setEditing(item.art.slug)}
 								/>
-								{item.art.featured ? (
-									<span className={cn(adminTileBadge, "absolute right-1 bottom-1")}>
-										<Star size={12} aria-hidden="true" className="fill-current text-gold-leaf" />
-									</span>
-								) : null}
-							</button>
-						</li>
-					))}
+							</motion.li>
+						))}
+					</AnimatePresence>
 				</ul>
 			) : (
 				<ul
@@ -409,13 +400,13 @@ export function ArtworkGrid({
 							art={item.art}
 							thumb={item.thumb}
 							index={index}
-							pending={rowPending(item.art.slug)}
+							pending={pending}
 							reorderHandle={
 								<ReorderHandle
 									label={item.art.title}
 									index={index}
 									count={optimistic.length}
-									disabled={rowPending(item.art.slug) || filtered}
+									disabled={pending || filtered}
 									onMove={(to) => move(index, to)}
 								/>
 							}
@@ -445,9 +436,9 @@ export function ArtworkGrid({
 			) : undo ? (
 				<UndoBar
 					message={undo.message}
-					pending={undoPending}
+					pending={pending || undoPending}
 					error={undoError ? (err ?? undoError) : null}
-					onAction={onUndo}
+					onAction={undoNow}
 					onDismiss={dismissUndo}
 				/>
 			) : null}
@@ -457,10 +448,6 @@ export function ArtworkGrid({
 					art={editingItem.art}
 					thumb={editingItem.thumb}
 					categories={categories}
-					quickPending={rowPending(editingItem.art.slug)}
-					quickError={rowError(editingItem.art.slug)}
-					onSetStatus={(status) => onSetStatus(editingItem, status)}
-					onSetFeatured={(featured) => onSetFeatured(editingItem, featured)}
 					onClose={() => setEditing(null)}
 					onSaved={(patch: ArtworkPatch) => commitPatch(editingItem.art.slug, patch)}
 					onDeleted={() => {

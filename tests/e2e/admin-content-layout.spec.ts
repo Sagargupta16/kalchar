@@ -1,17 +1,14 @@
 import { devices, expect, test } from "@playwright/test";
 
 // Real-page geometry for the admin content routes against pnpm dev:preview
-// (port 3010, fixture data, no sign-in). Split out of
-// admin-content-mobile.spec.ts for the 500-line ceiling, the same way
-// admin-catalog-layout.spec.ts split from admin-catalog.spec.ts. The admin
-// Playwright config's testMatch does not yet name this file (shell-owned,
-// handed over); the root config picks it up from tests/e2e. Run with:
-//   $env:KALCHAR_ADMIN_PREVIEW="1"; $env:PLAYWRIGHT_BASE_URL="http://127.0.0.1:3010";
-//   pnpm exec playwright test tests/e2e/admin-content-layout.spec.ts
+// (port 3010, fixture data, no sign-in). Use a config with webServer disabled
+// to keep the existing preview running. Use localhost, matching the Next dev
+// server's origin, so its development WebSocket connects and the page hydrates.
+// Set KALCHAR_ADMIN_PREVIEW=1 and PLAYWRIGHT_BASE_URL=http://localhost:3010.
 test.use({ ...devices["Pixel 7"], viewport: { width: 390, height: 844 }, hasTouch: true });
 
 test.describe("admin content layout @preview @mobile", () => {
-	const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3010";
+	const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3010";
 	test.skip(process.env.KALCHAR_ADMIN_PREVIEW !== "1", "needs pnpm dev:preview");
 
 	const box = (locator: import("@playwright/test").Locator) =>
@@ -45,12 +42,16 @@ test.describe("admin content layout @preview @mobile", () => {
 		test(`photo tiles keep 44px targets 8px apart (${scheme})`, async ({ page }) => {
 			await page.goto(new URL("/admin/events", baseURL).href);
 			await applyScheme(page);
-			await page.getByRole("button", { name: /^Edit Studio gathering/ }).click();
-			const tiles = page.locator("li", {
+			const edit = page.getByRole("button", { name: "Edit Studio gathering", exact: true });
+			await edit.click();
+			await expect(edit).toHaveAttribute("aria-expanded", "true");
+			const photos = page.getByRole("region", { name: "Photos", exact: true });
+			await expect(photos).toBeVisible();
+			const tiles = photos.getByRole("listitem").filter({
 				has: page.getByRole("button", { name: /^Remove photo/ }),
 			});
+			await expect(tiles).toHaveCount(7);
 			const count = await tiles.count();
-			expect(count).toBeGreaterThan(2);
 			for (let i = 0; i < Math.min(count, 3); i++) {
 				const tile = tiles.nth(i);
 				const controls = await tile.getByRole("button").all();
@@ -90,7 +91,9 @@ test.describe("admin content layout @preview @mobile", () => {
 				.evaluate((el) => getComputedStyle(el).backgroundColor);
 			expect(rowBg).not.toBe(mainBg);
 			await page.getByRole("button", { name: "Add event", exact: true }).click();
-			const input = page.getByLabel("Title *", { exact: true });
+			const form = page.getByRole("form", { name: "Add an event", exact: true });
+			await expect(form).toBeVisible();
+			const input = form.getByLabel("Title *", { exact: true });
 			const fontSize = await input.evaluate((el) => getComputedStyle(el).fontSize);
 			expect(fontSize).toBe("16px");
 			const inputBox = await box(input);
@@ -101,7 +104,9 @@ test.describe("admin content layout @preview @mobile", () => {
 			await page.goto(new URL("/admin/events", baseURL).href);
 			await applyScheme(page);
 			await page.getByRole("button", { name: "Add event", exact: true }).click();
-			const submit = page.getByRole("button", { name: "Add event", exact: true });
+			const form = page.getByRole("form", { name: "Add an event", exact: true });
+			await expect(form).toBeVisible();
+			const submit = form.getByRole("button", { name: "Add event", exact: true });
 			await submit.evaluate((el) => el.scrollIntoView({ block: "end" }));
 			const submitBox = await box(submit);
 			const nav = await box(page.locator('nav[aria-label="Admin"]').last());
@@ -115,7 +120,9 @@ test.describe("admin content layout @preview @mobile", () => {
 			expect(text).toContain("on Radha and Krishna");
 			expect(text).not.toContain("radha-krishna");
 			await page.getByRole("button", { name: "Add testimonial", exact: true }).click();
-			const options = page
+			const form = page.getByRole("form", { name: "Add a testimonial", exact: true });
+			await expect(form).toBeVisible();
+			const options = form
 				.getByLabel("Link to an artwork (optional)", { exact: true })
 				.locator("option");
 			await expect(options.nth(0)).toHaveText("None");

@@ -16,10 +16,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { AuthShell } from "@/components/layout/auth-shell";
-import { GoogleIcon } from "@/components/ui/brand-icons";
-import { buttonVariants } from "@/components/ui/button";
 import { getAdminAccess } from "@/lib/admin-auth";
 import { safeAdminCallback } from "@/lib/admin-callback";
+import { SignInButton } from "./sign-in-button";
 
 export const metadata: Metadata = {
 	title: "Maintainer sign-in",
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-	searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+	searchParams: Promise<{ callbackUrl?: string | string[]; error?: string | string[] }>;
 }
 
 export default async function LoginPage({ searchParams }: Readonly<LoginPageProps>) {
@@ -42,18 +41,19 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 		<AuthShell
 			eyebrow="Admin access"
 			title="Maintainer sign-in"
-			lead="Access is limited to listed maintainers. Sign in with the Google account on the allowlist."
+			lead="Sign in with the Google account invited to manage this site."
 		>
 			{error ? (
 				// Mirrors the AdminNotice error recipe so it reads as an error in dark too.
 				<p
 					role="alert"
-					className="mt-6 flex items-start gap-2 rounded-(--radius-sm) border border-ruby-line bg-ruby-soft px-3 py-2 text-left text-sm text-ruby"
+					className="flex items-start gap-2 rounded-md border border-ruby-line bg-ruby-soft px-3 py-3 text-left text-sm text-ruby"
 				>
-					<AlertCircle size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<AlertCircle size={16} aria-hidden="true" className="mt-1 shrink-0" />
 					<span>
-						That account is not on the maintainer list. Ask an existing maintainer to add you, then
-						try again.
+						{error === "AccessDenied"
+							? "This account does not have access. Use the Google account invited to manage the site, or ask the site owner to add you."
+							: "We couldn't complete sign-in. Please try again. If it still doesn't work, contact the site owner."}
 					</span>
 				</p>
 			) : null}
@@ -63,13 +63,13 @@ export default async function LoginPage({ searchParams }: Readonly<LoginPageProp
 					"use server";
 					await signIn("google", { redirectTo });
 				}}
-				className="mt-6"
+				className={error ? "mt-6" : undefined}
 			>
-				<button type="submit" className={buttonVariants({ variant: "ghost", size: "lg" })}>
-					<GoogleIcon className="size-4 shrink-0" aria-hidden="true" />
-					Continue with Google
-				</button>
+				<SignInButton />
 			</form>
+			<p className="mt-4 text-sm text-muted">
+				Looking for artwork or a workshop? You can browse and contact us without signing in.
+			</p>
 
 			<Link
 				href="/"

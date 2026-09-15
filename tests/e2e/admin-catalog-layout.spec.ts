@@ -46,15 +46,18 @@ test.describe("layout @preview", () => {
 			});
 		}
 
-		test("grid tiles at 390px are square with tight seams", async ({ page }) => {
+		test("grid tiles at 390px show artwork titles and status below square photos", async ({ page }) => {
 			await page.setViewportSize({ width: 390, height: 844 });
 			await page.goto(`${PREVIEW_URL}/admin/`);
 			const tiles = page.locator("#pieces li button");
 			const first = await box(tiles.first());
-			expect(Math.abs(first.width - first.height)).toBeLessThanOrEqual(1);
+			const photo = await box(tiles.first().locator("img"));
+			expect(Math.abs(photo.width - photo.height)).toBeLessThanOrEqual(1);
 			const second = await box(tiles.nth(1));
-			// 2px seam between neighbouring tiles (--grid-gap-tight).
-			expect(Math.round(second.x - (first.x + first.width))).toBe(2);
+			expect(Math.round(second.x - (first.x + first.width))).toBe(12);
+			await expect(tiles.first().getByText("Radha and Krishna", { exact: true })).toBeVisible();
+			await expect(tiles.first().getByText("Available", { exact: true })).toBeVisible();
+			expect(first.height).toBeGreaterThan(photo.height);
 		});
 	});
 

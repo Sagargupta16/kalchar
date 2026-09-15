@@ -34,13 +34,15 @@ export interface LeadContact {
 export function parseLeadContact(contact: string | undefined): LeadContact {
 	if (!contact) return {};
 	const email = EMAIL_RE.exec(contact)?.[0];
-	const digitsOnly = (email ? contact.replace(email, " ") : contact).replace(/\D/g, "");
-	const phone = normalisePhone(digitsOnly);
+	const phone = normalisePhone(email ? contact.replace(email, " ") : contact);
 	return { ...(phone ? { phone } : {}), ...(email ? { email } : {}) };
 }
 
-function normalisePhone(digits: string): string | undefined {
+function normalisePhone(raw: string): string | undefined {
+	const digits = raw.replace(/\D/g, "");
+	const international = /^\D*\+/.test(raw) || digits.startsWith("00");
 	const trimmed = digits.startsWith("00") ? digits.slice(2) : digits;
+	if (international) return /^[1-9]\d{7,14}$/.test(trimmed) ? trimmed : undefined;
 	if (trimmed.length === 10) return `${DEFAULT_COUNTRY_CODE}${trimmed}`;
 	if (trimmed.length === 11 && trimmed.startsWith("0")) {
 		return `${DEFAULT_COUNTRY_CODE}${trimmed.slice(1)}`;

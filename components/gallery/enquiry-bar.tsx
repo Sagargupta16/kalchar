@@ -3,7 +3,6 @@
 import { MessageCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 interface EnquiryBarProps {
@@ -31,13 +30,8 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 	const [endReached, setEndReached] = useState(false);
 	const endRef = useRef<HTMLSpanElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
-	const reduceMotion = usePrefersReducedMotion();
 	const visible = !panelVisible && !endReached;
 
-	// The panel sits inside a Reveal, which swaps its wrapper element when the
-	// reduced-motion preference resolves after hydration; that remounts the panel
-	// node, so re-resolve it whenever the preference changes.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reduceMotion re-runs the lookup after the Reveal remount
 	useEffect(() => {
 		const panel = document.getElementById(watchId);
 		const end = endRef.current;
@@ -62,18 +56,24 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 			panelObserver.disconnect();
 			endObserver.disconnect();
 		};
-	}, [watchId, reduceMotion]);
+	}, [watchId]);
 
 	useEffect(() => {
 		const root = document.documentElement;
 		const bar = barRef.current;
-		const phoneLayout = globalThis.matchMedia("(max-width: 47.9375rem)").matches;
-		if (visible && bar && phoneLayout) {
-			root.style.setProperty("--fixed-bar-h", `${bar.offsetHeight}px`);
-		} else {
-			root.style.removeProperty("--fixed-bar-h");
-		}
+		if (!bar) return;
+		const updateHeight = () => {
+			// display:none at md gives zero; wrapping and safe-area changes can
+			// resize the phone bar without changing either intersection.
+			const height = visible ? bar.offsetHeight : 0;
+			if (height > 0) root.style.setProperty("--fixed-bar-h", `${height}px`);
+			else root.style.removeProperty("--fixed-bar-h");
+		};
+		const observer = new ResizeObserver(updateHeight);
+		observer.observe(bar);
+		updateHeight();
 		return () => {
+			observer.disconnect();
 			root.style.removeProperty("--fixed-bar-h");
 		};
 	}, [visible]);
@@ -89,7 +89,6 @@ export function EnquiryBar({ price, href, label, watchId }: Readonly<EnquiryBarP
 					"material-glass-strong fixed inset-x-0 bottom-0 z-nav border-t border-(--color-gold-hairline) pb-safe-bottom md:hidden",
 					"transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
 					visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
-					reduceMotion && "transition-none",
 				)}
 			>
 				<div className="flex items-center justify-between gap-3 px-(--container-px) py-3">

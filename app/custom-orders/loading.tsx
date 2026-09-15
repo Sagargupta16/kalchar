@@ -1,13 +1,14 @@
 import { Section } from "@/components/ui/section";
 import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 
-/** Mirrors the page: washed grand header, then the 4/8 split with the steps
+/** Mirrors the page: wash header, then the 4/8 split with the steps
  *  aside and the commission sheet (eyebrow, brief, style plates, chip rows). */
 export default function CustomOrdersLoading() {
 	return (
 		<main>
-			<Section accent="vermillion" background="wash" rhythm="grand" padded>
+			<Section accent="vermillion" background="wash" padded containerClassName="py-(--space-block)">
 				<SkeletonHeader />
+				<Skeleton className="mt-5 h-11 w-56" />
 			</Section>
 			<Section accent="vermillion" padded containerClassName="pt-(--space-block)">
 				<div className="grid gap-12 md:grid-cols-12 md:gap-14">
@@ -34,7 +35,7 @@ export default function CustomOrdersLoading() {
 							<Skeleton className="h-24 w-full" />
 							<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 								{[0, 1, 2].map((i) => (
-									<Skeleton key={i} className="aspect-4/3 w-full" />
+									<Skeleton key={i} className="aspect-2/1 w-full" />
 								))}
 							</div>
 							{/* Chip rows: size, budget, timeline. */}

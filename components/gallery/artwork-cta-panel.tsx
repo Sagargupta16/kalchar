@@ -21,10 +21,9 @@ interface ArtworkCtaPanelProps {
  * renders once, in the wall label above; the panel carries the full-width
  * primary, the WhatsApp display fallback and the share row. Sold pieces get
  * the commission intent as a secondary action plus a one-line jump to the
- * style's available pieces. `id="enquire"` is observed by the phone
- * EnquiryBar, which hides itself while this panel is on screen. Rests on
- * shadow-e2-edged (steering 2026-09-14): one rung above flat content, so the
- * enquiry inset reads as a raised card beside the suspended plate.
+ * available collection. `id="enquire"` is observed by the phone EnquiryBar,
+ * which hides itself while this panel is on screen. The e1 shadow matches
+ * the site's other content panels.
  */
 export function ArtworkCtaPanel({
 	art,
@@ -37,7 +36,7 @@ export function ArtworkCtaPanel({
 		<section
 			id="enquire"
 			aria-labelledby="enquire-heading"
-			className="mt-(--space-block) rounded-(--radius-md) border-t-2 border-(--color-gold-hairline) bg-canvas p-(--card-pad) shadow-e2-edged"
+			className="mt-(--space-block) rounded-(--radius-md) border border-line bg-canvas p-(--card-pad) shadow-e1"
 		>
 			<h2 id="enquire-heading" className="sr-only">
 				Price and enquiry
@@ -48,7 +47,7 @@ export function ArtworkCtaPanel({
 				rel="noopener noreferrer"
 				className={cn(
 					buttonVariants({ variant: isSold ? "secondary" : "primary", size: "lg" }),
-					"w-full",
+					"w-full whitespace-normal text-center",
 				)}
 			>
 				<MessageCircle size={16} aria-hidden="true" />
@@ -57,10 +56,10 @@ export function ArtworkCtaPanel({
 			{isSold ? (
 				<p className="mt-3 text-sm">
 					<Link
-						href={`/work?style=${encodeURIComponent(art.style)}&view=available`}
+						href="/work?view=available"
 						className="text-accent-text underline-offset-4 transition-colors hover:underline"
 					>
-						More {art.style}, available
+						Browse available artwork
 					</Link>
 				</p>
 			) : null}
@@ -85,7 +84,10 @@ export function ArtworkCtaPanel({
 				/>
 				<Link
 					href={`/work?style=${encodeURIComponent(art.style)}`}
-					className={cn(buttonVariants({ variant: "ghost" }), "flex-auto px-4")}
+					className={cn(
+						buttonVariants({ variant: "ghost" }),
+						"min-w-0 flex-auto whitespace-normal px-4 text-center",
+					)}
 				>
 					See more {art.style}
 				</Link>

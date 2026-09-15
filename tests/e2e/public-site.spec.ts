@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, test } from "@playwright/test";
 import { SERVER_BRAND_COLORS } from "../../lib/server-brand-colors";
+import { settleAnimations } from "./helpers/animation-settle";
 
 const MEDIA_FIXTURE = readFileSync(resolve("public/artworks/twin-fish.jpg"));
 
@@ -19,8 +20,9 @@ const PUBLIC_ROUTES = [
 
 async function expectTouchTarget(locator: Locator) {
 	const box = await locator.boundingBox();
-	expect(box?.width).toBeGreaterThanOrEqual(44);
-	expect(box?.height).toBeGreaterThanOrEqual(44);
+	// Translated layers can report 43.99997px for a 44px control.
+	expect(box?.width).toBeGreaterThanOrEqual(44 - 0.01);
+	expect(box?.height).toBeGreaterThanOrEqual(44 - 0.01);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -35,7 +37,6 @@ test.beforeEach(async ({ page }) => {
 for (const theme of ["light", "dark"] as const) {
 	for (const route of PUBLIC_ROUTES) {
 		test(`${route} passes ${theme} accessibility and overflow checks`, async ({ page }) => {
-			await page.emulateMedia({ reducedMotion: "reduce" });
 			await page.addInitScript((selectedTheme) => {
 				localStorage.setItem("theme", selectedTheme);
 			}, theme);
@@ -43,18 +44,7 @@ for (const theme of ["light", "dark"] as const) {
 			expect(response?.ok()).toBe(true);
 			await expect(page.getByRole("main")).toHaveCount(1);
 			await expect(page.getByRole("main")).toBeVisible();
-			await page.waitForFunction(
-				() => document.querySelectorAll("[data-motion-reveal]").length === 0,
-			);
-			await page.evaluate(() => {
-				for (const animation of document.getAnimations()) {
-					try {
-						animation.finish();
-					} catch {
-						// Infinite decorative animations cannot be finished.
-					}
-				}
-			});
+			await settleAnimations(page);
 
 			const overflow = await page.evaluate(
 				() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -226,7 +216,7 @@ test(
 		await expect(drawer.getByText("06", { exact: true })).toBeVisible();
 		for (const row of await rows.all()) {
 			const box = await row.boundingBox();
-			expect(box?.height).toBeGreaterThanOrEqual(56);
+			expect(box?.height).toBeGreaterThanOrEqual(56 - 0.01);
 		}
 
 		// Steering 2026-09-14: row labels sit on the calmer h3 rung (18 -> 20px),
@@ -243,14 +233,14 @@ test(
 		const whatsappRow = panel.getByRole("link", { name: /Message on WhatsApp/ });
 		await expect(whatsappRow).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
 		const whatsappBox = await whatsappRow.boundingBox();
-		expect(whatsappBox?.height).toBeGreaterThanOrEqual(48);
+		expect(whatsappBox?.height).toBeGreaterThanOrEqual(48 - 0.01);
 		if (!panelBox || !whatsappBox) throw new Error("drawer boxes missing");
 		expect(whatsappBox.y).toBeGreaterThan(panelBox.y + panelBox.height / 2);
 		await page.keyboard.press("Escape");
 		await expect(drawer).toBeHidden();
 
 		await page.goto("/work/");
-		await expect(page.getByText("Open a piece for a closer look.")).toBeVisible();
+		await expect(page.getByRole("searchbox", { name: "Find a piece you love" })).toBeVisible();
 		const filters = page.getByRole("group", { name: "Filter artwork" }).getByRole("button");
 		for (const filter of await filters.all()) {
 			await expectTouchTarget(filter);
@@ -332,10 +322,23 @@ test("theme toggle drives the browser theme colour", async ({ page }) => {
 
 test("back to top yields to the footer bottom bar", async ({ page }) => {
 	await page.goto("/");
-	const fab = page.getByRole("button", { name: "Back to top" });
+	const fab = page.locator("[data-back-to-top]");
+	const footer = page.getByRole("contentinfo");
 	await page.evaluate(() => globalThis.scrollTo(0, document.documentElement.scrollHeight));
 	await expect(fab).toHaveCSS("opacity", "0");
-	await expect(page.getByRole("contentinfo").getByRole("link", { name: "FAQ" })).toBeInViewport();
+	await expect(footer.getByRole("link", { name: "FAQ" })).toBeInViewport();
+	await expect(footer.getByRole("navigation", { name: "Footer" }).getByRole("link")).toHaveCount(6);
+	await expect(footer.locator("[data-channel-row] a")).toHaveCount(5);
+	await expect(footer.getByRole("link")).toHaveCount(15);
+	for (const link of await footer.getByRole("link").all()) {
+		await expectTouchTarget(link);
+	}
+	const footerHeight = await footer.evaluate((el) => el.getBoundingClientRect().height);
+	if ((page.viewportSize()?.width ?? 0) >= 1024) {
+		expect(footerHeight).toBeLessThanOrEqual(340);
+	} else {
+		expect(footerHeight).toBeLessThanOrEqual(640);
+	}
 	await page.mouse.wheel(0, -400);
 	await expect(fab).toHaveCSS("opacity", "1");
 });
@@ -375,7 +378,7 @@ test("floating WhatsApp disc follows the route policy", async ({ page }) => {
 
 test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await page.goto("/work/");
-	const style = page.getByRole("button", { name: "Madhubani", exact: true });
+	const style = page.getByRole("button", { name: /^Madhubani / });
 	await expect(style).toBeVisible();
 	await style.click();
 	await expect(page).toHaveURL(/style=Madhubani/);
@@ -393,13 +396,16 @@ test(
 	},
 );
 
-test.describe("reduced motion", () => {
-	test("keeps static tilted hero plates and the description visible", async ({ page }) => {
+test.describe("always-on motion", () => {
+	test("shuffles hero plates and keeps the description visible under either OS preference", async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");
 		expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
 			true,
 		);
+		// Media is fulfilled by the fixture, so a skipped shuffle would be a policy regression.
+		const stage = page.locator("[data-shuffle-status]");
+		await expect(stage).toHaveAttribute("data-shuffle-status", "applied");
 		const plates = page.locator(".hero-plate");
 		await expect(plates).toHaveCount(2);
 		for (const plate of await plates.all()) {
@@ -410,14 +416,19 @@ test.describe("reduced motion", () => {
 		const description = page.locator("main section").first().locator(".t-lead");
 		await expect(description).toBeVisible();
 		await expect(description).not.toBeEmpty();
+		await page.emulateMedia({ reducedMotion: "no-preference" });
+		await expect(stage).toHaveAttribute("data-shuffle-status", "applied");
+		await expect(description).toBeVisible();
 	});
 
-	test("stills the WhatsApp disc's idle breath", async ({ page }) => {
+	test("keeps the WhatsApp idle breath but pauses it while hidden", async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");
-		// The shared reduced block removes .plate-float entirely: the disc is
-		// simply present, at rest, whatever its visibility state.
+		// OS preference does not disable the animation; visibility still pauses it.
 		const face = page.locator("[data-enquire-fab] span").first();
-		await expect(face).toHaveCSS("animation-name", "none");
+		await expect(face).toHaveCSS("animation-name", "plate-float");
+		await expect(face).toHaveCSS("animation-play-state", "paused");
+		await page.evaluate(() => scrollTo(0, innerHeight * 2));
+		await expect(face).toHaveCSS("animation-play-state", "running");
 	});
 });

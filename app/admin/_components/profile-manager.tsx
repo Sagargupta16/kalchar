@@ -1,16 +1,22 @@
 "use client";
 
 import { UserCircle } from "lucide-react";
-import { useOptimistic, useRef, useState } from "react";
+import { useEffect, useId, useOptimistic, useRef, useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import { cn, formatBytes } from "@/lib/utils";
 import { clearProfileImage, setProfileImage, setShowHomeIntro } from "../event-actions";
+import {
+	PROFILE_PHOTO_ACCEPT,
+	PROFILE_PHOTO_MAX_MB,
+	ProfilePhotoDraft,
+	validateProfilePhoto,
+} from "../profile/profile-photo-draft";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanel } from "./admin-panel";
 import { AdminSwitch } from "./admin-switch";
 import { useConfirm } from "./confirm-dialog";
 import { adminBtnPrimary, adminHelp, FOCUS_WITHIN } from "./controls";
-import { PhotoPreview } from "./photo-preview";
 import { stageImage } from "./stage-image";
 import { UndoBar, useUndo } from "./undo-bar";
 import type { UploadProgressState } from "./upload-progress";
@@ -23,13 +29,13 @@ interface ProfileManagerProps {
 
 /** Text-shaped picker trigger under the portrait (Tier 2f): opens the OS picker in one tap. */
 const changePhotoLabel = cn(
-	"inline-flex min-h-control cursor-pointer items-center text-sm font-semibold text-accent-text transition-ui pressable has-disabled:pointer-events-none has-disabled:opacity-50",
+	"inline-flex min-h-control cursor-pointer items-center rounded-md px-2 text-sm font-semibold text-accent-text transition-ui pressable has-disabled:pointer-events-none has-disabled:opacity-50",
 	FOCUS_WITHIN,
 );
 
 /** Muted text destructive (Tier 2f): quiet at rest, ruby on hover, confirm kept. */
 const removePhotoBtn =
-	"inline-flex min-h-control items-center text-sm font-medium text-muted transition-ui pressable hover:text-ruby disabled:pointer-events-none disabled:opacity-50";
+	"inline-flex min-h-control items-center rounded-md px-2 text-sm font-medium text-muted transition-ui pressable hover:text-ruby disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * Artist profile settings: the avatar shown on About + home, and the toggle
@@ -44,7 +50,16 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 	const [file, setFile] = useState<File | null>(null);
 	const [progress, setProgress] = useState<UploadProgressState | null>(null);
 	const [photoSaved, setPhotoSaved] = useState<"updated" | "removed" | null>(null);
+	const [photoOperation, setPhotoOperation] = useState<"upload" | "remove" | null>(null);
+	const [failedPreview, setFailedPreview] = useState<string | null>(null);
+	const [previewVersion, setPreviewVersion] = useState(0);
+	const [restorePhotoFocus, setRestorePhotoFocus] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const photoHintId = useId();
+	const fileProblemId = useId();
+	const photoErrorId = useId();
+	const fileProblem = validateProfilePhoto(file);
+	const photoError = photoOperation ? photo.err : null;
 	// The toggle paints before the round trip; the value reverts by itself on
 	// failure because the dispatch runs inside run()'s transition (React 19).
 	const [shownIntro, setShownIntro] = useOptimistic(showHomeIntro);
@@ -52,15 +67,36 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 	// the reverse action, which runs through the same intro.run.
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(intro.run);
 
+	useEffect(() => {
+		if (!photoSaved) return;
+		const timer = window.setTimeout(() => setPhotoSaved(null), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timer);
+	}, [photoSaved]);
+
+	useEffect(() => {
+		if (photo.pending || !restorePhotoFocus) return;
+		setRestorePhotoFocus(false);
+		inputRef.current?.focus();
+	}, [photo.pending, restorePhotoFocus]);
+
+	const hasUnsavedWork = Boolean(file) || photo.pending || intro.pending || undoPending;
+	useAdminDraftGuard(hasUnsavedWork);
+
 	const clearFile = () => {
 		setFile(null);
-		if (inputRef.current) inputRef.current.value = "";
+		setPhotoOperation(null);
+		setPhotoSaved(null);
+		if (inputRef.current) {
+			inputRef.current.value = "";
+			inputRef.current.focus();
+		}
 	};
 
 	const onUpload = (form: HTMLFormElement) => {
-		if (!file) return;
+		if (!file || fileProblem || photo.pending) return;
 		const uploading = `Uploading ${formatBytes(file.size)}`;
 		setPhotoSaved(null);
+		setPhotoOperation("upload");
 		photo.run(
 			async () => {
 				try {
@@ -81,31 +117,37 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 				clearFile();
 				form.reset();
 				setPhotoSaved("updated");
-				setTimeout(() => setPhotoSaved(null), SAVED_BADGE_DURATION_MS);
+				setRestorePhotoFocus(true);
 			},
 		);
 	};
 
 	const onClear = async () => {
+		if (photo.pending) return;
 		const ok = await confirm({
 			title: "Remove profile photo?",
-			body: "The About page and home will fall back to the monogram.",
+			body: file
+				? "The About page and home will show the artist's initials instead. Your selected photo will stay here until you upload or clear it."
+				: "The About page and home will show the artist's initials instead.",
 			confirmLabel: "Remove photo",
 			cancelLabel: "Keep photo",
 		});
 		if (!ok) return;
 		setPhotoSaved(null);
+		setPhotoOperation("remove");
 		photo.run(
 			() => clearProfileImage(),
 			() => {
 				setPhotoSaved("removed");
-				setTimeout(() => setPhotoSaved(null), SAVED_BADGE_DURATION_MS);
+				setRestorePhotoFocus(true);
 			},
 		);
 	};
 
-	const onToggleIntro = (next: boolean) =>
-		intro.run(
+	const onToggleIntro = (next: boolean) => {
+		if (intro.pending || undoPending) return;
+		dismissUndo();
+		return intro.run(
 			async () => {
 				setShownIntro(next);
 				return setShowHomeIntro(next);
@@ -120,8 +162,12 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 				});
 			},
 		);
+	};
 
-	const previewSrc = imageKey ? `${IMAGE_ORIGIN}/${imageKey}-400.webp` : null;
+	const previewSrc = imageKey
+		? `${IMAGE_ORIGIN}/${imageKey}-400.webp${previewVersion ? `?preview=${previewVersion}` : ""}`
+		: null;
+	const previewFailed = previewSrc !== null && failedPreview === previewSrc;
 
 	return (
 		<>
@@ -129,20 +175,21 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)] lg:items-start">
 				<AdminPanel
 					title="Profile photo"
-					description="Shown on the About page and home. Square or portrait works best. Leave it empty to use the monogram."
+					description="Shown on the About page and home. Square or portrait works best. Without a photo, the artist's initials appear instead."
 					className="min-w-0"
 				>
 					<div className="flex flex-col items-center gap-3">
 						<div className="relative size-32 shrink-0">
 							<div className="size-full overflow-hidden rounded-full bg-canvas ring-1 ring-line">
-								{previewSrc ? (
-									// Keyed by imageKey so a saved swap remounts the img and crossfades in at base (Tier 2f).
+								{previewSrc && !previewFailed ? (
+									// Remount saved swaps and preview retries so the new source fades in.
 									// biome-ignore lint/performance/noImgElement: admin-only preview, R2 origin, next/image not configured for this host
 									<img
-										key={imageKey}
+										key={previewSrc}
 										src={previewSrc}
 										alt="Current profile"
-										className="size-full object-cover starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-(--duration-base)"
+										onError={() => setFailedPreview(previewSrc)}
+										className="size-full object-cover starting:opacity-0 transition-opacity duration-(--duration-base)"
 									/>
 								) : (
 									<span className="grid size-full place-items-center text-muted">
@@ -152,6 +199,19 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							</div>
 							{photo.pending && progress ? <UploadProgressRing state={progress} /> : null}
 						</div>
+						{previewFailed ? (
+							<div className="grid justify-items-center gap-1">
+								<p className={adminHelp}>Saved photo preview unavailable.</p>
+								<button
+									type="button"
+									disabled={photo.pending}
+									onClick={() => setPreviewVersion((version) => version + 1)}
+									className={changePhotoLabel}
+								>
+									Reload preview
+								</button>
+							</div>
+						) : null}
 						{photo.pending && progress ? (
 							<p aria-live="polite" className="text-label text-muted tabular-nums">
 								{progress.label}
@@ -161,6 +221,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							</p>
 						) : null}
 						<form
+							aria-label="Upload profile photo"
 							aria-busy={photo.pending || undefined}
 							className="flex w-full flex-col items-center gap-3"
 							onSubmit={(e) => {
@@ -174,20 +235,45 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 									ref={inputRef}
 									name="image"
 									type="file"
-									accept="image/jpeg,image/png,image/webp"
+									accept={PROFILE_PHOTO_ACCEPT}
 									disabled={photo.pending}
-									onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
+									aria-invalid={Boolean(fileProblem) || undefined}
+									aria-describedby={`${photoHintId}${fileProblem ? ` ${fileProblemId}` : ""}${photoError ? ` ${photoErrorId}` : ""}`}
+									onChange={(e) => {
+										const selected = e.currentTarget.files?.[0];
+										if (!selected) return;
+										setFile(selected);
+										setPhotoOperation(null);
+										setPhotoSaved(null);
+									}}
 									className="sr-only"
 								/>
 							</label>
-							<p className={adminHelp}>JPG, PNG or WebP, up to 20 MB.</p>
-							{file ? (
-								<div className="w-full">
-									<PhotoPreview file={file} disabled={photo.pending} onClear={clearFile} />
-								</div>
+							<p id={photoHintId} className={adminHelp}>
+								JPG, PNG or WebP, up to {PROFILE_PHOTO_MAX_MB} MB. Choose a photo, check the
+								preview, then select Upload photo to save it.
+							</p>
+							{fileProblem ? (
+								<AdminNotice id={fileProblemId} variant="error" className="w-full wrap-anywhere">
+									{fileProblem}
+								</AdminNotice>
 							) : null}
 							{file ? (
-								<button type="submit" disabled={photo.pending} className={adminBtnPrimary}>
+								<ProfilePhotoDraft
+									file={file}
+									invalid={Boolean(fileProblem)}
+									uploading={photo.pending && photoOperation === "upload"}
+									disabled={photo.pending}
+									onClear={clearFile}
+								/>
+							) : null}
+							{file ? (
+								<button
+									type="submit"
+									disabled={photo.pending || Boolean(fileProblem)}
+									aria-busy={(photo.pending && photoOperation === "upload") || undefined}
+									className={adminBtnPrimary}
+								>
 									Upload photo
 								</button>
 							) : null}
@@ -196,17 +282,30 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							<button
 								type="button"
 								disabled={photo.pending}
+								aria-busy={(photo.pending && photoOperation === "remove") || undefined}
 								onClick={onClear}
 								className={removePhotoBtn}
 							>
 								Remove photo
 							</button>
 						) : null}
+						{photo.pending && photoOperation === "remove" ? (
+							<p role="status" className={adminHelp}>
+								Removing saved photo…
+							</p>
+						) : null}
 					</div>
-					{photo.err ? (
-						<AdminNotice variant="error" className="mt-3">
-							{photo.err}
-						</AdminNotice>
+					{photoError ? (
+						<>
+							<AdminNotice id={photoErrorId} variant="error" className="mt-3 wrap-anywhere">
+								{photoError}
+							</AdminNotice>
+							{photoOperation === "upload" && file ? (
+								<p className={cn(adminHelp, "mt-2")}>
+									Your selected photo is still here. Select Upload photo to try again.
+								</p>
+							) : null}
+						</>
 					) : null}
 					{photoSaved === "updated" ? (
 						<AdminNotice variant="success" className="mt-3">
@@ -215,7 +314,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 					) : null}
 					{photoSaved === "removed" ? (
 						<AdminNotice variant="success" className="mt-3">
-							Photo removed. The monogram shows instead.
+							Photo removed. The artist&apos;s initials show instead.
 						</AdminNotice>
 					) : null}
 				</AdminPanel>
@@ -233,6 +332,9 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 						/>
 					}
 				>
+					<p role="status" aria-atomic="true" className={adminHelp}>
+						{intro.pending ? "Saving home intro…" : shownIntro ? "Shown on home" : "Hidden on home"}
+					</p>
 					{intro.err ? <AdminNotice variant="error">{intro.err}</AdminNotice> : null}
 				</AdminPanel>
 			</div>
@@ -280,7 +382,7 @@ function UploadProgressRing({ state }: Readonly<{ state: UploadProgressState }>)
 				strokeLinecap="round"
 				strokeDasharray={RING_CIRCUMFERENCE}
 				strokeDashoffset={RING_CIRCUMFERENCE * (1 - (fraction ?? 1))}
-				className="stroke-accent motion-safe:transition-[stroke-dashoffset] motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-out)"
+				className="stroke-accent transition-[stroke-dashoffset] duration-(--duration-fast) ease-(--ease-out)"
 			/>
 		</svg>
 	);

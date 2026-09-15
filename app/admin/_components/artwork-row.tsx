@@ -26,7 +26,7 @@ export interface ArtworkRowProps {
 	thumb: string;
 	/** Position in the full gallery order (not the filtered view). */
 	index: number;
-	/** Row-level busy flag: list save, delete or a quick state in flight for THIS row. */
+	/** Shared list action lock: save, delete, quick state or Undo in flight. */
 	pending: boolean;
 	/** The shared ReorderHandle, rendered by the grid so it owns move()/count. */
 	reorderHandle: ReactNode;

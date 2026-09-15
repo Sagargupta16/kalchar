@@ -5,12 +5,8 @@ import { cn } from "@/lib/utils";
 export type AdminPageWidth = "narrow" | "default" | "wide";
 
 /**
- * Every admin route spans the full content measure (72rem via <main>), the same
- * as the dashboard (decisions.md ruling 42: the narrower 672px / 768px columns
- * left categories, events, workshops, testimonials, enquiries, presets, profile
- * and maintainers looking unaligned). Pages use the width through layout (form
- * grids, side-by-side panels), never by shrinking the page. The width prop is
- * kept so existing call sites compile; every value resolves to full width.
+ * Routes fill the available content column, including beside the desktop
+ * navigation. Keep the width prop compatible with existing route frames.
  */
 const WIDTH: Record<AdminPageWidth, string | undefined> = {
 	narrow: undefined,
@@ -23,7 +19,7 @@ interface AdminPageHeaderProps {
 	description?: ReactNode;
 	/** Extra intro content under the description (lists, notes). */
 	children?: ReactNode;
-	/** Page-level actions (at most one primary), right of the title on sm+, under it on phones. */
+	/** Page-level actions wrap below the title whenever the content column is narrow. */
 	actions?: ReactNode;
 }
 
@@ -44,18 +40,20 @@ export function AdminPageHeader({
 	return (
 		<header
 			className={cn(
-				"flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+				"flex min-w-0 flex-wrap items-start justify-between gap-x-6 gap-y-4",
 				HEADER_INSET,
 			)}
 		>
-			<div className="min-w-0 max-w-(--header-max)">
-				<h1 className="t-heading text-h1 text-ink">{title}</h1>
+			<div className="min-w-0 max-w-(--header-max) flex-[1_1_20rem]">
+				<h1 className="t-heading text-h1 wrap-break-word text-ink">{title}</h1>
 				{description ? (
 					<p className="mt-2 text-pretty text-sm leading-relaxed text-muted">{description}</p>
 				) : null}
 				{children ? <div className="mt-3">{children}</div> : null}
 			</div>
-			{actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+			{actions ? (
+				<div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>
+			) : null}
 		</header>
 	);
 }
@@ -79,7 +77,7 @@ export function AdminPage({
 	children,
 }: Readonly<AdminPageProps>) {
 	return (
-		<div className={cn("space-y-page", WIDTH[width], className)}>
+		<div className={cn("min-w-0 space-y-page", WIDTH[width], className)}>
 			<AdminPageHeader title={title} description={description} actions={actions}>
 				{intro}
 			</AdminPageHeader>
@@ -108,7 +106,7 @@ export function AdminPageHeaderSkeleton() {
  * Wrapper for every loading.tsx: same width and rhythm as the page it stands
  * in for, header skeleton first, then the route's own row skeletons. The
  * 150ms show-delay keeps a warm-cache navigation from flashing a skeleton
- * (research: skeleton show-delay); reduced motion shows it immediately.
+ * before a loading placeholder becomes useful.
  */
 export function AdminPageSkeleton({
 	width = "default",
@@ -120,7 +118,7 @@ export function AdminPageSkeleton({
 			aria-busy="true"
 			aria-live="polite"
 			className={cn(
-				"space-y-page starting:opacity-0 motion-safe:transition-opacity motion-safe:delay-(--duration-fast) motion-safe:duration-(--duration-fast)",
+				"min-w-0 space-y-page starting:opacity-0 transition-opacity delay-(--duration-fast) duration-(--duration-fast)",
 				WIDTH[width],
 			)}
 		>

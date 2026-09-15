@@ -1,6 +1,5 @@
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { SectionCta } from "@/components/home/section-cta";
@@ -61,7 +60,6 @@ export function EventsTeaser({
 
 	return (
 		<Section id="events" accent="peacock" padded rhythm="grand">
-			<KachniRule form="long" className="mb-(--space-block)" />
 			<Spread
 				header={
 					<Reveal>

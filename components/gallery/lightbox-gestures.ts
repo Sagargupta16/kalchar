@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import type { Artwork } from "@/lib/types";
 
@@ -82,21 +82,32 @@ export function useLightboxGestures({
 		resetZoom();
 	}, [artwork.slug, resetZoom]);
 
-	const clampPan = useCallback((value: number, size: number, atLevel: number) => {
-		const limit = ((atLevel - 1) * size) / 2;
-		return Math.min(limit, Math.max(-limit, value));
-	}, []);
+	const clampPan = useCallback(
+		(value: number, size: number, originPercent: number) => {
+			const overflow = (level - 1) * size;
+			// Scaling grows each edge away from the actual tap/hover origin.
+			const upper = (overflow * originPercent) / 100;
+			return Math.min(upper, Math.max(upper - overflow, value));
+		},
+		[level],
+	);
 	const panBy = useCallback(
 		(dx: number, dy: number) => {
 			const rect = figureRef.current?.getBoundingClientRect();
 			if (!rect) return;
-			setPan((p) => ({
-				x: clampPan(p.x + dx, rect.width, level),
-				y: clampPan(p.y + dy, rect.height, level),
-			}));
+			setPan((p) => {
+				const x = clampPan(p.x + dx, rect.width, zoomOrigin.x);
+				const y = clampPan(p.y + dy, rect.height, zoomOrigin.y);
+				return x === p.x && y === p.y ? p : { x, y };
+			});
 		},
-		[clampPan, level],
+		[clampPan, zoomOrigin],
 	);
+
+	// Keep an existing pan inside the new bounds when zoom or its origin changes.
+	useLayoutEffect(() => {
+		panBy(0, 0);
+	}, [panBy]);
 
 	/** Keyboard zoom stops: fit, tap level, viewport max (deduped, ordered). */
 	const zoomStops = useCallback(() => {

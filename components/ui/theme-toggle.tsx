@@ -34,6 +34,7 @@ type Mode = "light" | "dark";
 
 // Must match the localStorage key read by the pre-paint script in app/layout.tsx.
 const STORAGE_KEY = "theme";
+const THEME_EVENT = "kalchar:theme-change";
 
 const THEME_COLOR: Record<Mode, string> = {
 	light: SERVER_BRAND_COLORS.paper,
@@ -48,6 +49,7 @@ function applyMode(mode: Mode) {
 	root.classList.add(SWITCHING_CLASS);
 	root.classList.toggle("dark", mode === "dark");
 	document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[mode]);
+	window.dispatchEvent(new Event(THEME_EVENT));
 	try {
 		localStorage.setItem(STORAGE_KEY, mode);
 	} catch {
@@ -93,7 +95,13 @@ export function ThemeToggle({
 				?.setAttribute("content", THEME_COLOR[next]);
 		};
 		addEventListener("storage", onStorage);
-		return () => removeEventListener("storage", onStorage);
+		const onThemeChange = () =>
+			setMode(document.documentElement.classList.contains("dark") ? "dark" : "light");
+		addEventListener(THEME_EVENT, onThemeChange);
+		return () => {
+			removeEventListener("storage", onStorage);
+			removeEventListener(THEME_EVENT, onThemeChange);
+		};
 	}, []);
 
 	function setTheme(next: Mode) {
@@ -122,7 +130,7 @@ export function ThemeToggle({
 		return (
 			<div
 				aria-hidden="true"
-				className={cn("inline-grid h-12 w-24 rounded-full border border-line bg-canvas", className)}
+				className={cn("inline-grid h-14 w-28 rounded-full border border-line bg-canvas", className)}
 			/>
 		);
 	}
@@ -151,7 +159,7 @@ export function ThemeToggle({
 	return (
 		<fieldset
 			className={cn(
-				"inline-grid h-12 w-24 grid-cols-2 rounded-full border border-line bg-canvas p-0.5",
+				"inline-grid h-14 w-28 grid-cols-2 rounded-full border border-line bg-canvas p-1",
 				className,
 			)}
 		>

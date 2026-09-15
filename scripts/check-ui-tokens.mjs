@@ -187,8 +187,7 @@ export const PATTERNS = [
 		id: "inline-plate-glow",
 		re: /"--plate-glow"/,
 		phase: "now",
-		message:
-			"Inline --plate-glow only in PlateFrame and the artwork lightbox (visual-direction 1.9)",
+		message: "Inline --plate-glow only in PlateFrame and the artwork viewer plate",
 	},
 	{
 		id: "inline-sheen-every",
@@ -218,7 +217,7 @@ export const ALLOW = [
 	// The plate glow and sheen period are set inline only where visual-direction
 	// 1.9 sanctions them (the palette array raw-colour exception).
 	{ id: "inline-plate-glow", path: "components/gallery/plate-frame.tsx" },
-	{ id: "inline-plate-glow", path: "components/gallery/artwork-lightbox.tsx" },
+	{ id: "inline-plate-glow", path: "components/gallery/artwork-viewer-plate.tsx" },
 	{ id: "inline-sheen-every", path: "components/gallery/plate-frame.tsx" },
 ];
 

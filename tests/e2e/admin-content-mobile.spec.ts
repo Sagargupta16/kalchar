@@ -170,17 +170,18 @@ test.describe("admin content @mobile", () => {
 
 	test("eventImages: Remove is confirmed and labelled", async ({ page }) => {
 		await mountAdmin(page, "eventImages");
-		await page.getByRole("button", { name: "Remove photo 1" }).click();
+		await page.getByRole("button", { name: "Remove photo 1", exact: true }).click();
 		const dialog = page.getByRole("dialog", { name: "Remove photo 1?" });
 		await expect(dialog.getByText(/This is the cover/)).toBeVisible();
 		await dialog.getByRole("button", { name: "Keep photo", exact: true }).click();
+		await expect(dialog).toHaveCount(0);
 		await expect(page.locator("li img")).toHaveCount(3);
-		await page.getByRole("button", { name: "Remove photo 1" }).click();
+		await page.getByRole("button", { name: "Remove photo 1", exact: true }).click();
 		await page.getByRole("dialog").getByRole("button", { name: "Remove photo", exact: true }).click();
 		await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
 		await expect(page.locator("li img")).toHaveCount(3);
 		await outcome(page, "success");
-		await page.getByRole("button", { name: "Remove photo 1" }).click();
+		await page.getByRole("button", { name: "Remove photo 1", exact: true }).click();
 		await page.getByRole("dialog").getByRole("button", { name: "Remove photo", exact: true }).click();
 		await expect(page.locator("li img")).toHaveCount(2);
 	});
@@ -286,6 +287,7 @@ test.describe("admin content @mobile", () => {
 			dialog.getByRole("button", { name: "Delete testimonial", exact: true }),
 		).toBeVisible();
 		await dialog.getByRole("button", { name: "Keep testimonial", exact: true }).click();
+		await expect(dialog).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Delete testimonial from Mira" })).toBeVisible();
 	});
 
@@ -482,4 +484,3 @@ test.describe("admin content visual pass @mobile", () => {
 		expect(sent.featured).toBe("on");
 	});
 });
-

@@ -8,35 +8,35 @@ import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
 import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
+import { cn } from "@/lib/utils";
 import styles from "./trust.module.css";
 
 const site = getSite();
 const trust = site.trust;
+const pageTitle = trust?.title?.trim() || "Frequently asked questions";
+const pageLead = trust?.lead?.trim();
+const eyebrow = trust?.eyebrow?.trim() || "FAQ";
+const faqs = (trust?.faqs ?? []).filter(
+	({ question, answer }) => question.trim().length > 0 && answer.trim().length > 0,
+);
 
 export const metadata = createPageMetadata({
-	title: trust?.title ?? "FAQ",
-	description: trust?.lead ?? site.brand.description,
+	title: pageTitle,
+	description: pageLead || site.brand.description,
 	path: "/trust/",
 });
 
 /**
- * Trust / FAQ page: how buying an original over WhatsApp works, shipping, care,
- * returns, and authenticity. Content is fully editable in data/site.json (read
- * via the sync getSite()), so the maintainer changes copy without a deploy.
- *
- * The accordion is a native <details>/<summary> -- accessible and
- * keyboard-friendly with no JS. Opening animates the answer's grid rows
- * 0fr -> 1fr (trust.module.css; reduced motion opens instantly); the open
- * summary tints on the section wash. FAQPage JSON-LD is emitted from the same
- * content for rich results. Header per the 2.0 standard: grand rhythm on the
- * default terracotta wash (visual-direction 2.10).
+ * Complete FAQ entries from getSite() feed both the native disclosures and
+ * FAQPage JSON-LD. Native details owns disclosure behavior; the page-local CSS
+ * fades and lifts each answer when opened.
  */
 export default function TrustPage() {
-	if (!trust || trust.faqs.length === 0) {
+	if (faqs.length === 0) {
 		return (
-			<main>
-				<Section background="wash" rhythm="grand" padded>
-					<PageHeader kachni eyebrow="FAQ" title="Frequently asked questions" />
+			<main className={styles.page}>
+				<Section background="wash" padded containerClassName="py-(--space-block)">
+					<PageHeader eyebrow={eyebrow} title={pageTitle} lead={pageLead} />
 				</Section>
 				<Section padded containerClassName="pt-(--space-block)">
 					<EmptyState
@@ -57,15 +57,15 @@ export default function TrustPage() {
 	const jsonLd = {
 		"@context": "https://schema.org",
 		"@type": "FAQPage",
-		mainEntity: trust.faqs.map((f) => ({
+		mainEntity: faqs.map((faq) => ({
 			"@type": "Question",
-			name: f.question,
-			acceptedAnswer: { "@type": "Answer", text: f.answer },
+			name: faq.question,
+			acceptedAnswer: { "@type": "Answer", text: faq.answer },
 		})),
 	};
 
 	return (
-		<main>
+		<main className={styles.page}>
 			<script
 				type="application/ld+json"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: FAQPage JSON-LD, angle brackets escaped
@@ -73,35 +73,60 @@ export default function TrustPage() {
 					__html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
 				}}
 			/>
-			<Section background="wash" rhythm="grand" padded>
-				<PageHeader kachni eyebrow={trust.eyebrow ?? "FAQ"} title={trust.title} lead={trust.lead} />
+			<Section background="wash" padded containerClassName="py-(--space-block)">
+				<PageHeader eyebrow={eyebrow} title={pageTitle} lead={pageLead} />
 			</Section>
 
-			<Section padded containerClassName="pt-(--space-block)">
+			<Section
+				padded
+				containerClassName="grid gap-8 pt-(--space-block) lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-12"
+			>
 				{/* The list shares the h1's left axis and stays prose-measured (2.10). */}
 				<div className="max-w-(--prose-max) divide-y divide-line border-y border-line">
-					{trust.faqs.map((faq, i) => (
+					{faqs.map((faq, i) => (
 						<Reveal key={faq.question} delayMs={staggerDelay(i)}>
 							<details className="group">
-								<summary className="-mx-3 flex min-h-control cursor-pointer items-center justify-between gap-4 rounded-(--radius-sm) px-3 py-3 text-left text-sm font-medium text-ink transition-colors pressable group-open:bg-(--section-wash) [&::-webkit-details-marker]:hidden">
-									{faq.question}
+								<summary className="flex min-h-control cursor-pointer items-center justify-between gap-4 rounded-md px-3 py-4 text-left text-base font-medium text-ink transition-colors pressable hover:bg-canvas group-open:bg-(--section-wash) [&::-webkit-details-marker]:hidden">
+									<span className={styles.question}>{faq.question}</span>
 									<ChevronDown
 										size={18}
 										aria-hidden="true"
 										className="shrink-0 text-muted transition-transform group-open:rotate-180"
 									/>
 								</summary>
-								{/* Rows animate 0fr -> 1fr on open; the inner box hides the
-								    overflow while the row grows. */}
+								{/* Native details owns the layout; only the answer's opacity
+								    and transform animate on opening. */}
 								<div className={styles.answer}>
 									<div className="overflow-hidden">
-										<p className="t-body pb-4 pt-1">{faq.answer}</p>
+										<p className="t-body px-3 pb-5 pt-3">{faq.answer}</p>
 									</div>
 								</div>
 							</details>
 						</Reveal>
 					))}
 				</div>
+				<aside className="self-start rounded-md border border-line bg-canvas p-(--card-pad) lg:sticky lg:top-[calc(var(--header-h-shrunk)+var(--space-page))]">
+					<h2 className="t-display text-h3">Need help with a particular piece?</h2>
+					<p className="mt-3 text-sm leading-relaxed text-muted">
+						Share the artwork name or link and your question. We can talk through the details with
+						you.
+					</p>
+					<Link
+						href="/contact"
+						className={cn(buttonVariants({ variant: "primary" }), "mt-5 w-full whitespace-normal")}
+					>
+						Ask us a question
+					</Link>
+					<Link
+						href="/work"
+						className={cn(
+							buttonVariants({ variant: "link" }),
+							"mt-2 min-h-control w-full whitespace-normal text-center text-ink",
+						)}
+					>
+						Explore the artwork
+					</Link>
+				</aside>
 			</Section>
 		</main>
 	);

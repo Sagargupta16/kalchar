@@ -62,10 +62,7 @@
    (Button) keep tweening box-shadow via transition-ui; their area is small.
    Pair with hover:-translate-y-0.5 and transition-ui (elevate-e2 on cards and
    plates, elevate-e3 where e3 is the hover rung). Needs isolation so
-   z-index: -1 stays inside the card instead of falling behind <main>.
-   Reduced motion: the fade still runs (opacity is allowed); only the
-   translate is dropped (animations.css reduced block strips it from
-   transition-ui). */
+   z-index: -1 stays inside the card instead of falling behind <main>. */
 @utility elevate-* {
   position: relative;
   isolation: isolate;

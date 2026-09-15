@@ -5,7 +5,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 /**
  * The @mobile CDP touch suite (visual-direction 2.2/2.4), split from
  * public-interactions.spec.ts for the 500-line ceiling: trusted touch drag
- * paging and dismissal, press cues and the lead-tile span. Every case is
+ * paging and dismissal, press cues and whole-artwork previews. Every case is
  * @mobile-tagged, so the desktop project's grepInvert skips this file.
  */
 
@@ -77,6 +77,26 @@ test("@mobile a short slow drag springs back; past the threshold it pages", asyn
 	await expect(title).not.toHaveText(initial);
 });
 
+test("@mobile double tap zooms while a single tap quiets the viewer controls", async ({ page }) => {
+	await page.goto("/work/");
+	await galleryCards(page).first().click();
+	const dialog = page.getByRole("dialog");
+	const centre = await figureCentre(page);
+	await page.touchscreen.tap(centre.x, centre.y);
+	await page.touchscreen.tap(centre.x, centre.y);
+	await expect(dialog.locator("[data-zoom]")).toHaveCount(1);
+	// Fit is available through the existing keyboard zoom, without a second viewer mode.
+	await page.keyboard.press("-");
+	await expect(dialog.locator("[data-zoom]")).toHaveCount(0);
+	await page.touchscreen.tap(centre.x, centre.y);
+	const rail = dialog.locator('nav[aria-label="Artwork thumbnails"]');
+	await expect(rail).toHaveAttribute("inert", "");
+	await expect(dialog.getByRole("link", { name: "Enquire on WhatsApp" })).toBeInViewport();
+	await expect(dialog.getByRole("button", { name: "Close", exact: true })).toBeVisible();
+	await page.touchscreen.tap(centre.x, centre.y);
+	await expect(rail).not.toHaveAttribute("inert", "");
+});
+
 test("@mobile a downward drag past the threshold dismisses the viewer", async ({ page }) => {
 	await page.goto("/work/");
 	await galleryCards(page).first().click();
@@ -87,7 +107,46 @@ test("@mobile a downward drag past the threshold dismisses the viewer", async ({
 	await expect(dialog).toHaveCount(0);
 });
 
-async function expectPressCue(page: Page, control: Locator) {
+for (const viewer of ["artwork", "event"] as const) {
+	test(`@mobile diagonal downward drags dismiss the ${viewer} viewer without paging`, async ({
+		page,
+	}) => {
+		if (viewer === "artwork") {
+			await page.goto("/work/");
+			await galleryCards(page).first().click();
+		} else {
+			await page.goto("/events/");
+			await page.getByRole("button", { name: "View photo 1 from Studio gathering" }).click();
+		}
+		const dialog = page.getByRole("dialog");
+		await expect(dialog).toBeVisible();
+		const centre = await figureCentre(page);
+		await touchDrag(page, centre, { x: centre.x - 120, y: centre.y + 240 });
+		await expect(dialog).toHaveCount(0);
+	});
+}
+
+test("@mobile an unavailable event image preserves the viewer and its navigation", async ({
+	page,
+}) => {
+	await page.unroute("**/media/**");
+	await page.route("**/media/**", (route) => route.abort("failed"));
+	await page.goto("/events/");
+	await page.getByRole("button", { name: "View photo 1 from Studio gathering" }).click();
+	const dialog = page.getByRole("dialog");
+	const fallback = dialog.getByRole("img", { name: "Studio gathering, photo 1 of 7" });
+	await expect(fallback).toBeVisible();
+	const box = await fallback.boundingBox();
+	expect(box?.width).toBeGreaterThan(200);
+	expect(box?.height).toBeGreaterThan(200);
+	await dialog.getByRole("button", { name: "Next photo" }).click();
+	await expect(dialog.getByRole("img", { name: "Studio gathering, photo 2 of 7" })).toBeVisible();
+	await dialog.getByRole("button", { name: "Close", exact: true }).click();
+	await expect(dialog).toHaveCount(0);
+});
+
+async function expectPressCue(page: Page, control: Locator, dismisses = false) {
+	await control.scrollIntoViewIfNeeded();
 	const box = await control.boundingBox();
 	expect(box).not.toBeNull();
 	const x = (box?.x ?? 0) + (box?.width ?? 0) / 2;
@@ -98,6 +157,10 @@ async function expectPressCue(page: Page, control: Locator) {
 		.poll(() => control.evaluate((element) => getComputedStyle(element).transform))
 		.toContain("0.97");
 	await page.mouse.up();
+	if (dismisses) {
+		await expect(control).toHaveCount(0);
+		return;
+	}
 	await expect
 		.poll(() => control.evaluate((element) => getComputedStyle(element).transform))
 		.toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
@@ -105,19 +168,28 @@ async function expectPressCue(page: Page, control: Locator) {
 
 test("@mobile pressable controls scale on touch", async ({ page }) => {
 	await page.goto("/work/");
-	await expectPressCue(page, page.getByRole("button", { name: "Madhubani", exact: true }));
+	await expectPressCue(page, page.getByRole("button", { name: /^Madhubani \d+$/ }));
 	await expectPressCue(page, galleryCards(page).first());
 	await expectPressCue(
 		page,
 		page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }),
+		true,
 	);
 });
 
-test("@mobile the lead tile spans the full grid width", async ({ page }) => {
+test("@mobile uniform previews show whole paintings in two columns", async ({ page }) => {
 	await page.goto("/work/");
-	const grid = page.locator("main ul").first();
-	const lead = grid.locator("li").first();
-	const gridBox = await grid.boundingBox();
-	const leadBox = await lead.boundingBox();
-	expect(Math.abs((gridBox?.width ?? 0) - (leadBox?.width ?? 0))).toBeLessThanOrEqual(2);
+	const cards = galleryCards(page);
+	await expect(cards.nth(1)).toBeVisible();
+	const first = await cards.first().boundingBox();
+	const second = await cards.nth(1).boundingBox();
+	if (!first || !second) throw new Error("Both first-row artwork cards must be visible");
+	expect(Math.abs(first.width - second.width)).toBeLessThanOrEqual(2);
+	expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(2);
+	expect(second.x).toBeGreaterThan(first.x + first.width);
+	const image = cards.first().locator("img");
+	await expect(image).toHaveCSS("object-fit", "contain");
+	const preview = await image.boundingBox();
+	if (!preview) throw new Error("The artwork preview must be visible");
+	expect(Math.abs(preview.width / preview.height - 4 / 5)).toBeLessThan(0.02);
 });

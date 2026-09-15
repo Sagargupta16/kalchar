@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
+import { useMobileMenu } from "@/components/layout/use-mobile-menu";
 import { Container } from "@/components/ui/container";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DUR, EASE_OUT, SPRING_INDICATOR } from "@/lib/motion";
@@ -38,37 +39,16 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 	const [open, setOpen] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 	const scrollThresholdRef = useRef<HTMLSpanElement>(null);
+	const headerRef = useRef<HTMLElement>(null);
+	const menuButtonRef = useRef<HTMLButtonElement>(null);
+	const closeMenu = useCallback(() => setOpen(false), []);
+	useMobileMenu(open, headerRef, menuButtonRef, closeMenu);
 
 	// Close on route change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
 	useEffect(() => {
 		setOpen(false);
 	}, [pathname]);
-
-	// Body scroll lock (iOS-safe)
-	useEffect(() => {
-		if (!open) return;
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") setOpen(false);
-		};
-		document.addEventListener("keydown", onKey);
-		const { body } = document;
-		const scrollY = globalThis.scrollY;
-		body.style.position = "fixed";
-		body.style.top = `-${scrollY}px`;
-		body.style.left = "0";
-		body.style.right = "0";
-		body.style.width = "100%";
-		return () => {
-			document.removeEventListener("keydown", onKey);
-			body.style.position = "";
-			body.style.top = "";
-			body.style.left = "";
-			body.style.right = "";
-			body.style.width = "";
-			globalThis.scrollTo(0, scrollY);
-		};
-	}, [open]);
 
 	// Observe a fixed document threshold instead of doing work on every scroll frame.
 	useEffect(() => {
@@ -93,18 +73,23 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				aria-hidden="true"
 				className="pointer-events-none absolute left-0 top-12 h-px w-px"
 			/>
+			{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-modal is present only while the header has the dialog role. */}
 			<header
+				ref={headerRef}
+				role={open ? "dialog" : undefined}
+				aria-modal={open ? true : undefined}
+				aria-label={open ? "Site navigation" : undefined}
 				className={cn(
 					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
 					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
 					// the header stays a containing block for the drawer's absolute panel.
 					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
-					// as the gold hairline and e3 shadow arrive, so content sliding under the
+					// as the subtle edge and e1 shadow arrive, so content sliding under the
 					// bar is what reveals the material. Without backdrop-filter support the
 					// supports-[] fill never applies and the bar stays solid and readable.
 					"sticky top-0 z-nav border-b bg-bg backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-[border-color,box-shadow,background-color] duration-(--duration-base) ease-(--ease-out)",
 					scrolled
-						? "border-(--color-gold-hairline) shadow-e3 supports-[backdrop-filter]:bg-bg/85"
+						? "border-line shadow-e1 supports-[backdrop-filter]:bg-bg/85"
 						: "border-transparent",
 				)}
 			>
@@ -115,7 +100,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 					{/* Brand mark */}
 					<Link
 						href="/"
-						className="group flex min-h-control items-center gap-3 transition-colors hover:text-accent-text"
+						className="group flex min-h-control items-center gap-3 rounded-(--radius-sm) transition-colors hover:text-accent-text"
 						aria-label="Home"
 					>
 						<span
@@ -142,9 +127,9 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 					</Link>
 
 					{/* Desktop nav */}
-					<div className="hidden items-center gap-6 lg:flex">
+					<div className="hidden items-center gap-(--space-group) lg:flex">
 						<nav aria-label="Primary">
-							<ul className="flex items-center gap-6">
+							<ul className="flex items-center gap-1">
 								{NAV.map((item) => {
 									const active = isActive(item.href);
 									return (
@@ -153,18 +138,16 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 												href={item.href}
 												aria-current={active ? "page" : undefined}
 												className={cn(
-													"relative inline-flex min-h-control items-center text-xs uppercase tracking-meta transition-colors",
+													"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
 													active ? "text-accent-text" : "text-muted hover:text-ink",
 												)}
 											>
 												{item.label}
-												{/* 1px gold hairline indicator; decorative-contrast, so the
-												    accent text and aria-current carry the state (2.12). */}
 												{active ? (
 													<motion.span
 														aria-hidden="true"
 														layoutId="nav-indicator"
-														className="pointer-events-none absolute inset-x-0 bottom-1 h-px bg-(--color-gold-hairline)"
+														className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
 														transition={SPRING_INDICATOR}
 													/>
 												) : null}
@@ -176,8 +159,9 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 						</nav>
 						<Link
 							href={CONTACT.href}
+							aria-current={isActive(CONTACT.href) ? "page" : undefined}
 							className={cn(
-								"inline-flex min-h-control items-center rounded-full px-4 text-xs font-medium uppercase tracking-meta transition-ui pressable",
+								"inline-flex min-h-control items-center rounded-(--radius-sm) px-4 text-sm font-medium transition-ui pressable",
 								isActive(CONTACT.href)
 									? "bg-accent text-bg"
 									: "border border-accent/60 text-accent-text hover:bg-accent hover:text-bg",
@@ -192,6 +176,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 					<div className="flex items-center gap-2 lg:hidden">
 						<ThemeToggle compact />
 						<button
+							ref={menuButtonRef}
 							type="button"
 							onClick={() => setOpen((v) => !v)}
 							aria-expanded={open}
@@ -221,7 +206,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 					items={[...NAV, CONTACT]}
 					isActive={isActive}
 					whatsappHref={whatsappHref}
-					onClose={() => setOpen(false)}
+					onClose={closeMenu}
 				/>
 			</header>
 		</>

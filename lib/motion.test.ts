@@ -192,36 +192,31 @@ describe("app/animations.css", () => {
 	});
 
 	it("reveal-up travels by --reveal-travel and the flare grows on transform", () => {
-		expect(animations).toContain("translateY(var(--reveal-travel))");
+		expect(animations).toContain("var(--reveal-offset-y, var(--reveal-travel))");
 		expect(animations).toMatch(/@keyframes flare-grow\s*\{\s*to\s*\{\s*transform: scaleX\(1\);/);
 	});
 
-	it("the reduced-motion block strips transforms from transition-ui but keeps colour and opacity", () => {
-		const reduced = animations.slice(animations.indexOf("prefers-reduced-motion: reduce"));
-		expect(reduced).toMatch(
-			/\.transition-ui\s*\{\s*transition-property:\s*color, background-color, border-color, box-shadow, opacity;/,
-		);
-		for (const selector of [
-			".reveal-plate",
-			".theme-icon-in",
-			".rule-draw",
-			".notice-in",
-			".plate-float",
+	it("keeps animation styles independent of the operating-system motion preference", () => {
+		for (const file of [
+			"app/animations.css",
+			"components/decor/marquee.css",
+			"app/trust/trust.module.css",
 		]) {
-			expect(reduced).toContain(selector);
+			expect(read(file)).not.toContain("prefers-reduced-motion");
 		}
+		expect(read("components/motion/motion-provider.tsx")).toContain('reducedMotion="never"');
 	});
 });
 
 describe("staggerDelay", () => {
 	it("is 0 for the first item and grows by stepMs", () => {
 		expect(staggerDelay(0)).toBe(0);
-		expect(staggerDelay(1)).toBe(60);
-		expect(staggerDelay(3)).toBe(180);
+		expect(staggerDelay(1)).toBe(50);
+		expect(staggerDelay(3)).toBe(150);
 	});
 	it("caps at maxIndex and clamps negatives", () => {
-		expect(staggerDelay(5)).toBe(300);
-		expect(staggerDelay(9)).toBe(300);
+		expect(staggerDelay(5)).toBe(250);
+		expect(staggerDelay(9)).toBe(250);
 		expect(staggerDelay(-2)).toBe(0);
 	});
 });
@@ -229,10 +224,10 @@ describe("staggerDelay", () => {
 describe("gridStaggerDelay", () => {
 	it("staggers the eager cards by index and later cards within their row", () => {
 		expect(gridStaggerDelay(0)).toBe(0);
-		expect(gridStaggerDelay(5)).toBe(300);
+		expect(gridStaggerDelay(5)).toBe(250);
 		expect(gridStaggerDelay(6)).toBe(0);
-		expect(gridStaggerDelay(7)).toBe(60);
-		expect(gridStaggerDelay(8)).toBe(120);
+		expect(gridStaggerDelay(7)).toBe(50);
+		expect(gridStaggerDelay(8)).toBe(100);
 		expect(gridStaggerDelay(9)).toBe(0);
 	});
 });

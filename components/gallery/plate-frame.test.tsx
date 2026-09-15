@@ -13,9 +13,9 @@ describe("PlateFrame", () => {
 		expect(base).toContain("rounded-(--radius-md)");
 		expect(base).toContain("bg-canvas");
 		expect(base).toContain("shadow-e1-edged");
-		expect(base).toContain("elevate-e3");
+		expect(base).toContain("elevate-e2");
 		expect(base).toContain("transition-ui");
-		expect(base).toContain("group-hover:-translate-y-1");
+		expect(base).toContain("group-hover:-translate-y-0.5");
 		expect(base).toContain("relative overflow-hidden");
 	});
 
@@ -26,7 +26,7 @@ describe("PlateFrame", () => {
 		expect(base).toContain("opacity-0 group-hover:opacity-100");
 	});
 
-	it("rests the gold line at full opacity and the e3-edged shadow with goldRest", () => {
+	it("rests the gold line at full opacity and the e2-edged shadow with goldRest", () => {
 		const html = renderToStaticMarkup(
 			<PlateFrame goldRest>
 				<span />
@@ -34,7 +34,7 @@ describe("PlateFrame", () => {
 		);
 		expect(html).toContain("opacity-100");
 		expect(html).not.toContain("opacity-0");
-		expect(html).toContain("shadow-e3-edged");
+		expect(html).toContain("shadow-e2-edged");
 		expect(html).not.toContain("shadow-e1-edged");
 	});
 

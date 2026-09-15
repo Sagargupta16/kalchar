@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /** Cards above this index render through Motion whileInView; the first six paint
@@ -22,10 +23,7 @@ interface GalleryGridProps {
 	children: ReactNode;
 }
 
-/** The one artwork plate grid: 2 columns on phones, 3 (or 4) from lg. Plate-grid
- *  rhythm (visual-direction 1.5): wider row gap than column gap on purpose --
- *  captions need air below, plates sit shoulder to shoulder. overflow-x: clip so
- *  a mid-tilt plate corner never widens the page (TiltPlate host rule). */
+/** A consistent card grid with room for the hover lift and soft shadow. */
 export function GalleryGrid({
 	cols = 3,
 	spanLead = false,
@@ -35,7 +33,7 @@ export function GalleryGrid({
 	return (
 		<ul
 			className={cn(
-				"grid grid-cols-2 gap-x-4 gap-y-10 [overflow-x:clip] sm:gap-x-6 lg:gap-x-10 lg:gap-y-16",
+				"grid grid-cols-2 items-stretch gap-4 sm:gap-6",
 				cols === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
 				spanLead && "[&>li:first-child]:col-span-2 lg:[&>li:nth-child(7n+1)]:col-span-2",
 				className,
@@ -43,5 +41,34 @@ export function GalleryGrid({
 		>
 			{children}
 		</ul>
+	);
+}
+
+/** The route and search-parameter fallback reserve the same controls and flat grid. */
+export function GallerySkeleton() {
+	return (
+		<div role="status" aria-busy="true">
+			<span className="sr-only">Loading artwork</span>
+			<div className="mb-5 flex flex-wrap items-end gap-3 sm:gap-6">
+				<div className="grid w-full gap-2 sm:max-w-xl sm:flex-1">
+					<Skeleton className="h-5 w-40" />
+					<Skeleton className="h-control w-full" />
+				</div>
+				<Skeleton className="h-control w-44 rounded-full" />
+			</div>
+			<div className="flex gap-2 overflow-hidden py-3 lg:py-0">
+				{[0, 1, 2, 3, 4, 5, 6].map((slot) => (
+					<Skeleton key={slot} className="h-control w-24 shrink-0 rounded-full" />
+				))}
+			</div>
+			<Skeleton className="mt-5 h-5 w-40" />
+			<GalleryGrid className="mt-5">
+				{[0, 1, 2, 3, 4, 5].map((slot) => (
+					<li key={slot}>
+						<SkeletonCard />
+					</li>
+				))}
+			</GalleryGrid>
+		</div>
 	);
 }

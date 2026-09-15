@@ -13,7 +13,7 @@ import {
 } from "react";
 import { AdminNotice } from "./admin-notice";
 import { adminBtn, adminBtnDangerSolid, adminBtnPrimary, ICON_MD } from "./controls";
-import { Modal, ModalBody } from "./modal";
+import { Modal, ModalBody, useModalExit } from "./modal";
 import { usePendingVisible } from "./use-admin-action";
 
 const GENERIC_FAILURE = "Something went wrong. Refresh and try again.";
@@ -69,6 +69,13 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 	const [error, setError] = useState<string | null>(null);
 	const titleId = useId();
 	const bodyId = useId();
+	const resultRef = useRef(false);
+	const { closing, requestClose } = useModalExit(() => {
+		state?.resolve(resultRef.current);
+		setState(null);
+		setError(null);
+		setPending(false);
+	});
 
 	const confirm = useCallback<ConfirmFn>((opts) => {
 		return new Promise<boolean>((resolve) => {
@@ -76,21 +83,19 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 		});
 	}, []);
 
-	// A1's deferred exit is NOT wired here: page-wide locators in the locked
-	// suites (removals, outcome labels) hard-fail on strict-mode collisions
-	// while a closing dialog lingers, and visual-direction-admin 1.7 assigns
-	// the closing flag to the motion-polish step. useModalExit stays available.
 	const settle = useCallback(
 		(result: boolean) => {
-			state?.resolve(result);
-			setState(null);
-			setError(null);
-			setPending(false);
+			resultRef.current = result;
+			requestClose();
 		},
-		[state],
+		[requestClose],
 	);
+	const cancel = () => {
+		if (!pending && !closing) settle(false);
+	};
 
 	const runAction = async () => {
+		if (pending || closing) return;
 		if (!state?.action) return settle(true);
 		setError(null);
 		setPending(true);
@@ -115,7 +120,8 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 					describedBy={state.body ? bodyId : undefined}
 					placement="center"
 					size="md"
-					onClose={() => settle(false)}
+					closing={closing}
+					onClose={cancel}
 				>
 					<ModalBody>
 						<ConfirmPanel
@@ -126,9 +132,9 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 							destructive={state.destructive}
 							titleId={titleId}
 							bodyId={bodyId}
-							pending={pending}
+							pending={pending || closing}
 							error={error}
-							onCancel={() => settle(false)}
+							onCancel={cancel}
 							onConfirm={runAction}
 						/>
 					</ModalBody>
@@ -185,13 +191,13 @@ export function ConfirmPanel({
 			role="group"
 			aria-labelledby={headingId}
 			aria-describedby={body ? descriptionId : undefined}
-			className="grid gap-4"
+			className="grid gap-(--form-gap)"
 		>
 			<div className="flex items-start gap-3">
 				{destructive ? (
 					<span
 						aria-hidden="true"
-						className="grid size-9 shrink-0 place-items-center rounded-full bg-ruby/10 text-ruby"
+						className="grid size-9 shrink-0 place-items-center rounded-md bg-ruby-soft text-ruby"
 					>
 						<AlertTriangle size={ICON_MD} />
 					</span>
@@ -226,7 +232,7 @@ export function ConfirmPanel({
 					className={destructive ? adminBtnDangerSolid : adminBtnPrimary}
 				>
 					{spinning ? (
-						<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 					) : null}
 					{confirmLabel}
 				</button>

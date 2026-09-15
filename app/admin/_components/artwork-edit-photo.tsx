@@ -1,7 +1,6 @@
 "use client";
 
 import { Palette } from "lucide-react";
-import { useState } from "react";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { adminBtn, adminBtnPrimary, adminHelp, FOCUS_WITHIN, ICON_MD } from "./controls";
@@ -13,6 +12,8 @@ interface ArtworkEditPhotoProps {
 	thumb: string;
 	pending: boolean;
 	progress: UploadProgressState | null;
+	replacement: File | null;
+	onReplacementChange: (file: File | null) => void;
 	onRefreshPalette: () => void;
 	/** Resolves true when the new photo was written; the picker then clears. */
 	onReplace: (file: File) => Promise<boolean>;
@@ -29,14 +30,14 @@ export function ArtworkEditPhoto({
 	thumb,
 	pending,
 	progress,
+	replacement,
+	onReplacementChange,
 	onRefreshPalette,
 	onReplace,
 }: Readonly<ArtworkEditPhotoProps>) {
-	const [replacement, setReplacement] = useState<File | null>(null);
-
 	const replace = async () => {
 		if (!replacement) return;
-		if (await onReplace(replacement)) setReplacement(null);
+		if (await onReplace(replacement)) onReplacementChange(null);
 	};
 
 	return (
@@ -44,14 +45,22 @@ export function ArtworkEditPhoto({
 			<legend className="sr-only">Photo</legend>
 			<div className="relative overflow-hidden rounded-(--radius-md) bg-canvas">
 				{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
-				<img src={thumb} alt="" className="aspect-post max-h-[40svh] w-full object-contain" />
+				<img
+					src={thumb}
+					alt=""
+					className="aspect-post max-h-[28svh] w-full object-contain lg:max-h-[50svh]"
+				/>
 				<label className={cn(PHOTO_CHIP, "absolute right-2 bottom-2", FOCUS_WITHIN)}>
 					Change photo
 					<input
 						type="file"
 						name="image"
 						accept="image/jpeg,image/png,image/webp"
-						onChange={(e) => setReplacement(e.currentTarget.files?.[0] ?? null)}
+						onChange={(event) => {
+							const chosen = event.currentTarget.files?.[0];
+							if (chosen) onReplacementChange(chosen);
+							event.currentTarget.value = "";
+						}}
 						className="sr-only"
 					/>
 				</label>
@@ -82,7 +91,11 @@ export function ArtworkEditPhoto({
 				</button>
 			</div>
 			{replacement ? (
-				<PhotoPreview file={replacement} disabled={pending} onClear={() => setReplacement(null)} />
+				<PhotoPreview
+					file={replacement}
+					disabled={pending}
+					onClear={() => onReplacementChange(null)}
+				/>
 			) : null}
 			{replacement ? (
 				<button type="button" onClick={replace} className={cn(adminBtnPrimary, "w-full sm:w-fit")}>

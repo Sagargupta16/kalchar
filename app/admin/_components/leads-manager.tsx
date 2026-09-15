@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useOptimistic, useState, useSyncExternalStore } from "react";
+import { useEffect, useOptimistic, useRef, useState, useSyncExternalStore } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LEAD_STATUS_LABEL } from "@/lib/lead-triage";
 import type { Lead, LeadStatus } from "@/lib/types";
@@ -71,6 +71,8 @@ export function LeadsManager({
 	const [failedId, setFailedId] = useState<string | null>(null);
 	const [lens, setLens] = useState<Lens>("all");
 	const [selectedId, setSelectedId] = useState<string | null>(initialLeadId);
+	const inboxRef = useRef<HTMLElement>(null);
+	const restoreInboxFocus = useRef(false);
 	const isDesktop = useIsDesktop();
 	// The sheet is a modal dialog, so it mounts only after the client has
 	// measured the viewport; the pane column is CSS-hidden below lg.
@@ -85,6 +87,15 @@ export function LeadsManager({
 			state.map((l) => (l.id === patch.id ? { ...l, status: patch.status } : l)),
 	);
 
+	useEffect(() => {
+		if (pending || selectedId !== null || !restoreInboxFocus.current) return;
+		restoreInboxFocus.current = false;
+		const filter = inboxRef.current?.querySelector<HTMLButtonElement>(
+			'button[aria-pressed="true"]',
+		);
+		(filter ?? inboxRef.current)?.focus();
+	}, [pending, selectedId]);
+
 	const select = (id: string | null) => {
 		setSelectedId(id);
 		setLeadParam(id);
@@ -92,6 +103,8 @@ export function LeadsManager({
 
 	/** Run a mutation and remember which enquiry it belongs to, for error routing. */
 	const act = (id: string, fn: () => Promise<unknown>, after?: () => void) => {
+		if (pending) return Promise.resolve(false);
+		dismissUndo();
 		setFailedId(null);
 		return run(fn, after).then((ok) => {
 			if (!ok) setFailedId(id);
@@ -100,6 +113,7 @@ export function LeadsManager({
 	};
 
 	const onStatus = (id: string, status: LeadStatus) => {
+		if (pending) return Promise.resolve(false);
 		const lead = leads.find((l) => l.id === id);
 		if (!lead || lead.status === status) return Promise.resolve(true);
 		const previous = lead.status;
@@ -112,13 +126,21 @@ export function LeadsManager({
 			},
 			() => {
 				setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+				if (lens !== "all" && status !== lens) {
+					restoreInboxFocus.current = true;
+					if (isDesktop) select(null);
+				}
 				offerUndo({
 					message: `Enquiry from ${who} marked ${LEAD_STATUS_LABEL[status].toLowerCase()}`,
 					// The RAW reverse action: wrapping it in the same run() would trip the
 					// inFlight guard. The optimistic dispatch is legal inside run's transition.
 					action: async () => {
 						applyStatus({ id, status: previous });
-						return setLeadStatus(id, previous);
+						const result = await setLeadStatus(id, previous);
+						if (result.ok) {
+							setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+						}
+						return result;
 					},
 				});
 			},
@@ -143,6 +165,7 @@ export function LeadsManager({
 			() => deleteLead(lead.id),
 			() => {
 				setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+				restoreInboxFocus.current = true;
 				select(null);
 			},
 		);
@@ -155,7 +178,10 @@ export function LeadsManager({
 		},
 		{ all: 0, new: 0, contacted: 0, closed: 0 },
 	);
-	const shown = lens === "all" ? shownLeads : shownLeads.filter((l) => l.status === lens);
+	// Keep the active row and its detail mounted until the status result arrives.
+	const shown = shownLeads.filter(
+		(l) => lens === "all" || l.status === lens || (pending && l.id === selectedId),
+	);
 	const selectedLead = shownLeads.find((l) => l.id === selectedId) ?? null;
 
 	const detailProps = selectedLead
@@ -169,18 +195,22 @@ export function LeadsManager({
 		: null;
 
 	return (
-		<div className="space-y-group">
+		<section ref={inboxRef} aria-label="Enquiry inbox" tabIndex={-1} className="space-y-group">
 			{leads.length > 0 ? (
 				<div role="group" aria-label="Filter enquiries" className="flex flex-wrap gap-2">
 					{LENSES.map((key) => (
 						<button
 							key={key}
 							type="button"
+							disabled={pending}
 							aria-pressed={lens === key}
 							// Adjacent text and span concatenate to "New2" in the accessible
 							// name; the label keeps the space ("New 2").
 							aria-label={key === "new" ? `${LENS_LABEL.new} ${counts.new}` : undefined}
-							onClick={() => setLens(key)}
+							onClick={() => {
+								setLens(key);
+								if (key !== "all" && selectedLead?.status !== key) select(null);
+							}}
 							className={cn(adminBtn, "rounded-full")}
 						>
 							{LENS_LABEL[key]}
@@ -193,7 +223,7 @@ export function LeadsManager({
 					))}
 				</div>
 			) : null}
-			{err && !undo && (failedId === null || failedId !== selectedId) ? (
+			{err && failedId !== null && failedId !== selectedId ? (
 				<AdminNotice variant="error">{err}</AdminNotice>
 			) : null}
 			{leads.length === 0 ? (
@@ -210,7 +240,12 @@ export function LeadsManager({
 						variant="compact"
 						voice="tool"
 						title="All caught up"
-						body="New enquiries from the site appear here."
+						body="No new enquiries on this page. Show all to review the others."
+						action={
+							<button type="button" onClick={() => setLens("all")} className={adminBtn}>
+								Show all
+							</button>
+						}
 					/>
 				) : (
 					<EmptyState
@@ -226,13 +261,15 @@ export function LeadsManager({
 				)
 			) : null}
 			{shown.length > 0 ? (
-				<div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-page">
+				<div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-(--space-page)">
 					<ul className="space-y-tight lg:col-span-5">
 						{shown.map((lead) => (
 							<LeadRow
 								key={lead.id}
 								lead={lead}
 								selected={lead.id === selectedId}
+								disabled={pending}
+								pending={pending && lead.id === selectedId}
 								onOpen={() => select(lead.id)}
 							/>
 						))}
@@ -256,6 +293,7 @@ export function LeadsManager({
 			) : null}
 			{hydrated && !isDesktop && detailProps ? (
 				<LeadSheet
+					key={detailProps.lead.id}
 					{...detailProps}
 					onStatus={(status) => onStatusFromSheet(detailProps.lead.id, status)}
 					onClose={() => select(null)}
@@ -264,12 +302,15 @@ export function LeadsManager({
 			{undo ? (
 				<UndoBar
 					message={undo.message}
-					pending={undoPending}
+					pending={pending || undoPending}
 					error={undoError ? (err ?? undoError) : null}
-					onAction={undoNow}
+					onAction={() => {
+						setFailedId(null);
+						return undoNow();
+					}}
 					onDismiss={dismissUndo}
 				/>
 			) : null}
-		</div>
+		</section>
 	);
 }

@@ -6,13 +6,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
 import type { ArtworkTitle } from "@/lib/data";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createTestimonial } from "../testimonial-actions";
+import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { AdminSwitch } from "./admin-switch";
+import { useConfirm } from "./confirm-dialog";
 import {
 	adminBtn,
 	adminBtnPrimary,
@@ -29,13 +30,6 @@ import { UndoBar, useUndo } from "./undo-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
-interface CreatedTestimonial {
-	id: string;
-	author: string;
-	featured: boolean;
-	artworkSlug: string | null;
-}
-
 /**
  * Admin CRUD for testimonials: a collapsed create panel, then a list where
  * each row can be featured (shown on home) or deleted. The picker and the row
@@ -45,62 +39,64 @@ export function TestimonialsManager({
 	testimonials: initial,
 	artworks,
 }: Readonly<{ testimonials: Testimonial[]; artworks: readonly ArtworkTitle[] }>) {
-	const createAction = useAdminAction();
 	const { run: undoRun } = useAdminAction();
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(undoRun);
-	const reduceMotion = usePrefersReducedMotion();
 	const headingId = useId();
+	const addRef = useRef<HTMLButtonElement>(null);
+	const undoTarget = useRef<string | null>(null);
 	const [creating, setCreating] = useState(false);
-	const [created, setCreated] = useState<CreatedTestimonial | null>(null);
-	const createdRef = useRef<CreatedTestimonial | null>(null);
+	const [created, setCreated] = useState<Testimonial | null>(null);
 	const [arrivedId, setArrivedId] = useState<string | null>(null);
-	const [items, setItems] = useServerSyncedList(initial, () => {
-		if (createdRef.current) setArrivedId(createdRef.current.id);
-	});
+	const [items, setItems] = useServerSyncedList(initial);
 
 	const artworkBySlug = new Map(artworks.map((a) => [a.slug, a]));
 
 	// Scroll the just-created row into view and highlight it while the timer runs (C13).
 	useEffect(() => {
 		if (!arrivedId) return;
-		requestAnimationFrame(() => {
-			document
-				.getElementById(`testimonial-${arrivedId}`)
-				?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+		const frame = requestAnimationFrame(() => {
+			const row = document.getElementById(`testimonial-${arrivedId}`);
+			row?.focus({ preventScroll: true });
+			row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		});
 		const timer = window.setTimeout(() => setArrivedId(null), SAVED_BADGE_DURATION_MS);
-		return () => window.clearTimeout(timer);
-	}, [arrivedId, reduceMotion]);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.clearTimeout(timer);
+		};
+	}, [arrivedId]);
 
 	const openPanel = () => {
 		setCreated(null);
-		createdRef.current = null;
 		setCreating(true);
 	};
 
-	const handleCreate = (fd: FormData, reset: () => void) => {
-		setCreated(null);
-		createdRef.current = null;
-		const author = String(fd.get("authorName") ?? "").trim();
-		const featured = fd.get("featured") != null;
-		const artworkSlug = String(fd.get("artworkSlug") ?? "").trim() || null;
-		let createdId: string | null = null;
-		createAction.run(
-			() =>
-				createTestimonial(fd).then((result) => {
-					if (!isFailure(result)) createdId = result.id;
-					return result;
-				}),
-			() => {
-				reset();
-				setCreating(false);
-				if (createdId) {
-					const next = { id: createdId, author, featured, artworkSlug };
-					setCreated(next);
-					createdRef.current = next;
-				}
-			},
+	const closePanel = () => {
+		setCreating(false);
+		requestAnimationFrame(() => addRef.current?.focus());
+	};
+
+	const handleCreated = (fields: Omit<Testimonial, "order">) => {
+		const next = { ...fields, order: Math.max(0, ...items.map((item) => item.order)) + 1 };
+		setItems((previous) =>
+			previous.some((item) => item.id === next.id) ? previous : [...previous, next],
 		);
+		setCreated(next);
+		setArrivedId(next.id);
+		setCreating(false);
+	};
+
+	const handleDeleted = (id: string) => {
+		const index = items.findIndex((item) => item.id === id);
+		const next = items[index + 1] ?? items[index - 1];
+		setItems((previous) => previous.filter((item) => item.id !== id));
+		if (undoTarget.current === id) dismissUndo();
+		requestAnimationFrame(() => {
+			const target = next
+				? document.getElementById(`testimonial-${next.id}`)
+				: (document.getElementById("new-testimonial-quote") ?? addRef.current);
+			target?.focus();
+		});
 	};
 
 	const createdHref = created?.featured
@@ -116,15 +112,13 @@ export function TestimonialsManager({
 				<div className="min-w-0 space-y-group lg:col-span-4">
 					{creating ? (
 						<CreateTestimonialForm
-							pending={createAction.pending}
-							pendingVisible={createAction.pendingVisible}
-							err={createAction.err}
 							artworks={artworks}
-							onCancel={() => setCreating(false)}
-							onCreate={handleCreate}
+							onCancel={closePanel}
+							onCreate={handleCreated}
 						/>
 					) : (
 						<button
+							ref={addRef}
 							type="button"
 							onClick={openPanel}
 							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
@@ -136,7 +130,7 @@ export function TestimonialsManager({
 					{created ? (
 						<AdminNotice variant="success">
 							<span className="min-w-0">
-								Testimonial from {created.author} added.
+								Testimonial from {created.authorName} added.
 								{createdHref === null
 									? " It is not shown in public yet: feature it or link it to a piece."
 									: " "}
@@ -172,11 +166,15 @@ export function TestimonialsManager({
 								testimonial={t}
 								artwork={artworkBySlug.get(t.artworkSlug ?? "")}
 								highlighted={t.id === arrivedId}
+								disabled={undoPending}
 								onChanged={(next) =>
 									setItems((prev) => prev.map((item) => (item.id === next.id ? next : item)))
 								}
-								onDeleted={(id) => setItems((prev) => prev.filter((item) => item.id !== id))}
-								offerUndo={offerUndo}
+								onDeleted={handleDeleted}
+								offerUndo={(offer) => {
+									undoTarget.current = t.id;
+									offerUndo(offer);
+								}}
 							/>
 						))}
 						{items.length === 0 ? (
@@ -214,44 +212,90 @@ export function TestimonialsManager({
 }
 
 function CreateTestimonialForm({
-	pending,
-	pendingVisible,
-	err,
 	artworks,
 	onCancel,
 	onCreate,
 }: Readonly<{
-	pending: boolean;
-	pendingVisible: boolean;
-	err: string | null;
 	artworks: readonly ArtworkTitle[];
 	onCancel: () => void;
-	onCreate: (fd: FormData, reset: () => void) => void;
+	onCreate: (testimonial: Omit<Testimonial, "order">) => void;
 }>) {
+	const { pending, pendingVisible, err, run } = useAdminAction();
+	const confirm = useConfirm();
 	const headingId = useId();
 	const switchId = useId();
-	const formRef = useRef<HTMLFormElement>(null);
 	const [featured, setFeatured] = useState(false);
+	const [hasText, setHasText] = useState(false);
+	const dirty = hasText || featured;
+	useAdminDraftGuard(dirty || pending);
 
-	const cancel = () => {
-		formRef.current?.reset();
-		setFeatured(false);
+	const cancel = async () => {
+		if (pending) return;
+		if (
+			dirty &&
+			!(await confirm({
+				title: "Discard testimonial?",
+				body: "Your unsaved quote and author details will be lost.",
+				confirmLabel: "Discard testimonial",
+				cancelLabel: "Keep editing",
+			}))
+		)
+			return;
 		onCancel();
+	};
+
+	const submit = (form: HTMLFormElement) => {
+		if (pending) return;
+		for (const name of ["quote", "authorName"]) {
+			const field = form.elements.namedItem(name);
+			if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+				field.setCustomValidity(
+					field.value.trim()
+						? ""
+						: name === "quote"
+							? "Quote is required."
+							: "Author name is required.",
+				);
+			}
+		}
+		if (!form.reportValidity()) return;
+		const fd = new FormData(form);
+		void run(async () => {
+			const result = await createTestimonial(fd);
+			if (!isFailure(result)) {
+				onCreate({
+					id: result.id,
+					quote: String(fd.get("quote") ?? "").trim(),
+					authorName: String(fd.get("authorName") ?? "").trim(),
+					authorLocation: String(fd.get("authorLocation") ?? "").trim() || undefined,
+					artworkSlug: String(fd.get("artworkSlug") ?? "").trim() || undefined,
+					featured: fd.get("featured") === "on",
+				});
+			}
+			return result;
+		});
 	};
 
 	return (
 		<form
-			ref={formRef}
 			aria-labelledby={headingId}
 			onSubmit={(e) => {
 				e.preventDefault();
-				const form = e.currentTarget;
-				onCreate(new FormData(form), () => {
-					form.reset();
-					setFeatured(false);
-				});
+				submit(e.currentTarget);
 			}}
-			className={adminPanelInset}
+			onChange={(event) => {
+				const field = event.target;
+				if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+					field.setCustomValidity("");
+				}
+				const data = new FormData(event.currentTarget);
+				setHasText(
+					["quote", "authorName", "authorLocation", "artworkSlug"].some(
+						(name) => String(data.get(name) ?? "") !== "",
+					),
+				);
+			}}
+			className={cn(adminPanelInset, "@container/testimonial-form")}
 		>
 			<AdminPanelHeader
 				id={headingId}
@@ -259,8 +303,11 @@ function CreateTestimonialForm({
 				description="A few words from a buyer or guest, with their name."
 			/>
 			<p className={adminHelp}>Fields marked * are required.</p>
-			<div className="mt-4 grid gap-(--form-gap) sm:grid-cols-2">
-				<div className={cn(adminLabel, "sm:col-span-2")}>
+			<fieldset
+				disabled={pending}
+				className="mt-(--form-gap) grid min-w-0 gap-(--form-gap) @sm/testimonial-form:grid-cols-2"
+			>
+				<div className={cn(adminLabel, "@sm/testimonial-form:col-span-2")}>
 					<label htmlFor="new-testimonial-quote">Quote *</label>
 					<textarea
 						id="new-testimonial-quote"
@@ -294,12 +341,13 @@ function CreateTestimonialForm({
 						className={adminField}
 					/>
 				</div>
-				<div className={cn(adminLabel, "sm:col-span-2")}>
+				<div className={cn(adminLabel, "@sm/testimonial-form:col-span-2")}>
 					<label htmlFor="new-testimonial-artwork">Link to an artwork (optional)</label>
 					<select
 						id="new-testimonial-artwork"
 						name="artworkSlug"
 						defaultValue=""
+						aria-describedby="new-testimonial-visibility"
 						className={adminField}
 					>
 						<option value="">None</option>
@@ -314,7 +362,7 @@ function CreateTestimonialForm({
 				    switch share one 44px hit target; a hidden input carries the form value. */}
 				<label
 					htmlFor={switchId}
-					className="flex min-h-control cursor-pointer items-center justify-between gap-3 text-sm text-ink sm:col-span-2"
+					className="flex min-h-control cursor-pointer items-center justify-between gap-3 text-sm text-ink @sm/testimonial-form:col-span-2"
 				>
 					Feature on home page
 					<AdminSwitch
@@ -326,8 +374,15 @@ function CreateTestimonialForm({
 					/>
 					{featured ? <input type="hidden" name="featured" value="on" /> : null}
 				</label>
-			</div>
-			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<p
+					id="new-testimonial-visibility"
+					className={cn(adminHelp, "@sm/testimonial-form:col-span-2")}
+				>
+					Link a piece to show the quote on its artwork page. Feature it to show it on home. Leave
+					both unset to keep it in admin only.
+				</p>
+			</fieldset>
+			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 @sm/testimonial-form:flex-row @sm/testimonial-form:justify-end">
 				<button type="button" disabled={pending} onClick={cancel} className={adminBtn}>
 					Cancel
 				</button>
@@ -335,10 +390,10 @@ function CreateTestimonialForm({
 					type="submit"
 					disabled={pending}
 					aria-busy={pending}
-					className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+					className={cn(adminBtnPrimary, "w-full @sm/testimonial-form:w-auto")}
 				>
 					{pendingVisible ? (
-						<LoaderCircle size={ICON_MD} aria-hidden="true" className="motion-safe:animate-spin" />
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
 					) : (
 						<Plus size={ICON_MD} aria-hidden="true" />
 					)}
@@ -346,7 +401,7 @@ function CreateTestimonialForm({
 				</button>
 			</div>
 			{err ? (
-				<AdminNotice variant="error" className="mt-4">
+				<AdminNotice variant="error" className="mt-(--form-gap)">
 					{err}
 				</AdminNotice>
 			) : null}

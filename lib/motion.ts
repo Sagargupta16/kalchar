@@ -17,7 +17,7 @@
 export const DUR = {
 	instant: 0.1,
 	fast: 0.15,
-	base: 0.3,
+	base: 0.4,
 	enter: 0.4,
 	slow: 0.5,
 	/** Single-plate unveil (detail on client nav, spanning grid lead). Mirrors --duration-unveil. */
@@ -40,11 +40,11 @@ export const EASE_IN = [0.7, 0, 0.84, 0] as const;
 export const EASE_SHEET = [0.32, 0.72, 0, 1] as const;
 
 /** Lightbox and sheet panels (was duplicated in artwork-lightbox.tsx:28 and event-gallery.tsx:24). */
-export const SPRING_PANEL = { type: "spring", damping: 28, stiffness: 340 } as const;
+export const SPRING_PANEL = { type: "spring", visualDuration: DUR.base, bounce: 0 } as const;
 /** Lightbox hover zoom (artwork-lightbox.tsx:29). */
 export const SPRING_ZOOM = { type: "spring", stiffness: 200, damping: 25 } as const;
 /** Sliding active indicator in the site header and admin nav (site-header-client.tsx:26). */
-export const SPRING_INDICATOR = { type: "spring", stiffness: 400, damping: 30 } as const;
+export const SPRING_INDICATOR = { type: "spring", stiffness: 400, damping: 40 } as const;
 /** Grid reflow after a filter tap (layout="position" on gallery items). */
 export const SPRING_LAYOUT = { type: "spring", stiffness: 300, damping: 30 } as const;
 /** Motion-driven sheets and drag-dismiss releases: lands in DUR.base, inherits finger velocity, no bounce. */
@@ -56,7 +56,7 @@ export const SPRING_PRESS = { type: "spring", stiffness: 500, damping: 30 } as c
 export const PRESS_SCALE = 0.97;
 
 /** Mirrors --stagger-step and the stagger utility's cap. */
-export const STAGGER = { stepMs: 60, maxIndex: 5 } as const;
+export const STAGGER = { stepMs: 50, maxIndex: 5 } as const;
 
 export function staggerDelay(index: number): number {
 	return Math.min(Math.max(index, 0), STAGGER.maxIndex) * STAGGER.stepMs;
@@ -80,18 +80,18 @@ export function perSegmentEase(times: readonly number[]): (typeof EASE_IN_OUT)[]
 export const SHEEN_EVERY_S = 8;
 
 /** Reveal viewport margin shared by Reveal and any whileInView list. */
-export const REVEAL_VIEWPORT_MARGIN = "0px 0px -80px 0px";
+export const REVEAL_VIEWPORT_MARGIN = "0px 0px -24px 0px";
 /** Mount margin for ambient loops (pigment wash): animate only near the viewport. */
 export const LOOP_MOUNT_MARGIN = "300px 0px";
 /** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. */
-export const REVEAL_DISTANCE = { block: 20, item: 12 } as const;
+export const REVEAL_DISTANCE = { block: 24, item: 16 } as const;
 
 /** Pointer tilt on art plates (TiltPlate). 3deg, not portfolio-react's 4: a painting must not read as warped. */
 export const TILT_MAX_DEG = 3;
 export const TILT_PERSPECTIVE_PX = 800;
 
 /** Pointer parallax on the hero plate pair (portfolio-react usePointerParallax numbers).
- * Gate on (hover: hover) + usePrefersReducedMotion; travel = pointer(-1..1) x depth. */
+ * Fine pointers only; travel = pointer(-1..1) x depth. */
 export const PARALLAX_SPRING = { type: "spring", stiffness: 40, damping: 20 } as const;
 export const PLATE_PARALLAX_DEPTH = { front: 10, back: 6 } as const;
 

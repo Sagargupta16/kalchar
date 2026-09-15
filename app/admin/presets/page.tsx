@@ -10,7 +10,7 @@ export default async function AdminPresetsPage() {
 	return (
 		<AdminPage
 			title="Custom-order presets"
-			description="The dropdown options on the custom-order form. Add, rename, reorder or delete them; drag a row, or use its arrows, to reorder within a group."
+			description="Manage the size, budget and timeline choices on the custom-order form. Drag a row or use its arrows to reorder within a group, then choose Save order."
 		>
 			<PresetManager presets={[...presets]} />
 		</AdminPage>

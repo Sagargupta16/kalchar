@@ -20,8 +20,8 @@ export default async function AdminTestimonialsPage() {
 						their words&rdquo; row on the <span className="font-medium text-ink">home page</span>.
 					</li>
 					<li>
-						<span className="font-medium text-ink">Link an artwork</span> to also show it on that
-						piece&rsquo;s detail page.
+						<span className="font-medium text-ink">Link an artwork</span> to show it on that
+						piece&rsquo;s detail page, whether or not it is featured.
 					</li>
 					<li>Leave both unset and it stays here in admin only, not shown anywhere public.</li>
 				</ul>

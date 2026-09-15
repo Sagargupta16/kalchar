@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { staggerDelay } from "@/lib/motion";
+import { REVEAL_DISTANCE, staggerDelay } from "@/lib/motion";
 import { Reveal } from "./reveal";
 
 describe("Reveal", () => {
@@ -11,7 +11,8 @@ describe("Reveal", () => {
 			</Reveal>,
 		);
 		expect(html).toContain("reveal-up");
-		expect(html).toContain("animation-delay:120ms");
+		expect(html).toContain("animation-delay:100ms");
+		expect(html).toContain(`--reveal-offset-y:${REVEAL_DISTANCE.block}px`);
 		expect(html).not.toContain("reveal-plate");
 	});
 
@@ -54,6 +55,7 @@ describe("Reveal", () => {
 			</Reveal>,
 		);
 		expect(html).toContain("opacity:0");
+		expect(html).toContain(`translateY(${REVEAL_DISTANCE.block}px)`);
 		expect(html).not.toContain("clip-path");
 	});
 
@@ -64,5 +66,32 @@ describe("Reveal", () => {
 			</Reveal>,
 		);
 		expect(html).toContain("col-span-2");
+	});
+
+	it("uses shorter shared travel for item reveals", () => {
+		const html = renderToStaticMarkup(<Reveal variant="item">Item</Reveal>);
+		const eager = renderToStaticMarkup(
+			<Reveal eager variant="item">
+				Item
+			</Reveal>,
+		);
+		expect(html).toContain(`translateY(${REVEAL_DISTANCE.item}px)`);
+		expect(eager).toContain(`--reveal-offset-y:${REVEAL_DISTANCE.item}px`);
+	});
+
+	it("eager and viewport reveals enter from the requested side", () => {
+		const eager = renderToStaticMarkup(
+			<Reveal eager direction="left" distance={32}>
+				Copy
+			</Reveal>,
+		);
+		const inView = renderToStaticMarkup(
+			<Reveal direction="left" distance={32}>
+				Copy
+			</Reveal>,
+		);
+		expect(eager).toContain("--reveal-offset-x:-32px");
+		expect(eager).toContain("--reveal-offset-y:0px");
+		expect(inView).toContain("translateX(-32px)");
 	});
 });

@@ -18,10 +18,14 @@ import { adminInitialsDisc, adminRow } from "./controls";
 export function LeadRow({
 	lead,
 	selected,
+	disabled = false,
+	pending = false,
 	onOpen,
 }: Readonly<{
 	lead: Lead;
 	selected: boolean;
+	disabled?: boolean;
+	pending?: boolean;
 	onOpen: () => void;
 }>) {
 	const who = lead.name?.trim() || "Someone";
@@ -30,14 +34,17 @@ export function LeadRow({
 		<li>
 			<button
 				type="button"
+				disabled={disabled}
+				aria-busy={pending || undefined}
 				onClick={onOpen}
+				aria-expanded={selected}
 				className={cn(
 					adminRow,
-					"grid min-h-16 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 text-left pressable",
+					"grid min-h-16 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 text-left pressable disabled:pointer-events-none disabled:opacity-50",
 					selected && "border-accent",
 				)}
 			>
-				<span aria-hidden="true" className={cn(adminInitialsDisc, "size-11")}>
+				<span aria-hidden="true" className={cn(adminInitialsDisc, "size-control")}>
 					{leadInitials(who)}
 				</span>
 				<span className="min-w-0">
@@ -60,12 +67,12 @@ export function LeadRow({
 						</span>
 						{isNew ? <span className="sr-only">, new</span> : null}
 					</span>
-					<span className="mt-0.5 block truncate text-label text-muted">{leadSnippet(lead)}</span>
+					<span className="mt-1 block truncate text-label text-muted">{leadSnippet(lead)}</span>
 				</span>
 				{/* The stamp is relative to render time; the server and client prints may differ by a minute. */}
 				<span
 					suppressHydrationWarning
-					className="w-14 shrink-0 self-start pt-0.5 text-right text-micro text-muted tabular-nums"
+					className="w-14 shrink-0 self-start pt-1 text-right text-micro text-muted tabular-nums"
 				>
 					{formatLeadShortDate(lead.createdAt)}
 				</span>

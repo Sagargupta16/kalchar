@@ -1,21 +1,22 @@
 "use client";
 
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useId, useState } from "react";
+import { LoaderCircle, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { isFailure } from "@/lib/action-result";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
+import { CategoryItem, useCategoryDraftWarning } from "../categories/category-item";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminChipField,
 	adminError,
-	adminField,
-	adminIconBtn,
-	adminIconBtnDestructive,
 	adminIconBtnPrimary,
+	adminLabel,
 	adminPanelInset,
 	adminRow,
 	ICON_MD,
@@ -34,19 +35,69 @@ export function CategoryManager({
 	usage,
 }: Readonly<{ categories: Category[]; usage: UsageMap }>) {
 	const confirm = useConfirm();
-	const { pending, err, run } = useAdminAction();
-	const [baseline, setBaseline] = useState(initial);
-	// Adopt fresh server data after a create (router.refresh), keeping the
-	// reorder baseline in step.
-	const [items, setItems] = useServerSyncedList(initial, setBaseline);
+	const router = useRouter();
+	const { pending, pendingVisible, err, run } = useAdminAction();
+	const [baseline, setBaseline] = useServerSyncedList(initial);
+	// Keep staged positions separate so a create or rename refresh updates
+	// row details without discarding the order that has not been saved yet.
+	const [order, setOrder] = useState<string[] | null>(null);
+	const remaining = new Map(baseline.map((category) => [category.id, category]));
+	const items = order
+		? [
+				...order.flatMap((id) => {
+					const category = remaining.get(id);
+					remaining.delete(id);
+					return category ? [category] : [];
+				}),
+				...remaining.values(),
+			]
+		: baseline;
+	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
+	if (order && !hasOrderChanges) setOrder(null);
+	const usageById = new Map(initial.map((category) => [category.id, usage[category.name] ?? 0]));
 	const [saved, setSaved] = useState(false);
 	const [newName, setNewName] = useState("");
 	const [fieldError, setFieldError] = useState<string | null>(null);
 	const [added, setAdded] = useState<string | null>(null);
-	// Which control the shared err belongs to: the reorder bar or the form panel.
-	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
+	const [errSlot, setErrSlot] = useState<"order" | "create" | `rename:${string}` | null>(null);
 	const formId = useId();
-	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
+	const nameRef = useRef<HTMLInputElement>(null);
+	const focusAfterCreate = useRef(false);
+	const [focusAfterDelete, setFocusAfterDelete] = useState<string | null>(null);
+	const { dragging, over, dragProps, move } = useReorder(
+		items,
+		(next) => {
+			setOrder(next.map((category) => category.id));
+			setSaved(false);
+			setErrSlot(null);
+		},
+		pending,
+	);
+	useCategoryDraftWarning(newName.trim().length > 0);
+
+	useEffect(() => {
+		if (!saved) return;
+		const timeout = window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timeout);
+	}, [saved]);
+
+	useEffect(() => {
+		if (!added) return;
+		const timeout = window.setTimeout(() => setAdded(null), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timeout);
+	}, [added]);
+
+	useEffect(() => {
+		if (pending || !added || !focusAfterCreate.current) return;
+		focusAfterCreate.current = false;
+		nameRef.current?.focus();
+	}, [pending, added]);
+
+	useEffect(() => {
+		if (!focusAfterDelete) return;
+		(document.getElementById(focusAfterDelete) ?? nameRef.current)?.focus();
+		setFocusAfterDelete(null);
+	}, [focusAfterDelete]);
 
 	const handleSaveOrder = () => {
 		setErrSlot("order");
@@ -55,49 +106,61 @@ export function CategoryManager({
 			() => reorderCategories(items.map((i) => i.id)),
 			() => {
 				setBaseline(items);
+				setOrder(null);
 				setSaved(true);
-				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
 
-	const handleDelete = (id: string) => {
-		setErrSlot("general");
-		run(
-			() => deleteCategory(id),
-			() => {
-				setItems((prev) => prev.filter((i) => i.id !== id));
-				setBaseline((prev) => prev.filter((i) => i.id !== id));
+	const handleDelete = async (category: Category, index: number) => {
+		const deleted = await confirm({
+			title: `Delete category "${category.name}"?`,
+			body: "It will disappear from the gallery filter and the custom-order style picker.",
+			confirmLabel: "Delete category",
+			cancelLabel: "Keep category",
+			action: async () => {
+				const result = await deleteCategory(category.id);
+				if (isFailure(result)) throw new Error(result.message);
+				return true;
 			},
-		);
+		});
+		if (!deleted) return;
+		setBaseline((previous) => previous.filter((item) => item.id !== category.id));
+		const next = items[index + 1] ?? items[index - 1];
+		setFocusAfterDelete(next ? `${formId}-rename-${next.id}` : `${formId}-name`);
+		router.refresh();
 	};
 
-	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
-	const generalError = errSlot === "general" ? err : null;
+	const createError = errSlot === "create" ? err : null;
+	const creating = pending && errSlot === "create";
 
 	return (
 		<div className="space-y-group">
 			{/* Ruling 42: the create form and the list are independent panels, side by side from lg. */}
 			<div className="grid gap-(--space-group) lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:items-start">
 				<form
+					noValidate
 					aria-labelledby={`${formId}-title`}
+					aria-busy={creating || undefined}
 					className={cn(adminPanelInset, "min-w-0")}
 					onSubmit={(e) => {
 						e.preventDefault();
+						if (pending) return;
 						const name = newName.trim();
 						if (!name) {
 							setFieldError("Enter a category name");
+							nameRef.current?.focus();
 							return;
 						}
 						setFieldError(null);
 						setAdded(null);
-						setErrSlot("general");
+						setErrSlot("create");
 						run(
 							() => createCategory(name),
 							() => {
+								focusAfterCreate.current = true;
 								setNewName("");
 								setAdded(name);
-								setTimeout(() => setAdded(null), SAVED_BADGE_DURATION_MS);
 							},
 						);
 					}}
@@ -108,12 +171,14 @@ export function CategoryManager({
 						title="Add a category"
 						description="The style name as it should read in the gallery filter, for example Warli or Kalamkari."
 					/>
-					{/* Chip-shaped add field (visual-direction-admin Tier 2e): bare input
-					    left, round primary + inside the pill's right end. The visible label
-					    moves to aria-label; the panel header carries the explanation. */}
-					<div className={adminChipField}>
+					<label htmlFor={`${formId}-name`} className={adminLabel}>
+						Category name
+					</label>
+					<div className={cn(adminChipField, "mt-2")}>
 						<input
+							ref={nameRef}
 							id={`${formId}-name`}
+							disabled={pending}
 							value={newName}
 							onChange={(e) => {
 								setNewName(e.target.value);
@@ -127,25 +192,30 @@ export function CategoryManager({
 							aria-label="Category name"
 							aria-invalid={fieldError ? true : undefined}
 							aria-describedby={fieldError ? `${formId}-error` : undefined}
-							className="min-h-10 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
+							className="min-h-control min-w-0 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
 						/>
 						<button
 							type="submit"
 							disabled={pending}
 							aria-label="Add category"
+							aria-busy={creating || undefined}
 							className={cn(adminIconBtnPrimary, "rounded-full")}
 						>
-							<Plus size={ICON_MD} aria-hidden="true" />
+							{creating && pendingVisible ? (
+								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
+							) : (
+								<Plus size={ICON_MD} aria-hidden="true" />
+							)}
 						</button>
 					</div>
 					{fieldError ? (
-						<p id={`${formId}-error`} className={cn(adminError, "mt-1")}>
+						<p id={`${formId}-error`} role="alert" className={cn(adminError, "mt-1")}>
 							{fieldError}
 						</p>
 					) : null}
-					{generalError ? (
+					{createError ? (
 						<AdminNotice variant="error" className="mt-3">
-							{generalError}
+							{createError}
 						</AdminNotice>
 					) : null}
 					{added ? (
@@ -162,14 +232,19 @@ export function CategoryManager({
 							{...dragProps(i)}
 							className={cn(
 								adminRow,
+								"@container/category",
 								dragging === i && "scale-[0.98] opacity-60 shadow-e3 select-none",
 								over === i && dragging !== i && "border-accent shadow-e1",
 							)}
 						>
 							<CategoryItem
 								category={c}
-								usageCount={usage[c.name] ?? 0}
+								usageCount={usageById.get(c.id) ?? 0}
+								editButtonId={`${formId}-rename-${c.id}`}
 								pending={pending}
+								saving={pending && errSlot === `rename:${c.id}`}
+								error={errSlot === `rename:${c.id}` ? err : null}
+								onEdit={() => setErrSlot(null)}
 								reorderHandle={
 									<ReorderHandle
 										label={c.name}
@@ -180,24 +255,24 @@ export function CategoryManager({
 									/>
 								}
 								onSave={(name) => {
-									setErrSlot("general");
-									return run(() => renameCategory(c.id, name));
+									setErrSlot(`rename:${c.id}`);
+									return run(
+										() => renameCategory(c.id, name),
+										() =>
+											setBaseline((previous) =>
+												previous.map((category) =>
+													category.id === c.id ? { ...category, name } : category,
+												),
+											),
+									);
 								}}
-								onDelete={async () => {
-									const ok = await confirm({
-										title: `Delete category "${c.name}"?`,
-										body: "It will disappear from the gallery filter and the custom-order style picker.",
-										confirmLabel: "Delete category",
-										cancelLabel: "Keep category",
-									});
-									if (ok) handleDelete(c.id);
-								}}
+								onDelete={() => handleDelete(c, i)}
 							/>
 						</li>
 					))}
 					{items.length === 0 ? (
 						<EmptyState as="li" variant="compact" voice="tool" title="No categories yet">
-							Add the first one above. It appears in the gallery filter as soon as it is saved.
+							Use Add a category to create the first style.
 						</EmptyState>
 					) : null}
 				</ul>
@@ -207,122 +282,16 @@ export function CategoryManager({
 				<ReorderBar
 					label="Category order changed"
 					pending={pending}
-					saved={saved}
+					saved={saved && !hasOrderChanges}
 					error={errSlot === "order" ? err : null}
 					onSave={handleSaveOrder}
-					onReset={() => setItems(baseline)}
+					onReset={() => {
+						setOrder(null);
+						setSaved(false);
+						setErrSlot(null);
+					}}
 				/>
 			) : null}
 		</div>
-	);
-}
-
-function CategoryItem({
-	category,
-	usageCount,
-	pending,
-	reorderHandle,
-	onSave,
-	onDelete,
-}: Readonly<{
-	category: Category;
-	usageCount: number;
-	pending: boolean;
-	reorderHandle: React.ReactNode;
-	onSave: (name: string) => Promise<boolean>;
-	onDelete: () => void;
-}>) {
-	const [editing, setEditing] = useState(false);
-	const [name, setName] = useState(category.name);
-
-	if (!editing) {
-		return (
-			<div className="flex items-center gap-3">
-				{reorderHandle}
-				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium text-ink">{category.name}</p>
-					<p className="text-label text-muted tabular-nums">
-						{usageCount} {usageCount === 1 ? "piece" : "pieces"}
-						{usageCount > 0 ? ", in use" : ""}
-					</p>
-				</div>
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => {
-						setName(category.name);
-						setEditing(true);
-					}}
-					aria-label={`Rename ${category.name}`}
-					title="Rename"
-					className={adminIconBtn}
-				>
-					<Pencil size={ICON_MD} aria-hidden="true" />
-				</button>
-				<span className="ml-4 flex border-l border-line pl-4">
-					<button
-						type="button"
-						disabled={pending || usageCount > 0}
-						onClick={onDelete}
-						aria-label={`Delete ${category.name}`}
-						title={usageCount > 0 ? "Reassign its pieces before deleting" : "Delete category"}
-						className={adminIconBtnDestructive}
-					>
-						<Trash2 size={ICON_MD} aria-hidden="true" />
-					</button>
-				</span>
-			</div>
-		);
-	}
-
-	// A form so the phone keyboard's return key saves and Escape cancels.
-	return (
-		<form
-			className="flex items-center gap-3"
-			onSubmit={async (e) => {
-				e.preventDefault();
-				if (await onSave(name.trim())) setEditing(false);
-			}}
-		>
-			<input
-				disabled={pending}
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") {
-						setName(category.name);
-						setEditing(false);
-					}
-				}}
-				aria-label={`Rename ${category.name}`}
-				enterKeyHint="done"
-				autoCapitalize="words"
-				className={adminField}
-				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
-				autoFocus
-			/>
-			<button
-				type="submit"
-				disabled={pending}
-				aria-label={`Save ${category.name}`}
-				className={adminIconBtnPrimary}
-			>
-				<Check size={ICON_MD} aria-hidden="true" />
-			</button>
-			<span className="ml-4 flex border-l border-line pl-4">
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => {
-						setName(category.name);
-						setEditing(false);
-					}}
-					aria-label={`Cancel renaming ${category.name}`}
-					className={adminIconBtn}
-				>
-					<X size={ICON_MD} aria-hidden="true" />
-				</button>
-			</span>
-		</form>
 	);
 }

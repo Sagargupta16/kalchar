@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.39.0 (2026-09-15)
+
+### Changed
+
+- Refine every public and admin page with consistent spacing, rounded surfaces, layered shadows, and shared motion. Remove decorative heading rules, shorten the footer, and replace narrow contact cards with readable full-width rows.
+- Simplify artwork browsing with search, independent availability filters, full-image previews, a compact viewer toolbar, thumbnail navigation, and touch gestures.
+- Rework the admin around grouped navigation, clear create/edit actions, preserved drafts, consistent validation, and reliable pending, retry, and Undo feedback.
+- Make artwork uploads a photo-first flow with immediate previews, background upload progress, and drafts that survive closing and reopening the composer.
+- Keep animations enabled across operating-system motion preferences, following the updated design direction.
+
+### Fixed
+
+- Protect unsaved admin edits during link navigation and reloads; restore keyboard focus and scrolling after menus and dialogs close.
+- Preserve custom-order briefs across navigation and reloads, keep list counts and photo ordering accurate after updates, and retain form inputs when requests fail.
+- Correct malformed sign-in callback handling, image-viewer gesture direction, error-page retries, and missing-content recovery.
+- Preserve explicit international phone prefixes when replying to an enquiry by WhatsApp or phone.
+- Refresh the About page's catalog counts after artwork and workshop changes, and keep shared artwork actions locked until the current save settles.
+- Route Add actions through the unsaved-draft confirmation and carry globally selected event photos into the creation form, including selections made during another submission.
+- Keep zoomed artwork within the viewer's frame when panning or zooming out, and close the viewer when browser history changes the artwork page.
+
 ## 1.38.2 (2026-09-13)
 
 ### Fixed

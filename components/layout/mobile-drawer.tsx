@@ -27,8 +27,8 @@ interface MobileDrawerProps {
  * the header bar. The panel spans h-svh (never resizes mid-open while the URL
  * bar collapses) with the six destinations as numbered index rows: "01".."06"
  * in tabular meta caps beside the label in the roman headline voice; the
- * active row carries accent text, a 24px gold rule and aria-current (never
- * gold alone). Steering 2026-09-14: rows sit on the calmer h3 rung (the
+ * active row carries accent text, a rounded surface and aria-current.
+ * Steering 2026-09-14: rows sit on the calmer h3 rung (the
  * text-title register read shouty against the retuned page scale; the t-meta
  * numerals already match portfolio-react's 11px mono index and stay), and the
  * panel is the flagship iOS material (material-glass-strong: raised tint at
@@ -39,8 +39,7 @@ interface MobileDrawerProps {
  * utility; the panel settles in on SPRING_SHEET (the open answers the
  * visitor's tap, so a spring; the blurred material fades in with the panel's
  * opacity, never by animating the blur radius) and exits at DUR.fast EASE_IN
- * (motion addendum C6); reduced motion fades (MotionConfig strips the travel,
- * the reduced block zeroes the stagger).
+ * (motion addendum C6).
  *
  * Positioning note: the host header's backdrop-filter makes it the containing
  * block for positioned descendants, so absolute + top-0 here means "from the
@@ -82,27 +81,20 @@ export function MobileDrawer({
 							data-lenis-prevent
 							className="min-h-0 flex-1 overflow-y-auto px-(--container-px)"
 						>
-							<ul className="stagger flex flex-col">
+							<ul className="stagger flex flex-col gap-1 py-(--space-tight)">
 								{items.map((item, i) => {
 									const active = isActive(item.href);
 									return (
 										<li key={item.href} style={{ "--i": i } as CSSProperties}>
 											<Link
 												href={item.href}
+												onClick={onClose}
 												aria-current={active ? "page" : undefined}
 												className={cn(
-													"group flex min-h-14 items-center gap-4 border-b border-line-soft py-4 transition-colors active:bg-canvas",
-													active ? "text-accent-text" : "text-ink",
+													"group flex min-h-14 items-center gap-3 rounded-(--radius-sm) px-3 py-4 transition-ui hover:bg-canvas active:bg-canvas",
+													active ? "bg-canvas text-accent-text" : "text-ink",
 												)}
 											>
-												{/* Gold rule marks the active row; the slot is reserved so indices align. */}
-												<span
-													aria-hidden="true"
-													className={cn(
-														"h-px w-6 shrink-0 bg-(--color-gold-hairline)",
-														active ? "opacity-100" : "opacity-0",
-													)}
-												/>
 												<span aria-hidden="true" className="t-meta w-6 shrink-0 tabular-nums">
 													{String(i + 1).padStart(2, "0")}
 												</span>
@@ -122,6 +114,7 @@ export function MobileDrawer({
 						<div className="mt-auto px-(--container-px) pt-4 pb-[calc(var(--spacing-safe-bottom)+--spacing(4))]">
 							<a
 								href={whatsappHref}
+								onClick={onClose}
 								target="_blank"
 								rel="noopener noreferrer"
 								className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}

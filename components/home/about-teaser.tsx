@@ -1,5 +1,4 @@
 import { ArtistAvatar } from "@/components/about/artist-avatar";
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import { WallLabel } from "@/components/gallery/wall-label";
 import { SectionCta } from "@/components/home/section-cta";
@@ -37,13 +36,12 @@ export function AboutTeaser({
 	// The intro layout (avatar + text side by side) shows only when the
 	// maintainer has opted in via the home-intro toggle; otherwise the teaser
 	// keeps its original centered form. Either way the section sits on the
-	// marigold wash band with the kachni seam (visual-direction 2.1 change 3).
+	// marigold wash band.
 	const showIntro = Boolean(intro);
 
 	if (showIntro) {
 		return (
 			<Section id="about" accent="marigold" background="wash" padded rhythm="grand">
-				<KachniRule form="long" className="mb-(--space-block)" />
 				<div className="grid items-center gap-10 md:grid-cols-[auto_1fr] md:gap-12">
 					<Reveal className="w-40 sm:w-48 md:w-56">
 						{/* The artist plate: gold inset at rest, museum wall label below
@@ -95,7 +93,6 @@ export function AboutTeaser({
 			size="narrow"
 			containerClassName="text-center"
 		>
-			<KachniRule form="long" className="mb-(--space-block)" />
 			<Reveal>
 				<SectionHeader centered eyebrow={eyebrow} title={title} lead={lead} />
 			</Reveal>

@@ -1,18 +1,11 @@
-import { KachniRule } from "@/components/decor/kachni-rule";
-import { ArtworkCard } from "@/components/gallery/artwork-card";
-import { GALLERY_LEAD_SIZES, GalleryGrid } from "@/components/gallery/gallery-grid";
 import { AboutTeaser } from "@/components/home/about-teaser";
+import { ArtworkPreview } from "@/components/home/artwork-preview";
 import { ContactTeaser } from "@/components/home/contact-teaser";
 import { CustomOrdersTeaser } from "@/components/home/custom-orders-teaser";
 import { EventsTeaser } from "@/components/home/events-teaser";
 import { Hero } from "@/components/home/hero";
-import { LeadUnveil } from "@/components/home/lead-unveil";
-import { SectionCta } from "@/components/home/section-cta";
-import { Spread } from "@/components/home/spread";
 import { Testimonials } from "@/components/home/testimonials";
 import { WorkshopsTeaser } from "@/components/home/workshops-teaser";
-import { Reveal } from "@/components/motion/reveal";
-import { Section, SectionHeader } from "@/components/ui/section";
 import {
 	getAllArtworks,
 	getAllWorkshops,
@@ -25,17 +18,12 @@ import {
 	getSite,
 } from "@/lib/data";
 import { shapeHomeCatalog } from "@/lib/home-catalog";
-import { gridStaggerDelay, REVEAL_DISTANCE } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
 import type { SectionCopy } from "@/lib/types";
 import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 const WORKSHOPS_PREVIEW_COUNT = 3;
 const WHATSAPP_GREETING = "Hi, I found you on kalchar.co.in.";
-/** Home grids sit inside the lg spread's eight-column content area, so they
- *  stay two columns there and the spanLead first tile spans both
- *  (visual-direction 2.1 change 5). */
-const HOME_GRID_CLASS = "lg:grid-cols-2";
 
 // Home-specific metadata: the highest-traffic entry page (most visits arrive
 // from WhatsApp/Instagram link-taps), so give it a unique, keyword-rich title
@@ -98,114 +86,34 @@ export default async function HomePage() {
 				catalogIndex={catalogIndex}
 				totalCount={all.length}
 				styles={categoryNames}
-				whatsappHref={greetingWa}
 			/>
 
-			{selected.length > 0 ? (
-				<Section id="work" padded rhythm="grand">
-					<KachniRule form="long" className="mb-(--space-block)" />
-					<Spread
-						header={
-							<Reveal>
-								<SectionHeader
-									eyebrow={workCopy?.eyebrow ?? "Selected work"}
-									title={workCopy?.title ?? "Selected pieces from the archive"}
-									lead={workCopy?.homeLead ?? workCopy?.lead}
-								/>
-							</Reveal>
-						}
-					>
-						<GalleryGrid spanLead className={HOME_GRID_CLASS}>
-							{selected.map((art, i) =>
-								i === 0 ? (
-									<LeadUnveil key={art.slug}>
-										<ArtworkCard
-											artwork={art}
-											siblings={selected}
-											priority
-											index={(catalogIndex[art.slug] ?? 0) + 1}
-											total={all.length}
-											sizes={GALLERY_LEAD_SIZES}
-										/>
-									</LeadUnveil>
-								) : (
-									<Reveal
-										key={art.slug}
-										as="li"
-										distance={REVEAL_DISTANCE.item}
-										delayMs={gridStaggerDelay(i)}
-									>
-										<ArtworkCard
-											artwork={art}
-											siblings={selected}
-											priority={i < 3}
-											index={(catalogIndex[art.slug] ?? 0) + 1}
-											total={all.length}
-										/>
-									</Reveal>
-								),
-							)}
-						</GalleryGrid>
-						<Reveal>
-							<div className="mt-(--space-block)">
-								<SectionCta href="/work">{selectedCtaLabel}</SectionCta>
-							</div>
-						</Reveal>
-					</Spread>
-				</Section>
-			) : null}
-
-			{availablePreview.length > 0 ? (
-				<Section id="available" padded rhythm="grand">
-					<KachniRule form="long" className="mb-(--space-block)" />
-					<Spread
-						header={
-							<Reveal>
-								<SectionHeader
-									eyebrow={availableCopy?.eyebrow ?? "Available now"}
-									title={availableCopy?.title ?? "Pieces ready to find a home"}
-									lead={availableCopy?.lead}
-								/>
-							</Reveal>
-						}
-					>
-						<GalleryGrid spanLead className={HOME_GRID_CLASS}>
-							{availablePreview.map((art, i) =>
-								i === 0 ? (
-									<LeadUnveil key={art.slug}>
-										<ArtworkCard
-											artwork={art}
-											siblings={available}
-											index={(catalogIndex[art.slug] ?? 0) + 1}
-											total={all.length}
-											sizes={GALLERY_LEAD_SIZES}
-										/>
-									</LeadUnveil>
-								) : (
-									<Reveal
-										key={art.slug}
-										as="li"
-										distance={REVEAL_DISTANCE.item}
-										delayMs={gridStaggerDelay(i)}
-									>
-										<ArtworkCard
-											artwork={art}
-											siblings={available}
-											index={(catalogIndex[art.slug] ?? 0) + 1}
-											total={all.length}
-										/>
-									</Reveal>
-								),
-							)}
-						</GalleryGrid>
-						<Reveal>
-							<div className="mt-(--space-block)">
-								<SectionCta href="/work?view=available">{availableCtaLabel}</SectionCta>
-							</div>
-						</Reveal>
-					</Spread>
-				</Section>
-			) : null}
+			<ArtworkPreview
+				id="work"
+				artworks={selected}
+				siblings={selected}
+				eyebrow={workCopy?.eyebrow ?? "Selected work"}
+				title={workCopy?.title ?? "Selected pieces from the archive"}
+				lead={workCopy?.homeLead ?? workCopy?.lead}
+				href="/work"
+				actionLabel={selectedCtaLabel}
+				catalogIndex={catalogIndex}
+				totalCount={all.length}
+				priorityCount={3}
+			/>
+			<ArtworkPreview
+				id="available"
+				artworks={availablePreview}
+				siblings={available}
+				eyebrow={availableCopy?.eyebrow ?? "Available now"}
+				title={availableCopy?.title ?? "Pieces ready to find a home"}
+				lead={availableCopy?.lead}
+				href="/work?view=available"
+				actionLabel={availableCtaLabel}
+				catalogIndex={catalogIndex}
+				totalCount={all.length}
+				maxColumns={4}
+			/>
 
 			<AboutTeaser
 				eyebrow={site.sections.about?.eyebrow ?? "About"}
@@ -219,7 +127,7 @@ export default async function HomePage() {
 				publicName={site.brand.publicName}
 			/>
 
-			<Testimonials testimonials={testimonials} seam />
+			<Testimonials testimonials={testimonials} rhythm="grand" />
 
 			{workshopsPreview.length > 0 ? (
 				<WorkshopsTeaser

@@ -16,7 +16,7 @@ const COPIED_CONFIRMATION_MS = 2000;
  *
  * Progressive: renders as a normal button; the enhanced paths are feature-
  * detected at click time. The confirmation is a plain text swap (no motion), so
- * it's reduced-motion-safe by construction.
+ * it leaves the button position unchanged.
  */
 export function ShareButton({
 	title,

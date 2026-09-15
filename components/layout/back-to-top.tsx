@@ -3,7 +3,6 @@
 import { ArrowUp } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,13 +26,12 @@ import { cn } from "@/lib/utils";
  * on purpose: the WhatsApp disc one slot below carries the idle breath, and
  * two loops in the same corner would read busy.
  * Hidden on /admin (which owns the bottom-right zone with its own mobile tab
- * bar). Reduced motion -> instant jump and no fade transition.
+ * bar). Scroll-to-top remains smooth on supported browsers.
  */
 export function BackToTop() {
 	const [visible, setVisible] = useState(false);
 	const [footerInView, setFooterInView] = useState(false);
 	const thresholdRef = useRef<HTMLSpanElement>(null);
-	const reduceMotion = usePrefersReducedMotion();
 	const pathname = usePathname();
 	const onAdmin = pathname?.startsWith("/admin");
 
@@ -67,15 +65,15 @@ export function BackToTop() {
 			<button
 				type="button"
 				data-back-to-top=""
+				inert={!shown || undefined}
 				aria-label="Back to top"
-				onClick={() => globalThis.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
+				onClick={() => globalThis.scrollTo({ top: 0, behavior: "smooth" })}
 				className={cn(
 					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface text-ink shadow-e3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-ui pressable supports-[backdrop-filter]:bg-surface/85 hover:-translate-y-0.5 hover:border-(--color-gold-hairline) hover:text-accent-text hover:shadow-e4",
 					"bottom-[calc(var(--spacing-safe-bottom)+--spacing(5)+var(--fixed-bar-h,0px))] right-[calc(var(--spacing-safe-right)+--spacing(5))]",
 					shown
 						? "pointer-events-auto translate-y-0 opacity-100"
 						: "pointer-events-none translate-y-2 opacity-0",
-					reduceMotion && "transition-none",
 				)}
 			>
 				<ArrowUp size={20} aria-hidden="true" />

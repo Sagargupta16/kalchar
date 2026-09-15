@@ -30,18 +30,11 @@ export default async function AdminDashboard({
 		getCategoryNames(),
 	]);
 	const filter: PiecesFilter = isPiecesFilter(show) ? show : "all";
-	const counts: Record<PiecesFilter, number> = {
-		all: artworks.length,
-		available: artworks.filter((a) => a.status === "available").length,
-		sold: artworks.filter((a) => a.status === "sold").length,
-		archive: artworks.filter((a) => (a.status ?? "archive") === "archive").length,
-		featured: artworks.filter((a) => a.featured).length,
-	};
 
 	return (
 		<AdminPage
 			title="Pieces"
-			description="Tap a piece to edit it. Add with the plus button, and reorder in list view."
+			description="Manage your artwork, prices and availability. Open a piece to edit its details."
 		>
 			{/* No panel title: the page h1 is already "Pieces" (one-name rule). */}
 			<AdminPanel
@@ -54,7 +47,6 @@ export default async function AdminDashboard({
 						thumb: artworkBrowserImageUrl(art.image, 400, "webp"),
 					}))}
 					categories={categoryNames}
-					counts={counts}
 					initialFilter={filter}
 				/>
 			</AdminPanel>

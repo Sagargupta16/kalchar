@@ -2,7 +2,6 @@
 
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +56,6 @@ export function ResponsiveImage({
 }: Readonly<ResponsiveImageProps>) {
 	const [imageSource, setImageSource] = useState<ImageSource>("remote");
 	const [loaded, setLoaded] = useState(false);
-	const reduceMotion = usePrefersReducedMotion();
 
 	// Reset per image: when the same mounted instance is pointed at a new
 	// keyBase (lightbox arrows, hero shuffle), a previous photo's failure or
@@ -114,11 +112,11 @@ export function ResponsiveImage({
 
 	// Gallery-register settle: the image fades in and settles from 1.02 as it
 	// decodes (opacity + transform only, compositor-safe). Priority (LCP) images
-	// and reduced-motion users skip it. The hidden
+	// skip it. The hidden
 	// state is an INLINE opacity:0 so the no-JS <noscript> net in layout.tsx
 	// unhides it for crawlers -- the same contract Reveal relies on.
 	const isFallback = activeSource === "fallback";
-	const animate = !isFallback && !priority && !reduceMotion;
+	const animate = !isFallback && !priority;
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
 	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
 	const image = (
@@ -136,8 +134,7 @@ export function ResponsiveImage({
 			style={settleStyle}
 			className={cn(
 				imgClass,
-				animate &&
-					"transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out) motion-reduce:transition-none",
+				animate && "transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out)",
 			)}
 		/>
 	);

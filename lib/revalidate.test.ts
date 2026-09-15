@@ -1,9 +1,8 @@
 /**
  * Locks the exact refresh sequence for every entity.
  *
- * These are the calls the seven former per-file helpers made, in order. Some
- * action tests assert on the full ordered list, so a difference here is a
- * deliberate change to what a mutation refreshes, not a formatting accident.
+ * The expected routes keep mutations aligned with their public and admin
+ * consumers. A changed sequence deliberately changes which pages refresh.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -22,6 +21,7 @@ const expected: Record<Entity, unknown[][]> = {
 		["/work"],
 		["/work/[slug]", "page"],
 		["/custom-orders"],
+		["/about"],
 		["/admin"],
 		["/catalog.csv"],
 		["/sitemap.xml"],
@@ -35,7 +35,7 @@ const expected: Record<Entity, unknown[][]> = {
 		["/admin"],
 		["/admin/categories"],
 	],
-	workshops: [["/"], ["/workshops"], ["/admin/workshops"]],
+	workshops: [["/"], ["/workshops"], ["/about"], ["/admin/workshops"]],
 	orderPresets: [["/custom-orders"], ["/admin/presets"]],
 	events: [["/"], ["/events"], ["/admin/events"]],
 	profile: [["/"], ["/about"], ["/admin/profile"]],
@@ -85,6 +85,7 @@ describe("revalidateEntity", () => {
 			"/work",
 			"/work/[slug]",
 			"/custom-orders",
+			"/about",
 			"/catalog.csv",
 			"/sitemap.xml",
 		];

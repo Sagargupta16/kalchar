@@ -20,4 +20,10 @@ describe("admin callback destinations", () => {
 	it("keeps an admin destination and its query", () => {
 		expect(safeAdminCallback("/admin/leads?page=2")).toBe("/admin/leads?page=2");
 	});
+
+	it("falls back safely when a callback parameter is repeated or malformed", () => {
+		expect(safeAdminCallback(["/admin/events", "/admin/leads"])).toBe("/admin");
+		expect(safeAdminCallback(null)).toBe("/admin");
+		expect(safeAdminCallback({ toString: () => "/admin/leads" })).toBe("/admin");
+	});
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid, Rows3, Search, X } from "lucide-react";
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { artworkStatusLabel } from "@/lib/artwork-status";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +59,8 @@ export function PiecesFilter({
 	onView,
 }: Readonly<PiecesFilterProps>) {
 	const id = useId();
+	const search = useRef<HTMLInputElement>(null);
+	const totalLabel = `${total} piece${total === 1 ? "" : "s"}`;
 	const hint =
 		view === "grid"
 			? " Switch to list view to change the order."
@@ -66,7 +68,7 @@ export function PiecesFilter({
 				? " Show all pieces to change the order."
 				: "";
 	return (
-		<div className="mb-4 grid gap-3">
+		<div className="mb-(--space-group) grid gap-(--space-tight)">
 			<div className="relative">
 				<Search
 					size={ICON_MD}
@@ -75,20 +77,27 @@ export function PiecesFilter({
 				/>
 				<input
 					id={id}
+					ref={search}
 					type="search"
 					inputMode="search"
 					enterKeyHint="search"
 					autoComplete="off"
 					aria-label="Find a piece"
-					placeholder="Search by title or category"
+					placeholder="Search title, category or medium"
 					value={query}
 					onChange={(event) => onQuery(event.target.value)}
-					className={cn(adminField, "pl-10")}
+					className={cn(
+						adminField,
+						"pl-10 pr-12 [&::-webkit-search-cancel-button]:appearance-none",
+					)}
 				/>
 				{query ? (
 					<button
 						type="button"
-						onClick={() => onQuery("")}
+						onClick={() => {
+							onQuery("");
+							search.current?.focus();
+						}}
 						aria-label="Clear search"
 						className={cn(adminIconBtnGhost, "absolute top-1/2 right-0 -translate-y-1/2")}
 					>
@@ -96,7 +105,11 @@ export function PiecesFilter({
 					</button>
 				) : null}
 			</div>
-			<div role="group" aria-label="Show" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+			<div
+				role="group"
+				aria-label="Show"
+				className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			>
 				{PIECES_FILTERS.map((key) => (
 					<button
 						key={key}
@@ -113,9 +126,11 @@ export function PiecesFilter({
 				))}
 			</div>
 			<div className="flex items-center justify-between gap-3">
-				<p role="status" className={adminHelp}>
-					{shown === total ? `${total} pieces` : `Showing ${shown} of ${total} pieces`}
-					{hint}
+				<p role="status" className={cn(adminHelp, "flex flex-col gap-1")}>
+					<span className="font-medium text-ink">
+						{shown === total ? totalLabel : `Showing ${shown} of ${totalLabel}`}
+					</span>
+					{hint ? <span>{hint.trim()}</span> : null}
 				</p>
 				{/* A view preference, not a value: aria-pressed buttons, not the radio Segmented. */}
 				<div className="flex shrink-0 items-center gap-2">

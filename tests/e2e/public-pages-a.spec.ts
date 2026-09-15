@@ -2,13 +2,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { settleAnimations } from "./helpers/animation-settle";
 
 /**
  * Visual-pass contracts for the Tier 2 pages this lane owns (visual-direction
  * 2.5 about, 2.6 events, 2.7 workshops). The page-behaviour suite lives in
  * public-pages.spec.ts; this file locks the editorial-museum treatments the
- * pass added: wash headers with the short kachni, the about monograph spread
- * and centre-ruled pull quote, the events chronology (wall dates, gold
+ * pass added: restrained wash headers, the about monograph spread
+ * and spacious pull quote, the events chronology (wall dates, gold
  * timeline, record borders, the mirrored lightbox paging), and the workshops
  * roman ledger.
  */
@@ -40,7 +41,9 @@ async function resolveColor(page: Page, cssVar: string): Promise<string> {
 }
 
 for (const route of PAGES) {
-	test(`${route} header sits on the wash band with the short kachni rule`, async ({ page }) => {
+	test(`${route} header keeps the wash and consistent text spacing without decorative rules`, async ({
+		page,
+	}) => {
 		await page.goto(route);
 		const header = page.locator("main section").first();
 		const bodyBg = await page
@@ -49,12 +52,12 @@ for (const route of PAGES) {
 		// The wash mixes the section pigment into the paper: visibly not the page bg.
 		const headerBg = await header.evaluate((el) => getComputedStyle(el).backgroundColor);
 		expect(headerBg).not.toBe(bodyBg);
-		// The short kachni (64x3) under the eyebrow: the page's one presentation rule.
-		const kachni = page.locator('main header [role="presentation"]').first();
-		await expect(kachni).toBeVisible();
-		const box = await kachni.boundingBox();
-		expect(Math.round(box?.width ?? 0)).toBe(64);
-		expect(Math.round(box?.height ?? 0)).toBe(3);
+		const heading = header.locator("header");
+		await expect(heading.locator('[role="presentation"]')).toHaveCount(0);
+		await expect(heading.locator(".rule-draw")).toHaveCount(0);
+		await expect(heading.locator("h1")).toHaveCSS("margin-top", "12px");
+		const lead = heading.locator(".t-lead");
+		if (await lead.count()) await expect(lead).toHaveCSS("margin-top", "16px");
 	});
 }
 
@@ -64,6 +67,7 @@ for (const theme of ["light", "dark"] as const) {
 			await useTheme(page, theme);
 			const response = await page.goto(route);
 			expect(response?.ok()).toBe(true);
+			await settleAnimations(page);
 			const accessibility = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
 			expect(accessibility.violations).toEqual([]);
 		});
@@ -72,7 +76,10 @@ for (const theme of ["light", "dark"] as const) {
 
 test("about counts line reads live seam values in the numeral voice", async ({ page }) => {
 	await page.goto("/about/");
-	const counts = page.locator("main p").filter({ hasText: /pieces/ }).first();
+	const counts = page
+		.locator("main p")
+		.filter({ hasText: /pieces/ })
+		.first();
 	await expect(counts).toBeVisible();
 	const numerals = counts.locator(".t-numeral");
 	await expect(numerals).toHaveCount(3);
@@ -83,21 +90,23 @@ test("about counts line reads live seam values in the numeral voice", async ({ p
 	expect(Number((await first.textContent())?.trim())).toBeGreaterThan(0);
 });
 
-test("about pull quote is framed by two centre-drawn gold rules", async ({ page }) => {
+test("about pull quote uses spacing and quotation typography without framing lines", async ({
+	page,
+}) => {
 	await page.goto("/about/");
 	const quote = page.locator("main blockquote");
 	await expect(quote).toBeVisible();
-	const rules = quote.locator("span.rule-draw-center");
-	await expect(rules).toHaveCount(2);
-	const quoteBox = await quote.boundingBox();
-	for (const rule of await rules.all()) {
-		const box = await rule.boundingBox();
-		expect(box?.height).toBe(1);
-		// The rules span the essay column (grown from the centre, full width).
-		expect(Math.abs((box?.width ?? 0) - (quoteBox?.width ?? 0))).toBeLessThanOrEqual(1);
-	}
-	// The border-l treatment is retired.
+	await quote.scrollIntoViewIfNeeded();
+	await expect(quote.locator(".rule-draw")).toHaveCount(0);
+	await expect(quote).toHaveCSS("border-top-width", "0px");
+	await expect(quote).toHaveCSS("border-bottom-width", "0px");
 	await expect(quote).toHaveCSS("border-left-width", "0px");
+	await expect(quote).toHaveCSS("padding-top", "32px");
+	await expect(quote).toHaveCSS("padding-bottom", "32px");
+	await expect(quote).toHaveCSS("text-align", "center");
+	await expect(quote.locator('span[aria-hidden="true"]')).toHaveText("“");
+	await expect(quote.locator("p")).not.toBeEmpty();
+	await expect(quote.locator("p")).toHaveCSS("font-style", "italic");
 });
 
 test("about portrait rests its gold inset and owns the route's priority image", async ({
@@ -114,7 +123,7 @@ test("about portrait rests its gold inset and owns the route's priority image", 
 	await expect(page.locator('main img[fetchpriority="high"]')).toHaveCount(1);
 });
 
-test("the about portrait idles on the float breath and rests under reduced motion", async ({
+test("the about portrait idles on the float breath and continues across OS preference changes", async ({
 	page,
 }) => {
 	await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -125,9 +134,9 @@ test("the about portrait idles on the float breath and rests under reduced motio
 	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 	// The label under the plate stays still: the wrapper holds the frame only.
 	await expect(float.locator('[class*="aspect-3/4"]')).toHaveCount(1);
-	// Reduced motion removes the loop wholesale (animations.css reduced block).
+	// Changing the OS preference leaves the site animation policy unchanged.
 	await page.emulateMedia({ reducedMotion: "reduce" });
-	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 });
 
 test("about essay column holds the 62ch measure", async ({ page }, testInfo) => {
@@ -206,7 +215,7 @@ test("only the lead event plate floats, never the grid", async ({ page }) => {
 	await expect(lead.locator(".plate-float")).toHaveCount(1);
 	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 	await page.emulateMedia({ reducedMotion: "reduce" });
-	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 });
 
 test("the lg wall date sits on the glass material chip", async ({ page }, testInfo) => {
@@ -315,14 +324,18 @@ test("@mobile workshop enquire buttons fill the row", async ({ page }) => {
 	expect(Math.abs((link?.width ?? 0) - (cell?.width ?? 0))).toBeLessThanOrEqual(1);
 });
 
-test("workshop rows fill with the surface-hover step on hover", async ({ page }, testInfo) => {
+test("workshop enquiry links carry the hover feedback without making the row look clickable", async ({
+	page,
+}, testInfo) => {
 	test.skip(testInfo.project.name === "mobile-chromium", "hover-capable pointers only");
 	await page.goto("/workshops/");
 	const row = page.locator("main ul > li").first();
 	await row.scrollIntoViewIfNeeded();
+	const restingBackground = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
 	await row.hover();
-	const expected = await resolveColor(page, "--color-surface-hover");
-	await expect
-		.poll(() => row.evaluate((el) => getComputedStyle(el).backgroundColor))
-		.toBe(expected);
+	await expect(row).toHaveCSS("background-color", restingBackground);
+	const enquiry = row.getByRole("link", { name: /^Enquire on WhatsApp about / });
+	await enquiry.hover();
+	await expect(enquiry).toHaveCSS("border-top-color", await resolveColor(page, "--color-accent"));
+	await expect(enquiry).toHaveAttribute("href", /^https:\/\/wa\.me\/.+\?text=/);
 });

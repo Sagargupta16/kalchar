@@ -35,8 +35,7 @@ interface PortraitPlateProps {
  * neutralised so the frame owns radius and shadow (the about-teaser pattern).
  * The frame idles on the shared .plate-float breath (steering 2026-09-14),
  * on a wrapper between the sticky column and the frame so the loop never
- * fights the hover lift's transform; reduced motion removes it wholesale in
- * animations.css. The label stays still: only the plate floats.
+ * fights the hover lift's transform. The label stays still: only the plate floats.
  */
 export function PortraitPlate({
 	imageKey,
@@ -62,7 +61,7 @@ export function PortraitPlate({
 						imageKey={imageKey}
 						monogram={monogram}
 						alt={alt}
-						sizes="(min-width: 768px) 30vw, 100vw"
+						sizes="(min-width: 768px) min(30vw, 21rem), 16rem"
 						priority
 						className="absolute inset-0 aspect-auto h-full w-full rounded-none shadow-none"
 					/>

@@ -1,9 +1,10 @@
-import { Brush, Clock, MessageCircle } from "lucide-react";
+import { ArrowDown, Brush, Clock, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import {
@@ -15,7 +16,7 @@ import {
 } from "@/lib/data";
 import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
-import { toRoman } from "@/lib/utils";
+import { cn, toRoman } from "@/lib/utils";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export const metadata = createPageMetadata({
@@ -59,15 +60,25 @@ export default async function CustomOrdersPage() {
 
 	return (
 		<main>
-			{/* The standard public page header (visual-direction 2.0): grand rhythm
-			    on the flat vermillion wash band with the short kachni rule. */}
-			<Section accent="vermillion" background="wash" rhythm="grand" padded>
+			<Section accent="vermillion" background="wash" padded containerClassName="py-(--space-block)">
 				<PageHeader
-					kachni
 					eyebrow={customOrders.eyebrow ?? "Custom orders"}
 					title={customOrders.title ?? "Order a custom painting"}
 					lead={customOrders.lead}
-				/>
+				>
+					<div className="mt-5 flex flex-wrap items-center gap-3">
+						<a href="#commission-brief" className={buttonVariants({ variant: "primary" })}>
+							Start your brief
+							<ArrowDown size={16} aria-hidden="true" />
+						</a>
+						<a
+							href="#how-it-works"
+							className={cn(buttonVariants({ variant: "link" }), "min-h-control text-ink")}
+						>
+							How it works
+						</a>
+					</div>
+				</PageHeader>
 			</Section>
 
 			<Section accent="vermillion" padded containerClassName="pt-(--space-block)">
@@ -76,13 +87,13 @@ export default async function CustomOrdersPage() {
 					    steps follow it; from md the aside sits beside the taller form and
 					    sticks below the shrunk header. DOM order stays aside-first so a
 					    screen reader still hears the process before the fields. */}
-					<aside className="order-last min-w-0 md:order-none md:col-span-4">
+					<aside
+						id="how-it-works"
+						className="order-last min-w-0 scroll-mt-(--space-page) md:order-none md:col-span-4"
+					>
 						<div className="md:sticky md:top-[calc(var(--header-h-shrunk)+var(--space-page))]">
 							<Reveal>
-								<p className="t-eyebrow flex items-center gap-2">
-									<AccentRule />
-									How it works
-								</p>
+								<p className="t-eyebrow">How it works</p>
 								<h2 className="t-headline mt-2 text-title">Three steps, one conversation</h2>
 							</Reveal>
 							<ol className="mt-6 flex flex-col gap-6">
@@ -99,7 +110,7 @@ export default async function CustomOrdersPage() {
 										step={2}
 										icon={<MessageCircle className="size-3.5" />}
 										title="We talk it through"
-										body="We get back on WhatsApp, ask for missing details, and share a quote + timeline."
+										body="We get back on WhatsApp, talk through the details, and share a price and timeline."
 									/>
 								</Reveal>
 								<Reveal as="li" delayMs={staggerDelay(3)}>
@@ -120,12 +131,25 @@ export default async function CustomOrdersPage() {
 									No payment until we&rsquo;ve agreed on the piece, a price, and a timeline. Sending
 									a brief is just the start of a conversation.
 								</p>
+								<Link
+									href="/trust"
+									className={cn(
+										buttonVariants({ variant: "link" }),
+										"mt-3 min-h-control whitespace-normal",
+									)}
+								>
+									Questions about payment or delivery?
+								</Link>
 							</Reveal>
 						</div>
 					</aside>
 
 					{/* Form: the commission sheet owns its card surface. */}
-					<section aria-label="Custom order form" className="min-w-0 md:col-span-8">
+					<section
+						id="commission-brief"
+						aria-label="Custom order form"
+						className="min-w-0 scroll-mt-(--space-page) md:col-span-8"
+					>
 						<h2 className="sr-only">Order details</h2>
 						<Reveal eager delayMs={staggerDelay(1)}>
 							<CustomOrderForm
@@ -149,10 +173,7 @@ export default async function CustomOrdersPage() {
 				{examplePieces.length > 0 ? (
 					<div data-slot="example-strip" className="mt-(--space-canyon)">
 						<Reveal>
-							<p className="t-eyebrow flex items-center gap-2">
-								<AccentRule />
-								For inspiration
-							</p>
+							<p className="t-eyebrow">For inspiration</p>
 							<h2 className="t-headline mt-2 text-title">A few pieces from the studio</h2>
 						</Reveal>
 						<GalleryGrid cols={4} className="mt-8">

@@ -240,7 +240,7 @@ test("editor save shows the result in the footer and keeps edits on failure", as
 	expect(last?.args[1]).toMatchObject({ title: "Unsaved title", status: "archive" });
 });
 
-test("editor quick states apply at once without dirtying Save", async ({ page }) => {
+test("editor stages status and Featured with the other fields until Save", async ({ page }) => {
 	await mountAdmin(page, "artworks");
 	await outcome(page, "success");
 	const dialog = await editAlpha(page);
@@ -248,14 +248,26 @@ test("editor quick states apply at once without dirtying Save", async ({ page })
 	await expect(statusGroup(dialog, "Alpha").getByRole("radio", { checked: true })).toHaveText(
 		/Sold/,
 	);
-	expect((await calls(page)).at(-1)).toEqual({ name: "setArtworkStatus", args: ["alpha", "sold"] });
-	await expect(dialog.getByRole("button", { name: "Save changes" })).toHaveCount(0);
-
 	const featured = dialog.getByRole("switch", { name: "Featured on home" });
 	await featured.click();
 	await expect(featured).toHaveAttribute("aria-checked", "true");
-	expect((await calls(page)).at(-1)).toEqual({ name: "setArtworkFeatured", args: ["alpha", true] });
-	await expect(dialog.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+	await titleField(page).fill("Updated Alpha");
+	expect(await calls(page)).toEqual([]);
+	expect(await refreshes(page)).toBe(0);
+	const save = dialog.getByRole("button", { name: "Save changes" });
+	await save.click();
+	await expect(dialog.locator("output")).toHaveText(/Piece updated/);
+	await expect(save).toHaveCount(0);
+	const saved = await calls(page);
+	expect(saved).toHaveLength(1);
+	expect(saved[0]).toMatchObject({
+		name: "updateArtwork",
+		args: ["alpha", { title: "Updated Alpha", status: "sold", featured: true, priceInr: null }],
+	});
+	await page.keyboard.press("Escape");
+	await expect(
+		page.getByRole("button", { name: "Edit Updated Alpha, position 1, featured, Sold" }),
+	).toBeVisible();
 });
 
 test("editor asks before discarding", async ({ page }) => {
@@ -326,11 +338,8 @@ test("replace photo shows the preview, then the Replace button", async ({ page }
 	await expect(replace).toBeVisible();
 	await replace.click();
 	await expect(dialog.getByRole("alert")).toHaveText(REJECTED);
-	expect(
-		await dialog
-			.locator('input[name="image"]')
-			.evaluate((input: HTMLInputElement) => input.files?.length),
-	).toBe(1);
+	await expect(dialog.getByText("new.jpg", { exact: true })).toBeVisible();
+	await expect(replace).toBeEnabled();
 });
 
 test("search and chips filter the list and lock reorder", async ({ page }) => {

@@ -2,7 +2,6 @@
 
 import { X } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { DRAG_CLOSE_FRACTION, DRAG_VELOCITY_PX_S, DUR } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { adminIconBtnGhost, ICON_MD } from "./controls";
@@ -16,7 +15,7 @@ export const MODAL_EXIT_MS = DUR.fast * 1000;
 /**
  * Consumer-side half of the A1 exit: `requestClose` flips `closing` (pass it
  * to the Modal prop so the panel runs its fast ease-in exit) and calls
- * `onClosed` after MODAL_EXIT_MS (immediately under reduced motion). Modal
+ * `onClosed` after MODAL_EXIT_MS. Modal
  * cannot defer its own `onClose`: consumers may veto a close (dirty checks,
  * inline confirm steps), so the deferral belongs to the state owner.
  */
@@ -25,7 +24,6 @@ export function useModalExit(onClosed: () => void): {
 	requestClose: () => void;
 } {
 	const [closing, setClosing] = useState(false);
-	const reduce = usePrefersReducedMotion();
 	const timer = useRef<number | null>(null);
 	const done = useRef(onClosed);
 	done.current = onClosed;
@@ -38,17 +36,13 @@ export function useModalExit(onClosed: () => void): {
 
 	const requestClose = useCallback(() => {
 		if (timer.current !== null) return;
-		if (reduce) {
-			done.current();
-			return;
-		}
 		setClosing(true);
 		timer.current = window.setTimeout(() => {
 			timer.current = null;
 			setClosing(false);
 			done.current();
 		}, MODAL_EXIT_MS);
-	}, [reduce]);
+	}, []);
 
 	return { closing, requestClose };
 }
@@ -62,10 +56,10 @@ interface ModalProps {
 	titleId?: string;
 	/** Id of the body text, wired to aria-describedby. */
 	describedBy?: string;
-	/** center = dialog card at every width (confirms, small choices); sheet = full-height panel below sm, the same card from sm (D14). */
+	/** Centered confirmation card or an inset floating sheet on phones. */
 	placement?: "center" | "sheet";
 	/**
-	 * Only with placement="sheet". full = today's full-height editor (text
+	 * Only with placement="sheet". full = a tall editor (text
 	 * entry; X, Escape, backdrop close). content = bottom-anchored quick-choice
 	 * sheet (grabber, 62dvh cap, drag-to-close), the centred card from sm.
 	 */
@@ -74,7 +68,7 @@ interface ModalProps {
 	 * md = 28rem card from sm (confirms, quick-state sheet); lg = 32rem (the editor).
 	 * @deprecated `sm` is an alias of `md` for one release; integration removes it.
 	 */
-	size?: "sm" | "md" | "lg";
+	size?: "sm" | "md" | "lg" | "xl";
 	/** Header start slot. Default: the X button (aria-label "Close", adminIconBtnGhost) calling onClose. Pass null to omit. */
 	leading?: ReactNode | null;
 	/** Header end slot: at most one primary action (the editor's Save changes). */
@@ -92,11 +86,11 @@ interface ModalProps {
 // center card and the full editor sheet stay opaque (form legibility, dense
 // tool), while the content detent carries the iOS material below.
 const PANEL_BASE =
-	"relative z-raised flex w-full flex-col overflow-hidden text-ink starting:opacity-0 motion-safe:transition-[opacity,translate,scale] motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)";
+	"relative z-raised flex w-full flex-col overflow-hidden text-ink starting:opacity-0 transition-[opacity,translate,scale] duration-(--duration-base) ease-(--ease-out)";
 const PANEL_CENTER =
-	"max-h-[calc(100dvh-1.5rem)] rounded-(--radius-md) border border-line bg-surface-raised shadow-e5 starting:scale-95 sm:max-h-[calc(100dvh-2rem)]";
+	"max-h-[calc(100dvh-2rem)] rounded-(--radius-sheet) border border-line/70 bg-surface-raised shadow-e5 starting:translate-y-4 starting:scale-(--panel-enter-scale)";
 const PANEL_SHEET =
-	"h-dvh max-h-none rounded-none border-0 bg-surface-raised shadow-e5 starting:translate-y-4 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:border sm:border-line sm:starting:translate-y-0 sm:starting:scale-95";
+	"max-h-[calc(100dvh-2rem-var(--spacing-safe-bottom))] rounded-(--radius-sheet) border border-line/70 bg-surface-raised shadow-e5 starting:translate-y-12 starting:scale-(--panel-enter-scale) sm:max-h-[calc(100dvh-2rem)] sm:starting:translate-y-6";
 // Content detent (1.7): bottom-anchored, content height capped at --sheet-peek
 // (62dvh), top corners only, enters on the sheet curve; the centred card from
 // sm. Steering 2026-09-14: the quick-choice sheet is the iOS material surface
@@ -104,26 +98,27 @@ const PANEL_SHEET =
 // e4 in one box-shadow list with an opaque fallback), so it carries no
 // border-* or shadow-* utilities of its own.
 const PANEL_SHEET_CONTENT =
-	"material-glass-strong h-auto max-h-(--sheet-peek) rounded-t-(--radius-sheet) rounded-b-none starting:translate-y-4 motion-safe:ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:rounded-(--radius-md) sm:starting:translate-y-0 sm:starting:scale-95 sm:motion-safe:ease-(--ease-out)";
+	"material-glass-strong h-auto max-h-(--sheet-peek) rounded-(--radius-sheet) starting:translate-y-12 starting:scale-(--panel-enter-scale) ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:starting:translate-y-6 sm:ease-(--ease-out)";
 // A1 exit: fast, ease-in, back to the pre-open pose.
-const PANEL_CLOSING =
-	"opacity-0 motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-in)";
-const SIZE: Record<"sm" | "md" | "lg", string> = {
+const PANEL_CLOSING = "opacity-0 duration-(--duration-fast) ease-(--ease-in)";
+const SIZE: Record<"sm" | "md" | "lg" | "xl", string> = {
 	sm: "sm:max-w-md",
 	md: "sm:max-w-md",
 	lg: "sm:max-w-lg",
+	xl: "sm:max-w-lg lg:max-w-4xl",
 };
 const DIALOG =
-	"fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-y-auto bg-transparent text-ink open:grid backdrop:bg-scrim/40 pointer-fine:backdrop:backdrop-blur-sm dark:backdrop:bg-scrim/60";
+	"fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-y-auto bg-transparent text-ink open:grid backdrop:bg-scrim/40 backdrop:backdrop-blur-sm dark:backdrop:bg-scrim/60";
 const DIALOG_CENTER = "place-items-center p-3 sm:p-4";
-const DIALOG_SHEET = "place-items-stretch p-0 sm:place-items-center sm:p-4";
+const DIALOG_SHEET =
+	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
 const DIALOG_SHEET_CONTENT =
-	"place-items-end justify-items-stretch p-0 sm:place-items-center sm:justify-items-center sm:p-4";
+	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
 
 /**
  * Native modal dialogs isolate background content, trap focus, and give only
  * the topmost dialog Escape handling, including nested confirmations. On
- * phones `placement="sheet"` fills the viewport (X top-left, primary action
+ * phones `placement="sheet"` floats within the viewport (X top-left, primary action
  * top-right, body scrolls, footer on the safe area); from sm it is the card.
  * `detent="content"` is the bottom quick-choice sheet with a grabber and
  * drag-to-close (1.7); the keyboard-friendly editor stays on the full detent.
@@ -252,11 +247,24 @@ export function Modal({
 			ref={dialogRef}
 			aria-labelledby={labelledBy}
 			aria-describedby={describedBy}
-			onKeyDown={trapTab}
+			onKeyDown={(event) => {
+				if (closing) {
+					event.preventDefault();
+					event.stopPropagation();
+					return;
+				}
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					onClose();
+					return;
+				}
+				trapTab(event);
+			}}
 			onCancel={(event) => {
-				event.preventDefault();
+				if (event.cancelable) event.preventDefault();
 				event.stopPropagation();
-				onClose();
+				if (!closing) onClose();
 			}}
 			className={cn(
 				DIALOG,
@@ -266,13 +274,17 @@ export function Modal({
 		>
 			<div
 				ref={panelRef}
+				inert={closing || undefined}
 				className={cn(
 					PANEL_BASE,
 					placement !== "sheet" && PANEL_CENTER,
 					placement === "sheet" && (contentDetent ? PANEL_SHEET_CONTENT : PANEL_SHEET),
 					SIZE[size],
 					closing && PANEL_CLOSING,
-					closing && (placement === "sheet" ? "translate-y-4" : "scale-95"),
+					closing &&
+						(placement === "sheet"
+							? "translate-y-4 sm:translate-y-0 sm:scale-(--panel-enter-scale)"
+							: "scale-(--panel-enter-scale)"),
 				)}
 			>
 				{contentDetent ? (
@@ -331,6 +343,7 @@ export function Modal({
 				type="button"
 				tabIndex={-1}
 				aria-label={`Close ${title}`}
+				disabled={closing}
 				onClick={onClose}
 				className="absolute inset-0 cursor-default"
 			/>

@@ -1,28 +1,31 @@
-/*
- * FAQ answer reveal (visual-direction 2.10): grid-template-rows animates
- * 0fr -> 1fr when the <details> opens. A keyframe, not a transition, because
- * a closed details' content has no rendered before-state to transition from;
- * animations run on the newly-rendered box. Timing rides the shared tokens
- * (no magic numbers). Page-local per BUILD-RULES: animations.css is owned by
- * vu-foundations, so a missing pattern lands beside its one consumer.
- * Reduced motion: the block is gated, so the answer simply appears open.
- */
+.page {
+	overflow-wrap: anywhere;
+}
+
+.question {
+	min-width: 0;
+}
+
+/* Native details owns the open/closed layout. Only the newly visible answer
+ * moves, so expanding a long answer does not recalculate layout every frame.
+ * The item reveal uses the same travel and tempo as other UI responses. */
 .answer {
 	display: grid;
 	grid-template-rows: 1fr;
+	white-space: pre-line;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-	details[open] .answer {
-		animation: faq-rows-open var(--duration-base) var(--ease-out) both;
-	}
+details[open] .answer {
+	animation: faq-answer-in var(--duration-base) var(--ease-out) both;
 }
 
-@keyframes faq-rows-open {
+@keyframes faq-answer-in {
 	from {
-		grid-template-rows: 0fr;
+		opacity: 0;
+		transform: translateY(var(--reveal-travel-item));
 	}
 	to {
-		grid-template-rows: 1fr;
+		opacity: 1;
+		transform: translateY(0);
 	}
 }

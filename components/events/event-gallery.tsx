@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Expand } from "lucide-react";
 import { AnimatePresence, motion, type PanInfo, useMotionValue } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { BinduMark } from "@/components/decor/bindu-mark";
@@ -8,7 +8,6 @@ import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { LightboxIconButton, ViewerDialog } from "@/components/gallery/viewer-dialog";
 import { Reveal } from "@/components/motion/reveal";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
 import {
 	DRAG_CLOSE_FRACTION,
@@ -95,6 +94,10 @@ export function EventGallery({ images, title, lead = false }: Readonly<EventGall
 
 	return (
 		<>
+			<p className="mb-3 flex items-center gap-2 text-sm text-muted">
+				<Expand size={14} aria-hidden="true" />
+				{images.length === 1 ? "1 photo" : `${images.length} photos`}. Select a photo to enlarge.
+			</p>
 			<ul className={cn("grid gap-2 sm:gap-3", gridClass)}>
 				{inline.map((keyBase, i) => {
 					const showOverflow = overflow > 0 && i === MAX_INLINE - 1;
@@ -191,7 +194,10 @@ function PhotoTile({
 			)}
 			{overflow === undefined ? null : (
 				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
-					<span className="t-display text-title">+{overflow}</span>
+					<span className="text-center">
+						<span className="t-display block text-title">+{overflow}</span>
+						<span className="text-sm">View photos</span>
+					</span>
 				</span>
 			)}
 		</PlateFrame>
@@ -200,6 +206,7 @@ function PhotoTile({
 		<button
 			type="button"
 			onClick={(e) => onOpen(e.currentTarget)}
+			aria-haspopup="dialog"
 			aria-label={
 				overflow !== undefined && totalForLabel !== undefined
 					? `View all ${totalForLabel} photos from ${title}`
@@ -211,8 +218,7 @@ function PhotoTile({
 			    2026-09-14): one plate per page, never the whole grid. Travel is
 			    trimmed to 4px for the tile scale; the wrapper sits between the
 			    pressable button and the hover-lifting frame so no transform
-			    fights another, and reduced motion removes the loop in
-			    animations.css. */}
+			    fights another. */}
 			{priority ? (
 				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
 					{plate}
@@ -243,9 +249,9 @@ function EventLightbox({
 	onClose,
 	onIndex,
 }: Readonly<EventLightboxProps>) {
-	const reduceMotion = usePrefersReducedMotion();
 	const [dir, setDir] = useState<1 | -1>(1);
 	const figureRef = useRef<HTMLDivElement>(null);
+	const dragAxis = useRef<"x" | "y" | null>(null);
 	const scrimOpacity = useMotionValue(1);
 
 	const total = images.length;
@@ -285,13 +291,12 @@ function EventLightbox({
 	}, [index, total, onIndex]);
 
 	// Warm one photo behind and two ahead once the current one settles, so
-	// arrow/swipe paging is near-instant. Skipped under Save-Data and reduced
-	// motion (the gallery's contract, mirrored).
+	// arrow/swipe paging is near-instant. Skipped under Save-Data.
 	useEffect(() => {
 		if (!hasMany) return;
 		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
 			?.saveData;
-		if (saveData || reduceMotion) return;
+		if (saveData) return;
 		const neighbours = [
 			images[(index + 1) % total],
 			images[(index + 2) % total],
@@ -312,11 +317,12 @@ function EventLightbox({
 		return () => {
 			for (const preload of preloads) preload.remove();
 		};
-	}, [hasMany, images, index, total, reduceMotion]);
+	}, [hasMany, images, index, total]);
 
 	// Drag: pages horizontally, dismisses downward; the scrim tracks progress.
 	const handleDrag = useCallback(
 		(_event: unknown, info: PanInfo) => {
+			if (dragAxis.current !== "y") return;
 			const rect = figureRef.current?.getBoundingClientRect();
 			const height = rect?.height ?? 1;
 			const progress = Math.min(Math.max(info.offset.y / height, 0), 1);
@@ -326,37 +332,41 @@ function EventLightbox({
 	);
 	const handleDragEnd = useCallback(
 		(_event: unknown, info: PanInfo) => {
+			const axis = dragAxis.current;
+			dragAxis.current = null;
 			scrimOpacity.set(1);
 			const rect = figureRef.current?.getBoundingClientRect();
 			const width = rect?.width ?? 1;
 			const height = rect?.height ?? 1;
 			const { offset, velocity } = info;
+			if (axis === "x") {
+				if (!hasMany) return;
+				if (offset.x < -DRAG_CLOSE_FRACTION * width || velocity.x < -DRAG_VELOCITY_PX_S) {
+					go(1);
+				} else if (offset.x > DRAG_CLOSE_FRACTION * width || velocity.x > DRAG_VELOCITY_PX_S) {
+					go(-1);
+				}
+				return;
+			}
 			if (
-				hasMany &&
-				(offset.x < -DRAG_CLOSE_FRACTION * width || velocity.x < -DRAG_VELOCITY_PX_S)
+				axis === "y" &&
+				(offset.y > DRAG_CLOSE_FRACTION * height || velocity.y > DRAG_VELOCITY_PX_S)
 			) {
-				go(1);
-				return;
-			}
-			if (hasMany && (offset.x > DRAG_CLOSE_FRACTION * width || velocity.x > DRAG_VELOCITY_PX_S)) {
-				go(-1);
-				return;
-			}
-			if (offset.y > DRAG_CLOSE_FRACTION * height || velocity.y > DRAG_VELOCITY_PX_S) {
 				onClose();
 			}
 		},
 		[scrimOpacity, hasMany, go, onClose],
 	);
 
-	/** Siblings slide 24px from the travel side; reduced motion crossfades. */
+	/** Siblings slide from the travel side and fade together. */
 	const pageVariants = {
-		enter: (d: number) => (reduceMotion ? { opacity: 0 } : { x: SLIDE_PX * d, opacity: 0 }),
+		enter: (d: number) => ({ x: SLIDE_PX * d, opacity: 0 }),
 		center: { x: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE_OUT } },
-		exit: (d: number) =>
-			reduceMotion
-				? { opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }
-				: { x: -SLIDE_PX * d, opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } },
+		exit: (d: number) => ({
+			x: -SLIDE_PX * d,
+			opacity: 0,
+			transition: { duration: DUR.fast, ease: EASE_IN },
+		}),
 	};
 
 	const counterText = `${String(index + 1).padStart(2, "0")} / ${total}`;
@@ -390,11 +400,11 @@ function EventLightbox({
 						{index + 1} of {total}
 					</p>
 				) : null}
-				<div className="relative flex max-h-[70dvh] w-full items-center justify-center md:max-h-[78dvh]">
+				<div className="relative flex h-[70dvh] w-full items-center justify-center md:h-[78dvh]">
 					{hasMany ? (
 						<p
 							aria-hidden="true"
-							className="t-meta absolute left-1 top-1 z-raised tabular-nums text-bg/80 dark:text-ink/80"
+							className="t-meta absolute left-1 top-1 z-raised rounded-md bg-scrim-deep px-2 py-1 tabular-nums text-bg dark:text-ink"
 						>
 							{counterText}
 						</p>
@@ -410,11 +420,14 @@ function EventLightbox({
 							exit="exit"
 							drag={coarse}
 							dragDirectionLock
+							onDirectionLock={(axis) => {
+								dragAxis.current = axis;
+							}}
 							dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
 							dragElastic={0.2}
 							onDrag={coarse ? handleDrag : undefined}
 							onDragEnd={coarse ? handleDragEnd : undefined}
-							className="flex max-h-[70dvh] w-full items-center justify-center md:max-h-[78dvh]"
+							className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-md"
 						>
 							<ResponsiveImage
 								keyBase={images[index] ?? ""}
@@ -427,8 +440,16 @@ function EventLightbox({
 					</AnimatePresence>
 					{hasMany ? (
 						<>
-							<LightboxNav direction="prev" onClick={() => go(-1)} />
-							<LightboxNav direction="next" onClick={() => go(1)} />
+							<LightboxNav
+								direction="prev"
+								unavailable={!loops && index === 0}
+								onClick={() => go(-1)}
+							/>
+							<LightboxNav
+								direction="next"
+								unavailable={!loops && index === total - 1}
+								onClick={() => go(1)}
+							/>
 						</>
 					) : null}
 				</div>
@@ -436,7 +457,7 @@ function EventLightbox({
 				    title in the titled-work voice (2.6 figure captions). */}
 				<figcaption className="mt-3 flex w-full min-w-0 items-center gap-2 text-bg dark:text-ink">
 					<BinduMark className="opacity-80" />
-					<span className="t-display min-w-0 truncate text-h3">{title}</span>
+					<span className="t-display min-w-0 line-clamp-2 text-h3">{title}</span>
 				</figcaption>
 			</motion.figure>
 		</ViewerDialog>
@@ -445,16 +466,19 @@ function EventLightbox({
 
 function LightboxNav({
 	direction,
+	unavailable,
 	onClick,
-}: Readonly<{ direction: "prev" | "next"; onClick: () => void }>) {
+}: Readonly<{ direction: "prev" | "next"; unavailable: boolean; onClick: () => void }>) {
 	const isPrev = direction === "prev";
 	return (
 		<LightboxIconButton
-			onClick={onClick}
+			onClick={unavailable ? undefined : onClick}
+			aria-disabled={unavailable}
 			aria-label={isPrev ? "Previous photo" : "Next photo"}
 			className={cn(
 				"absolute bottom-3 z-raised pointer-coarse:size-12 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:border-bg/20 md:bg-bg/10 md:text-bg md:dark:text-ink",
 				isPrev ? "left-3 md:left-safe-left md:ml-3" : "right-3 md:right-safe-right md:mr-3",
+				unavailable && "cursor-default opacity-40",
 			)}
 		>
 			{isPrev ? (

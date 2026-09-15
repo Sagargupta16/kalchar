@@ -1,8 +1,10 @@
 "use client";
 
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useId, useState } from "react";
+import { LoaderCircle, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { unwrap } from "@/lib/action-result";
 import type { OrderPreset, OrderPresetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -11,17 +13,15 @@ import {
 	reorderOrderPresets,
 	updateOrderPreset,
 } from "../actions";
+import { PresetItem, usePresetDraftGuard } from "../presets/preset-item";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanel } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminChipField,
-	adminError,
-	adminField,
 	adminHelp,
-	adminIconBtn,
-	adminIconBtnDestructive,
 	adminIconBtnPrimary,
+	adminLabel,
 	adminRowInset,
 	ICON_MD,
 } from "./controls";
@@ -74,18 +74,53 @@ function PresetGroup({
 	items: OrderPreset[];
 }>) {
 	const confirm = useConfirm();
-	const { pending, err, run } = useAdminAction();
-	const [baseline, setBaseline] = useState(initial);
-	// Adopt fresh server data after a create (router.refresh), keeping the
-	// reorder baseline in step.
-	const [items, setItems] = useServerSyncedList(initial, setBaseline);
+	const router = useRouter();
+	const { pending, pendingVisible, err, run } = useAdminAction();
+	const [baseline, setBaseline] = useServerSyncedList(initial);
+	const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
+	// Keep the draft order separate so refreshed labels, additions and deletions
+	// can appear without replacing the order the maintainer is arranging.
+	const items = orderedIds
+		? [
+				...orderedIds.flatMap((id) => baseline.filter((item) => item.id === id)),
+				...baseline.filter((item) => !orderedIds.includes(item.id)),
+			]
+		: baseline;
 	const [saved, setSaved] = useState(false);
 	const [newLabel, setNewLabel] = useState("");
 	const [fieldError, setFieldError] = useState<string | null>(null);
-	// Which control the shared err belongs to: the order pair or the add form.
-	const [errSlot, setErrSlot] = useState<"order" | "general">("general");
+	const [errSlot, setErrSlot] = useState<"order" | "create" | { id: string }>("create");
 	const fieldId = useId();
-	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const listRef = useRef<HTMLUListElement>(null);
+	const refocusInput = useRef(false);
+	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
+	const { dragging, over, dragProps, move } = useReorder(
+		items,
+		(next) => {
+			setOrderedIds(next.map((item) => item.id));
+			setSaved(false);
+		},
+		pending,
+	);
+	usePresetDraftGuard(hasOrderChanges || newLabel.trim().length > 0);
+
+	useEffect(() => {
+		if (!hasOrderChanges) setOrderedIds(null);
+	}, [hasOrderChanges]);
+
+	useEffect(() => {
+		if (!saved) return;
+		const timer = window.setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+		return () => window.clearTimeout(timer);
+	}, [saved]);
+
+	useEffect(() => {
+		if (!pending && refocusInput.current) {
+			refocusInput.current = false;
+			inputRef.current?.focus();
+		}
+	}, [pending]);
 
 	const handleSaveOrder = () => {
 		setErrSlot("order");
@@ -94,41 +129,55 @@ function PresetGroup({
 			() => reorderOrderPresets(items.map((i) => i.id)),
 			() => {
 				setBaseline(items);
+				setOrderedIds(null);
 				setSaved(true);
-				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
 	};
 
-	const handleDelete = (id: string) => {
-		setErrSlot("general");
-		run(
-			() => deleteOrderPreset(id),
-			() => {
-				setItems((prev) => prev.filter((i) => i.id !== id));
-				setBaseline((prev) => prev.filter((i) => i.id !== id));
+	const handleDelete = async (preset: OrderPreset) => {
+		const index = items.findIndex((item) => item.id === preset.id);
+		const ok = await confirm({
+			title: `Delete "${preset.label}"?`,
+			body: "It will no longer appear on the custom-order form.",
+			confirmLabel: "Delete option",
+			cancelLabel: "Keep option",
+			action: async () => {
+				unwrap(await deleteOrderPreset(preset.id));
+				return true;
 			},
-		);
+		});
+		if (!ok) return;
+		setBaseline((prev) => prev.filter((item) => item.id !== preset.id));
+		router.refresh();
+		requestAnimationFrame(() => {
+			const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>(
+				"button[data-preset-rename]",
+			);
+			(buttons?.[Math.min(index, buttons.length - 1)] ?? inputRef.current)?.focus();
+		});
 	};
 
-	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
-	const generalError = errSlot === "general" ? err : null;
+	const createError = fieldError ?? (errSlot === "create" ? err : null);
 
 	return (
 		<AdminPanel
 			title={title}
 			description={hint}
-			className="min-w-0"
+			className="@container/preset-group min-w-0"
 			action={
 				hasOrderChanges ? (
 					<InlineReorderControls
 						layout="column"
-						className="sm:flex-row sm:items-center"
+						className="@sm/preset-group:flex-row @sm/preset-group:items-center"
 						pending={pending}
 						saved={false}
 						error={errSlot === "order" ? err : null}
 						onSave={handleSaveOrder}
-						onReset={() => setItems(baseline)}
+						onReset={() => {
+							setOrderedIds(null);
+							setSaved(false);
+						}}
 					/>
 				) : saved ? (
 					// The shell's InlineReorderControls keeps its buttons while `saved`, which
@@ -137,13 +186,14 @@ function PresetGroup({
 				) : null
 			}
 		>
-			<ul className="space-y-tight">
+			<ul ref={listRef} className="space-y-tight">
 				{items.map((p, i) => (
 					<li
 						key={p.id}
 						{...dragProps(i)}
 						className={cn(
 							adminRowInset,
+							"@container/preset",
 							dragging === i && "scale-[0.98] opacity-60 shadow-e3 select-none",
 							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
@@ -151,6 +201,8 @@ function PresetGroup({
 						<PresetItem
 							preset={p}
 							pending={pending}
+							saving={pending && typeof errSlot === "object" && errSlot.id === p.id}
+							error={typeof errSlot === "object" && errSlot.id === p.id ? err : null}
 							reorderHandle={
 								<ReorderHandle
 									label={p.label}
@@ -161,18 +213,16 @@ function PresetGroup({
 								/>
 							}
 							onSave={(label) => {
-								setErrSlot("general");
-								return run(() => updateOrderPreset(p.id, label));
+								setErrSlot({ id: p.id });
+								return run(
+									() => updateOrderPreset(p.id, label),
+									() =>
+										setBaseline((prev) =>
+											prev.map((item) => (item.id === p.id ? { ...item, label } : item)),
+										),
+								);
 							}}
-							onDelete={async () => {
-								const ok = await confirm({
-									title: `Delete "${p.label}"?`,
-									body: "It will no longer appear on the custom-order form.",
-									confirmLabel: "Delete option",
-									cancelLabel: "Keep option",
-								});
-								if (ok) handleDelete(p.id);
-							}}
+							onDelete={() => handleDelete(p)}
 						/>
 					</li>
 				))}
@@ -192,7 +242,7 @@ function PresetGroup({
 						{items.map((p) => (
 							<span
 								key={p.id}
-								className="inline-flex h-6 items-center rounded-full border border-line bg-bg px-2.5 text-micro text-ink"
+								className="inline-flex h-6 items-center rounded-full border border-line bg-bg px-3 text-micro text-ink"
 							>
 								{p.label}
 							</span>
@@ -202,27 +252,37 @@ function PresetGroup({
 				</div>
 			) : null}
 
-			{/* Chip-shaped add field (Tier 2e): bare input left, round primary +
-			    inside the pill's right end. The visible label moves to aria-label. */}
+			<label htmlFor={fieldId} className={cn(adminLabel, "mt-4")}>
+				New {singular} option
+			</label>
 			<form
-				className={cn(adminChipField, "mt-4")}
+				noValidate
+				aria-label={`Add ${singular} option`}
+				className={cn(adminChipField, "mt-2")}
 				onSubmit={(e) => {
 					e.preventDefault();
+					if (pending) return;
 					const label = newLabel.trim();
 					if (!label) {
 						setFieldError(`Enter a ${singular} option`);
+						inputRef.current?.focus();
 						return;
 					}
 					setFieldError(null);
-					setErrSlot("general");
+					setErrSlot("create");
 					run(
 						() => createOrderPreset(kind, label),
-						() => setNewLabel(""),
+						() => {
+							setNewLabel("");
+							refocusInput.current = true;
+						},
 					);
 				}}
 			>
 				<input
+					ref={inputRef}
 					id={fieldId}
+					disabled={pending}
 					value={newLabel}
 					onChange={(e) => {
 						setNewLabel(e.target.value);
@@ -234,130 +294,28 @@ function PresetGroup({
 					placeholder={`New ${singular}`}
 					aria-label={`New ${singular} option`}
 					aria-invalid={fieldError ? true : undefined}
-					aria-describedby={fieldError ? `${fieldId}-error` : undefined}
-					className="min-h-10 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
+					aria-describedby={createError ? `${fieldId}-error` : undefined}
+					className="min-h-control min-w-0 w-full border-0 bg-transparent text-base text-ink placeholder:text-muted"
 				/>
 				<button
 					type="submit"
 					disabled={pending}
+					aria-busy={(pending && errSlot === "create") || undefined}
 					aria-label={`Add ${singular}`}
 					className={cn(adminIconBtnPrimary, "rounded-full")}
 				>
-					<Plus size={ICON_MD} aria-hidden="true" />
+					{pendingVisible && errSlot === "create" ? (
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
+					) : (
+						<Plus size={ICON_MD} aria-hidden="true" />
+					)}
 				</button>
 			</form>
-			{fieldError ? (
-				<p id={`${fieldId}-error`} className={cn(adminError, "mt-1")}>
-					{fieldError}
-				</p>
-			) : null}
-			{generalError ? (
-				<AdminNotice variant="error" className="mt-3">
-					{generalError}
+			{createError ? (
+				<AdminNotice id={`${fieldId}-error`} variant="error" className="mt-3">
+					{createError}
 				</AdminNotice>
 			) : null}
 		</AdminPanel>
-	);
-}
-
-function PresetItem({
-	preset,
-	pending,
-	reorderHandle,
-	onSave,
-	onDelete,
-}: Readonly<{
-	preset: OrderPreset;
-	pending: boolean;
-	reorderHandle: React.ReactNode;
-	onSave: (label: string) => Promise<boolean>;
-	onDelete: () => void;
-}>) {
-	const [editing, setEditing] = useState(false);
-	const [label, setLabel] = useState(preset.label);
-
-	if (!editing) {
-		return (
-			<div className="flex items-center gap-3">
-				{reorderHandle}
-				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium text-ink">{preset.label}</p>
-				</div>
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => {
-						setLabel(preset.label);
-						setEditing(true);
-					}}
-					aria-label={`Rename ${preset.label}`}
-					title="Rename"
-					className={adminIconBtn}
-				>
-					<Pencil size={ICON_MD} aria-hidden="true" />
-				</button>
-				<span className="ml-4 flex border-l border-line pl-4">
-					<button
-						type="button"
-						disabled={pending}
-						onClick={onDelete}
-						aria-label={`Delete ${preset.label}`}
-						className={adminIconBtnDestructive}
-					>
-						<Trash2 size={ICON_MD} aria-hidden="true" />
-					</button>
-				</span>
-			</div>
-		);
-	}
-
-	// A form so the phone keyboard's return key saves and Escape cancels.
-	return (
-		<form
-			className="flex items-center gap-3"
-			onSubmit={async (e) => {
-				e.preventDefault();
-				if (await onSave(label.trim())) setEditing(false);
-			}}
-		>
-			<input
-				disabled={pending}
-				value={label}
-				onChange={(e) => setLabel(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") {
-						setLabel(preset.label);
-						setEditing(false);
-					}
-				}}
-				aria-label={`Rename ${preset.label}`}
-				enterKeyHint="done"
-				className={adminField}
-				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
-				autoFocus
-			/>
-			<button
-				type="submit"
-				disabled={pending}
-				aria-label={`Save ${preset.label}`}
-				className={adminIconBtnPrimary}
-			>
-				<Check size={ICON_MD} aria-hidden="true" />
-			</button>
-			<span className="ml-4 flex border-l border-line pl-4">
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => {
-						setLabel(preset.label);
-						setEditing(false);
-					}}
-					aria-label={`Cancel renaming ${preset.label}`}
-					className={adminIconBtn}
-				>
-					<X size={ICON_MD} aria-hidden="true" />
-				</button>
-			</span>
-		</form>
 	);
 }

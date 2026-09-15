@@ -1,10 +1,7 @@
-import { Brush, Clock, MessageCircle } from "lucide-react";
-import { KachniRule } from "@/components/decor/kachni-rule";
 import { SectionCta } from "@/components/home/section-cta";
 import { Spread } from "@/components/home/spread";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Section, SectionHeader } from "@/components/ui/section";
 import { staggerDelay } from "@/lib/motion";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
@@ -29,78 +26,67 @@ export function CustomOrdersTeaser({
 
 	return (
 		<Section id="custom-orders" accent="vermillion" background="wash" padded rhythm="grand">
-			<KachniRule form="long" className="mb-(--space-block)" />
 			<Spread
 				header={
 					<Reveal>
 						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
+						<div className="mt-6 flex flex-wrap items-center gap-3">
+							<a
+								href={quickWa}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={buttonVariants({ variant: "primary" })}
+							>
+								Start on WhatsApp
+							</a>
+							<SectionCta href="/custom-orders">Open the brief form</SectionCta>
+						</div>
 					</Reveal>
 				}
 			>
-				<ol className="grid gap-(--grid-gap) sm:grid-cols-3">
+				<ol className="grid gap-6">
 					<Reveal as="li" delayMs={staggerDelay(0)}>
-						<StepCard
+						<ProcessStep
 							step={1}
-							icon={<Brush size={14} aria-hidden="true" />}
 							title="Send a brief"
 							body="Style, size, occasion. References welcome on WhatsApp."
 						/>
 					</Reveal>
 					<Reveal as="li" delayMs={staggerDelay(1)}>
-						<StepCard
+						<ProcessStep
 							step={2}
-							icon={<MessageCircle size={14} aria-hidden="true" />}
 							title="We talk it through"
 							body="Quote and timeline come back over WhatsApp."
 						/>
 					</Reveal>
 					<Reveal as="li" delayMs={staggerDelay(2)}>
-						<StepCard
+						<ProcessStep
 							step={3}
-							icon={<Clock size={14} aria-hidden="true" />}
 							title="Painted, approved, shipped"
 							body="Progress shots along the way. Ships from India."
 						/>
 					</Reveal>
 				</ol>
-
-				<Reveal delayMs={staggerDelay(3)}>
-					<div className="mt-(--space-block) flex flex-wrap items-center gap-3">
-						<a
-							href={quickWa}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={buttonVariants({ variant: "primary" })}
-						>
-							Start on WhatsApp
-						</a>
-						<SectionCta href="/custom-orders">Open the brief form</SectionCta>
-					</div>
-				</Reveal>
 			</Spread>
 		</Section>
 	);
 }
 
-/**
- * One commission step: the numeral voice carries the "01 02 03" count in the
- * vermillion section pigment (visual-direction 2.1 change 6); the icon stays
- * inside the cell at size-3.5, nothing removed.
- */
-function StepCard({
+/** Compact numbered steps keep the commission process easy to scan on a phone. */
+function ProcessStep({
 	step,
-	icon,
 	title,
 	body,
-}: Readonly<{ step: number; icon: React.ReactNode; title: string; body: string }>) {
+}: Readonly<{ step: number; title: string; body: string }>) {
 	return (
-		<Card className="flex h-full flex-col">
-			<div className="flex items-center gap-2">
-				<span className="t-numeral text-title text-(--section-accent)">0{step}</span>
-				<span className="text-muted">{icon}</span>
+		<div className="flex items-start gap-4">
+			<span aria-hidden="true" className="t-numeral shrink-0 text-title text-(--section-accent)">
+				0{step}
+			</span>
+			<div className="min-w-0">
+				<h3 className="text-base font-semibold text-ink">{title}</h3>
+				<p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
 			</div>
-			<h3 className="t-display mt-4 text-h3">{title}</h3>
-			<p className="mt-2 text-sm text-muted">{body}</p>
-		</Card>
+		</div>
 	);
 }
