@@ -248,7 +248,7 @@ export function HeroPlates({
 					<p className="mt-1 text-sm text-muted">{front.style}</p>
 				</div>
 				<span className="shrink-0 rounded-full bg-surface px-3 py-2 text-xs font-medium text-muted shadow-e1">
-					Featured
+					{"Featured"}
 					<span className="sr-only">
 						, piece {index >= 0 ? index + 1 : 1} of {totalCount}
 					</span>

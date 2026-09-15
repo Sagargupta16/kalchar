@@ -186,10 +186,10 @@ test("featured toggle round-trips on success and never double-submits", async ({
 
 	await outcome(page, "pending");
 	const bravo = page.getByRole("button", { name: "Feature Bravo" });
-	await bravo.click();
+	// A real double-click must start just one request before the pending button disables.
+	await bravo.dblclick();
 	await expect(bravo).toBeDisabled();
-	await bravo.click({ force: true });
-	expect(await page.evaluate(() => window.adminTest.calls.length)).toBe(2);
+	expect(await calls(page)).toHaveLength(2);
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(bravo).toBeEnabled();
 	await expect(bravo).toHaveAttribute("aria-pressed", "false");
@@ -215,7 +215,9 @@ test("row delete uses outcome labels, keeps the row on failure, removes it on su
 		.getByRole("button", { name: "Delete piece" })
 		.click();
 	await expect(page.getByRole("listitem")).toHaveCount(2);
-	await expect(page.locator("output")).toHaveText(/"Alpha" deleted/);
+	await expect(page.getByRole("status").filter({ hasText: "deleted" })).toHaveText(
+		/"Alpha" deleted/,
+	);
 });
 
 test("editor save shows the result in the footer and keeps edits on failure", async ({ page }) => {

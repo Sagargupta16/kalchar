@@ -29,15 +29,15 @@ interface AdminNoticeProps {
 /**
  * Inline, findable status for admin CRUD. Never auto-dismisses; the caller
  * unmounts success after SAVED_BADGE_DURATION_MS (2000) and keeps errors until
- * the next attempt. Errors are role="alert", success is an <output>, info is
- * role="status". No toasts for admin CRUD (research; Apple HIG feedback).
+ * the next attempt. Errors are role="alert"; success and info use <output>.
+ * No toasts for admin CRUD (research; Apple HIG feedback).
  * mt-0.5 on the icon is a deliberate optical alignment, not a spacing step.
  */
 export function AdminNotice({ variant, children, className, id }: Readonly<AdminNoticeProps>) {
 	const Icon = ICON[variant];
 	const icon = <Icon size={ICON_SM} aria-hidden="true" className="mt-0.5 shrink-0" />;
 	const classes = cn(BASE, STYLE[variant], className);
-	if (variant === "success") {
+	if (variant !== "error") {
 		return (
 			<output id={id} className={classes}>
 				{icon}
@@ -46,7 +46,7 @@ export function AdminNotice({ variant, children, className, id }: Readonly<Admin
 		);
 	}
 	return (
-		<p id={id} role={variant === "error" ? "alert" : "status"} className={classes}>
+		<p id={id} role="alert" className={classes}>
 			{icon}
 			<span className="min-w-0">{children}</span>
 		</p>

@@ -21,6 +21,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Refresh the About page's catalog counts after artwork and workshop changes, and keep shared artwork actions locked until the current save settles.
 - Route Add actions through the unsaved-draft confirmation and carry globally selected event photos into the creation form, including selections made during another submission.
 - Keep zoomed artwork within the viewer's frame when panning or zooming out, and close the viewer when browser history changes the artwork page.
+- Resolve SonarCloud findings with native dialogs, progress and status elements, simpler editor and viewer components, explicit category sorting, and linear contact parsing. Keep stylesheet analysis enabled and preserve the shared shadows and motion.
+- Replace fixed browser-test delays and forced interactions with observable UI states, and retain upload help text, keyboard focus, and clipboard failure recovery.
+- Release the workshop list after successful creation before moving keyboard focus to its new row.
 
 ## 1.38.2 (2026-09-13)
 

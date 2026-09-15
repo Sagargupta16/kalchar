@@ -17,7 +17,12 @@ export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
 
 /** India is the default country when a visitor types a bare 10-digit number. */
 const DEFAULT_COUNTRY_CODE = "91";
-const EMAIL_RE = /[^\s@,;<>()]+@[^\s@,;<>()]+\.[^\s@,;<>()]+/;
+const EMAIL_TOKEN_RE = /^[^@]+@[^@.]+\.[^@]+$/;
+
+/** Token boundaries and anchored, disjoint parts keep free-text parsing linear. */
+function findEmail(contact: string): string | undefined {
+	return contact.split(/[\s,;<>()]+/).find((token) => EMAIL_TOKEN_RE.test(token));
+}
 
 export interface LeadContact {
 	/** E.164 digits without the plus, ready for wa.me and tel:. */
@@ -33,7 +38,7 @@ export interface LeadContact {
  */
 export function parseLeadContact(contact: string | undefined): LeadContact {
 	if (!contact) return {};
-	const email = EMAIL_RE.exec(contact)?.[0];
+	const email = findEmail(contact);
 	const phone = normalisePhone(email ? contact.replace(email, " ") : contact);
 	return { ...(phone ? { phone } : {}), ...(email ? { email } : {}) };
 }
@@ -58,8 +63,9 @@ export function leadReplyMessage(lead: Lead, siteName: string): string {
 		? `your enquiry about a ${lead.style} piece`
 		: "your custom-order enquiry";
 	const details = [lead.size, lead.budget, lead.timeline].filter(Boolean).join(", ");
+	const detailSuffix = details ? ` (${details})` : "";
 	return [
-		`${greeting} thank you for ${about}${details ? ` (${details})` : ""}. This is ${siteName}.`,
+		`${greeting} thank you for ${about}${detailSuffix}. This is ${siteName}.`,
 		"We'd be glad to talk it through. When would be a good time to chat?",
 	].join("\n");
 }
@@ -80,13 +86,15 @@ export function leadReplyLinks(lead: Lead, siteName: string): LeadReplyLink[] {
 	const message = leadReplyMessage(lead, siteName);
 	const links: LeadReplyLink[] = [];
 	if (phone) {
-		links.push({
-			kind: "whatsapp",
-			label: "Reply on WhatsApp",
-			href: buildWhatsAppLink({ phoneE164NoPlus: phone, message }),
-			external: true,
-		});
-		links.push({ kind: "call", label: "Call", href: `tel:+${phone}`, external: false });
+		links.push(
+			{
+				kind: "whatsapp",
+				label: "Reply on WhatsApp",
+				href: buildWhatsAppLink({ phoneE164NoPlus: phone, message }),
+				external: true,
+			},
+			{ kind: "call", label: "Call", href: `tel:+${phone}`, external: false },
+		);
 	}
 	if (email) {
 		const params = new URLSearchParams({

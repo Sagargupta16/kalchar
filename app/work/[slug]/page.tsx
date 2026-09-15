@@ -185,7 +185,7 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 				type="application/ld+json"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD, angle brackets escaped below
 				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(artworkJsonLd(art)).replace(/</g, "\\u003c"),
+					__html: JSON.stringify(artworkJsonLd(art)).replaceAll("<", String.raw`\u003c`),
 				}}
 			/>
 			{/* Preload the artwork plate (the LCP element) so its fetch starts at

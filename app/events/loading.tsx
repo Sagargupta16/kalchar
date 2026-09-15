@@ -6,9 +6,7 @@ import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 export default function EventsLoading() {
 	return (
 		<main>
-			<p role="status" className="sr-only">
-				Loading events...
-			</p>
+			<output className="sr-only">Loading events...</output>
 			<Section accent="peacock" background="wash" padded containerClassName="py-(--space-block)">
 				<SkeletonHeader />
 				<Skeleton className="mt-5 h-11 w-full sm:w-48" />

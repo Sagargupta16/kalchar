@@ -61,6 +61,13 @@ interface WallLabelProps {
 	className?: string;
 }
 
+function formatCounter(index?: number, total?: number): string | null {
+	if (typeof index !== "number") return null;
+	const counter = `No. ${String(index).padStart(2, "0")}`;
+	if (typeof total === "number") return `${counter} of ${total}`;
+	return counter;
+}
+
 export function WallLabel({
 	index,
 	total,
@@ -86,10 +93,7 @@ export function WallLabel({
 	// mode reads text-ink (the near-white dark-mode ink).
 	const mutedClass = scrim ? "text-bg/70 dark:text-ink/70" : undefined;
 
-	const counter =
-		typeof index === "number"
-			? `No. ${String(index).padStart(2, "0")}${typeof total === "number" ? ` of ${total}` : ""}`
-			: null;
+	const counter = formatCounter(index, total);
 	const metaLine = meta.filter((item) => item.length > 0).join(" · ");
 	const headingTag: WallLabelLineTag = headingLevel === "none" ? "p" : headingLevel;
 

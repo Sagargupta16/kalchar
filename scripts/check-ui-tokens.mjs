@@ -86,7 +86,7 @@ export const PATTERNS = [
 	},
 	{
 		id: "arbitrary-text-size",
-		re: /\btext-\[0?\.[0-9]/,
+		re: /\btext-\[0?\.\d/,
 		phase: "integration",
 		message: "Use text-micro, text-label or a scale step",
 	},
@@ -104,7 +104,7 @@ export const PATTERNS = [
 	},
 	{
 		id: "dead-space-var",
-		re: /var\(--space-[0-9]/,
+		re: /var\(--space-\d/,
 		phase: "integration",
 		message: "Use --space-tight/group/page, --tabbar-offset or Tailwind spacing",
 	},
@@ -122,7 +122,7 @@ export const PATTERNS = [
 	},
 	{
 		id: "arbitrary-timing",
-		re: /\bduration-\[[0-9]|\bease-\[/,
+		re: /\bduration-\[\d|\bease-\[/,
 		phase: "now",
 		message: "Use the --duration-* / --ease-* tokens",
 	},
@@ -171,7 +171,7 @@ export const PATTERNS = [
 	},
 	{
 		id: "vh-height",
-		re: /\bmin-h-\[[0-9]+vh\]|\bh-\[[0-9]+vh\]/,
+		re: /\bmin-h-\[\d+vh\]|\bh-\[\d+vh\]/,
 		phase: "warn",
 		message: "Use svh (URL bar)",
 	},
@@ -332,18 +332,14 @@ function parseArgs(argv) {
 	return options;
 }
 
-async function main() {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
 	const options = parseArgs(process.argv.slice(2));
-	if (!options) {
+	if (options) {
+		process.exitCode = await run(options);
+	} else {
 		console.error(
 			"Usage: node scripts/check-ui-tokens.mjs [--root <dir>] [--phase now|integration]",
 		);
 		process.exitCode = 2;
-		return;
 	}
-	process.exitCode = await run(options);
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	void main();
 }

@@ -29,12 +29,14 @@ export function UploadProgress({ state }: Readonly<{ state: UploadProgressState 
 				<span aria-live="polite">{state.label}</span>
 				{percent !== null ? <span className="tabular-nums">{percent}%</span> : null}
 			</div>
-			<div
-				role="progressbar"
+			<progress
 				aria-label={state.label}
-				aria-valuemin={0}
-				aria-valuemax={100}
-				aria-valuenow={percent ?? undefined}
+				max={100}
+				value={percent ?? undefined}
+				className="sr-only"
+			/>
+			<div
+				aria-hidden="true"
 				className={cn(
 					"h-1.5 w-full overflow-hidden rounded-full bg-canvas",
 					percent === null && "skeleton",
@@ -60,23 +62,27 @@ export function UploadProgress({ state }: Readonly<{ state: UploadProgressState 
 export function UploadProgressEdge({ state }: Readonly<{ state: UploadProgressState }>) {
 	const percent = toPercent(state.fraction);
 	return (
-		<div
-			role="progressbar"
-			aria-label={state.label}
-			aria-valuemin={0}
-			aria-valuemax={100}
-			aria-valuenow={percent ?? undefined}
-			className={cn(
-				"absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-scrim/20",
-				percent === null && "skeleton",
-			)}
-		>
-			{percent !== null ? (
-				<div
-					className="h-full w-full origin-left bg-accent transition-transform duration-(--duration-fast) ease-(--ease-out)"
-					style={{ transform: `scaleX(${percent / 100})` }}
-				/>
-			) : null}
-		</div>
+		<>
+			<progress
+				aria-label={state.label}
+				max={100}
+				value={percent ?? undefined}
+				className="sr-only"
+			/>
+			<div
+				aria-hidden="true"
+				className={cn(
+					"absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-scrim/20",
+					percent === null && "skeleton",
+				)}
+			>
+				{percent !== null ? (
+					<div
+						className="h-full w-full origin-left bg-accent transition-transform duration-(--duration-fast) ease-(--ease-out)"
+						style={{ transform: `scaleX(${percent / 100})` }}
+					/>
+				) : null}
+			</div>
+		</>
 	);
 }

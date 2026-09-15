@@ -99,9 +99,9 @@ export function EventPhotoStrip({
 	return (
 		<div className="grid gap-1.5">
 			{batch ? (
-				<p role="status" className="text-label text-muted tabular-nums">
+				<output className="text-label text-muted tabular-nums">
 					Uploading {batch.done.size} of {batch.total} photo{batch.total === 1 ? "" : "s"}
-				</p>
+				</output>
 			) : null}
 			<ul className="flex flex-wrap gap-2">
 				{files.map((file, i) => (

@@ -70,7 +70,7 @@ export default function TrustPage() {
 				type="application/ld+json"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: FAQPage JSON-LD, angle brackets escaped
 				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+					__html: JSON.stringify(jsonLd).replaceAll("<", String.raw`\u003c`),
 				}}
 			/>
 			<Section background="wash" padded containerClassName="py-(--space-block)">

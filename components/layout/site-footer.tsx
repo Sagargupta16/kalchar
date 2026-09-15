@@ -143,7 +143,7 @@ export function SiteFooter() {
 								</span>{" "}
 								{brand.headline.connector} {brand.headline.suffix}
 							</span>
-							. All rights reserved.
+							{". All rights reserved."}
 						</p>
 						<div className="flex flex-wrap items-center gap-x-2">
 							<Link

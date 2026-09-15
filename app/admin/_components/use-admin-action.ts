@@ -13,7 +13,7 @@ import { PENDING_MIN_MS, PENDING_SHOW_MS } from "@/lib/motion";
 export const SAVED_BADGE_DURATION_MS = 4000;
 
 /** @deprecated alias of PENDING_SHOW_MS in lib/motion.ts (single source, motion-elevation A3). */
-export const PENDING_VISIBLE_DELAY_MS = PENDING_SHOW_MS;
+export { PENDING_SHOW_MS as PENDING_VISIBLE_DELAY_MS } from "@/lib/motion";
 
 const GENERIC_FAILURE = "Something went wrong. Refresh and try again.";
 

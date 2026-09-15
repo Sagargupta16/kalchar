@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { DUR, EASE_IN, EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { handleViewerKeyDown, type ViewerKeyboardActions } from "./viewer-keyboard";
 
 /** Floating icon control over a photo panel: iOS-style material (steering
  *  2026-09-14). The raised-surface fill at the shared glass weight with the
@@ -32,23 +33,12 @@ export const LightboxIconButton = forwardRef<
 ));
 LightboxIconButton.displayName = "LightboxIconButton";
 
-interface ViewerDialogProps {
+interface ViewerDialogProps extends ViewerKeyboardActions {
 	children: ReactNode;
 	/** Optional compact artwork navigation, grouped with the always-visible close control. */
 	toolbar?: ReactNode;
 	label?: string;
 	labelledBy?: string;
-	onClose: () => void;
-	onNext?: () => void;
-	onPrevious?: () => void;
-	/** Home / End jump to the first / last piece (visual-direction 2.4). */
-	onFirst?: () => void;
-	onLast?: () => void;
-	/** + / - step the zoom level; ArrowUp / ArrowDown pan while zoomed. */
-	onZoomIn?: () => void;
-	onZoomOut?: () => void;
-	onArrowUp?: () => void;
-	onArrowDown?: () => void;
 	/** Live opacity for the deep scrim while a drag-to-dismiss is in flight. */
 	scrimOpacity?: MotionValue<number>;
 }
@@ -110,67 +100,19 @@ export function ViewerDialog({
 				if (event.cancelable) event.preventDefault();
 				onClose();
 			}}
-			onKeyDown={(event) => {
-				// Thumbnail navigation owns its arrow keys; do not page twice.
-				if (event.defaultPrevented) return;
-				if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					onClose();
-				} else if (event.key === "Tab") {
-					const controls = [
-						...event.currentTarget.querySelectorAll<HTMLElement>(
-							"a[href], button, input, select, textarea, [tabindex]",
-						),
-					].filter(
-						(control) =>
-							control.tabIndex >= 0 &&
-							!control.matches(":disabled") &&
-							// Inert chrome (hidden by the lightbox single-tap toggle) is
-							// invisible but keeps client rects; skip it like the browser does.
-							!control.closest("[inert]") &&
-							control.getClientRects().length > 0,
-					);
-					const first = controls[0];
-					const last = controls.at(-1);
-					if (!first || !last) return;
-					const active = document.activeElement;
-					const atBoundary = event.shiftKey ? active === first : active === last;
-					if (atBoundary || !(active instanceof HTMLElement) || !controls.includes(active)) {
-						event.preventDefault();
-						(event.shiftKey ? last : first).focus();
-					}
-				} else if (
-					event.target instanceof HTMLElement &&
-					event.target.closest("input, textarea, select, [contenteditable=true]")
-				) {
-					return;
-				} else if (event.key === "ArrowRight" && onNext) {
-					event.preventDefault();
-					onNext();
-				} else if (event.key === "ArrowLeft" && onPrevious) {
-					event.preventDefault();
-					onPrevious();
-				} else if (event.key === "ArrowUp" && onArrowUp) {
-					event.preventDefault();
-					onArrowUp();
-				} else if (event.key === "ArrowDown" && onArrowDown) {
-					event.preventDefault();
-					onArrowDown();
-				} else if (event.key === "Home" && onFirst) {
-					event.preventDefault();
-					onFirst();
-				} else if (event.key === "End" && onLast) {
-					event.preventDefault();
-					onLast();
-				} else if ((event.key === "+" || event.key === "=") && onZoomIn) {
-					event.preventDefault();
-					onZoomIn();
-				} else if (event.key === "-" && onZoomOut) {
-					event.preventDefault();
-					onZoomOut();
-				}
-			}}
+			onKeyDown={(event) =>
+				handleViewerKeyDown(event, {
+					onClose,
+					onNext,
+					onPrevious,
+					onFirst,
+					onLast,
+					onZoomIn,
+					onZoomOut,
+					onArrowUp,
+					onArrowDown,
+				})
+			}
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }}

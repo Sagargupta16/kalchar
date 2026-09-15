@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, LoaderCircle, Presentation, Trash2 } from "lucide-react";
+import { ChevronDown, Presentation, Trash2 } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { isFailure } from "@/lib/action-result";
 import type { Workshop } from "@/lib/types";
@@ -9,17 +9,9 @@ import { deleteWorkshop, updateWorkshop } from "../actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { useConfirm } from "./confirm-dialog";
-import {
-	adminBtn,
-	adminBtnPrimary,
-	adminField,
-	adminHelp,
-	adminIconBtnDestructive,
-	adminLabel,
-	adminRow,
-	ICON_MD,
-} from "./controls";
+import { adminHelp, adminIconBtnDestructive, adminRow, ICON_MD } from "./controls";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { WorkshopEditor } from "./workshop-editor";
 
 export interface WorkshopDraft {
 	title: string;
@@ -156,6 +148,7 @@ export function WorkshopRow({
 	const [title, setTitle] = useState(workshop.title);
 	const [blurb, setBlurb] = useState(workshop.blurb);
 	const [duration, setDuration] = useState(workshop.durationHours?.toString() ?? "");
+	const draftSetters = { title: setTitle, blurb: setBlurb, durationHours: setDuration };
 	const [draftBase, setDraftBase] = useState(workshop);
 	const pending = rowPending || listPending;
 	const dirty =
@@ -335,92 +328,26 @@ export function WorkshopRow({
 			</div>
 
 			{editing ? (
-				<form
-					ref={formRef}
+				<WorkshopEditor
 					id={editorId}
-					noValidate
-					aria-label={`Edit ${workshop.title}`}
-					className="mt-3 border-t border-line pt-3"
+					slug={workshop.slug}
+					title={workshop.title}
+					formRef={formRef}
+					errorId={errorId}
+					pending={pending}
+					pendingVisible={pendingVisible}
+					draft={{ title, blurb, durationHours: duration }}
+					error={localErr}
+					saved={saved}
+					onDraftChange={(field, value) => draftSetters[field](value)}
 					onChange={() => {
 						setLocalErr(null);
 						setShowActionError(false);
 						setSaved(false);
 					}}
-					onSubmit={(e) => {
-						e.preventDefault();
-						save();
-					}}
-				>
-					<div className="grid gap-(--form-gap) sm:grid-cols-2">
-						<div className={cn(adminLabel, "sm:col-span-2")}>
-							<label htmlFor={`workshop-title-${workshop.slug}`}>Title *</label>
-							<input
-								id={`workshop-title-${workshop.slug}`}
-								name="title"
-								required
-								aria-invalid={localErr?.field === "title" || undefined}
-								aria-describedby={localErr?.field === "title" ? errorId : undefined}
-								autoCorrect="off"
-								disabled={pending}
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								className={adminField}
-							/>
-						</div>
-						<div className={cn(adminLabel, "sm:col-span-2")}>
-							<label htmlFor={`workshop-blurb-${workshop.slug}`}>Description *</label>
-							<textarea
-								id={`workshop-blurb-${workshop.slug}`}
-								name="blurb"
-								required
-								aria-invalid={localErr?.field === "blurb" || undefined}
-								aria-describedby={localErr?.field === "blurb" ? errorId : undefined}
-								rows={3}
-								disabled={pending}
-								value={blurb}
-								onChange={(e) => setBlurb(e.target.value)}
-								className={adminField}
-							/>
-						</div>
-						<div className={adminLabel}>
-							<label htmlFor={`workshop-duration-${workshop.slug}`}>
-								Duration (hours) (optional)
-							</label>
-							<input
-								id={`workshop-duration-${workshop.slug}`}
-								name="durationHours"
-								type="text"
-								inputMode="decimal"
-								aria-invalid={localErr?.field === "durationHours" || undefined}
-								aria-describedby={localErr?.field === "durationHours" ? errorId : undefined}
-								placeholder="e.g. 2"
-								disabled={pending}
-								value={duration}
-								onChange={(e) => setDuration(e.target.value)}
-								className={adminField}
-							/>
-						</div>
-					</div>
-					<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-						<button type="button" disabled={pending} onClick={cancelEdit} className={adminBtn}>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							disabled={pending}
-							aria-busy={pending}
-							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
-						>
-							{pendingVisible ? (
-								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
-							) : (
-								<Check size={ICON_MD} aria-hidden="true" />
-							)}
-							Save
-						</button>
-						{saved ? <AdminNotice variant="success">Saved</AdminNotice> : null}
-					</div>
-				</form>
+					onSave={save}
+					onCancel={cancelEdit}
+				/>
 			) : null}
 
 			{rowError ? (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createWorkshop, reorderWorkshops } from "../actions";
@@ -24,6 +25,7 @@ import {
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEditorFocus } from "./use-editor-focus";
 import { useReorder } from "./use-reorder";
 import {
 	focusWorkshopField,
@@ -137,6 +139,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			previous.some((item) => item.slug === next.slug) ? previous : [...previous, next];
 		setItems(append);
 		setBaseline(append);
+		setCreatePending(false);
 		setCreated({ id: next.slug, title: next.title });
 		setArrivedId(next.slug);
 		setCreating(false);
@@ -300,6 +303,7 @@ function CreateWorkshopForm({
 	const headingId = useId();
 	const errorId = useId();
 	const formRef = useRef<HTMLFormElement>(null);
+	const titleRef = useEditorFocus<HTMLInputElement>();
 	const [dirty, setDirty] = useState(false);
 	const [localErr, setLocalErr] = useState<WorkshopDraftError | null>(null);
 	const [showActionError, setShowActionError] = useState(false);
@@ -319,7 +323,9 @@ function CreateWorkshopForm({
 			aria-labelledby={headingId}
 			onChange={(event) => {
 				const values = new FormData(event.currentTarget);
-				setDirty([...values.values()].some((value) => String(value) !== ""));
+				setDirty(
+					["title", "blurb", "durationHours"].some((name) => formString(values, name) !== ""),
+				);
 				setLocalErr(null);
 				setShowActionError(false);
 			}}
@@ -330,9 +336,9 @@ function CreateWorkshopForm({
 				setShowActionError(false);
 				const fd = new FormData(e.currentTarget);
 				const result = parseWorkshopDraft({
-					title: String(fd.get("title") ?? ""),
-					blurb: String(fd.get("blurb") ?? ""),
-					durationHours: String(fd.get("durationHours") ?? ""),
+					title: formString(fd, "title"),
+					blurb: formString(fd, "blurb"),
+					durationHours: formString(fd, "durationHours"),
 				});
 				if ("error" in result) {
 					setLocalErr(result.error);
@@ -377,14 +383,13 @@ function CreateWorkshopForm({
 				<div className={adminLabel}>
 					<label htmlFor="new-workshop-title">Title *</label>
 					<input
+						ref={titleRef}
 						id="new-workshop-title"
 						name="title"
 						placeholder="e.g. Gond painting"
 						required
 						aria-invalid={localErr?.field === "title" || undefined}
 						aria-describedby={localErr?.field === "title" ? errorId : undefined}
-						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
-						autoFocus
 						autoCorrect="off"
 						className={adminField}
 					/>

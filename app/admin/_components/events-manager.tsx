@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useEventPhotoDraft, useGlobalEventFiles } from "./add-sheet";
@@ -32,6 +33,7 @@ import {
 import { type EventBatchState, EventPhotoStrip } from "./event-photo-strip";
 import { UndoBar, useUndo } from "./undo-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEditorFocus } from "./use-editor-focus";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 /** Label for the multi-file photo picker, reflecting how many are selected. */
@@ -132,7 +134,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		setCreated(null);
 		createdRef.current = null;
 		setNotice(null);
-		const title = String(fd.get("title") ?? "").trim();
+		const title = formString(fd, "title").trim();
 		const photos = fd.getAll("images").filter((v) => v instanceof File && v.size > 0).length;
 		let createdId: string | null = null;
 		let partialUpload = false;
@@ -307,6 +309,7 @@ function CreateEventForm({
 }>) {
 	const headingId = useId();
 	const formRef = useRef<HTMLFormElement>(null);
+	const titleRef = useEditorFocus<HTMLInputElement>();
 	const photoInputRef = useRef<HTMLInputElement>(null);
 	const [files, setFiles] = useEventPhotoDraft(pending);
 	const [titleProblem, setTitleProblem] = useState<string | null>(null);
@@ -339,9 +342,8 @@ function CreateEventForm({
 			onChange={(e) => {
 				const fields = new FormData(e.currentTarget);
 				setTextDirty(
-					["title", "category", "description"].some(
-						(name) => String(fields.get(name) ?? "") !== "",
-					) || fields.get("eventDate") !== initialDate,
+					["title", "category", "description"].some((name) => formString(fields, name) !== "") ||
+						fields.get("eventDate") !== initialDate,
 				);
 			}}
 			onSubmit={(e) => {
@@ -349,10 +351,10 @@ function CreateEventForm({
 				if (pending || fileProblem) return;
 				const form = e.currentTarget;
 				const fd = new FormData(form);
-				const title = String(fd.get("title") ?? "").trim();
+				const title = formString(fd, "title").trim();
 				if (!title) {
 					setTitleProblem("Enter a title.");
-					(form.elements.namedItem("title") as HTMLInputElement | null)?.focus();
+					titleRef.current?.focus();
 					return;
 				}
 				fd.set("title", title);
@@ -420,6 +422,7 @@ function CreateEventForm({
 				<div className={adminLabel}>
 					<label htmlFor="new-event-title">Title *</label>
 					<input
+						ref={titleRef}
 						id="new-event-title"
 						name="title"
 						placeholder="e.g. Monsoon exhibition"
@@ -428,8 +431,6 @@ function CreateEventForm({
 						aria-describedby={titleProblem ? "new-event-title-error" : undefined}
 						onInvalid={() => setTitleProblem("Enter a title.")}
 						onChange={() => setTitleProblem(null)}
-						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
-						autoFocus
 						autoCorrect="off"
 						className={adminField}
 					/>

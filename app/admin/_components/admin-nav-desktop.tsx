@@ -22,6 +22,8 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 	const isActive = useIsActive();
 	const addContext = useAddContext();
 	const { openPiece, openEvent, openChoice } = useAddSheet();
+	const addActions = { piece: openPiece, event: openEvent, choice: openChoice };
+	const addLabels = { piece: "Add piece", event: "Add event", choice: "Add" };
 
 	return (
 		<nav
@@ -32,14 +34,12 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 			<div className="flex shrink-0 gap-2 px-1 pt-1">
 				<button
 					type="button"
-					onClick={
-						addContext === "piece" ? openPiece : addContext === "event" ? openEvent : openChoice
-					}
+					onClick={addActions[addContext]}
 					aria-haspopup={addContext === "event" ? undefined : "dialog"}
 					className={cn(adminBtnPrimary, "min-w-0 flex-1")}
 				>
 					<Plus size={ICON_MD} aria-hidden="true" className="shrink-0" />
-					{addContext === "piece" ? "Add piece" : addContext === "event" ? "Add event" : "Add"}
+					{addLabels[addContext]}
 				</button>
 				{addContext !== "choice" ? (
 					<button

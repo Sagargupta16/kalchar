@@ -47,8 +47,8 @@ export function GalleryGrid({
 /** The route and search-parameter fallback reserve the same controls and flat grid. */
 export function GallerySkeleton() {
 	return (
-		<div role="status" aria-busy="true">
-			<span className="sr-only">Loading artwork</span>
+		<div aria-busy="true">
+			<output className="sr-only">Loading artwork</output>
 			<div className="mb-5 flex flex-wrap items-end gap-3 sm:gap-6">
 				<div className="grid w-full gap-2 sm:max-w-xl sm:flex-1">
 					<Skeleton className="h-5 w-40" />

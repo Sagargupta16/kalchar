@@ -1,4 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
+import {
+	expectViewerReady,
+	expectZoom,
+	touchDrag,
+	viewerGeometry,
+} from "./helpers/viewer-gestures";
 
 const EDGE_TOLERANCE_PX = 1;
 
@@ -26,30 +32,7 @@ async function openViewer(page: Page) {
 	await page.keyboard.press("Enter");
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
-	await expect(dialog).toHaveCSS("opacity", "1");
-}
-
-async function viewerGeometry(page: Page) {
-	return page
-		.getByRole("dialog")
-		.locator("figure img")
-		.evaluate((image) => {
-			const frame = image.closest("figure")?.firstElementChild;
-			if (!frame) throw new Error("The artwork clipping frame is missing");
-			const bounds = frame.getBoundingClientRect();
-			const artwork = image.getBoundingClientRect();
-			return {
-				scale: artwork.width / bounds.width,
-				left: artwork.left - bounds.left,
-				top: artwork.top - bounds.top,
-				right: bounds.right - artwork.right,
-				bottom: bounds.bottom - artwork.bottom,
-			};
-		});
-}
-
-async function expectZoom(page: Page, level: number) {
-	await expect.poll(async () => (await viewerGeometry(page)).scale).toBeCloseTo(level, 2);
+	await expectViewerReady(page);
 }
 
 async function zoomAt(page: Page, fraction: number) {
@@ -58,35 +41,23 @@ async function zoomAt(page: Page, fraction: number) {
 	const x = box.x + box.width * fraction;
 	const y = box.y + box.height * fraction;
 	await page.touchscreen.tap(x, y);
-	await page.waitForTimeout(90);
 	await page.touchscreen.tap(x, y);
 	await expectZoom(page, 2.5);
 }
 
 /** Trusted touch input exercises the real one-finger pan, without changing the springs. */
 async function panAcross(page: Page, direction: 1 | -1) {
+	await expectViewerReady(page);
 	const box = await page.getByRole("dialog").locator("figure").boundingBox();
 	if (!box) throw new Error("The artwork must be visible before panning");
 	const from = direction === 1 ? 0.1 : 0.9;
 	const to = direction === 1 ? 0.9 : 0.1;
-	const cdp = await page.context().newCDPSession(page);
-	try {
-		await cdp.send("Input.dispatchTouchEvent", {
-			type: "touchStart",
-			touchPoints: [{ x: box.x + box.width * from, y: box.y + box.height * from }],
-		});
-		for (let step = 1; step <= 8; step++) {
-			await page.waitForTimeout(40);
-			const fraction = from + ((to - from) * step) / 8;
-			await cdp.send("Input.dispatchTouchEvent", {
-				type: "touchMove",
-				touchPoints: [{ x: box.x + box.width * fraction, y: box.y + box.height * fraction }],
-			});
-		}
-		await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-	} finally {
-		await cdp.detach();
-	}
+	await touchDrag(page, {
+		from: { x: box.x + box.width * from, y: box.y + box.height * from },
+		to: { x: box.x + box.width * to, y: box.y + box.height * to },
+		frames: 20,
+	});
+	await expectViewerReady(page);
 }
 
 async function expectAlignedEdges(

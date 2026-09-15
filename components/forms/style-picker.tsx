@@ -4,7 +4,6 @@ import { Brush, Check, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { PlateFrame } from "@/components/gallery/plate-frame";
-import type { ArtStyle } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export interface StyleSample {
@@ -14,7 +13,7 @@ export interface StyleSample {
 
 interface StylePickerProps {
 	name: string;
-	styles: readonly ArtStyle[];
+	styles: readonly string[];
 	/** style -> representative artwork thumbnail. Missing = brush-glyph plate. */
 	samples: Record<string, StyleSample>;
 	value: string;

@@ -22,6 +22,15 @@ interface ArtworkPreviewProps {
 	priorityCount?: number;
 }
 
+function previewImageSizes(pieceCount: number, columns: number): string {
+	if (pieceCount === 1) return "(min-width: 432px) 384px, calc(100vw - 48px)";
+	if (columns === 2) return "(min-width: 816px) 372px, calc((100vw - 56px) / 2)";
+	if (columns === 4) {
+		return "(min-width: 1152px) 260px, (min-width: 1024px) 23vw, calc((100vw - 56px) / 2)";
+	}
+	return GALLERY_CARD_SIZES;
+}
+
 /** A lone piece sits beside its introduction; larger previews use only the columns they need. */
 export function ArtworkPreview({
 	id,
@@ -40,13 +49,7 @@ export function ArtworkPreview({
 	if (artworks.length === 0) return null;
 	const single = artworks.length === 1;
 	const columns = Math.min(artworks.length, maxColumns);
-	const imageSizes = single
-		? "(min-width: 432px) 384px, calc(100vw - 48px)"
-		: columns === 2
-			? "(min-width: 816px) 372px, calc((100vw - 56px) / 2)"
-			: columns === 4
-				? "(min-width: 1152px) 260px, (min-width: 1024px) 23vw, calc((100vw - 56px) / 2)"
-				: GALLERY_CARD_SIZES;
+	const imageSizes = previewImageSizes(artworks.length, columns);
 	const action = <SectionCta href={href}>{actionLabel}</SectionCta>;
 
 	return (

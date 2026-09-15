@@ -30,6 +30,17 @@ import { useServerSyncedList } from "./use-server-synced-list";
 /** Map of category name -> how many artworks use it (for the delete guard hint). */
 type UsageMap = Record<string, number>;
 
+function categoriesInOrder(baseline: Category[], order: readonly string[] | null): Category[] {
+	if (!order) return baseline;
+	const remaining = new Map(baseline.map((category) => [category.id, category]));
+	const ordered = order.flatMap((id) => {
+		const category = remaining.get(id);
+		remaining.delete(id);
+		return category ? [category] : [];
+	});
+	return [...ordered, ...remaining.values()];
+}
+
 export function CategoryManager({
 	categories: initial,
 	usage,
@@ -41,17 +52,7 @@ export function CategoryManager({
 	// Keep staged positions separate so a create or rename refresh updates
 	// row details without discarding the order that has not been saved yet.
 	const [order, setOrder] = useState<string[] | null>(null);
-	const remaining = new Map(baseline.map((category) => [category.id, category]));
-	const items = order
-		? [
-				...order.flatMap((id) => {
-					const category = remaining.get(id);
-					remaining.delete(id);
-					return category ? [category] : [];
-				}),
-				...remaining.values(),
-			]
-		: baseline;
+	const items = categoriesInOrder(baseline, order);
 	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
 	if (order && !hasOrderChanges) setOrder(null);
 	const usageById = new Map(initial.map((category) => [category.id, usage[category.name] ?? 0]));
@@ -109,6 +110,17 @@ export function CategoryManager({
 				setOrder(null);
 				setSaved(true);
 			},
+		);
+	};
+
+	const handleRename = (category: Category, name: string) => {
+		setErrSlot(`rename:${category.id}`);
+		return run(
+			() => renameCategory(category.id, name),
+			() =>
+				setBaseline((previous) =>
+					previous.map((item) => (item.id === category.id ? { ...item, name } : item)),
+				),
 		);
 	};
 
@@ -254,18 +266,7 @@ export function CategoryManager({
 										onMove={(to) => move(i, to)}
 									/>
 								}
-								onSave={(name) => {
-									setErrSlot(`rename:${c.id}`);
-									return run(
-										() => renameCategory(c.id, name),
-										() =>
-											setBaseline((previous) =>
-												previous.map((category) =>
-													category.id === c.id ? { ...category, name } : category,
-												),
-											),
-									);
-								}}
+								onSave={(name) => handleRename(c, name)}
 								onDelete={() => handleDelete(c, i)}
 							/>
 						</li>

@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn, formatInr } from "@/lib/utils";
+import { ArtworkCategoryField } from "./artwork-category-field";
 import { adminBtn, adminError, adminField, adminHelp, adminLabel, ICON_MD } from "./controls";
 import type { UploadComposerState } from "./use-upload-composer";
 
@@ -17,6 +18,8 @@ export function UploadDetailsStep({
 	const [detailsOpen, setDetailsOpen] = useState(
 		!!(fields.year || fields.dimensions || fields.description),
 	);
+	const priceHelpId = `${id}-price-help`;
+	const priceDescription = errors.price ? `${priceHelpId} ${id}-price-error` : priceHelpId;
 	return (
 		<fieldset disabled={pending} className="grid min-w-0 gap-(--form-gap)">
 			<legend className="sr-only">Piece details</legend>
@@ -41,33 +44,13 @@ export function UploadDetailsStep({
 					</p>
 				) : null}
 			</div>
-			<div className={adminLabel}>
-				<span id={`${id}-category-label`}>Category *</span>
-				<div
-					role="group"
-					aria-label="Category"
-					aria-invalid={!!errors.style}
-					aria-describedby={errors.style ? `${id}-category-error` : undefined}
-					tabIndex={-1}
-					className="flex flex-wrap gap-2"
-				>
-					{categories.map((name) => (
-						<button
-							key={name}
-							type="button"
-							aria-pressed={fields.style === name}
-							onClick={() => change({ style: name })}
-							className={cn(adminBtn, "rounded-full")}
-						>
-							{name}
-						</button>
-					))}
-				</div>
-				{errors.style ? (
-					<p id={`${id}-category-error`} className={adminError}>
-						{errors.style}
-					</p>
-				) : null}
+			<ArtworkCategoryField
+				id={id}
+				categories={categories}
+				value={fields.style}
+				error={errors.style}
+				onChange={(style) => change({ style })}
+			>
 				{categories.length === 0 ? (
 					<p className={adminHelp}>
 						No categories yet.{" "}
@@ -80,7 +63,7 @@ export function UploadDetailsStep({
 						first.
 					</p>
 				) : null}
-			</div>
+			</ArtworkCategoryField>
 			<div className={adminLabel}>
 				<label htmlFor={`${id}-medium`}>Medium *</label>
 				<input
@@ -122,11 +105,11 @@ export function UploadDetailsStep({
 						value={fields.price}
 						onChange={(event) => change({ price: digitsOnly(event.target.value) })}
 						aria-invalid={!!errors.price}
-						aria-describedby={`${id}-price-help${errors.price ? ` ${id}-price-error` : ""}`}
+						aria-describedby={priceDescription}
 						className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink"
 					/>
 				</div>
-				<p id={`${id}-price-help`} className={adminHelp}>
+				<p id={priceHelpId} className={adminHelp}>
 					Leave blank if it is not for sale. Otherwise, enter whole rupees.
 					{fields.price ? (
 						<span className="block tabular-nums">Shows as {formatInr(Number(fields.price))}</span>

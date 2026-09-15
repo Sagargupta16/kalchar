@@ -1,27 +1,16 @@
 "use client";
 
-import { Palette, ShoppingBag } from "lucide-react";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { ShoppingBag } from "lucide-react";
+import { LayoutGroup, motion } from "motion/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArtworkCard } from "@/components/gallery/artwork-card";
-import { EAGER_CARD_COUNT, GalleryGrid } from "@/components/gallery/gallery-grid";
 import { GallerySearch } from "@/components/gallery/gallery-search";
 import { useLightbox } from "@/components/gallery/lightbox-context";
-import { Reveal } from "@/components/motion/reveal";
-import { buttonVariants } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { isForSale } from "@/lib/catalog";
-import {
-	DUR,
-	EASE_IN,
-	gridStaggerDelay,
-	REVEAL_DISTANCE,
-	SPRING_INDICATOR,
-	SPRING_LAYOUT,
-} from "@/lib/motion";
-import type { ArtStyle, Artwork } from "@/lib/types";
+import { SPRING_INDICATOR } from "@/lib/motion";
+import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { WorkFilterResults } from "./work-filter-results";
 
 /**
  * Style filter + responsive gallery grid.
@@ -37,13 +26,12 @@ import { cn } from "@/lib/utils";
  * moves cards between columns without stretching the artwork.
  */
 interface WorkFilterProps {
-	styles: readonly ArtStyle[];
+	styles: readonly string[];
 	items: readonly Artwork[];
 }
 
 const ALL = "All" as const;
 const AVAILABLE = "Available to buy" as const;
-type Filter = ArtStyle;
 
 /** One pill recipe for both axes; state colours are appended per pill. The
  *  isolate keeps the sliding ink span's -z-10 inside the pill instead of
@@ -57,7 +45,7 @@ const PILL =
  * filter in the URL makes a filtered gallery a shareable link and lets the
  * "Explore this style" chips on the detail page deep-link straight to it.
  */
-function filterFromParams(params: URLSearchParams, styles: readonly ArtStyle[]): Filter {
+function filterFromParams(params: URLSearchParams, styles: readonly string[]): string {
 	const style = params.get("style");
 	if (style) {
 		const match = styles.find((s) => s.toLowerCase() === style.toLowerCase());
@@ -87,11 +75,8 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	const replaceParams = useCallback(
 		(params: URLSearchParams) => {
 			const qs = params.toString();
-			window.history.replaceState(
-				null,
-				"",
-				`${pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
-			);
+			const search = qs ? `?${qs}` : "";
+			window.history.replaceState(null, "", `${pathname}${search}${window.location.hash}`);
 		},
 		[pathname],
 	);
@@ -119,7 +104,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	// Write the chosen filter to the URL (replace, no scroll jump) so it's the
 	// single source of truth and the view is shareable/back-button friendly.
 	const setActive = useCallback(
-		(next: Filter) => {
+		(next: string) => {
 			const params = new URLSearchParams(window.location.search);
 			if (next !== ALL) params.set("style", next);
 			else params.delete("style");
@@ -151,19 +136,9 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		}
 		return counts;
 	}, [matchingItems]);
-	/** Catalogue positions stay stable under every filter. */
-	const indexBySlug = useMemo(() => new Map(items.map((item, i) => [item.slug, i + 1])), [items]);
-
 	const visible = useMemo(
 		() => matchingItems.filter((item) => active === ALL || item.style === active),
 		[active, matchingItems],
-	);
-
-	// Keep each initial card's wrapper stable. Switching a bare card to a
-	// Reveal after mount replaces its link when the viewer opens, disconnecting
-	// the element that should receive focus when the viewer closes.
-	const eagerArtworkSlugs = useRef(
-		new Set(visible.slice(0, EAGER_CARD_COUNT).map((art) => art.slug)),
 	);
 
 	// Deep link: bring the active pill into the rail's visible box (scrolls the
@@ -259,22 +234,8 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
 	}, [isOpen, activeArtwork, searchParams, pathname, closeLightbox]);
 
-	const styleFilters: Filter[] = [ALL, ...styles];
-
-	const pieceWord = visible.length === 1 ? "piece" : "pieces";
-	let statusMessage: string;
-	if (query.trim()) {
-		statusMessage = `${visible.length} ${pieceWord} matching "${query.trim()}"`;
-	} else if (availableOnly) {
-		statusMessage = `Showing ${visible.length} ${active === ALL ? "" : `${active} `}${pieceWord} available to buy`;
-	} else if (active === ALL) {
-		statusMessage = `Showing all ${visible.length} pieces`;
-	} else {
-		statusMessage = `Showing ${visible.length} ${active} ${pieceWord}`;
-	}
-
-	const exitTransition = { duration: DUR.fast, ease: EASE_IN } as const;
-	const cardExit = { opacity: 0, scale: 0.96, transition: exitTransition };
+	const styleFilters = [ALL, ...styles];
+	const statusMessage = getStatusMessage({ count: visible.length, query, availableOnly, active });
 
 	return (
 		<>
@@ -354,80 +315,30 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 				{statusMessage}
 			</p>
 
-			{visible.length > 0 ? (
-				<GalleryGrid className="mt-5">
-					<AnimatePresence mode="popLayout" initial={false}>
-						{visible.map((art, i) => {
-							const eager = eagerArtworkSlugs.current.has(art.slug);
-							const card = (
-								<ArtworkCard
-									artwork={art}
-									siblings={visible}
-									priority={i < 3}
-									index={indexBySlug.get(art.slug)}
-									total={items.length}
-									unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
-								/>
-							);
-							return (
-								<motion.li
-									key={art.slug}
-									layout="position"
-									className="min-w-0 [&>div]:h-full"
-									transition={SPRING_LAYOUT}
-									exit={cardExit}
-								>
-									{eager ? (
-										card
-									) : (
-										<Reveal
-											eager={false}
-											distance={REVEAL_DISTANCE.item}
-											delayMs={gridStaggerDelay(i)}
-										>
-											{card}
-										</Reveal>
-									)}
-								</motion.li>
-							);
-						})}
-					</AnimatePresence>
-				</GalleryGrid>
-			) : (
-				<EmptyState
-					className="mt-(--space-block)"
-					icon={<Palette size={24} aria-hidden="true" />}
-					title={
-						items.length === 0
-							? "No artwork to show"
-							: query.trim()
-								? "No pieces found"
-								: availableOnly
-									? "No available pieces in this selection"
-									: "Nothing in this style yet"
-					}
-					body={
-						items.length === 0
-							? "There are no pieces in the collection right now."
-							: query.trim()
-								? "Try a different title or medium, or clear the filters to explore the whole collection."
-								: availableOnly
-									? "Try another style, or explore the full collection."
-									: "Try another tradition, or see every piece."
-					}
-					action={
-						items.length > 0 ? (
-							<button
-								type="button"
-								onClick={query.trim() ? clearSearch : clearFilters}
-								className={buttonVariants({ variant: "secondary" })}
-							>
-								{query.trim() ? "Clear search" : "Show all pieces"}
-							</button>
-						) : undefined
-					}
-				/>
-			)}
+			<WorkFilterResults
+				items={items}
+				visible={visible}
+				query={query}
+				availableOnly={availableOnly}
+				onClearSearch={clearSearch}
+				onClearFilters={clearFilters}
+			/>
 		</>
 	);
+}
+
+function getStatusMessage({
+	count,
+	query,
+	availableOnly,
+	active,
+}: Readonly<{ count: number; query: string; availableOnly: boolean; active: string }>): string {
+	const pieceWord = count === 1 ? "piece" : "pieces";
+	if (query.trim()) return `${count} ${pieceWord} matching "${query.trim()}"`;
+	if (availableOnly) {
+		const stylePrefix = active === ALL ? "" : `${active} `;
+		return `Showing ${count} ${stylePrefix}${pieceWord} available to buy`;
+	}
+	if (active === ALL) return `Showing all ${count} pieces`;
+	return `Showing ${count} ${active} ${pieceWord}`;
 }

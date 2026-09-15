@@ -1,6 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { DUR } from "../../lib/motion";
 import { mountAdmin, navigateTo, outcome } from "../admin/browser-fixture";
+
+async function advancePastUndoExpiry(page: Page) {
+	const hold = await page.evaluate(() => window.adminTest.undoDuration);
+	// Include the real exit token so an unpaused countdown would have fully unmounted.
+	await page.clock.runFor(hold + DUR.fast * 1000);
+}
 
 test("More sheet opens as a dialog, closes on the scrim and returns focus", async ({ page }) => {
 	await mountAdmin(page, "nav");
@@ -148,6 +154,7 @@ test("InlineReorderControls mirror the bar", async ({ page }) => {
 test("UndoBar offers one undo, pauses on hover, dismisses on time and on route change", async ({
 	page,
 }) => {
+	await page.clock.install();
 	await mountAdmin(page, "bars");
 	const mark = page.getByRole("button", { name: "Mark Alpha sold" });
 	const bar = page.getByRole("status");
@@ -156,10 +163,13 @@ test("UndoBar offers one undo, pauses on hover, dismisses on time and on route c
 	await expect(bar.getByRole("button", { name: "Undo" })).toBeVisible();
 	await expect(bar.getByRole("button", { name: "Dismiss" })).toBeVisible();
 	await bar.hover();
-	await page.waitForTimeout(600);
+	await page.clock.pauseAt(new Date(Date.now() + DUR.base * 1000));
+	await advancePastUndoExpiry(page);
 	await expect(bar).toBeVisible();
 	await page.mouse.move(0, 0);
-	await expect(bar).toHaveCount(0, { timeout: 1000 });
+	await advancePastUndoExpiry(page);
+	await expect(bar).toHaveCount(0);
+	await page.clock.resume();
 	await mark.click();
 	await expect(bar).toBeVisible();
 	await navigateTo(page, "/admin/events");
@@ -320,6 +330,7 @@ test("toast with actions renders both buttons and no Undo", async ({ page }) => 
 });
 
 test("undo toast pauses its countdown while the tab is hidden", async ({ page }) => {
+	await page.clock.install();
 	await mountAdmin(page, "bars");
 	await page.getByRole("button", { name: "Mark Alpha sold" }).click();
 	const bar = page.getByRole("status");
@@ -328,11 +339,13 @@ test("undo toast pauses its countdown while the tab is hidden", async ({ page })
 		Object.defineProperty(document, "hidden", { value: true, configurable: true });
 		document.dispatchEvent(new Event("visibilitychange"));
 	});
-	await page.waitForTimeout(600);
+	await page.clock.pauseAt(new Date(Date.now() + DUR.base * 1000));
+	await advancePastUndoExpiry(page);
 	await expect(bar).toBeVisible();
 	await page.evaluate(() => {
 		Object.defineProperty(document, "hidden", { value: false, configurable: true });
 		document.dispatchEvent(new Event("visibilitychange"));
 	});
-	await expect(bar).toHaveCount(0, { timeout: 1500 });
+	await advancePastUndoExpiry(page);
+	await expect(bar).toHaveCount(0);
 });

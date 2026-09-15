@@ -19,11 +19,12 @@ export default async function AdminLeadsPage({
 	const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 	const { leads, hasNextPage } = await getLeadsPage(page);
 	const newCount = leads.filter((lead) => lead.status === "new").length;
+	const newCountDescription = newCount > 0 ? ` ${newCount} new on this page.` : "";
 
 	return (
 		<AdminPage
 			title="Enquiries"
-			description={`Custom-order enquiries, newest first. Open one to see the contact details and reply. Mark it Contacted after replying, or Closed when resolved. Filters apply to this page.${newCount > 0 ? ` ${newCount} new on this page.` : ""}`}
+			description={`Custom-order enquiries, newest first. Open one to see the contact details and reply. Mark it Contacted after replying, or Closed when resolved. Filters apply to this page.${newCountDescription}`}
 		>
 			{leads.length === 0 && page > 1 ? (
 				<EmptyState

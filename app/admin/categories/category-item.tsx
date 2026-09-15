@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAdminDraftGuard } from "../_components/admin-draft-guard";
@@ -14,6 +14,7 @@ import {
 	ICON_MD,
 } from "../_components/controls";
 import { usePendingVisible } from "../_components/use-admin-action";
+import { useEditorFocus } from "../_components/use-editor-focus";
 
 export function useCategoryDraftWarning(dirty: boolean) {
 	useAdminDraftGuard(dirty);
@@ -46,7 +47,7 @@ export function CategoryItem({
 	const [name, setName] = useState(category.name);
 	const [fieldError, setFieldError] = useState<string | null>(null);
 	const editButtonRef = useRef<HTMLButtonElement>(null);
-	const nameRef = useRef<HTMLInputElement>(null);
+	const nameRef = useEditorFocus<HTMLInputElement>(editing);
 	const restoreFocus = useRef(false);
 	const errorId = useId();
 	const spinning = usePendingVisible(saving);
@@ -62,6 +63,13 @@ export function CategoryItem({
 	const finishEditing = () => {
 		restoreFocus.current = true;
 		setEditing(false);
+	};
+
+	const cancelOnEscape = (event: KeyboardEvent<HTMLInputElement | HTMLButtonElement>) => {
+		if (event.key !== "Escape" || pending) return;
+		event.preventDefault();
+		event.stopPropagation();
+		finishEditing();
 	};
 
 	if (!editing) {
@@ -123,12 +131,6 @@ export function CategoryItem({
 				event.preventDefault();
 				event.stopPropagation();
 			}}
-			onKeyDown={(event) => {
-				if (event.key !== "Escape" || pending) return;
-				event.preventDefault();
-				event.stopPropagation();
-				finishEditing();
-			}}
 			onSubmit={async (event) => {
 				event.preventDefault();
 				if (pending) return;
@@ -152,6 +154,7 @@ export function CategoryItem({
 						setName(event.target.value);
 						setFieldError(null);
 					}}
+					onKeyDown={cancelOnEscape}
 					aria-label={`Rename ${category.name}`}
 					aria-invalid={fieldError ? true : undefined}
 					aria-describedby={activeError ? errorId : undefined}
@@ -159,12 +162,11 @@ export function CategoryItem({
 					autoCapitalize="words"
 					autoComplete="off"
 					className={cn(adminField, "min-w-0 flex-1")}
-					// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
-					autoFocus
 				/>
 				<button
 					type="submit"
 					disabled={pending}
+					onKeyDown={cancelOnEscape}
 					aria-label={`Save ${category.name}`}
 					aria-busy={saving || undefined}
 					className={adminIconBtnPrimary}
@@ -179,6 +181,7 @@ export function CategoryItem({
 					type="button"
 					disabled={pending}
 					onClick={finishEditing}
+					onKeyDown={cancelOnEscape}
 					aria-label={`Cancel renaming ${category.name}`}
 					className={adminIconBtn}
 				>

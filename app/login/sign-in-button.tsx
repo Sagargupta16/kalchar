@@ -19,9 +19,7 @@ export function SignInButton() {
 				<GoogleIcon className="size-4 shrink-0" aria-hidden="true" />
 				{pending ? "Connecting to Google" : "Continue with Google"}
 			</Button>
-			<span role="status" className="sr-only">
-				{pending ? "Connecting to Google. Please wait." : ""}
-			</span>
+			<output className="sr-only">{pending ? "Connecting to Google. Please wait." : ""}</output>
 		</>
 	);
 }

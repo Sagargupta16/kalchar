@@ -24,15 +24,14 @@ export function ArtworkViewerToolbar({
 		"border-transparent bg-transparent shadow-none backdrop-blur-none hover:bg-ink/5 disabled:pointer-events-none disabled:opacity-40";
 
 	return (
-		<div
-			role="group"
-			aria-label="Artwork navigation"
+		<fieldset
 			inert={hidden || undefined}
 			className={cn(
-				"flex items-center gap-1 text-ink transition-ui",
+				"m-0 flex min-w-0 items-center gap-1 border-0 p-0 text-ink transition-ui",
 				hidden && "pointer-events-none opacity-0",
 			)}
 		>
+			<legend className="sr-only">Artwork navigation</legend>
 			{total > 1 ? (
 				<LightboxIconButton
 					aria-label="Previous artwork"
@@ -59,6 +58,6 @@ export function ArtworkViewerToolbar({
 					<ChevronRight size={20} aria-hidden="true" />
 				</LightboxIconButton>
 			) : null}
-		</div>
+		</fieldset>
 	);
 }

@@ -54,6 +54,13 @@ describe("parseLeadContact", () => {
 		expect(parseLeadContact("12345")).toEqual({});
 		expect(parseLeadContact(undefined)).toEqual({});
 	});
+	it("finds a contact after a long invalid email token and ignores mailbox digits", () => {
+		const invalid = `${"a".repeat(20_000)}@${"b".repeat(20_000)}`;
+		expect(parseLeadContact(`${invalid}; artist42@example.com (+65 8123 4567)`)).toEqual({
+			email: "artist42@example.com",
+			phone: "6581234567",
+		});
+	});
 });
 
 describe("leadReplyLinks", () => {

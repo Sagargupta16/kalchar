@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expectViewerReady, expectZoom, touchDrag } from "./helpers/viewer-gestures";
 
 /**
  * The @mobile CDP touch suite (visual-direction 2.2/2.4), split from
@@ -21,38 +22,8 @@ function galleryCards(page: Page) {
 	return page.locator('main a[aria-label][href^="/work/"]');
 }
 
-/** Drive the Motion drag with trusted touch input (CDP), stepping so velocity
- *  stays controllable: slow steps stay under DRAG_VELOCITY_PX_S, a short step
- *  time flings. */
-async function touchDrag(
-	page: Page,
-	from: { x: number; y: number },
-	to: { x: number; y: number },
-	stepMs = 40,
-) {
-	const cdp = await page.context().newCDPSession(page);
-	const steps = 6;
-	await cdp.send("Input.dispatchTouchEvent", {
-		type: "touchStart",
-		touchPoints: [{ x: from.x, y: from.y }],
-	});
-	for (let i = 1; i <= steps; i++) {
-		await page.waitForTimeout(stepMs);
-		await cdp.send("Input.dispatchTouchEvent", {
-			type: "touchMove",
-			touchPoints: [
-				{
-					x: from.x + ((to.x - from.x) * i) / steps,
-					y: from.y + ((to.y - from.y) * i) / steps,
-				},
-			],
-		});
-	}
-	await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-	await cdp.detach();
-}
-
 async function figureCentre(page: Page) {
+	await expectViewerReady(page);
 	const box = await page.getByRole("dialog").locator("figure").boundingBox();
 	expect(box).not.toBeNull();
 	return {
@@ -70,10 +41,18 @@ test("@mobile a short slow drag springs back; past the threshold it pages", asyn
 	const initial = await title.innerText();
 	const centre = await figureCentre(page);
 	// 40px at low velocity: under DRAG_CLOSE_FRACTION (0.25) of the figure width.
-	await touchDrag(page, centre, { x: centre.x - 40, y: centre.y }, 60);
+	await touchDrag(page, {
+		from: centre,
+		to: { x: centre.x - 40, y: centre.y },
+		frames: 24,
+	});
+	await expectViewerReady(page);
 	await expect(title).toHaveText(initial);
 	// Past 30 percent of the figure width: commits to the next piece.
-	await touchDrag(page, centre, { x: centre.x - Math.max(120, centre.width * 0.45), y: centre.y });
+	await touchDrag(page, {
+		from: centre,
+		to: { x: centre.x - Math.max(120, centre.width * 0.45), y: centre.y },
+	});
 	await expect(title).not.toHaveText(initial);
 });
 
@@ -85,9 +64,11 @@ test("@mobile double tap zooms while a single tap quiets the viewer controls", a
 	await page.touchscreen.tap(centre.x, centre.y);
 	await page.touchscreen.tap(centre.x, centre.y);
 	await expect(dialog.locator("[data-zoom]")).toHaveCount(1);
+	await expectZoom(page, 2.5);
 	// Fit is available through the existing keyboard zoom, without a second viewer mode.
 	await page.keyboard.press("-");
 	await expect(dialog.locator("[data-zoom]")).toHaveCount(0);
+	await expectZoom(page, 1);
 	await page.touchscreen.tap(centre.x, centre.y);
 	const rail = dialog.locator('nav[aria-label="Artwork thumbnails"]');
 	await expect(rail).toHaveAttribute("inert", "");
@@ -103,7 +84,10 @@ test("@mobile a downward drag past the threshold dismisses the viewer", async ({
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	const centre = await figureCentre(page);
-	await touchDrag(page, centre, { x: centre.x, y: centre.y + Math.max(160, centre.height * 0.6) });
+	await touchDrag(page, {
+		from: centre,
+		to: { x: centre.x, y: centre.y + Math.max(160, centre.height * 0.6) },
+	});
 	await expect(dialog).toHaveCount(0);
 });
 
@@ -121,7 +105,7 @@ for (const viewer of ["artwork", "event"] as const) {
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible();
 		const centre = await figureCentre(page);
-		await touchDrag(page, centre, { x: centre.x - 120, y: centre.y + 240 });
+		await touchDrag(page, { from: centre, to: { x: centre.x - 120, y: centre.y + 240 } });
 		await expect(dialog).toHaveCount(0);
 	});
 }

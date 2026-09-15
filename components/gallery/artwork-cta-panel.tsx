@@ -70,7 +70,7 @@ export function ArtworkCtaPanel({
 					<span className="select-all whitespace-nowrap tabular-nums text-ink">
 						{whatsappDisplay}
 					</span>
-					.
+					{"."}
 				</p>
 			) : null}
 			{/* Share and See more share one row wherever they fit (px-4 and no arrow

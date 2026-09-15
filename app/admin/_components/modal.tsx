@@ -66,9 +66,9 @@ interface ModalProps {
 	detent?: "full" | "content";
 	/**
 	 * md = 28rem card from sm (confirms, quick-state sheet); lg = 32rem (the editor).
-	 * @deprecated `sm` is an alias of `md` for one release; integration removes it.
+	 * xl widens to 56rem on large screens. Defaults to md.
 	 */
-	size?: "sm" | "md" | "lg" | "xl";
+	size?: "md" | "lg" | "xl";
 	/** Header start slot. Default: the X button (aria-label "Close", adminIconBtnGhost) calling onClose. Pass null to omit. */
 	leading?: ReactNode | null;
 	/** Header end slot: at most one primary action (the editor's Save changes). */
@@ -101,8 +101,7 @@ const PANEL_SHEET_CONTENT =
 	"material-glass-strong h-auto max-h-(--sheet-peek) rounded-(--radius-sheet) starting:translate-y-12 starting:scale-(--panel-enter-scale) ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:starting:translate-y-6 sm:ease-(--ease-out)";
 // A1 exit: fast, ease-in, back to the pre-open pose.
 const PANEL_CLOSING = "opacity-0 duration-(--duration-fast) ease-(--ease-in)";
-const SIZE: Record<"sm" | "md" | "lg" | "xl", string> = {
-	sm: "sm:max-w-md",
+const SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
 	md: "sm:max-w-md",
 	lg: "sm:max-w-lg",
 	xl: "sm:max-w-lg lg:max-w-4xl",
@@ -114,6 +113,57 @@ const DIALOG_SHEET =
 	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
 const DIALOG_SHEET_CONTENT =
 	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
+
+function ModalHeader({
+	title,
+	heading,
+	titleId,
+	leading,
+	action,
+	onClose,
+	labelledBy,
+	visible,
+}: Readonly<
+	Pick<ModalProps, "title" | "heading" | "titleId" | "leading" | "action" | "onClose"> & {
+		labelledBy: string;
+		visible: boolean;
+	}
+>) {
+	if (!visible) {
+		if (titleId) return null;
+		return (
+			<h2 id={labelledBy} className="sr-only">
+				{title}
+			</h2>
+		);
+	}
+
+	return (
+		<>
+			<div className="flex min-h-control items-center gap-3 border-b border-line px-(--card-pad) py-3">
+				{leading === undefined ? (
+					<button type="button" onClick={onClose} aria-label="Close" className={adminIconBtnGhost}>
+						<X size={ICON_MD} aria-hidden="true" />
+					</button>
+				) : (
+					leading
+				)}
+				<h2
+					id={heading ? undefined : labelledBy}
+					className="t-heading min-w-0 flex-1 truncate text-lg"
+				>
+					{heading ?? title}
+				</h2>
+				{action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+			</div>
+			{heading ? (
+				<h2 id={labelledBy} className="sr-only">
+					{title}
+				</h2>
+			) : null}
+		</>
+	);
+}
 
 /**
  * Native modal dialogs isolate background content, trap focus, and give only
@@ -304,39 +354,16 @@ export function Modal({
 						/>
 					</>
 				) : null}
-				{showHeader ? (
-					<div className="flex min-h-control items-center gap-3 border-b border-line px-(--card-pad) py-3">
-						{leading === undefined ? (
-							<button
-								type="button"
-								onClick={onClose}
-								aria-label="Close"
-								className={adminIconBtnGhost}
-							>
-								<X size={ICON_MD} aria-hidden="true" />
-							</button>
-						) : (
-							leading
-						)}
-						<h2
-							id={heading ? undefined : labelledBy}
-							className="t-heading min-w-0 flex-1 truncate text-lg"
-						>
-							{heading ?? title}
-						</h2>
-						{action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
-					</div>
-				) : null}
-				{!showHeader && !titleId ? (
-					<h2 id={labelledBy} className="sr-only">
-						{title}
-					</h2>
-				) : null}
-				{showHeader && heading ? (
-					<h2 id={labelledBy} className="sr-only">
-						{title}
-					</h2>
-				) : null}
+				<ModalHeader
+					title={title}
+					heading={heading}
+					titleId={titleId}
+					leading={leading}
+					action={action}
+					onClose={onClose}
+					labelledBy={labelledBy}
+					visible={showHeader}
+				/>
 				{children}
 			</div>
 			<button

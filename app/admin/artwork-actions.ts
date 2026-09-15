@@ -99,7 +99,7 @@ async function updateArtworkUnsafe(
 		throw new Error("Choose a valid status.");
 	}
 	if (typeof fields.featured !== "boolean") {
-		throw new Error("Featured must be true or false.");
+		throw new TypeError("Featured must be true or false.");
 	}
 
 	const updated = await db

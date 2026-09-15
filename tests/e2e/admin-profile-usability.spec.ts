@@ -84,7 +84,8 @@ test("profile: an interrupted upload keeps its draft and can be retried once", a
 	await page.locator("form").evaluate((form: HTMLFormElement) => form.requestSubmit());
 	expect(await page.evaluate(() => window.adminTest.stageCalls)).toEqual([portrait.name]);
 	await page.evaluate(() => window.adminTest.stageRequests[0]?.progress(0.36));
-	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "36");
+	await expect(page.getByRole("progressbar")).toHaveAttribute("value", "36");
+	await expect(page.getByRole("progressbar")).toHaveAttribute("max", "100");
 	await expect(page.getByText(/ready to upload/)).toHaveCount(0);
 
 	await page.evaluate(() => window.adminTest.stageRequests[0]?.fail());
@@ -96,7 +97,9 @@ test("profile: an interrupted upload keeps its draft and can be retried once", a
 	});
 	await outcome(page, "success");
 	await upload.click();
-	await expect(page.locator("output")).toContainText("Profile photo updated");
+	await expect(
+		page.getByRole("region", { name: "Profile photo", exact: true }).getByRole("status"),
+	).toContainText("Profile photo updated");
 	await expect(page.getByText(portrait.name, { exact: true })).toHaveCount(0);
 	await expect(picker).toBeFocused();
 	expect(await page.evaluate(() => window.adminTest.calls.map((call) => call.name))).toEqual([
@@ -126,7 +129,10 @@ test("profile: removing the saved photo preserves a selected replacement", async
 	await expect(page.getByLabel("Change photo", { exact: true })).toBeDisabled();
 	await outcome(page, "success");
 	await page.evaluate(() => window.adminTest.release?.());
-	await expect(page.locator("output")).toContainText("Photo removed");
+	await expect(page.getByText("Removing saved photo…", { exact: true })).toHaveCount(0);
+	await expect(
+		page.getByRole("region", { name: "Profile photo", exact: true }).getByRole("status"),
+	).toContainText("Photo removed");
 	await expect(page.getByText(portrait.name, { exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Upload photo" })).toBeEnabled();
 });
@@ -206,7 +212,8 @@ test("profile: a rejected removal keeps the draft and permits a retry", async ({
 	await outcome(page, "success");
 	dialog = page.getByRole("dialog", { name: "Remove profile photo?" });
 	await dialog.getByRole("button", { name: "Remove photo", exact: true }).click();
-	await expect(panel.locator("output")).toContainText("Photo removed");
+	await expect(panel.getByText("Removing saved photo…", { exact: true })).toHaveCount(0);
+	await expect(panel.getByRole("status")).toContainText("Photo removed");
 	await expect(panel.getByRole("alert")).toHaveCount(0);
 	await expect(page.getByText(portrait.name, { exact: true })).toBeVisible();
 	expect(await page.evaluate(() => window.adminTest.calls.map((call) => call.name))).toEqual([

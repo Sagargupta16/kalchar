@@ -370,7 +370,11 @@ test("presets: order errors retain the staged order and retry submits only that 
 });
 
 test.describe("presets layout @preview", () => {
-	test.skip(process.env.KALCHAR_ADMIN_PREVIEW !== "1", "uses the running safe preview");
+	// Geometry needs the styled Next fixture preview; the isolated preset flows above run without it.
+	test.skip(
+		process.env.KALCHAR_ADMIN_PREVIEW !== "1",
+		"Requires the running fixture preview with Tailwind; isolated preset behavior remains covered",
+	);
 	test.use({ hasTouch: true });
 	for (const width of [320, 390, 1280]) {
 		test(`editing and reorder controls fit at ${width}px`, async ({ page }, testInfo) => {

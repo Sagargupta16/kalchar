@@ -26,6 +26,12 @@ const FILTER_LABEL: Record<PiecesFilterKey, string> = {
 	featured: "Featured",
 };
 
+function reorderHint(view: PiecesView, reorderLocked: boolean): string {
+	if (view === "grid") return "Switch to list view to change the order.";
+	if (reorderLocked) return "Show all pieces to change the order.";
+	return "";
+}
+
 interface PiecesFilterProps {
 	query: string;
 	onQuery: (query: string) => void;
@@ -61,12 +67,7 @@ export function PiecesFilter({
 	const id = useId();
 	const search = useRef<HTMLInputElement>(null);
 	const totalLabel = `${total} piece${total === 1 ? "" : "s"}`;
-	const hint =
-		view === "grid"
-			? " Switch to list view to change the order."
-			: reorderLocked
-				? " Show all pieces to change the order."
-				: "";
+	const hint = reorderHint(view, reorderLocked);
 	return (
 		<div className="mb-(--space-group) grid gap-(--space-tight)">
 			<div className="relative">
@@ -105,11 +106,8 @@ export function PiecesFilter({
 					</button>
 				) : null}
 			</div>
-			<div
-				role="group"
-				aria-label="Show"
-				className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-			>
+			<fieldset className="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+				<legend className="sr-only">Show</legend>
 				{PIECES_FILTERS.map((key) => (
 					<button
 						key={key}
@@ -124,14 +122,14 @@ export function PiecesFilter({
 						</span>
 					</button>
 				))}
-			</div>
+			</fieldset>
 			<div className="flex items-center justify-between gap-3">
-				<p role="status" className={cn(adminHelp, "flex flex-col gap-1")}>
+				<output className={cn(adminHelp, "flex flex-col gap-1")}>
 					<span className="font-medium text-ink">
 						{shown === total ? totalLabel : `Showing ${shown} of ${totalLabel}`}
 					</span>
-					{hint ? <span>{hint.trim()}</span> : null}
-				</p>
+					{hint ? <span>{hint}</span> : null}
+				</output>
 				{/* A view preference, not a value: aria-pressed buttons, not the radio Segmented. */}
 				<div className="flex shrink-0 items-center gap-2">
 					<button

@@ -194,7 +194,11 @@ test("categories: empty list accepts its first category and keeps failed drafts"
 });
 
 test.describe("categories layout @preview", () => {
-	test.skip(process.env.KALCHAR_ADMIN_PREVIEW !== "1", "uses the running safe preview");
+	// Geometry needs the styled Next fixture preview; the isolated category flows above run without it.
+	test.skip(
+		process.env.KALCHAR_ADMIN_PREVIEW !== "1",
+		"Requires the running fixture preview with Tailwind; isolated category behavior remains covered",
+	);
 	for (const width of [320, 390, 1280]) {
 		test.describe(`${width}px`, () => {
 			test.use({

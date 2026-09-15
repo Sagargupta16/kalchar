@@ -193,9 +193,12 @@ test.describe("enquiries phone usability", () => {
 		await page.evaluate(() => {
 			Object.defineProperty(navigator, "clipboard", {
 				configurable: true,
-				value: { writeText: async () => Promise.reject(new Error("Permission denied")) },
+				value: {
+					writeText: async () => {
+						throw new Error("Permission denied");
+					},
+				},
 			});
-			document.execCommand = () => false;
 		});
 		await page.getByRole("button", { name: /^Mira/ }).click();
 		const dialog = page.getByRole("dialog");
@@ -203,16 +206,38 @@ test.describe("enquiries phone usability", () => {
 		await copy.focus();
 		await copy.press("Enter");
 		await expect(dialog.getByRole("alert")).toHaveText(
-			"Could not copy the email. Select the contact address above and copy it.",
+			"Could not copy the email. Select the address below, then use your device's Copy command.",
 		);
 		await expect(dialog.getByText("Contact: mira@example.invalid")).toBeVisible();
 		await expect(copy).toBeFocused();
-		await page.evaluate(() => {
-			document.execCommand = () => true;
+		const address = dialog.getByRole("textbox", { name: "Email address to copy", exact: true });
+		await expect(address).toHaveValue("mira@example.invalid");
+		await expect(address).toHaveAttribute("readonly", "");
+		const selection = () =>
+			address.evaluate((input: HTMLInputElement) => [input.selectionStart, input.selectionEnd]);
+		await address.focus();
+		await expect.poll(selection).toEqual([0, "mira@example.invalid".length]);
+		await address.evaluate((input: HTMLInputElement) => input.setSelectionRange(2, 4));
+		await address.tap();
+		await expect.poll(selection).toEqual([0, "mira@example.invalid".length]);
+		const copied = await page.evaluateHandle(() => {
+			const writes: string[] = [];
+			Object.defineProperty(navigator, "clipboard", {
+				configurable: true,
+				value: {
+					writeText: async (text: string) => {
+						writes.push(text);
+					},
+				},
+			});
+			return writes;
 		});
+		await copy.focus();
 		await copy.press("Enter");
 		await expect(dialog.getByRole("button", { name: "Email copied", exact: true })).toBeFocused();
 		await expect(dialog.getByRole("alert")).toHaveCount(0);
+		await expect(address).toHaveCount(0);
+		expect(await copied.jsonValue()).toEqual(["mira@example.invalid"]);
 		expect(await page.evaluate(() => window.adminTest.calls)).toEqual([]);
 	});
 });

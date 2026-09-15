@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
 import type { ArtworkTitle } from "@/lib/data";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,14 @@ import {
 import { TestimonialRow } from "./testimonial-row";
 import { UndoBar, useUndo } from "./undo-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEditorFocus } from "./use-editor-focus";
 import { useServerSyncedList } from "./use-server-synced-list";
+
+function testimonialHref(testimonial: Testimonial | null): string | null {
+	if (testimonial?.featured) return "/";
+	if (testimonial?.artworkSlug) return `/work/${testimonial.artworkSlug}`;
+	return null;
+}
 
 /**
  * Admin CRUD for testimonials: a collapsed create panel, then a list where
@@ -99,11 +107,7 @@ export function TestimonialsManager({
 		});
 	};
 
-	const createdHref = created?.featured
-		? "/"
-		: created?.artworkSlug
-			? `/work/${created.artworkSlug}`
-			: null;
+	const createdHref = testimonialHref(created);
 
 	return (
 		<div className="space-y-group">
@@ -224,6 +228,7 @@ function CreateTestimonialForm({
 	const confirm = useConfirm();
 	const headingId = useId();
 	const switchId = useId();
+	const quoteRef = useEditorFocus<HTMLTextAreaElement>();
 	const [featured, setFeatured] = useState(false);
 	const [hasText, setHasText] = useState(false);
 	const dirty = hasText || featured;
@@ -249,13 +254,9 @@ function CreateTestimonialForm({
 		for (const name of ["quote", "authorName"]) {
 			const field = form.elements.namedItem(name);
 			if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
-				field.setCustomValidity(
-					field.value.trim()
-						? ""
-						: name === "quote"
-							? "Quote is required."
-							: "Author name is required.",
-				);
+				const requiredMessage =
+					name === "quote" ? "Quote is required." : "Author name is required.";
+				field.setCustomValidity(field.value.trim() ? "" : requiredMessage);
 			}
 		}
 		if (!form.reportValidity()) return;
@@ -265,10 +266,10 @@ function CreateTestimonialForm({
 			if (!isFailure(result)) {
 				onCreate({
 					id: result.id,
-					quote: String(fd.get("quote") ?? "").trim(),
-					authorName: String(fd.get("authorName") ?? "").trim(),
-					authorLocation: String(fd.get("authorLocation") ?? "").trim() || undefined,
-					artworkSlug: String(fd.get("artworkSlug") ?? "").trim() || undefined,
+					quote: formString(fd, "quote").trim(),
+					authorName: formString(fd, "authorName").trim(),
+					authorLocation: formString(fd, "authorLocation").trim() || undefined,
+					artworkSlug: formString(fd, "artworkSlug").trim() || undefined,
 					featured: fd.get("featured") === "on",
 				});
 			}
@@ -291,7 +292,7 @@ function CreateTestimonialForm({
 				const data = new FormData(event.currentTarget);
 				setHasText(
 					["quote", "authorName", "authorLocation", "artworkSlug"].some(
-						(name) => String(data.get(name) ?? "") !== "",
+						(name) => formString(data, name) !== "",
 					),
 				);
 			}}
@@ -310,12 +311,11 @@ function CreateTestimonialForm({
 				<div className={cn(adminLabel, "@sm/testimonial-form:col-span-2")}>
 					<label htmlFor="new-testimonial-quote">Quote *</label>
 					<textarea
+						ref={quoteRef}
 						id="new-testimonial-quote"
 						name="quote"
 						required
 						rows={3}
-						// biome-ignore lint/a11y/noAutofocus: the panel opens on the user's own tap; focusing the first field is the point (C5)
-						autoFocus
 						placeholder="What they said"
 						className={cn(adminField, "min-h-32 resize-y")}
 					/>

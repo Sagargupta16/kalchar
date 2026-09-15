@@ -45,7 +45,6 @@ import {
 import { serverEnv } from "./env";
 import { parseSetting, type SiteSettings } from "./site-settings";
 import type {
-	ArtStyle,
 	Artwork,
 	Category,
 	Event,
@@ -67,7 +66,7 @@ function toArtwork(row: ArtworkRow): Artwork {
 	return {
 		slug: row.slug,
 		title: row.title,
-		style: row.style as ArtStyle,
+		style: row.style,
 		medium: row.medium,
 		year: row.year ?? undefined,
 		dimensions: row.dimensions ?? undefined,
@@ -211,7 +210,7 @@ export const getAllCategories = cache(async (): Promise<readonly Category[]> => 
  * Falls back to the `site.json` styles array when the DB has none yet
  * (pre-seed), so the site is never empty.
  */
-export async function getCategoryNames(): Promise<ArtStyle[]> {
+export async function getCategoryNames(): Promise<string[]> {
 	const rows = await getAllCategories();
 	if (rows.length > 0) return rows.map((c) => c.name);
 	return [...((siteJson as Site).styles ?? [])];

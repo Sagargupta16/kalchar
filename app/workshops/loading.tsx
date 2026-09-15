@@ -5,9 +5,7 @@ import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 export default function WorkshopsLoading() {
 	return (
 		<main>
-			<p role="status" className="sr-only">
-				Loading workshops
-			</p>
+			<output className="sr-only">Loading workshops</output>
 			<Section accent="pichwai" background="wash" padded containerClassName="py-(--space-block)">
 				<SkeletonHeader />
 				<Skeleton className="mt-5 h-4 w-full max-w-sm" />

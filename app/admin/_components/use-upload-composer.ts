@@ -81,10 +81,10 @@ export function useUploadComposer({
 				setStagedKey(key);
 				setProgress({ label: "Photo uploaded.", fraction: 1 });
 			})
-			.catch((thrown) => {
+			.catch((error_) => {
 				if (!mounted.current || stagingRun.current !== run) return;
 				setProgress(null);
-				setStageError(thrown instanceof Error ? thrown.message : "Upload failed. Try again.");
+				setStageError(error_ instanceof Error ? error_.message : "Upload failed. Try again.");
 			});
 	}, []);
 
@@ -150,8 +150,8 @@ export function useUploadComposer({
 				setAdded({ title: fields.title.trim(), slug });
 				setProgress(null);
 				router.refresh();
-			} catch (thrown) {
-				setError(thrown instanceof Error ? thrown.message : "Publishing failed. Please try again.");
+			} catch (error_) {
+				setError(error_ instanceof Error ? error_.message : "Publishing failed. Please try again.");
 				// Publishing retries reuse the master already staged; the draft stays intact.
 				setProgress({ label: "Photo uploaded.", fraction: 1 });
 			} finally {

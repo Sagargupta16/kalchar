@@ -2,7 +2,7 @@
 
 import { LoaderCircle, Shield, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import { type SubmitEvent, useEffect, useId, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { unwrap } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,7 @@ export function MaintainerManager({
 		if (added && !pending) emailRef.current?.focus();
 	}, [added, pending]);
 
-	const onAdd = (event: FormEvent<HTMLFormElement>) => {
+	const onAdd = (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		if (pending) return;
 		const address = email.trim().toLowerCase();
@@ -164,7 +164,7 @@ export function MaintainerManager({
 					<fieldset disabled={pending} className="grid min-w-0 gap-(--form-gap)">
 						<div className="grid min-w-0 gap-(--field-label-gap)">
 							<label htmlFor={`${ids}-email`} className={adminLabel}>
-								Google email
+								<span>Google email</span>
 								<input
 									ref={emailRef}
 									id={`${ids}-email`}
@@ -192,7 +192,7 @@ export function MaintainerManager({
 							) : null}
 						</div>
 						<label htmlFor={`${ids}-name`} className={adminLabel}>
-							Name (optional)
+							<span>Name (optional)</span>
 							<input
 								id={`${ids}-name`}
 								autoComplete="name"

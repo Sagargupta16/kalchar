@@ -13,9 +13,7 @@ export default function AboutLoading() {
 
 	return (
 		<main>
-			<p role="status" className="sr-only">
-				Loading artist details
-			</p>
+			<output className="sr-only">Loading artist details</output>
 			<Section accent="marigold" background="wash" padded containerClassName="py-(--space-block)">
 				<PageHeader
 					eyebrow={about?.eyebrow ?? "About"}

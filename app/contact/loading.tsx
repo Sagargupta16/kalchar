@@ -6,9 +6,7 @@ import { Skeleton, SkeletonHeader } from "@/components/ui/skeleton";
 export default function ContactLoading() {
 	return (
 		<main>
-			<p role="status" className="sr-only">
-				Loading contact options
-			</p>
+			<output className="sr-only">Loading contact options</output>
 			<Section
 				accent="peacock"
 				background="wash"

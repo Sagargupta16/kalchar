@@ -14,6 +14,7 @@ import {
 	ICON_MD,
 } from "../_components/controls";
 import { usePendingVisible } from "../_components/use-admin-action";
+import { useEditorFocus } from "../_components/use-editor-focus";
 
 export function usePresetDraftGuard(dirty: boolean) {
 	useAdminDraftGuard(dirty);
@@ -42,7 +43,7 @@ export function PresetItem({
 	const [submitted, setSubmitted] = useState(false);
 	const errorId = useId();
 	const renameRef = useRef<HTMLButtonElement>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
+	const inputRef = useEditorFocus<HTMLInputElement>(editing);
 	const restoreFocus = useRef(false);
 	const spinning = usePendingVisible(saving);
 	const editError = fieldError ?? (submitted ? error : null);
@@ -137,8 +138,6 @@ export function PresetItem({
 				aria-describedby={editError ? errorId : undefined}
 				enterKeyHint="done"
 				className={cn(adminField, "min-w-0 flex-1")}
-				// biome-ignore lint/a11y/noAutofocus: focus the field the user chose to edit
-				autoFocus
 			/>
 			<button
 				type="submit"

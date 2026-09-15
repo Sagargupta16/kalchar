@@ -36,6 +36,13 @@ interface SegmentedProps<V extends string = string> {
 	className?: string;
 }
 
+const ARROW_STEP: Readonly<Record<string, number>> = {
+	ArrowRight: 1,
+	ArrowDown: 1,
+	ArrowLeft: -1,
+	ArrowUp: -1,
+};
+
 /** The line Segmented renders under its track: the helper, else the first blocked reason. */
 export function segmentedHelperText(
 	helper: string | undefined,
@@ -74,12 +81,7 @@ export function Segmented<V extends string = string>({
 	};
 
 	const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-		const step =
-			event.key === "ArrowRight" || event.key === "ArrowDown"
-				? 1
-				: event.key === "ArrowLeft" || event.key === "ArrowUp"
-					? -1
-					: 0;
+		const step = ARROW_STEP[event.key] ?? 0;
 		if (step === 0 || enabled.length === 0) return;
 		event.preventDefault();
 		const at = enabled.findIndex((option) => option.value === value);
@@ -99,6 +101,7 @@ export function Segmented<V extends string = string>({
 			<div
 				ref={groupRef}
 				role="radiogroup"
+				tabIndex={-1}
 				aria-label={label}
 				onKeyDown={onKeyDown}
 				className="flex w-full gap-1 rounded-full border border-line bg-canvas p-1"

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "postcss";
 import { describe, expect, it } from "vitest";
 import {
 	DUR,
@@ -152,9 +153,11 @@ describe("elevation indirection", () => {
 	it("every @theme shadow is a var(--elev-*) reference so :root.dark can remap it", () => {
 		const theme = themeBlock();
 		expect(theme.length).toBeGreaterThan(0);
-		const shadows = [...theme.matchAll(/--shadow-[\w-]+:\s*([^;]+);/g)].map((m) =>
-			(m[1] ?? "").trim(),
-		);
+		const shadows: string[] = [];
+		// themeBlock ends before its closing brace; parse declarations without backtracking over values.
+		parse(`${theme}\n}`).walkDecls((declaration) => {
+			if (declaration.prop.startsWith("--shadow-")) shadows.push(declaration.value.trim());
+		});
 		expect(shadows.length).toBeGreaterThanOrEqual(9);
 		for (const value of shadows) {
 			expect(value).toMatch(/^(none|var\(--elev-[\w-]+\)(, var\(--elev-[\w-]+\))*)$/);
@@ -177,8 +180,8 @@ describe("elevation indirection", () => {
 	it("dark hairline is the 0.10 light edge and e2 / e3 keep a contact layer", () => {
 		const dark = elevation.slice(elevation.indexOf(":root.dark {"));
 		expect(token("--elev-hairline", dark)).toBe("0 0 0 1px oklch(1 0 0 / 0.1)");
-		expect(token("--elev-e2", dark).split("),").length).toBe(3);
-		expect(token("--elev-e3", dark).split("),").length).toBe(3);
+		expect(token("--elev-e2", dark).split("),")).toHaveLength(3);
+		expect(token("--elev-e3", dark).split("),")).toHaveLength(3);
 	});
 });
 

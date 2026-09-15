@@ -54,6 +54,52 @@ function setLeadParam(id: string | null) {
 	}
 }
 
+function updateLeadStatus(leads: Lead[], patch: Pick<Lead, "id" | "status">): Lead[] {
+	return leads.map((lead) => (lead.id === patch.id ? { ...lead, status: patch.status } : lead));
+}
+
+function LeadEmptyState({
+	leadCount,
+	visibleCount,
+	lens,
+	onShowAll,
+}: Readonly<{
+	leadCount: number;
+	visibleCount: number;
+	lens: Lens;
+	onShowAll: () => void;
+}>) {
+	if (leadCount === 0) {
+		return (
+			<EmptyState
+				variant="compact"
+				voice="tool"
+				title="No enquiries yet"
+				body="New enquiries from the site appear here."
+			/>
+		);
+	}
+	if (visibleCount > 0) return null;
+
+	return (
+		<EmptyState
+			variant="compact"
+			voice="tool"
+			title={lens === "new" ? "All caught up" : undefined}
+			body={
+				lens === "new"
+					? "No new enquiries on this page. Show all to review the others."
+					: `No ${LENS_LABEL[lens].toLowerCase()} enquiries on this page.`
+			}
+			action={
+				<button type="button" onClick={onShowAll} className={adminBtn}>
+					Show all
+				</button>
+			}
+		/>
+	);
+}
+
 /**
  * The enquiries DM inbox (visual-direction-admin Tier 2a): rows open a
  * full-detent sheet on phones and an inline pane from lg, status lives in the
@@ -81,11 +127,7 @@ export function LeadsManager({
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
 	// Status flips paint before the round trip; the value reverts by itself on
 	// failure because the dispatch runs inside run()'s transition (React 19).
-	const [shownLeads, applyStatus] = useOptimistic(
-		leads,
-		(state: Lead[], patch: { id: string; status: LeadStatus }) =>
-			state.map((l) => (l.id === patch.id ? { ...l, status: patch.status } : l)),
-	);
+	const [shownLeads, applyStatus] = useOptimistic(leads, updateLeadStatus);
 
 	useEffect(() => {
 		if (pending || selectedId !== null || !restoreInboxFocus.current) return;
@@ -125,7 +167,7 @@ export function LeadsManager({
 				return setLeadStatus(id, status);
 			},
 			() => {
-				setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+				setLeads((previousLeads) => updateLeadStatus(previousLeads, { id, status }));
 				if (lens !== "all" && status !== lens) {
 					restoreInboxFocus.current = true;
 					if (isDesktop) select(null);
@@ -138,7 +180,9 @@ export function LeadsManager({
 						applyStatus({ id, status: previous });
 						const result = await setLeadStatus(id, previous);
 						if (result.ok) {
-							setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+							setLeads((previousLeads) =>
+								updateLeadStatus(previousLeads, { id, status: previous }),
+							);
 						}
 						return result;
 					},
@@ -197,7 +241,10 @@ export function LeadsManager({
 	return (
 		<section ref={inboxRef} aria-label="Enquiry inbox" tabIndex={-1} className="space-y-group">
 			{leads.length > 0 ? (
-				<div role="group" aria-label="Filter enquiries" className="flex flex-wrap gap-2">
+				<fieldset
+					aria-label="Filter enquiries"
+					className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0"
+				>
 					{LENSES.map((key) => (
 						<button
 							key={key}
@@ -221,45 +268,17 @@ export function LeadsManager({
 							) : null}
 						</button>
 					))}
-				</div>
+				</fieldset>
 			) : null}
 			{err && failedId !== null && failedId !== selectedId ? (
 				<AdminNotice variant="error">{err}</AdminNotice>
 			) : null}
-			{leads.length === 0 ? (
-				<EmptyState
-					variant="compact"
-					voice="tool"
-					title="No enquiries yet"
-					body="New enquiries from the site appear here."
-				/>
-			) : null}
-			{shown.length === 0 && leads.length > 0 ? (
-				lens === "new" ? (
-					<EmptyState
-						variant="compact"
-						voice="tool"
-						title="All caught up"
-						body="No new enquiries on this page. Show all to review the others."
-						action={
-							<button type="button" onClick={() => setLens("all")} className={adminBtn}>
-								Show all
-							</button>
-						}
-					/>
-				) : (
-					<EmptyState
-						variant="compact"
-						voice="tool"
-						body={`No ${LENS_LABEL[lens].toLowerCase()} enquiries on this page.`}
-						action={
-							<button type="button" onClick={() => setLens("all")} className={adminBtn}>
-								Show all
-							</button>
-						}
-					/>
-				)
-			) : null}
+			<LeadEmptyState
+				leadCount={leads.length}
+				visibleCount={shown.length}
+				lens={lens}
+				onShowAll={() => setLens("all")}
+			/>
 			{shown.length > 0 ? (
 				<div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-(--space-page)">
 					<ul className="space-y-tight lg:col-span-5">

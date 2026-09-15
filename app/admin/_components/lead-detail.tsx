@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useId, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
 	formatLeadTimestamp,
@@ -16,6 +16,8 @@ import {
 	adminBtn,
 	adminBtnDestructive,
 	adminBtnPrimary,
+	adminField,
+	adminLabel,
 	adminPanel,
 	adminSectionTitle,
 } from "./controls";
@@ -147,37 +149,43 @@ function LeadDetailContent({
 	);
 }
 
-/**
- * navigator.clipboard needs a secure context and the clipboard-write
- * permission; older Safari and the component harness (about:blank) have
- * neither, so a selected off-screen textarea + execCommand is the fallback.
- * It mounts next to the button: inside an open <dialog>, body content is
- * inert and unselectable.
- */
-async function writeClipboard(text: string, host: HTMLElement): Promise<boolean> {
+/** Clipboard permissions can be denied; the caller then offers native manual copying. */
+async function writeClipboard(text: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
 		return true;
 	} catch {
-		const focused = document.activeElement;
-		const area = document.createElement("textarea");
-		area.value = text;
-		area.setAttribute("readonly", "");
-		area.style.position = "absolute";
-		area.style.opacity = "0";
-		host.appendChild(area);
-		area.select();
-		let copied = false;
-		try {
-			copied = document.execCommand("copy");
-		} catch {
-			copied = false;
-		} finally {
-			area.remove();
-			if (focused instanceof HTMLElement) focused.focus({ preventScroll: true });
-		}
-		return copied;
+		return false;
 	}
+}
+
+/**
+ * Keep the address inside the active dialog so native Copy works even when
+ * clipboard-write is unavailable. Opening this fallback leaves focus on the
+ * Copy button; tabbing or tapping into the field selects the whole address.
+ */
+function ManualEmailCopy({ email }: Readonly<{ email: string }>) {
+	const hintId = useId();
+	return (
+		<div className="grid w-full min-w-0 gap-2">
+			<AdminNotice id={hintId} variant="error">
+				Could not copy the email. Select the address below, then use your device&apos;s Copy
+				command.
+			</AdminNotice>
+			<label className={adminLabel}>
+				<span>Email address to copy</span>
+				<input
+					type="text"
+					value={email}
+					readOnly
+					aria-describedby={hintId}
+					onFocus={(event) => event.currentTarget.select()}
+					onClick={(event) => event.currentTarget.select()}
+					className={cn(adminField, "select-all")}
+				/>
+			</label>
+		</div>
+	);
 }
 
 /**
@@ -205,10 +213,10 @@ function LeadReplyActions({
 	const { email } = parseLeadContact(lead.contact);
 	if (!whatsapp && !email) return null;
 
-	const copyEmail = async (host: HTMLElement) => {
+	const copyEmail = async () => {
 		if (!email) return;
 		setCopyFailed(false);
-		if (!(await writeClipboard(email, host))) {
+		if (!(await writeClipboard(email))) {
 			setCopied(false);
 			setCopyFailed(true);
 			return;
@@ -245,18 +253,14 @@ function LeadReplyActions({
 			{email ? (
 				<button
 					type="button"
-					onClick={(event) => void copyEmail(event.currentTarget.parentElement ?? document.body)}
+					onClick={() => void copyEmail()}
 					className={cn(adminBtn, !whatsapp && "flex-1")}
 				>
 					{copied ? "Email copied" : "Copy email"}
 				</button>
 			) : null}
 			<output className="sr-only">{copied ? "Email copied" : ""}</output>
-			{copyFailed ? (
-				<AdminNotice variant="error" className="w-full">
-					Could not copy the email. Select the contact address above and copy it.
-				</AdminNotice>
-			) : null}
+			{copyFailed && email ? <ManualEmailCopy email={email} /> : null}
 		</div>
 	);
 }

@@ -103,8 +103,8 @@ export function ConfirmProvider({ children }: Readonly<{ children: ReactNode }>)
 			const ok = await state.action();
 			if (ok) settle(true);
 			else setError(GENERIC_FAILURE);
-		} catch (caught) {
-			setError(caught instanceof Error ? caught.message : GENERIC_FAILURE);
+		} catch (error_) {
+			setError(error_ instanceof Error ? error_.message : GENERIC_FAILURE);
 		} finally {
 			setPending(false);
 		}
@@ -187,11 +187,10 @@ export function ConfirmPanel({
 	}, []);
 
 	return (
-		<div
-			role="group"
+		<fieldset
 			aria-labelledby={headingId}
 			aria-describedby={body ? descriptionId : undefined}
-			className="grid gap-(--form-gap)"
+			className="m-0 grid min-w-0 gap-(--form-gap) border-0 p-0"
 		>
 			<div className="flex items-start gap-3">
 				{destructive ? (
@@ -237,6 +236,6 @@ export function ConfirmPanel({
 					{confirmLabel}
 				</button>
 			</div>
-		</div>
+		</fieldset>
 	);
 }

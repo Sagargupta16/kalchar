@@ -102,15 +102,15 @@ function MobileNavLink({
 function RaisedAddCell() {
 	const addContext = useAddContext();
 	const { openPiece, openEvent, openChoice, addOpen } = useAddSheet();
-	const label =
-		addContext === "piece" ? "Add a piece" : addContext === "event" ? "Add an event" : "Add";
+	const addActions = { piece: openPiece, event: openEvent, choice: openChoice };
+	const addLabels = { piece: "Add a piece", event: "Add an event", choice: "Add" };
 	return (
 		<motion.button
 			type="button"
 			whileTap={{ scale: PRESS_SCALE }}
 			transition={SPRING_PRESS}
-			onClick={addContext === "piece" ? openPiece : addContext === "event" ? openEvent : openChoice}
-			aria-label={label}
+			onClick={addActions[addContext]}
+			aria-label={addLabels[addContext]}
 			aria-haspopup={addContext === "choice" ? "dialog" : undefined}
 			className="group relative flex h-full w-full flex-col items-center justify-end pb-1 outline-hidden"
 		>

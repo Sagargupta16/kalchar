@@ -19,6 +19,12 @@ interface EnquireFabProps {
 	whatsappHref: string;
 }
 
+function trimTrailingSlashes(pathname: string): string {
+	let end = pathname.length;
+	while (end > 0 && pathname[end - 1] === "/") end -= 1;
+	return pathname.slice(0, end);
+}
+
 /**
  * Floating WhatsApp disc (the Instagram-native graft, visual-direction 2.14):
  * a 56px terracotta circle pinned to the bottom-right, one thumb-reach away on
@@ -47,7 +53,7 @@ export function EnquireFab({ whatsappHref }: Readonly<EnquireFabProps>) {
 	const [channelsInView, setChannelsInView] = useState(false);
 	const sentinelRef = useRef<HTMLSpanElement>(null);
 
-	const eligible = FAB_ROUTES.has((pathname ?? "").replace(/\/+$/, ""));
+	const eligible = FAB_ROUTES.has(trimTrailingSlashes(pathname ?? ""));
 
 	useEffect(() => {
 		if (!eligible) return;

@@ -252,6 +252,42 @@ function BarsFixture() {
 	const [addToast, setAddToast] = useState(false);
 	const [viewed, setViewed] = useState(0);
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(run);
+	let bottomBar: ReactNode = null;
+	if (bar.shown) {
+		bottomBar = (
+			<ReorderBar
+				label="Gallery order changed"
+				pending={bar.pending}
+				saved={bar.saved}
+				error={bar.error}
+				onSave={() => {}}
+				onReset={bar.hide}
+			/>
+		);
+	} else if (addToast) {
+		bottomBar = (
+			<UndoBar
+				message='Added "Alpha" to the gallery'
+				actions={[
+					{ label: "View", onClick: () => setViewed((n) => n + 1) },
+					{ label: "Add another", onClick: () => setViewed((n) => n + 1) },
+				]}
+				onDismiss={() => setAddToast(false)}
+				duration={actionState.undoDuration}
+			/>
+		);
+	} else if (undo) {
+		bottomBar = (
+			<UndoBar
+				message={undo.message}
+				pending={undoPending}
+				error={undoError ? (err ?? undoError) : null}
+				onAction={undoNow}
+				onDismiss={dismissUndo}
+				duration={actionState.undoDuration}
+			/>
+		);
+	}
 	return (
 		<>
 			<p data-viewed="">{viewed}</p>
@@ -303,35 +339,7 @@ function BarsFixture() {
 					onReset={inline.hide}
 				/>
 			) : null}
-			{bar.shown ? (
-				<ReorderBar
-					label="Gallery order changed"
-					pending={bar.pending}
-					saved={bar.saved}
-					error={bar.error}
-					onSave={() => {}}
-					onReset={bar.hide}
-				/>
-			) : addToast ? (
-				<UndoBar
-					message='Added "Alpha" to the gallery'
-					actions={[
-						{ label: "View", onClick: () => setViewed((n) => n + 1) },
-						{ label: "Add another", onClick: () => setViewed((n) => n + 1) },
-					]}
-					onDismiss={() => setAddToast(false)}
-					duration={actionState.undoDuration}
-				/>
-			) : undo ? (
-				<UndoBar
-					message={undo.message}
-					pending={undoPending}
-					error={undoError ? (err ?? undoError) : null}
-					onAction={undoNow}
-					onDismiss={dismissUndo}
-					duration={actionState.undoDuration}
-				/>
-			) : null}
+			{bottomBar}
 		</>
 	);
 }

@@ -139,8 +139,7 @@ test("the about portrait idles on the float breath and continues across OS prefe
 	expect(await float.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 });
 
-test("about essay column holds the 62ch measure", async ({ page }, testInfo) => {
-	test.skip(testInfo.project.name === "mobile-chromium", "the spread composes from md");
+test("about essay column holds the 62ch measure", async ({ page }) => {
 	await page.goto("/about/");
 	const essay = page.locator("main .drop-cap").locator("..").locator("..");
 	const metrics = await essay.evaluate((el) => ({
@@ -187,9 +186,13 @@ test("wall dates set the day in the numeral voice", async ({ page }, testInfo) =
 
 test("the gold timeline spans the chronology and one year watermark renders", async ({
 	page,
-}, testInfo) => {
-	test.skip(testInfo.project.name === "mobile-chromium", "the timeline composes from lg");
+}) => {
 	await page.goto("/events/");
+	// Both ornaments are hidden below lg; the event-record and wall-date tests cover narrow screens.
+	test.skip(
+		!(await page.evaluate(() => matchMedia("(min-width: 64rem)").matches)),
+		"The timeline and year watermark are displayed only at the lg breakpoint",
+	);
 	const timeline = page.locator("main [data-timeline]");
 	await expect(timeline).toBeVisible();
 	const gold = await resolveColor(page, "--color-gold-hairline");
@@ -218,9 +221,13 @@ test("only the lead event plate floats, never the grid", async ({ page }) => {
 	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 });
 
-test("the lg wall date sits on the glass material chip", async ({ page }, testInfo) => {
-	test.skip(testInfo.project.name === "mobile-chromium", "the chip composes from lg");
+test("the lg wall date sits on the glass material chip", async ({ page }) => {
 	await page.goto("/events/");
+	// Glass is applied only by lg:material-glass; the wall-date test also covers the mobile date.
+	test.skip(
+		!(await page.evaluate(() => matchMedia("(min-width: 64rem)").matches)),
+		"The glass date chip is displayed only at the lg breakpoint",
+	);
 	const chip = page.locator("#fixture-event time");
 	const material = await chip.evaluate((el) => {
 		const computed = getComputedStyle(el);
@@ -326,9 +333,13 @@ test("@mobile workshop enquire buttons fill the row", async ({ page }) => {
 
 test("workshop enquiry links carry the hover feedback without making the row look clickable", async ({
 	page,
-}, testInfo) => {
-	test.skip(testInfo.project.name === "mobile-chromium", "hover-capable pointers only");
+}) => {
 	await page.goto("/workshops/");
+	// Touch pointers cannot hover; the mobile workshop-button test covers their full-width targets.
+	test.skip(
+		!(await page.evaluate(() => matchMedia("(hover: hover)").matches)),
+		"Requires a hover-capable pointer; mobile enquiry targets are covered separately",
+	);
 	const row = page.locator("main ul > li").first();
 	await row.scrollIntoViewIfNeeded();
 	const restingBackground = await row.evaluate((el) => getComputedStyle(el).backgroundColor);

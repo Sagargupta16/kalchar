@@ -61,42 +61,7 @@ export default function ContactPage() {
 
 			<Section accent="peacock" padded size="narrow" containerClassName="pt-(--space-block)">
 				<div className="grid gap-4">
-					{whatsappUrl ? (
-						<Reveal delayMs={staggerDelay(0)}>
-							<a
-								href={whatsappUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={whatsAppCard}
-							>
-								<IconCircle size="lg" className="group-hover:ring-(--section-accent)">
-									<WhatsAppIcon className="size-6" />
-								</IconCircle>
-								<div className="min-w-0 flex-1">
-									<p className="t-meta inline-flex items-center gap-1 font-medium text-(--section-accent)">
-										<MessageCircle size={12} aria-hidden="true" />
-										Fastest reply
-									</p>
-									<h2 className="mt-2 text-base font-medium text-ink">Chat on WhatsApp</h2>
-									{contact.whatsapp.display?.trim() ? (
-										<p className="t-numeral mt-1 select-all break-words text-2xl text-ink transition-colors group-hover:text-(--section-accent) sm:text-h2">
-											{contact.whatsapp.display.trim()}
-										</p>
-									) : null}
-									<p className="mt-1 text-sm text-muted">
-										{contact.whatsapp.note?.trim() ||
-											"Usually same-day. Send a photo, link, or short brief."}
-									</p>
-									<p className="mt-2 text-xs text-muted">Opens WhatsApp with a new conversation</p>
-								</div>
-								<ArrowRight
-									size={18}
-									aria-hidden="true"
-									className="hidden shrink-0 text-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-(--section-accent) sm:block"
-								/>
-							</a>
-						</Reveal>
-					) : null}
+					<WhatsAppContactCard channel={contact.whatsapp} href={whatsappUrl} />
 
 					{/* WhatsApp catalogue (when set) -- browse pieces for sale in-app */}
 					{catalogUrl ? (
@@ -121,34 +86,7 @@ export default function ContactPage() {
 						</Reveal>
 					) : null}
 
-					{emailUrl ? (
-						<Reveal delayMs={staggerDelay(2)}>
-							<a
-								href={emailUrl}
-								className={cn(linkCard, "group flex items-center gap-4 p-(--card-pad)")}
-							>
-								<IconCircle size="sm">
-									<GmailIcon className="size-3.5" />
-								</IconCircle>
-								<div className="min-w-0 flex-1">
-									<h2 className="text-base font-medium">Email us</h2>
-									{contact.email.display?.trim() ? (
-										<p className="mt-1 text-sm [overflow-wrap:anywhere]">
-											{contact.email.display.trim()}
-										</p>
-									) : null}
-									<p className="text-sm text-muted">
-										{contact.email.note?.trim() || "For longer briefs or formal enquiries"}
-									</p>
-								</div>
-								<ArrowRight
-									size={14}
-									aria-hidden="true"
-									className="shrink-0 text-muted transition-transform group-hover:translate-x-1"
-								/>
-							</a>
-						</Reveal>
-					) : null}
+					<EmailContactCard channel={contact.email} href={emailUrl} />
 					{!whatsappUrl && !emailUrl ? (
 						<Reveal>
 							<p className="text-sm text-muted">
@@ -247,6 +185,72 @@ export default function ContactPage() {
 				</Reveal>
 			</Section>
 		</main>
+	);
+}
+
+function WhatsAppContactCard({
+	channel,
+	href,
+}: Readonly<{ channel: ContactChannel; href: string }>) {
+	if (!href) return null;
+
+	return (
+		<Reveal delayMs={staggerDelay(0)}>
+			<a href={href} target="_blank" rel="noopener noreferrer" className={whatsAppCard}>
+				<IconCircle size="lg" className="group-hover:ring-(--section-accent)">
+					<WhatsAppIcon className="size-6" />
+				</IconCircle>
+				<div className="min-w-0 flex-1">
+					<p className="t-meta inline-flex items-center gap-1 font-medium text-(--section-accent)">
+						<MessageCircle size={12} aria-hidden="true" />
+						Fastest reply
+					</p>
+					<h2 className="mt-2 text-base font-medium text-ink">Chat on WhatsApp</h2>
+					{channel.display?.trim() ? (
+						<p className="t-numeral mt-1 select-all break-words text-2xl text-ink transition-colors group-hover:text-(--section-accent) sm:text-h2">
+							{channel.display.trim()}
+						</p>
+					) : null}
+					<p className="mt-1 text-sm text-muted">
+						{channel.note?.trim() || "Usually same-day. Send a photo, link, or short brief."}
+					</p>
+					<p className="mt-2 text-xs text-muted">Opens WhatsApp with a new conversation</p>
+				</div>
+				<ArrowRight
+					size={18}
+					aria-hidden="true"
+					className="hidden shrink-0 text-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-(--section-accent) sm:block"
+				/>
+			</a>
+		</Reveal>
+	);
+}
+
+function EmailContactCard({ channel, href }: Readonly<{ channel: ContactChannel; href: string }>) {
+	if (!href) return null;
+
+	return (
+		<Reveal delayMs={staggerDelay(2)}>
+			<a href={href} className={cn(linkCard, "group flex items-center gap-4 p-(--card-pad)")}>
+				<IconCircle size="sm">
+					<GmailIcon className="size-3.5" />
+				</IconCircle>
+				<div className="min-w-0 flex-1">
+					<h2 className="text-base font-medium">Email us</h2>
+					{channel.display?.trim() ? (
+						<p className="mt-1 text-sm [overflow-wrap:anywhere]">{channel.display.trim()}</p>
+					) : null}
+					<p className="text-sm text-muted">
+						{channel.note?.trim() || "For longer briefs or formal enquiries"}
+					</p>
+				</div>
+				<ArrowRight
+					size={14}
+					aria-hidden="true"
+					className="shrink-0 text-muted transition-transform group-hover:translate-x-1"
+				/>
+			</a>
+		</Reveal>
 	);
 }
 

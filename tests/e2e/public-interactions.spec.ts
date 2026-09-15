@@ -28,9 +28,9 @@ async function expectModalFocus(page: Page, trigger: Locator, lastControl: Locat
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(true);
-	await settleAnimations(page, "dialog");
+	await settleAnimations(page, "dialog[open]");
 	const accessibility = await new AxeBuilder({ page })
-		.include("dialog")
+		.include("dialog[open]")
 		.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
 		.analyze();
 	expect(accessibility.violations).toEqual([]);
@@ -363,8 +363,7 @@ test("status pill is one shape in all three views", async ({ page }) => {
 	await page.goto("/work/");
 	const soldCard = page.locator('main a[aria-label$=", sold"]').first();
 	const path = await soldCard.getAttribute("href");
-	// Grid cards pin the pill to the frame's bottom-left so the plate's top edge
-	// stays clean (visual-direction 2.2); viewer and detail keep top-left.
+	// Cards pin the pill to the bottom-left; viewers and details use the top-left.
 	const card = await pillPlacement(soldCard.getByText("Sold", { exact: true }).first());
 	expect(card.left).toBe(8);
 	expect(card.bottomGap).toBe(8);
@@ -462,8 +461,7 @@ test("detail orders price before the full-width enquiry, one price on the page",
 	await page.goto("/work/");
 	const path = await galleryCards(page).first().getAttribute("href");
 	await page.goto(path as string);
-	// The wall-label price is the one price outside the sticky bar; the CTA
-	// panel no longer repeats it (visual-direction 2.3, the B graft).
+	// The wall-label price is the only price outside the sticky bar.
 	await expect(page.locator("main #enquire").getByText(/INR [\d,]+/)).toHaveCount(0);
 	const prices = page.locator("main > :not(div.fixed)").getByText(/^INR [\d,]+$/);
 	await expect(prices).toHaveCount(1);

@@ -28,6 +28,12 @@ import { SAVED_BADGE_DURATION_MS, useAdminAction, usePendingVisible } from "./us
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
+function photoRemovalMessage(count: number, index: number): string {
+	if (count === 1) return "The event will have no photos. You can add a new cover later.";
+	if (index === 0) return "This is the cover. The next photo becomes the cover.";
+	return "The photo leaves this event's gallery.";
+}
+
 /**
  * Photo manager for one event: spaced tiles and controls (the only
  * thing on the image is the gold Cover chip), a two-line tile footer with the
@@ -125,12 +131,7 @@ export function EventImageManager({
 		if (blocked || orderChanged) return;
 		const ok = await confirm({
 			title: `Remove photo ${i + 1}?`,
-			body:
-				images.length === 1
-					? "The event will have no photos. You can add a new cover later."
-					: i === 0
-						? "This is the cover. The next photo becomes the cover."
-						: "The photo leaves this event's gallery.",
+			body: photoRemovalMessage(images.length, i),
 			confirmLabel: "Remove photo",
 			cancelLabel: "Keep photo",
 		});
@@ -331,51 +332,24 @@ export function EventImageManager({
 				</p>
 			) : null}
 
-			<div className="flex flex-wrap items-center gap-2">
-				{orderChanged ? (
-					<InlineReorderControls
-						layout="row"
-						pending={blocked}
-						saved={false}
-						error={errSlot === "order" ? err : null}
-						onSave={handleSaveOrder}
-						onReset={() => {
-							setImages(baseline);
-							setSaved(false);
-							setErrSlot(null);
-						}}
-					/>
-				) : saved ? (
-					// The shell's InlineReorderControls keeps its buttons while `saved`, which
-					// would leave a dead Save order on screen; only its output line renders here.
-					<output className="text-sm text-accent-text">Order saved</output>
-				) : null}
-
-				<form
-					id={formId}
-					onSubmit={(e) => {
-						e.preventDefault();
-						handleAdd(e.currentTarget);
-					}}
-					aria-busy={uploading || undefined}
-					className="flex items-center gap-2"
-				>
-					{files.length > 0 ? (
-						<button
-							type="submit"
-							disabled={blocked || orderChanged || !!fileProblem}
-							aria-busy={uploading || undefined}
-							aria-describedby={orderChanged ? `${formId}-order-hint` : undefined}
-							className={adminBtnPrimary}
-						>
-							{uploadSpinning ? (
-								<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
-							) : null}
-							Upload photos
-						</button>
-					) : null}
-				</form>
-			</div>
+			<EventPhotoActions
+				formId={formId}
+				blocked={blocked}
+				uploading={uploading}
+				uploadSpinning={uploadSpinning}
+				orderChanged={orderChanged}
+				saved={saved}
+				orderError={errSlot === "order" ? err : null}
+				hasFiles={files.length > 0}
+				hasFileProblem={fileProblem !== null}
+				onSaveOrder={handleSaveOrder}
+				onResetOrder={() => {
+					setImages(baseline);
+					setSaved(false);
+					setErrSlot(null);
+				}}
+				onAdd={handleAdd}
+			/>
 
 			{notice ? <AdminNotice variant="info">{notice}</AdminNotice> : null}
 			{err && errSlot === "general" ? <AdminNotice variant="error">{err}</AdminNotice> : null}
@@ -387,6 +361,79 @@ export function EventImageManager({
 				disabled={blocked}
 				onFilesChange={updateFiles}
 			/>
+		</div>
+	);
+}
+
+function EventPhotoActions({
+	formId,
+	blocked,
+	uploading,
+	uploadSpinning,
+	orderChanged,
+	saved,
+	orderError,
+	hasFiles,
+	hasFileProblem,
+	onSaveOrder,
+	onResetOrder,
+	onAdd,
+}: Readonly<{
+	formId: string;
+	blocked: boolean;
+	uploading: boolean;
+	uploadSpinning: boolean;
+	orderChanged: boolean;
+	saved: boolean;
+	orderError: string | null;
+	hasFiles: boolean;
+	hasFileProblem: boolean;
+	onSaveOrder: () => void;
+	onResetOrder: () => void;
+	onAdd: (form: HTMLFormElement) => void;
+}>) {
+	// Keep the saved notice without showing inactive order controls.
+	const savedOrderNotice = saved ? (
+		<output className="text-sm text-accent-text">Order saved</output>
+	) : null;
+	return (
+		<div className="flex flex-wrap items-center gap-2">
+			{orderChanged ? (
+				<InlineReorderControls
+					layout="row"
+					pending={blocked}
+					saved={false}
+					error={orderError}
+					onSave={onSaveOrder}
+					onReset={onResetOrder}
+				/>
+			) : (
+				savedOrderNotice
+			)}
+			<form
+				id={formId}
+				onSubmit={(event) => {
+					event.preventDefault();
+					onAdd(event.currentTarget);
+				}}
+				aria-busy={uploading || undefined}
+				className="flex items-center gap-2"
+			>
+				{hasFiles ? (
+					<button
+						type="submit"
+						disabled={blocked || orderChanged || hasFileProblem}
+						aria-busy={uploading || undefined}
+						aria-describedby={orderChanged ? `${formId}-order-hint` : undefined}
+						className={adminBtnPrimary}
+					>
+						{uploadSpinning ? (
+							<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
+						) : null}
+						Upload photos
+					</button>
+				) : null}
+			</form>
 		</div>
 	);
 }

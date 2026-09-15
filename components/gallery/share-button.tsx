@@ -49,6 +49,8 @@ export function ShareButton({
 		}
 	}, [title, url]);
 
+	const label = copied ? "Link copied" : "Share";
+
 	return (
 		<button
 			type="button"
@@ -66,7 +68,7 @@ export function ShareButton({
 			) : (
 				<Share2 size={iconOnly ? 18 : 14} aria-hidden="true" />
 			)}
-			{iconOnly ? null : copied ? "Link copied" : "Share"}
+			{iconOnly ? null : label}
 		</button>
 	);
 }

@@ -1,17 +1,27 @@
 "use client";
 
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useLayoutEffect } from "react";
 
-/** Keep the full-screen menu usable with touch, keyboard and screen readers. */
-export function useMobileMenu(
-	open: boolean,
-	headerRef: RefObject<HTMLElement | null>,
-	triggerRef: RefObject<HTMLButtonElement | null>,
-	onClose: () => void,
-) {
-	useEffect(() => {
+interface MobileMenuOptions {
+	active: boolean;
+	dialogRef: RefObject<HTMLDialogElement | null>;
+	headerRef: RefObject<HTMLElement | null>;
+	triggerRef: RefObject<HTMLButtonElement | null>;
+	onClose: () => void;
+}
+
+/** Keep the modal active through its exit animation, then restore the current page. */
+export function useMobileMenu({
+	active,
+	dialogRef,
+	headerRef,
+	triggerRef,
+	onClose,
+}: Readonly<MobileMenuOptions>) {
+	useLayoutEffect(() => {
+		const dialog = dialogRef.current;
 		const header = headerRef.current;
-		if (!open || !header) return;
+		if (!active || !dialog || !header) return;
 
 		const { body } = document;
 		const scrollY = window.scrollY;
@@ -26,7 +36,7 @@ export function useMobileMenu(
 		const background = [...body.children]
 			.filter(
 				(element): element is HTMLElement =>
-					element instanceof HTMLElement && !element.contains(header),
+					element instanceof HTMLElement && !element.contains(dialog),
 			)
 			.map((element) => ({ element, inert: element.inert }));
 		for (const { element } of background) element.inert = true;
@@ -38,17 +48,13 @@ export function useMobileMenu(
 			width: "100%",
 		});
 
-		header.querySelector<HTMLElement>("#mobile-menu a")?.focus({ preventScroll: true });
+		dialog.showModal();
+		dialog.querySelector<HTMLElement>("#mobile-menu a")?.focus({ preventScroll: true });
 
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				event.preventDefault();
-				onClose();
-				return;
-			}
 			if (event.key !== "Tab") return;
 			const controls = [
-				...header.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [tabindex='0']"),
+				...dialog.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [tabindex='0']"),
 			].filter((control) => control.getClientRects().length > 0 && !control.closest("[inert]"));
 			const first = controls[0];
 			const last = controls.at(-1);
@@ -68,9 +74,11 @@ export function useMobileMenu(
 		};
 		document.addEventListener("keydown", onKeyDown);
 		desktop.addEventListener("change", onDesktop);
+		onDesktop();
 		return () => {
 			document.removeEventListener("keydown", onKeyDown);
 			desktop.removeEventListener("change", onDesktop);
+			dialog.close();
 			for (const { element, inert } of background) element.inert = inert;
 			Object.assign(body.style, previousStyles);
 			if (window.location.pathname !== route) return;
@@ -84,5 +92,5 @@ export function useMobileMenu(
 				triggerRef.current?.focus({ preventScroll: true });
 			}
 		};
-	}, [open, headerRef, triggerRef, onClose]);
+	}, [active, dialogRef, headerRef, triggerRef, onClose]);
 }

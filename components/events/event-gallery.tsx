@@ -1,24 +1,18 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Expand } from "lucide-react";
-import { AnimatePresence, motion, type PanInfo, useMotionValue } from "motion/react";
+import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { BinduMark } from "@/components/decor/bindu-mark";
 import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
+import { useViewerDrag } from "@/components/gallery/use-viewer-drag";
 import { LightboxIconButton, ViewerDialog } from "@/components/gallery/viewer-dialog";
 import { Reveal } from "@/components/motion/reveal";
 import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
-import {
-	DRAG_CLOSE_FRACTION,
-	DRAG_VELOCITY_PX_S,
-	DUR,
-	EASE_IN,
-	EASE_OUT,
-	gridStaggerDelay,
-	SPRING_PANEL,
-} from "@/lib/motion";
+import { DUR, EASE_IN, gridStaggerDelay, SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { EVENT_LIGHTBOX_IMAGE_SIZES, EventLightboxPhoto } from "./event-lightbox-photo";
 
 /**
  * Inline photo grid for one event, with an image-only lightbox.
@@ -36,16 +30,9 @@ import { cn } from "@/lib/utils";
  * 3 or more photos; a single photo hides arrows and paging entirely.
  */
 const MAX_INLINE = 6;
-/** Sibling slide distance (px) when paging inside the lightbox. */
-const SLIDE_PX = 24;
-/** Scrim fade factor while a downward dismiss drag is in flight (1.7). */
-const SCRIM_DRAG_FADE = 0.6;
 /** Paging wraps around only from this many photos (2.4). */
 const LOOP_MIN = 3;
 const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
-/** Shared by the displayed photo and neighbour preloads at every viewport. */
-const LIGHTBOX_IMAGE_SIZES =
-	"(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)";
 
 /** AVIF srcset for an event key-base, for `<link rel="preload">` hints. */
 function eventPreloadSrcset(keyBase: string): string {
@@ -251,7 +238,6 @@ function EventLightbox({
 }: Readonly<EventLightboxProps>) {
 	const [dir, setDir] = useState<1 | -1>(1);
 	const figureRef = useRef<HTMLDivElement>(null);
-	const dragAxis = useRef<"x" | "y" | null>(null);
 	const scrimOpacity = useMotionValue(1);
 
 	const total = images.length;
@@ -310,7 +296,7 @@ function EventLightbox({
 			link.as = "image";
 			link.type = "image/avif";
 			link.imageSrcset = eventPreloadSrcset(keyBase);
-			link.imageSizes = LIGHTBOX_IMAGE_SIZES;
+			link.imageSizes = EVENT_LIGHTBOX_IMAGE_SIZES;
 			document.head.append(link);
 			return link;
 		});
@@ -319,55 +305,21 @@ function EventLightbox({
 		};
 	}, [hasMany, images, index, total]);
 
-	// Drag: pages horizontally, dismisses downward; the scrim tracks progress.
-	const handleDrag = useCallback(
-		(_event: unknown, info: PanInfo) => {
-			if (dragAxis.current !== "y") return;
-			const rect = figureRef.current?.getBoundingClientRect();
-			const height = rect?.height ?? 1;
-			const progress = Math.min(Math.max(info.offset.y / height, 0), 1);
-			scrimOpacity.set(1 - SCRIM_DRAG_FADE * progress);
-		},
-		[scrimOpacity],
-	);
-	const handleDragEnd = useCallback(
-		(_event: unknown, info: PanInfo) => {
-			const axis = dragAxis.current;
-			dragAxis.current = null;
-			scrimOpacity.set(1);
-			const rect = figureRef.current?.getBoundingClientRect();
-			const width = rect?.width ?? 1;
-			const height = rect?.height ?? 1;
-			const { offset, velocity } = info;
-			if (axis === "x") {
-				if (!hasMany) return;
-				if (offset.x < -DRAG_CLOSE_FRACTION * width || velocity.x < -DRAG_VELOCITY_PX_S) {
-					go(1);
-				} else if (offset.x > DRAG_CLOSE_FRACTION * width || velocity.x > DRAG_VELOCITY_PX_S) {
-					go(-1);
-				}
-				return;
+	const navigation = hasMany
+		? {
+				onNext: () => go(1),
+				onPrevious: () => go(-1),
+				onFirst: goFirst,
+				onLast: goLast,
 			}
-			if (
-				axis === "y" &&
-				(offset.y > DRAG_CLOSE_FRACTION * height || velocity.y > DRAG_VELOCITY_PX_S)
-			) {
-				onClose();
-			}
-		},
-		[scrimOpacity, hasMany, go, onClose],
-	);
-
-	/** Siblings slide from the travel side and fade together. */
-	const pageVariants = {
-		enter: (d: number) => ({ x: SLIDE_PX * d, opacity: 0 }),
-		center: { x: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE_OUT } },
-		exit: (d: number) => ({
-			x: -SLIDE_PX * d,
-			opacity: 0,
-			transition: { duration: DUR.fast, ease: EASE_IN },
-		}),
-	};
+		: {};
+	const dragHandlers = useViewerDrag({
+		figureRef,
+		scrimOpacity,
+		onNext: navigation.onNext,
+		onPrevious: navigation.onPrevious,
+		onDismiss: onClose,
+	});
 
 	const counterText = `${String(index + 1).padStart(2, "0")} / ${total}`;
 
@@ -375,10 +327,7 @@ function EventLightbox({
 		<ViewerDialog
 			label={`${title} photos`}
 			onClose={onClose}
-			onNext={hasMany ? () => go(1) : undefined}
-			onPrevious={hasMany ? () => go(-1) : undefined}
-			onFirst={hasMany ? goFirst : undefined}
-			onLast={hasMany ? goLast : undefined}
+			{...navigation}
 			scrimOpacity={scrimOpacity}
 		>
 			<motion.figure
@@ -409,35 +358,16 @@ function EventLightbox({
 							{counterText}
 						</p>
 					) : null}
-					<AnimatePresence mode="popLayout" custom={dir} initial={false}>
-						<motion.div
-							key={index}
-							ref={figureRef}
-							custom={dir}
-							variants={pageVariants}
-							initial="enter"
-							animate="center"
-							exit="exit"
-							drag={coarse}
-							dragDirectionLock
-							onDirectionLock={(axis) => {
-								dragAxis.current = axis;
-							}}
-							dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-							dragElastic={0.2}
-							onDrag={coarse ? handleDrag : undefined}
-							onDragEnd={coarse ? handleDragEnd : undefined}
-							className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-md"
-						>
-							<ResponsiveImage
-								keyBase={images[index] ?? ""}
-								alt={`${title}, photo ${index + 1} of ${total}`}
-								sizes={LIGHTBOX_IMAGE_SIZES}
-								priority
-								className="max-h-[70dvh] w-auto max-w-full select-none rounded-(--radius-lg) bg-canvas object-contain shadow-hairline md:max-h-[78dvh]"
-							/>
-						</motion.div>
-					</AnimatePresence>
+					<EventLightboxPhoto
+						keyBase={images[index] ?? ""}
+						index={index}
+						title={title}
+						total={total}
+						direction={dir}
+						coarse={coarse}
+						figureRef={figureRef}
+						dragHandlers={dragHandlers}
+					/>
 					{hasMany ? (
 						<>
 							<LightboxNav

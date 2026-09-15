@@ -122,6 +122,18 @@ test.describe("enquiries inbox at 390", () => {
 		page,
 	}) => {
 		await mountAdmin(page, "leads");
+		const copied = await page.evaluateHandle(() => {
+			const writes: string[] = [];
+			Object.defineProperty(navigator, "clipboard", {
+				configurable: true,
+				value: {
+					writeText: async (text: string) => {
+						writes.push(text);
+					},
+				},
+			});
+			return writes;
+		});
 		await page.getByRole("button", { name: /^Mira/ }).click();
 		const dialog = page.getByRole("dialog");
 		await expect(dialog.getByRole("link", { name: "Reply on WhatsApp" })).toHaveCount(0);
@@ -131,6 +143,7 @@ test.describe("enquiries inbox at 390", () => {
 		await expect(dialog.getByText("Contact: mira@example.invalid")).toBeVisible();
 		await dialog.getByRole("button", { name: "Copy email", exact: true }).click();
 		await expect(dialog.getByRole("button", { name: "Email copied", exact: true })).toBeVisible();
+		expect(await copied.jsonValue()).toEqual(["mira@example.invalid"]);
 	});
 
 	for (const failure of ["failure", "throw"] as const) {

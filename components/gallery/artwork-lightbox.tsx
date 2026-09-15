@@ -1,17 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion, type PanInfo, useMotionValue } from "motion/react";
+import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import { artworkPreloadSrcset } from "@/lib/image-base";
-import {
-	DRAG_CLOSE_FRACTION,
-	DRAG_VELOCITY_PX_S,
-	DUR,
-	EASE_IN,
-	REVEAL_DISTANCE,
-	SPRING_PANEL,
-} from "@/lib/motion";
+import { DUR, EASE_IN, REVEAL_DISTANCE, SPRING_PANEL } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
 import { ArtworkFilmstrip } from "./artwork-filmstrip";
@@ -20,9 +13,10 @@ import { ArtworkViewerToolbar } from "./artwork-viewer-toolbar";
 import { useLightbox } from "./lightbox-context";
 import { KEYBOARD_PAN_PX, useLightboxGestures } from "./lightbox-gestures";
 import { LightboxSidebar } from "./lightbox-sidebar";
+import { useViewerDrag } from "./use-viewer-drag";
 import { ViewerDialog } from "./viewer-dialog";
+import type { ViewerKeyboardActions } from "./viewer-keyboard";
 
-const SCRIM_DRAG_FADE = 0.6;
 const DISMISS_EXIT_Y = 32;
 
 export function ArtworkLightbox() {
@@ -90,7 +84,7 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 	const scrimOpacity = useMotionValue(1);
 	const toggleChrome = useCallback(() => setChromeHidden((current) => !current), []);
 	const gestures = useLightboxGestures({ artwork, onToggleChrome: toggleChrome });
-	const { zoomed, figureRef, resetZoom, panBy, zoomIn, zoomOut } = gestures;
+	const { figureRef, resetZoom } = gestures;
 
 	// All navigation paths restore the caption and the dismiss backdrop.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: artwork.slug keys this reset
@@ -129,57 +123,27 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 	};
 
 	const dismissedRef = useRef(false);
-	const dragAxis = useRef<"x" | "y" | null>(null);
-	const handleDrag = useCallback(
-		(_event: unknown, info: PanInfo) => {
-			if (dragAxis.current !== "y") return;
-			const height = figureRef.current?.getBoundingClientRect().height ?? 1;
-			const progress = Math.min(Math.max(info.offset.y / height, 0), 1);
-			scrimOpacity.set(1 - SCRIM_DRAG_FADE * progress);
-		},
-		[figureRef, scrimOpacity],
-	);
-	const handleDragEnd = useCallback(
-		(_event: unknown, info: PanInfo) => {
-			const axis = dragAxis.current;
-			dragAxis.current = null;
-			scrimOpacity.set(1);
-			const rect = figureRef.current?.getBoundingClientRect();
-			const width = rect?.width ?? 1;
-			const height = rect?.height ?? 1;
-			const { offset, velocity } = info;
-			if (axis === "x") {
-				if (!hasSiblings) return;
-				if (offset.x < -DRAG_CLOSE_FRACTION * width || velocity.x < -DRAG_VELOCITY_PX_S) {
-					goNext();
-				} else if (offset.x > DRAG_CLOSE_FRACTION * width || velocity.x > DRAG_VELOCITY_PX_S) {
-					goPrevious();
-				}
-				return;
-			}
-			if (
-				axis === "y" &&
-				(offset.y > DRAG_CLOSE_FRACTION * height || velocity.y > DRAG_VELOCITY_PX_S)
-			) {
-				dismissedRef.current = true;
-				closeLightbox();
-			}
-		},
-		[scrimOpacity, figureRef, hasSiblings, goNext, goPrevious, closeLightbox],
-	);
+	const dismiss = useCallback(() => {
+		dismissedRef.current = true;
+		closeLightbox();
+	}, [closeLightbox]);
+	const navigation = hasSiblings
+		? { onNext: goNext, onPrevious: goPrevious, onFirst: goFirst, onLast: goLast }
+		: {};
+	const dragHandlers = useViewerDrag({
+		figureRef,
+		scrimOpacity,
+		onNext: navigation.onNext,
+		onPrevious: navigation.onPrevious,
+		onDismiss: dismiss,
+	});
+	const keyboardActions = getArtworkKeyboardActions(gestures, navigation);
 
 	return (
 		<ViewerDialog
 			labelledBy="lightbox-title"
 			onClose={closeLightbox}
-			onNext={zoomed ? () => panBy(-KEYBOARD_PAN_PX, 0) : hasSiblings ? goNext : undefined}
-			onPrevious={zoomed ? () => panBy(KEYBOARD_PAN_PX, 0) : hasSiblings ? goPrevious : undefined}
-			onFirst={hasSiblings ? goFirst : undefined}
-			onLast={hasSiblings ? goLast : undefined}
-			onZoomIn={zoomIn}
-			onZoomOut={zoomOut}
-			onArrowUp={zoomed ? () => panBy(0, KEYBOARD_PAN_PX) : undefined}
-			onArrowDown={zoomed ? () => panBy(0, -KEYBOARD_PAN_PX) : undefined}
+			{...keyboardActions}
 			scrimOpacity={scrimOpacity}
 			toolbar={
 				<ArtworkViewerToolbar
@@ -212,11 +176,7 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 						artwork={artwork}
 						direction={direction}
 						gestures={gestures}
-						onDrag={handleDrag}
-						onDragEnd={handleDragEnd}
-						onDirectionLock={(axis) => {
-							dragAxis.current = axis;
-						}}
+						{...dragHandlers}
 					/>
 					<ArtworkFilmstrip
 						artworks={artworksList}
@@ -235,4 +195,19 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 			</motion.div>
 		</ViewerDialog>
 	);
+}
+
+function getArtworkKeyboardActions(
+	{ zoomed, panBy, zoomIn, zoomOut }: ReturnType<typeof useLightboxGestures>,
+	navigation: Omit<ViewerKeyboardActions, "onClose">,
+): Omit<ViewerKeyboardActions, "onClose"> {
+	const actions = { ...navigation, onZoomIn: zoomIn, onZoomOut: zoomOut };
+	if (!zoomed) return actions;
+	return {
+		...actions,
+		onNext: () => panBy(-KEYBOARD_PAN_PX, 0),
+		onPrevious: () => panBy(KEYBOARD_PAN_PX, 0),
+		onArrowUp: () => panBy(0, KEYBOARD_PAN_PX),
+		onArrowDown: () => panBy(0, -KEYBOARD_PAN_PX),
+	};
 }

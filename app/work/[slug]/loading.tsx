@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function ArtworkDetailLoading() {
 	return (
 		<Container as="main" className="py-(--section-py)">
-			<div role="status" aria-busy="true">
-				<span className="sr-only">Loading</span>
+			<div aria-busy="true">
+				<output className="sr-only">Loading</output>
 				<Skeleton className="h-control w-28" />
 				<div className="mt-(--space-block) grid gap-(--space-block) md:grid-cols-12 md:gap-12">
 					<div className="min-w-0 md:col-span-7">

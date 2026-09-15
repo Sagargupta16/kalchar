@@ -7,7 +7,11 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
  * Never through the root config (its webServer refuses a port already serving).
  */
 test.describe("layout @preview", () => {
-	test.skip(process.env.KALCHAR_ADMIN_PREVIEW !== "1", "needs pnpm dev:preview");
+	// The isolated catalog fixture omits Tailwind; admin-catalog.spec.ts covers its behavior on every run.
+	test.skip(
+		process.env.KALCHAR_ADMIN_PREVIEW !== "1",
+		"Requires the styled fixture preview for geometry; isolated catalog behavior remains covered",
+	);
 	// localhost, not 127.0.0.1: Next dev only serves its client chunks and HMR to allowed dev origins.
 	const PREVIEW_URL = process.env.KALCHAR_PREVIEW_URL ?? "http://localhost:3010";
 
@@ -90,9 +94,14 @@ test.describe("layout @preview", () => {
 		test(`dark rows sit lighter than the ground at ${width}px`, async ({ page }) => {
 			await page.setViewportSize({ width, height: 844 });
 			await openList(page);
-			await page.evaluate(() => document.documentElement.classList.add("dark"));
-			// adminRow carries transition-ui, so the colour swap takes --duration-base to settle.
-			await page.waitForTimeout(400);
+			await page.locator("#pieces li").first().evaluate(async (row) => {
+				document.documentElement.classList.add("dark");
+				// Reading the animations flushes the new style; wait for the real colour transitions.
+				const transitions = [row, document.documentElement]
+					.flatMap((surface) => surface.getAnimations())
+					.filter((animation) => animation instanceof CSSTransition);
+				await Promise.all(transitions.map((animation) => animation.finished));
+			});
 			const lightness = await page.evaluate(() => {
 				// Chrome serialises the tokens in mixed spaces (lab, oklab); a canvas normalises to sRGB luminance.
 				const read = (element: Element | null) => {

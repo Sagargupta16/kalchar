@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { useMobileMenu } from "@/components/layout/use-mobile-menu";
 import { Container } from "@/components/ui/container";
@@ -37,12 +37,24 @@ interface Props {
 export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: Readonly<Props>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
+	const [menuPresent, setMenuPresent] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 	const scrollThresholdRef = useRef<HTMLSpanElement>(null);
 	const headerRef = useRef<HTMLElement>(null);
+	const dialogRef = useRef<HTMLDialogElement>(null);
 	const menuButtonRef = useRef<HTMLButtonElement>(null);
 	const closeMenu = useCallback(() => setOpen(false), []);
-	useMobileMenu(open, headerRef, menuButtonRef, closeMenu);
+	const toggleMenu = useCallback(() => {
+		setMenuPresent(true);
+		setOpen((value) => !value);
+	}, []);
+	useMobileMenu({
+		active: menuPresent,
+		dialogRef,
+		headerRef,
+		triggerRef: menuButtonRef,
+		onClose: closeMenu,
+	});
 
 	// Close on route change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
@@ -73,16 +85,12 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				aria-hidden="true"
 				className="pointer-events-none absolute left-0 top-12 h-px w-px"
 			/>
-			{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-modal is present only while the header has the dialog role. */}
 			<header
 				ref={headerRef}
-				role={open ? "dialog" : undefined}
-				aria-modal={open ? true : undefined}
-				aria-label={open ? "Site navigation" : undefined}
 				className={cn(
 					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
 					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
-					// the header stays a containing block for the drawer's absolute panel.
+					// the material stays consistent with the mobile drawer.
 					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
 					// as the subtle edge and e1 shadow arrive, so content sliding under the
 					// bar is what reveals the material. Without backdrop-filter support the
@@ -93,122 +101,180 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 						: "border-transparent",
 				)}
 			>
-				{/* One padding in both states: the bar is always --header-h-shrunk, so the
-				    shrink never animates layout (motion addendum C5); the brand mark carries
-				    the cue by scaling instead. z-10 keeps the bar above the open drawer sheet. */}
-				<Container className="relative z-10 flex items-center justify-between gap-4 py-2">
-					{/* Brand mark */}
-					<Link
-						href="/"
-						className="group flex min-h-control items-center gap-3 rounded-(--radius-sm) transition-colors hover:text-accent-text"
-						aria-label="Home"
-					>
-						<span
-							className={cn(
-								"inline-flex shrink-0 origin-left transition-ui",
-								scrolled && "scale-90",
-							)}
-						>
-							<Image
-								src="/logo.jpg"
-								alt=""
-								width={36}
-								height={36}
-								priority
-								className="size-8 rounded-full ring-1 ring-line transition-ui group-hover:ring-accent md:size-9"
-							/>
-						</span>
-						<span className="t-headline text-xl md:text-2xl">
-							<span>{latinPrefix}</span>
-							<span lang="hi" className="devanagari-display text-accent">
-								{devanagariCore}
-							</span>
-						</span>
-					</Link>
-
-					{/* Desktop nav */}
-					<div className="hidden items-center gap-(--space-group) lg:flex">
-						<nav aria-label="Primary">
-							<ul className="flex items-center gap-1">
-								{NAV.map((item) => {
-									const active = isActive(item.href);
-									return (
-										<li key={item.href}>
-											<Link
-												href={item.href}
-												aria-current={active ? "page" : undefined}
-												className={cn(
-													"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
-													active ? "text-accent-text" : "text-muted hover:text-ink",
-												)}
-											>
-												{item.label}
-												{active ? (
-													<motion.span
-														aria-hidden="true"
-														layoutId="nav-indicator"
-														className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
-														transition={SPRING_INDICATOR}
-													/>
-												) : null}
-											</Link>
-										</li>
-									);
-								})}
-							</ul>
-						</nav>
-						<Link
-							href={CONTACT.href}
-							aria-current={isActive(CONTACT.href) ? "page" : undefined}
-							className={cn(
-								"inline-flex min-h-control items-center rounded-(--radius-sm) px-4 text-sm font-medium transition-ui pressable",
-								isActive(CONTACT.href)
-									? "bg-accent text-bg"
-									: "border border-accent/60 text-accent-text hover:bg-accent hover:text-bg",
-							)}
-						>
-							{CONTACT.label}
-						</Link>
-						<ThemeToggle compact />
-					</div>
-
-					{/* Mobile controls */}
-					<div className="flex items-center gap-2 lg:hidden">
-						<ThemeToggle compact />
-						<button
-							ref={menuButtonRef}
-							type="button"
-							onClick={() => setOpen((v) => !v)}
-							aria-expanded={open}
-							aria-controls="mobile-menu"
-							aria-label={open ? "Close menu" : "Open menu"}
-							className="relative grid size-control place-items-center rounded-(--radius-sm) text-ink transition-ui pressable hover:bg-canvas hover:text-accent-text active:bg-canvas"
-						>
-							{/* Hamburger and X cross-fade with a quarter turn (motion addendum C6). */}
-							<AnimatePresence mode="wait" initial={false}>
-								<motion.span
-									key={open ? "close" : "open"}
-									initial={{ rotate: -90, opacity: 0 }}
-									animate={{ rotate: 0, opacity: 1 }}
-									exit={{ rotate: 90, opacity: 0 }}
-									transition={{ duration: DUR.fast, ease: EASE_OUT }}
-									className="absolute inset-0 grid place-items-center"
-								>
-									{open ? <X size={20} /> : <Menu size={20} />}
-								</motion.span>
-							</AnimatePresence>
-						</button>
-					</div>
-				</Container>
-
+				<HeaderBar
+					latinPrefix={latinPrefix}
+					devanagariCore={devanagariCore}
+					scrolled={scrolled}
+					open={open}
+					isActive={isActive}
+					onToggle={toggleMenu}
+					triggerRef={menuButtonRef}
+					className={menuPresent ? "invisible" : undefined}
+				/>
+			</header>
+			<dialog
+				ref={dialogRef}
+				aria-label="Site navigation"
+				data-lenis-prevent
+				onCancel={(event) => {
+					event.preventDefault();
+					closeMenu();
+				}}
+				className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-visible border-0 bg-transparent p-0 text-ink backdrop:bg-transparent"
+			>
+				<HeaderBar
+					mobileOnly
+					latinPrefix={latinPrefix}
+					devanagariCore={devanagariCore}
+					scrolled={scrolled}
+					open={open}
+					isActive={isActive}
+					onToggle={toggleMenu}
+				/>
 				<MobileDrawer
 					open={open}
 					items={[...NAV, CONTACT]}
 					isActive={isActive}
 					whatsappHref={whatsappHref}
 					onClose={closeMenu}
+					onExitComplete={() => {
+						if (!open) setMenuPresent(false);
+					}}
 				/>
-			</header>
+			</dialog>
 		</>
+	);
+}
+
+interface HeaderBarProps {
+	latinPrefix: string;
+	devanagariCore: string;
+	scrolled: boolean;
+	open: boolean;
+	isActive: (href: string) => boolean;
+	onToggle: () => void;
+	triggerRef?: RefObject<HTMLButtonElement | null>;
+	className?: string;
+	mobileOnly?: boolean;
+}
+
+/** Both bars share their layout so entering the modal never moves the header controls. */
+function HeaderBar({
+	latinPrefix,
+	devanagariCore,
+	scrolled,
+	open,
+	isActive,
+	onToggle,
+	triggerRef,
+	className,
+	mobileOnly = false,
+}: Readonly<HeaderBarProps>) {
+	return (
+		<Container
+			className={cn("relative z-10 flex items-center justify-between gap-4 py-2", className)}
+		>
+			{/* Brand scaling keeps the bar at --header-h-shrunk in both scroll states. */}
+			<Link
+				href="/"
+				className="group flex min-h-control items-center gap-3 rounded-(--radius-sm) transition-colors hover:text-accent-text"
+				aria-label="Home"
+			>
+				<span
+					className={cn("inline-flex shrink-0 origin-left transition-ui", scrolled && "scale-90")}
+				>
+					<Image
+						src="/logo.jpg"
+						alt=""
+						width={36}
+						height={36}
+						priority
+						className="size-8 rounded-full ring-1 ring-line transition-ui group-hover:ring-accent md:size-9"
+					/>
+				</span>
+				<span className="t-headline text-xl md:text-2xl">
+					<span>{latinPrefix}</span>
+					<span lang="hi" className="devanagari-display text-accent">
+						{devanagariCore}
+					</span>
+				</span>
+			</Link>
+
+			{/* Desktop nav */}
+			{mobileOnly ? null : (
+				<div className="hidden items-center gap-(--space-group) lg:flex">
+					<nav aria-label="Primary">
+						<ul className="flex items-center gap-1">
+							{NAV.map((item) => {
+								const active = isActive(item.href);
+								return (
+									<li key={item.href}>
+										<Link
+											href={item.href}
+											aria-current={active ? "page" : undefined}
+											className={cn(
+												"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
+												active ? "text-accent-text" : "text-muted hover:text-ink",
+											)}
+										>
+											{item.label}
+											{active ? (
+												<motion.span
+													aria-hidden="true"
+													layoutId="nav-indicator"
+													className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
+													transition={SPRING_INDICATOR}
+												/>
+											) : null}
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					</nav>
+					<Link
+						href={CONTACT.href}
+						aria-current={isActive(CONTACT.href) ? "page" : undefined}
+						className={cn(
+							"inline-flex min-h-control items-center rounded-(--radius-sm) px-4 text-sm font-medium transition-ui pressable",
+							isActive(CONTACT.href)
+								? "bg-accent text-bg"
+								: "border border-accent/60 text-accent-text hover:bg-accent hover:text-bg",
+						)}
+					>
+						{CONTACT.label}
+					</Link>
+					<ThemeToggle compact />
+				</div>
+			)}
+
+			{/* Mobile controls */}
+			<div className="flex items-center gap-2 lg:hidden">
+				<ThemeToggle compact />
+				<button
+					ref={triggerRef}
+					type="button"
+					onClick={onToggle}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? "Close menu" : "Open menu"}
+					className="relative grid size-control place-items-center rounded-(--radius-sm) text-ink transition-ui pressable hover:bg-canvas hover:text-accent-text active:bg-canvas"
+				>
+					{/* Hamburger and X cross-fade with a quarter turn (motion addendum C6). */}
+					<AnimatePresence mode="wait" initial={false}>
+						<motion.span
+							key={open ? "close" : "open"}
+							initial={{ rotate: -90, opacity: 0 }}
+							animate={{ rotate: 0, opacity: 1 }}
+							exit={{ rotate: 90, opacity: 0 }}
+							transition={{ duration: DUR.fast, ease: EASE_OUT }}
+							className="absolute inset-0 grid place-items-center"
+						>
+							{open ? <X size={20} /> : <Menu size={20} />}
+						</motion.span>
+					</AnimatePresence>
+				</button>
+			</div>
+		</Container>
 	);
 }

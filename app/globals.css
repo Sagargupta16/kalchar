@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "./animations.css";
+@import "./elevation.css";
+@import "./base.css";
 
 /*
  * Design System: Kalchar by Megha
@@ -278,10 +281,6 @@
   --z-index-overlay: 50;
 }
 
-/* 500-line ceiling splits: animations + reduced motion; --elev-* lists + elevate-*. */
-@import "./animations.css";
-@import "./elevation.css";
-
 /* ─── ROOT TOKENS (plain custom properties, no utilities) ─── */
 
 :root {
@@ -359,14 +358,23 @@
   --glass-blur: 16px;
   --glass-blur-strong: 24px;
   --glass-saturate: 1.5;
-  --glass-fill: 85%;
-  --glass-fill-strong: 90%;
+  --glass-fill: 100%;
+  --glass-fill-strong: 100%;
 
   /* DEPRECATED aliases: integration deletes all four. */
   --space-3: 0.75rem; /* admin-nav.tsx More-sheet offset; use --space-tight */
   --space-16: 4rem; /* reorder-bar.tsx / admin-nav.tsx bottom; use --tabbar-offset */
   --duration-micro: 150ms; /* DEPRECATED alias of --duration-fast; chrome renames card.tsx:27; integration deletes */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* DEPRECATED: bounce; never use; integration deletes. Springs: lib/motion.ts */
+}
+
+/* Keep unsupported browsers opaque; responsive material utilities inherit
+   these percentages without nesting declarations inside an at-rule. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-fill: 85%;
+    --glass-fill-strong: 90%;
+  }
 }
 
 @media (min-width: 40rem) {
@@ -427,11 +435,6 @@
   --plate-glow-alpha: 55%;
 }
 
-/* ─── BASE ─── */
-/* Moved to app/base.css (500-line ceiling split). Same @layer base rules,
-   imported at the block's original position; cascade unchanged. */
-@import "./base.css";
-
 /* ─── TYPOGRAPHY ROLE CLASSES ─── */
 /* Moved to app/animations.css (500-line ceiling split: it already owns the
    editorial typography block). Same @layer components; cascade unchanged. */
@@ -449,23 +452,18 @@
   transition-timing-function: var(--ease-out);
 }
 
-/* Press cue for every tappable: phones never hover. Sets NO transition-property
-   so it never clobbers transition-ui or transition-colors; pair with transition-ui
-   for an eased release. Scale is 0.97 everywhere (system-25, public-home-14,
-   chrome-24). Reduced motion keeps a non-motion cue (brightness), WCAG 2.3.3. */
-@utility pressable {
-  touch-action: manipulation;
-  &:active:not(:disabled) {
+@layer utilities {
+  /* Keep the control's existing transition properties during the press cue. */
+  .pressable {
+    touch-action: manipulation;
+  }
+  .pressable:active:not(:disabled) {
     transform: scale(0.97);
     transition-duration: var(--duration-instant);
   }
-}
 
-/* Server-safe list stagger: each child sets style="--i: n". Reuses reveal-up-in.
-   Capped at 5 steps so long lists do not wait (lib/motion.ts STAGGER mirrors
-   stepMs 50 and maxIndex 5). */
-@utility stagger {
-  & > * {
+  /* Each child supplies --i; long lists stop accumulating delay after five steps. */
+  .stagger > * {
     animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
     animation-delay: calc(min(var(--i, 0), 5) * var(--stagger-step));
   }

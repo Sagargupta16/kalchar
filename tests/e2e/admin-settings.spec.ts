@@ -135,11 +135,13 @@ test("profile: choosing a file shows a preview and a labelled upload button", as
 	// The label never becomes the file name and never relabels while pending.
 	await expect(upload).toHaveText("Upload photo");
 	await expect(page.locator('form[aria-busy="true"]')).toHaveCount(1);
-	// Tier 2f: while the server prepares variants, the progress ring around the
-	// portrait is the progressbar, named by the honest stage label.
-	await expect(
-		page.getByRole("progressbar", { name: "Preparing sizes for phones and desktops" }),
-	).toBeVisible();
+	// Native progress announces variant preparation; the decorative SVG draws the portrait ring.
+	const progress = page.getByRole("progressbar", {
+		name: "Preparing sizes for phones and desktops",
+	});
+	await expect(progress).toBeVisible();
+	await expect(progress).toHaveAttribute("max", "100");
+	await expect(progress).not.toHaveAttribute("value");
 	await outcome(page, "failure");
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(

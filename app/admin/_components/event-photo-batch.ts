@@ -14,6 +14,7 @@
  * strip removed or reordered is what gets staged.
  */
 import { type ActionResult, isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
 import {
 	type BatchProgress,
 	describeParallelBatch,
@@ -92,7 +93,7 @@ export async function createEventWithPhotos(
 	formData: FormData,
 	handlers: BatchHandlers,
 ): Promise<ActionResult<{ id: string }>> {
-	if (!String(formData.get("title") ?? "").trim()) {
+	if (!formString(formData, "title").trim()) {
 		return { ok: false, message: "Enter a title." };
 	}
 	const problem = validateEventPhotos(selectedPhotos(formData));

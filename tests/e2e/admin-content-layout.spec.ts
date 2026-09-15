@@ -9,7 +9,12 @@ test.use({ ...devices["Pixel 7"], viewport: { width: 390, height: 844 }, hasTouc
 
 test.describe("admin content layout @preview @mobile", () => {
 	const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3010";
-	test.skip(process.env.KALCHAR_ADMIN_PREVIEW !== "1", "needs pnpm dev:preview");
+	// The isolated content fixtures omit Tailwind, so only the Next fixture preview can check geometry.
+	// Event and testimonial behavior still runs in the regular admin component/usability suites.
+	test.skip(
+		process.env.KALCHAR_ADMIN_PREVIEW !== "1",
+		"Requires the styled fixture preview for mobile layout; isolated content flows remain covered",
+	);
 
 	const box = (locator: import("@playwright/test").Locator) =>
 		locator.evaluate((el) => {

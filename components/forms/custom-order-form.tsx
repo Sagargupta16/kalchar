@@ -2,7 +2,7 @@
 
 import { AlertCircle, ArrowRight, Check, ImageUp, Mail } from "lucide-react";
 import { motion } from "motion/react";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type SubmitEvent, useEffect, useMemo, useRef, useState } from "react";
 import { submitLead } from "@/app/admin/lead-actions";
 import { Field, inputClass, PresetRow } from "@/components/forms/custom-order-fields";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
@@ -18,7 +18,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { SPRING_ZOOM } from "@/lib/motion";
-import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
+import type { CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/whatsapp";
 
@@ -34,7 +34,7 @@ import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/
 interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
 	emailUrl: string;
-	availableStyles: readonly ArtStyle[];
+	availableStyles: readonly string[];
 	/** style -> representative artwork thumbnail for the visual picker. */
 	styleSamples: Record<string, StyleSample>;
 	sizes: readonly string[];
@@ -81,7 +81,7 @@ export function CustomOrderForm({
 		}));
 	}
 
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		const formData = new FormData(e.currentTarget);

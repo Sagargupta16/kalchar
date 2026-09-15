@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 import { AdminSwitch } from "./admin-switch";
+import { ArtworkCategoryField } from "./artwork-category-field";
 import { ArtworkEditPhoto } from "./artwork-edit-photo";
 import type { ArtworkEditorFields, FieldErrors } from "./artwork-edit-state";
 import { artworkStatusHelper, useArtworkStatusOptions } from "./artwork-quick-state";
@@ -62,9 +63,6 @@ export function ArtworkEditFields({
 	onRequestDelete,
 }: Readonly<ArtworkEditFieldsProps>) {
 	const id = useId();
-	const [detailsOpen, setDetailsOpen] = useState(
-		fields.year !== "" || fields.dimensions !== "" || fields.description !== "",
-	);
 	const styleOptions = categories.includes(art.style) ? categories : [art.style, ...categories];
 	// The editor can clear the price with the status, unlike a row shortcut.
 	const statusOptions = useArtworkStatusOptions(null);
@@ -137,34 +135,14 @@ export function ArtworkEditFields({
 							</p>
 						) : null}
 					</div>
-					<div className={cn(adminLabel, "sm:col-span-2")}>
-						<span>Category *</span>
-						<div
-							role="group"
-							aria-label="Category"
-							aria-invalid={errors.style ? true : undefined}
-							aria-describedby={errors.style ? `${id}-category-error` : undefined}
-							tabIndex={-1}
-							className="flex flex-wrap gap-2"
-						>
-							{styleOptions.map((name) => (
-								<button
-									key={name}
-									type="button"
-									aria-pressed={fields.style === name}
-									onClick={() => onChange({ style: name })}
-									className={cn(adminBtn, "rounded-full")}
-								>
-									{name}
-								</button>
-							))}
-						</div>
-						{errors.style ? (
-							<p id={`${id}-category-error`} className={adminError}>
-								{errors.style}
-							</p>
-						) : null}
-					</div>
+					<ArtworkCategoryField
+						id={id}
+						categories={styleOptions}
+						value={fields.style}
+						error={errors.style}
+						onChange={(style) => onChange({ style })}
+						className="sm:col-span-2"
+					/>
 					<div className={adminLabel}>
 						<label htmlFor={`${id}-medium`}>Medium *</label>
 						<input
@@ -216,67 +194,13 @@ export function ArtworkEditFields({
 					</div>
 				</fieldset>
 
-				<fieldset disabled={pending} className="mt-(--form-gap)">
-					<legend className="sr-only">More details</legend>
-					<details
-						open={detailsOpen}
-						onToggle={(e) => setDetailsOpen(e.currentTarget.open)}
-						className="group"
-					>
-						<summary className={cn(adminBtn, "w-full list-none justify-between")}>
-							More details (Year, Dimensions, Description)
-							<ChevronDown
-								size={ICON_MD}
-								aria-hidden="true"
-								className="transition-transform duration-(--duration-fast) ease-(--ease-out) group-open:rotate-180"
-							/>
-						</summary>
-						<div className="mt-3 grid gap-(--form-gap) sm:grid-cols-2">
-							<div className={adminLabel}>
-								<label htmlFor={`${id}-year`}>Year (optional)</label>
-								<input
-									id={`${id}-year`}
-									type="text"
-									inputMode="numeric"
-									pattern="[0-9]*"
-									maxLength={4}
-									placeholder="e.g. 2026"
-									value={fields.year}
-									onChange={(e) => onChange({ year: digitsOnly(e.target.value) })}
-									aria-invalid={errors.year ? true : undefined}
-									aria-describedby={errors.year ? `${id}-year-error` : undefined}
-									className={adminField}
-								/>
-								{errors.year ? (
-									<p id={`${id}-year-error`} className={adminError}>
-										{errors.year}
-									</p>
-								) : null}
-							</div>
-							<div className={adminLabel}>
-								<label htmlFor={`${id}-dimensions`}>Dimensions (optional)</label>
-								<input
-									id={`${id}-dimensions`}
-									value={fields.dimensions}
-									onChange={(e) => onChange({ dimensions: e.target.value })}
-									placeholder="e.g. 30 x 40 cm"
-									className={adminField}
-								/>
-								<p className={adminHelp}>Width x height, e.g. 30 x 40 cm</p>
-							</div>
-							<div className={cn(adminLabel, "sm:col-span-2")}>
-								<label htmlFor={`${id}-description`}>Description (optional)</label>
-								<textarea
-									id={`${id}-description`}
-									rows={3}
-									value={fields.description}
-									onChange={(e) => onChange({ description: e.target.value })}
-									className={adminField}
-								/>
-							</div>
-						</div>
-					</details>
-				</fieldset>
+				<ArtworkMoreDetails
+					id={id}
+					fields={fields}
+					errors={errors}
+					pending={pending}
+					onChange={onChange}
+				/>
 
 				<fieldset
 					disabled={pending}
@@ -296,5 +220,85 @@ export function ArtworkEditFields({
 				</fieldset>
 			</div>
 		</div>
+	);
+}
+
+type ArtworkMoreDetailsProps = Pick<
+	ArtworkEditFieldsProps,
+	"fields" | "errors" | "pending" | "onChange"
+> & { id: string };
+
+function ArtworkMoreDetails({
+	id,
+	fields,
+	errors,
+	pending,
+	onChange,
+}: Readonly<ArtworkMoreDetailsProps>) {
+	const [detailsOpen, setDetailsOpen] = useState(
+		fields.year !== "" || fields.dimensions !== "" || fields.description !== "",
+	);
+	return (
+		<fieldset disabled={pending} className="mt-(--form-gap)">
+			<legend className="sr-only">More details</legend>
+			<details
+				open={detailsOpen}
+				onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+				className="group"
+			>
+				<summary className={cn(adminBtn, "w-full list-none justify-between")}>
+					More details (Year, Dimensions, Description)
+					<ChevronDown
+						size={ICON_MD}
+						aria-hidden="true"
+						className="transition-transform duration-(--duration-fast) ease-(--ease-out) group-open:rotate-180"
+					/>
+				</summary>
+				<div className="mt-3 grid gap-(--form-gap) sm:grid-cols-2">
+					<div className={adminLabel}>
+						<label htmlFor={`${id}-year`}>Year (optional)</label>
+						<input
+							id={`${id}-year`}
+							type="text"
+							inputMode="numeric"
+							pattern="[0-9]*"
+							maxLength={4}
+							placeholder="e.g. 2026"
+							value={fields.year}
+							onChange={(event) => onChange({ year: digitsOnly(event.target.value) })}
+							aria-invalid={errors.year ? true : undefined}
+							aria-describedby={errors.year ? `${id}-year-error` : undefined}
+							className={adminField}
+						/>
+						{errors.year ? (
+							<p id={`${id}-year-error`} className={adminError}>
+								{errors.year}
+							</p>
+						) : null}
+					</div>
+					<div className={adminLabel}>
+						<label htmlFor={`${id}-dimensions`}>Dimensions (optional)</label>
+						<input
+							id={`${id}-dimensions`}
+							value={fields.dimensions}
+							onChange={(event) => onChange({ dimensions: event.target.value })}
+							placeholder="e.g. 30 x 40 cm"
+							className={adminField}
+						/>
+						<p className={adminHelp}>Width x height, e.g. 30 x 40 cm</p>
+					</div>
+					<div className={cn(adminLabel, "sm:col-span-2")}>
+						<label htmlFor={`${id}-description`}>Description (optional)</label>
+						<textarea
+							id={`${id}-description`}
+							rows={3}
+							value={fields.description}
+							onChange={(event) => onChange({ description: event.target.value })}
+							className={adminField}
+						/>
+					</div>
+				</div>
+			</details>
+		</fieldset>
 	);
 }

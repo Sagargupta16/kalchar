@@ -118,7 +118,8 @@ test("publishing is indeterminate and locks photo, details, and Back until compl
 	await expect(page.getByRole("button", { name: "Back", exact: true })).toBeDisabled();
 	await expect(page.getByRole("button", { name: "Change photo" })).toBeDisabled();
 	await expect(page.getByLabel("Title *", { exact: true })).toBeDisabled();
-	await expect(page.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
+	await expect(page.getByRole("progressbar")).toHaveCount(1);
+	await expect(page.getByRole("progressbar")).not.toHaveAttribute("value");
 	await outcome(page, "success");
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(page.getByRole("heading", { name: "Your piece is live" })).toBeVisible();
@@ -175,9 +176,9 @@ test("photo upload progress follows reported bytes while details remain editable
 	await expect(publish(page)).toBeDisabled();
 	await expect(publish(page)).toHaveAccessibleDescription("Your photo is still uploading.");
 	await page.evaluate(() => window.adminTest.stageRequests[0]!.progress(0.42));
-	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "42");
+	await expect(page.getByRole("progressbar")).toHaveAttribute("value", "42");
 	await page.evaluate(() => window.adminTest.stageRequests[0]!.complete("staging/lotus"));
-	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+	await expect(page.getByRole("progressbar")).toHaveAttribute("value", "100");
 	await expect(publish(page)).toBeEnabled();
 });
 
@@ -208,7 +209,7 @@ for (const lateResult of ["complete", "fail"] as const) {
 			else window.adminTest.stageRequests[0]!.fail();
 			window.adminTest.stageRequests[0]!.progress(0.2);
 		}, lateResult);
-		await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+		await expect(page.getByRole("progressbar")).toHaveAttribute("value", "100");
 		await expect(page.getByRole("alert")).toHaveCount(0);
 		await outcome(page, "success");
 		await publish(page).click();

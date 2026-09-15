@@ -19,6 +19,14 @@ async function expectTouchTarget(locator: Locator) {
 	expect(box?.height).toBeGreaterThanOrEqual(44);
 }
 
+async function tapMenuTrigger(page: Page, trigger: Locator) {
+	// A viewport tap avoids locator scrolling that would move the form before opening the menu.
+	await expect(trigger).toBeInViewport();
+	const box = await trigger.boundingBox();
+	if (!box) throw new Error("The visible menu trigger has no bounds");
+	await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 async function useTheme(page: Page, theme: "light" | "dark") {
 	await page.addInitScript((selected) => localStorage.setItem("theme", selected), theme);
 }
@@ -35,9 +43,9 @@ async function expectModalFocus(page: Page, trigger: Locator, lastControl: Locat
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(true);
-	await settleAnimations(page, "dialog");
+	await settleAnimations(page, "dialog[open]");
 	const accessibility = await new AxeBuilder({ page })
-		.include("dialog")
+		.include("dialog[open]")
 		.withTags(AXE_TAGS)
 		.analyze();
 	expect(accessibility.violations).toEqual([]);
@@ -55,6 +63,54 @@ async function expectModalFocus(page: Page, trigger: Locator, lastControl: Locat
 	await expect(dialog).toHaveCount(0);
 	await expect(trigger).toBeFocused();
 }
+
+test("@mobile navigation retains a brief and scroll across closing and route changes", async ({
+	page,
+}) => {
+	await useTheme(page, "light");
+	await page.goto("/custom-orders/");
+	const brief = page.getByLabel("What would you like painted?");
+	await brief.fill("A lotus pond for our hallway");
+	await page.getByLabel("Your name").fill("A visitor");
+	await page.getByLabel("Email or WhatsApp number").fill("visitor@example.invalid");
+	const originalScroll = await page.evaluate(() => scrollY);
+	expect(originalScroll).toBeGreaterThan(0);
+	const trigger = page.getByRole("button", { name: "Open menu", exact: true });
+	const menu = page.getByRole("dialog", { name: "Site navigation" });
+	const destinations = menu.getByRole("navigation", { name: "Primary mobile" });
+
+	await tapMenuTrigger(page, trigger);
+	await expect(destinations).toBeVisible();
+	expect(await menu.evaluate((element) => element.matches(":modal"))).toBe(true);
+	await menu.getByRole("button", { name: "Switch to dark theme" }).click();
+	await expect(page.locator("html")).toHaveClass(/dark/);
+	await page.keyboard.press("Escape");
+	await expect(menu).toHaveCount(0);
+	await expect(trigger).toBeFocused();
+	await expect.poll(() => page.evaluate(() => scrollY)).toBe(originalScroll);
+	await expect(brief).toHaveValue("A lotus pond for our hallway");
+
+	await tapMenuTrigger(page, trigger);
+	await destinations.getByRole("link", { name: "Custom Orders", exact: true }).click();
+	await expect(menu).toHaveCount(0);
+	await expect(trigger).toBeFocused();
+	await expect.poll(() => page.evaluate(() => scrollY)).toBe(originalScroll);
+	await expect(brief).toHaveValue("A lotus pond for our hallway");
+
+	await tapMenuTrigger(page, trigger);
+	await destinations.getByRole("link", { name: "Contact", exact: true }).click();
+	await expect(page).toHaveURL(/\/contact\/$/);
+	await expect(menu).toHaveCount(0);
+	await expect(page.locator("body")).not.toHaveCSS("position", "fixed");
+	await expect(page.locator("#main")).not.toHaveAttribute("inert", "");
+	await expect(page.locator("main h1")).toBeVisible();
+	await page.goBack();
+	await expect(page).toHaveURL(/\/custom-orders\/$/);
+	await expect(brief).toHaveValue("A lotus pond for our hallway");
+	await expect(page.getByLabel("Your name")).toHaveValue("A visitor");
+	await expect(page.getByLabel("Email or WhatsApp number")).toHaveValue("visitor@example.invalid");
+	await expect(page.locator("html")).toHaveClass(/dark/);
+});
 
 for (const route of ["/events/", "/workshops/", "/contact/"] as const) {
 	test(`${route} ends on one closing CTA with a 44px action`, async ({ page }) => {

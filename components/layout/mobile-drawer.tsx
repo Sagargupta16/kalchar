@@ -20,6 +20,7 @@ interface MobileDrawerProps {
 	isActive: (href: string) => boolean;
 	whatsappHref: string;
 	onClose: () => void;
+	onExitComplete: () => void;
 }
 
 /**
@@ -41,10 +42,8 @@ interface MobileDrawerProps {
  * opacity, never by animating the blur radius) and exits at DUR.fast EASE_IN
  * (motion addendum C6).
  *
- * Positioning note: the host header's backdrop-filter makes it the containing
- * block for positioned descendants, so absolute + top-0 here means "from the
- * header's top edge", which equals the viewport top while the header is stuck
- * and the body scroll is locked.
+ * Positioning note: the native dialog covers the viewport, so absolute +
+ * top-0 starts at the same edge as the header while body scroll is locked.
  */
 export function MobileDrawer({
 	open,
@@ -52,9 +51,10 @@ export function MobileDrawer({
 	isActive,
 	whatsappHref,
 	onClose,
+	onExitComplete,
 }: Readonly<MobileDrawerProps>) {
 	return (
-		<AnimatePresence>
+		<AnimatePresence onExitComplete={onExitComplete}>
 			{open ? (
 				<>
 					<motion.div

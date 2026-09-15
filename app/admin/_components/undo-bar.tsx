@@ -11,7 +11,7 @@ import { BottomBar } from "./reorder-bar";
 import { usePendingVisible } from "./use-admin-action";
 
 /** @deprecated alias of UNDO_HOLD_MS in lib/motion.ts (single source; D26 superseded by the visual pass, D-A3). */
-export const UNDO_DURATION_MS = UNDO_HOLD_MS;
+export { UNDO_HOLD_MS as UNDO_DURATION_MS } from "@/lib/motion";
 
 const GENERIC_FAILURE = "Something went wrong. Refresh and try again.";
 

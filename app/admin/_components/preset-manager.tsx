@@ -135,6 +135,17 @@ function PresetGroup({
 		);
 	};
 
+	const handleRename = (preset: OrderPreset, label: string) => {
+		setErrSlot({ id: preset.id });
+		return run(
+			() => updateOrderPreset(preset.id, label),
+			() =>
+				setBaseline((previous) =>
+					previous.map((item) => (item.id === preset.id ? { ...item, label } : item)),
+				),
+		);
+	};
+
 	const handleDelete = async (preset: OrderPreset) => {
 		const index = items.findIndex((item) => item.id === preset.id);
 		const ok = await confirm({
@@ -159,6 +170,10 @@ function PresetGroup({
 	};
 
 	const createError = fieldError ?? (errSlot === "create" ? err : null);
+	// Keep the saved notice without showing inactive order controls.
+	const savedOrderNotice = saved ? (
+		<output className="text-sm text-accent-text">Order saved</output>
+	) : null;
 
 	return (
 		<AdminPanel
@@ -179,11 +194,9 @@ function PresetGroup({
 							setSaved(false);
 						}}
 					/>
-				) : saved ? (
-					// The shell's InlineReorderControls keeps its buttons while `saved`, which
-					// would leave a dead Save order on screen; only its output line renders here.
-					<output className="text-sm text-accent-text">Order saved</output>
-				) : null
+				) : (
+					savedOrderNotice
+				)
 			}
 		>
 			<ul ref={listRef} className="space-y-tight">
@@ -212,16 +225,7 @@ function PresetGroup({
 									onMove={(to) => move(i, to)}
 								/>
 							}
-							onSave={(label) => {
-								setErrSlot({ id: p.id });
-								return run(
-									() => updateOrderPreset(p.id, label),
-									() =>
-										setBaseline((prev) =>
-											prev.map((item) => (item.id === p.id ? { ...item, label } : item)),
-										),
-								);
-							}}
+							onSave={(label) => handleRename(p, label)}
 							onDelete={() => handleDelete(p)}
 						/>
 					</li>

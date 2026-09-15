@@ -1,6 +1,5 @@
-/* Elevation lists and the elevate-* hover utility. Split out of
-   app/globals.css (500-line ceiling); globals.css imports this file right
-   after its @theme block, whose --shadow-* tokens are bare var(--elev-*)
+/* Elevation lists and hover utilities. Imported by
+   app/globals.css, whose --shadow-* tokens are bare var(--elev-*)
    references into these lists. Tailwind inlines @theme shadow values into
    each utility, so the lists have to live on :root / :root.dark as plain
    custom properties for the dark remap to reach every shadow-e1..e5 call
@@ -63,24 +62,30 @@
    Pair with hover:-translate-y-0.5 and transition-ui (elevate-e2 on cards and
    plates, elevate-e3 where e3 is the hover rung). Needs isolation so
    z-index: -1 stays inside the card instead of falling behind <main>. */
-@utility elevate-* {
-  position: relative;
-  isolation: isolate;
-  &::after {
+@layer utilities {
+  .elevate-e2 {
+    --hover-shadow: var(--elev-e2);
+  }
+  .elevate-e3 {
+    --hover-shadow: var(--elev-e3);
+  }
+  :is(.elevate-e2, .elevate-e3) {
+    position: relative;
+    isolation: isolate;
+  }
+  :is(.elevate-e2, .elevate-e3)::after {
     content: "";
     position: absolute;
     inset: 0;
     z-index: -1;
     border-radius: inherit;
-    box-shadow: --value(--shadow- *);
+    box-shadow: var(--hover-shadow);
     opacity: 0;
     transition: opacity var(--duration-fast) var(--ease-out);
     pointer-events: none;
   }
-  &:hover::after,
-  &:focus-visible::after,
-  &:where(.group:hover *)::after,
-  &:where(.group:focus-visible *)::after {
+  :is(.elevate-e2, .elevate-e3):is(:hover, :focus-visible)::after,
+  .group:is(:hover, :focus-visible) :is(.elevate-e2, .elevate-e3)::after {
     opacity: 1;
   }
 }
@@ -96,31 +101,25 @@
    --glass-fill / -strong); per-surface tint via --glass-tint (headers may set
    [--glass-tint:var(--color-bg)]). Dark mapping flows through the tokens
    themselves (--color-surface* and --elev-* both remap in :root.dark). Where
-   backdrop-filter is unsupported the surface stays fully opaque and readable;
-   the @supports gate only ever removes ink. Blur is static: fade opacity if
+   backdrop-filter is unsupported the fill tokens stay at 100%, keeping the
+   surface opaque and readable. Blur is static: fade opacity if
    needed, never the radius (scripts/check-ui-tokens.mjs). */
 @utility material-glass {
-  background-color: var(--glass-tint, var(--color-surface));
+  background-color: color-mix(in oklch, var(--glass-tint, var(--color-surface)) var(--glass-fill), transparent);
   box-shadow: var(--elev-hairline), var(--elev-e2);
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    background-color: color-mix(in oklch, var(--glass-tint, var(--color-surface)) var(--glass-fill), transparent);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  }
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* Stronger material for full sheets and drawers over artwork-heavy pages:
    deeper blur, higher fill, e4 elevation, raised-surface tint. */
 @utility material-glass-strong {
-  background-color: var(--glass-tint, var(--color-surface-raised));
+  background-color: color-mix(
+    in oklch,
+    var(--glass-tint, var(--color-surface-raised)) var(--glass-fill-strong),
+    transparent
+  );
   box-shadow: var(--elev-hairline), var(--elev-e4);
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    background-color: color-mix(
-      in oklch,
-      var(--glass-tint, var(--color-surface-raised)) var(--glass-fill-strong),
-      transparent
-    );
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
-    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
-  }
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
 }

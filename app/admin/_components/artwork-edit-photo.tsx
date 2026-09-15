@@ -51,7 +51,7 @@ export function ArtworkEditPhoto({
 					className="aspect-post max-h-[28svh] w-full object-contain lg:max-h-[50svh]"
 				/>
 				<label className={cn(PHOTO_CHIP, "absolute right-2 bottom-2", FOCUS_WITHIN)}>
-					Change photo
+					<span>Change photo</span>
 					<input
 						type="file"
 						name="image"

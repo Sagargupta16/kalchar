@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
 import {
 	type Dispatch,
 	type SetStateAction,
@@ -9,20 +8,16 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
-import { artworkStatusLabel } from "@/lib/artwork-status";
-import { DUR, EASE_OUT, SPRING_LAYOUT } from "@/lib/motion";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import {
 	deleteArtwork,
 	reorderArtworks,
 	setArtworkFeatured,
 	setArtworkStatus,
 } from "../artwork-actions";
-import { useAddSheet } from "./add-sheet";
 import { AdminNotice } from "./admin-notice";
+import { ArtworkCollection } from "./artwork-collection";
 import { ArtworkEditModal, type ArtworkPatch, DELETE_PIECE_BODY } from "./artwork-edit-modal";
 import {
 	type ArtworkListItem,
@@ -39,10 +34,7 @@ import {
 	patchList,
 	STATUS_MESSAGE,
 } from "./artwork-list-state";
-import { ArtworkRow } from "./artwork-row";
-import { ArtworkTile } from "./artwork-tile";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtn, adminBtnPrimary } from "./controls";
 import { PiecesFilter as PiecesFilterBar } from "./pieces-filter";
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
@@ -52,19 +44,6 @@ import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 export type { ArtworkListItem, PiecesFilter } from "./artwork-list-state";
-
-/** Crossfade on a view switch: opacity only, fast (Tier 1a motion). */
-const VIEW_FADE = "starting:opacity-0 transition-opacity duration-(--duration-fast)";
-
-/** First-run primary: the add sheet is the single create entry (D-A5). */
-function AddPieceButton() {
-	const { openPiece } = useAddSheet();
-	return (
-		<button type="button" onClick={openPiece} className={adminBtnPrimary}>
-			Add a piece
-		</button>
-	);
-}
 
 interface ArtworkGridProps {
 	items: ArtworkListItem[];
@@ -308,10 +287,6 @@ export function ArtworkGrid({
 			? err
 			: null;
 	const editingItem = editing ? optimistic.find((item) => item.art.slug === editing) : undefined;
-	const stateLabel =
-		filter === "featured" || filter === "all"
-			? "featured"
-			: artworkStatusLabel(filter).toLowerCase();
 
 	return (
 		<>
@@ -339,109 +314,57 @@ export function ArtworkGrid({
 					{notice}
 				</AdminNotice>
 			) : null}
-			{optimistic.length === 0 ? (
-				<EmptyState
-					variant="default"
-					voice="tool"
-					title="No pieces yet"
-					body="Add your first painting to open the gallery."
-					action={<AddPieceButton />}
-				/>
-			) : visible.length === 0 ? (
-				<EmptyState
-					variant="compact"
-					voice="tool"
-					title={query.trim() ? `No pieces match "${query.trim()}"` : `No ${stateLabel} pieces`}
-					action={
-						<button type="button" onClick={resetFilter} className={adminBtn}>
-							Show all pieces
-						</button>
-					}
-				/>
-			) : view === "grid" ? (
-				<ul
-					key="grid"
-					className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4", VIEW_FADE)}
-				>
-					<AnimatePresence initial={false} mode="popLayout">
-						{visible.map(({ item, index }) => (
-							<motion.li
-								key={item.art.slug}
-								id={`piece-${item.art.slug}`}
-								layout="position"
-								initial={{ opacity: 0, y: 12 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, scale: 0.96 }}
-								transition={{
-									layout: SPRING_LAYOUT,
-									default: { duration: DUR.fast, ease: EASE_OUT },
-								}}
-							>
-								<ArtworkTile
-									art={item.art}
-									thumb={item.thumb}
-									index={index}
-									pending={pending}
-									highlighted={highlight === item.art.slug}
-									onEdit={() => setEditing(item.art.slug)}
-								/>
-							</motion.li>
-						))}
-					</AnimatePresence>
-				</ul>
-			) : (
-				<ul
-					key="list"
-					className={cn("space-y-tight", VIEW_FADE, dragging !== null && "select-none")}
-				>
-					{visible.map(({ item, index }) => (
-						<ArtworkRow
-							key={item.art.slug}
-							art={item.art}
-							thumb={item.thumb}
+			<ArtworkCollection
+				total={optimistic.length}
+				visible={visible}
+				query={query}
+				filter={filter}
+				view={view}
+				pending={pending}
+				highlight={highlight}
+				dragging={dragging}
+				onEdit={setEditing}
+				onResetFilter={resetFilter}
+				getRowProps={(item, index) => ({
+					art: item.art,
+					thumb: item.thumb,
+					index,
+					pending,
+					reorderHandle: (
+						<ReorderHandle
+							label={item.art.title}
 							index={index}
-							pending={pending}
-							reorderHandle={
-								<ReorderHandle
-									label={item.art.title}
-									index={index}
-									count={optimistic.length}
-									disabled={pending || filtered}
-									onMove={(to) => move(index, to)}
-								/>
-							}
-							dragProps={dragProps(index)}
-							dragging={dragging === index}
-							over={over === index}
-							highlighted={highlight === item.art.slug}
-							onEdit={() => setEditing(item.art.slug)}
-							onDelete={() => handleDelete(item)}
-							onSetStatus={(status) => onSetStatus(item, status)}
-							onSetFeatured={(featured) => onSetFeatured(item, featured)}
-							error={rowError(item.art.slug)}
+							count={optimistic.length}
+							disabled={pending || filtered}
+							onMove={(to) => move(index, to)}
 						/>
-					))}
-				</ul>
-			)}
+					),
+					dragProps: dragProps(index),
+					dragging: dragging === index,
+					over: over === index,
+					highlighted: highlight === item.art.slug,
+					onEdit: () => setEditing(item.art.slug),
+					onDelete: () => handleDelete(item),
+					onSetStatus: (status) => onSetStatus(item, status),
+					onSetFeatured: (featured) => onSetFeatured(item, featured),
+					error: rowError(item.art.slug),
+				})}
+			/>
 
-			{hasChanges || saved ? (
-				<ReorderBar
-					label="Gallery order changed"
-					pending={pending}
-					saved={saved}
-					error={errorTarget?.kind === "list" ? err : null}
-					onSave={handleSave}
-					onReset={handleReset}
-				/>
-			) : undo ? (
-				<UndoBar
-					message={undo.message}
-					pending={pending || undoPending}
-					error={undoError ? (err ?? undoError) : null}
-					onAction={undoNow}
-					onDismiss={dismissUndo}
-				/>
-			) : null}
+			<ArtworkGridFooter
+				hasChanges={hasChanges}
+				saved={saved}
+				pending={pending}
+				err={err}
+				errorTarget={errorTarget}
+				onSave={handleSave}
+				onReset={handleReset}
+				undo={undo}
+				undoPending={undoPending}
+				undoError={undoError}
+				undoNow={undoNow}
+				dismissUndo={dismissUndo}
+			/>
 
 			{editingItem ? (
 				<ArtworkEditModal
@@ -457,5 +380,56 @@ export function ArtworkGrid({
 				/>
 			) : null}
 		</>
+	);
+}
+
+type ArtworkGridFooterProps = Pick<
+	ReturnType<typeof useUndo>,
+	"undo" | "undoPending" | "undoError" | "undoNow" | "dismissUndo"
+> & {
+	hasChanges: boolean;
+	saved: boolean;
+	pending: boolean;
+	err: string | null;
+	errorTarget: ErrorTarget | null;
+	onSave: () => void;
+	onReset: () => void;
+};
+
+function ArtworkGridFooter({
+	hasChanges,
+	saved,
+	pending,
+	err,
+	errorTarget,
+	onSave,
+	onReset,
+	undo,
+	undoPending,
+	undoError,
+	undoNow,
+	dismissUndo,
+}: Readonly<ArtworkGridFooterProps>) {
+	if (hasChanges || saved) {
+		return (
+			<ReorderBar
+				label="Gallery order changed"
+				pending={pending}
+				saved={saved}
+				error={errorTarget?.kind === "list" ? err : null}
+				onSave={onSave}
+				onReset={onReset}
+			/>
+		);
+	}
+	if (!undo) return null;
+	return (
+		<UndoBar
+			message={undo.message}
+			pending={pending || undoPending}
+			error={undoError ? (err ?? undoError) : null}
+			onAction={undoNow}
+			onDismiss={dismissUndo}
+		/>
 	);
 }
