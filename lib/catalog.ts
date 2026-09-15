@@ -72,3 +72,39 @@ export function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: stri
 		note: "Listed in the archive. Reach out if you'd like a similar piece commissioned.",
 	};
 }
+
+/** Parse a 3- or 6-digit hex colour (with or without #) to [r, g, b] 0-255. */
+function parseHexRgb(swatch: string): [number, number, number] | null {
+	const hex = swatch.trim().replace(/^#/, "");
+	if (!/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(hex)) return null;
+	const full = hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex;
+	return [
+		Number.parseInt(full.slice(0, 2), 16),
+		Number.parseInt(full.slice(2, 4), 16),
+		Number.parseInt(full.slice(4, 6), 16),
+	];
+}
+
+/**
+ * The palette swatch with the highest chroma, for the lightbox plate glow
+ * (visual-direction 2.4). Sorting by chroma -- max minus min RGB channel, the
+ * HSL chroma -- rather than taking index 0 keeps a pastel or near-white lead
+ * swatch from washing the glow grey. Invalid entries are skipped; an empty,
+ * missing or all-invalid palette returns undefined so the CSS fallback
+ * (--plate-glow: the shadow ink) takes over.
+ */
+export function mostSaturatedSwatch(palette: readonly string[] | undefined): string | undefined {
+	if (!palette || palette.length === 0) return undefined;
+	let best: string | undefined;
+	let bestChroma = -1;
+	for (const swatch of palette) {
+		const rgb = parseHexRgb(swatch);
+		if (!rgb) continue;
+		const chroma = Math.max(...rgb) - Math.min(...rgb);
+		if (chroma > bestChroma) {
+			bestChroma = chroma;
+			best = swatch;
+		}
+	}
+	return best;
+}

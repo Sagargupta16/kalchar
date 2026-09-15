@@ -3,13 +3,22 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { Artwork } from "@/lib/types";
 
+/** Viewport-percentage point of the tap that opened the lightbox; the panel
+ *  grows from here via transform-origin (motion addendum G4). */
+export interface LightboxOrigin {
+	xPct: number;
+	yPct: number;
+}
+
 interface LightboxContextType {
 	isOpen: boolean;
 	activeArtwork: Artwork | null;
 	artworksList: readonly Artwork[];
 	/** WhatsApp phone (E.164, no `+`) for the enquiry CTA. Supplied server-side. */
 	whatsappPhone: string;
-	openLightbox: (artwork: Artwork, list?: readonly Artwork[]) => void;
+	/** Where the opening tap landed, or null (keyboard, deep link): centre origin. */
+	origin: LightboxOrigin | null;
+	openLightbox: (artwork: Artwork, list?: readonly Artwork[], origin?: LightboxOrigin) => void;
 	closeLightbox: () => void;
 	nextArtwork: () => void;
 	prevArtwork: () => void;
@@ -31,6 +40,7 @@ export function LightboxProvider({
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeArtwork, setActiveArtwork] = useState<Artwork | null>(null);
 	const [artworksList, setArtworksList] = useState<readonly Artwork[]>([]);
+	const [origin, setOrigin] = useState<LightboxOrigin | null>(null);
 
 	// Mirror the latest active piece + list in a ref so the navigation callbacks
 	// can read current state without listing it as a dependency. That keeps the
@@ -42,24 +52,38 @@ export function LightboxProvider({
 	activeRef.current = activeArtwork;
 	listRef.current = artworksList;
 
-	const openLightbox = useCallback((artwork: Artwork, list: readonly Artwork[] = []) => {
-		setActiveArtwork(artwork);
-		setArtworksList(list.length > 0 ? list : [artwork]);
-		setIsOpen(true);
-	}, []);
+	const openLightbox = useCallback(
+		(artwork: Artwork, list: readonly Artwork[] = [], tapOrigin?: LightboxOrigin) => {
+			setActiveArtwork(artwork);
+			setArtworksList(list.length > 0 ? list : [artwork]);
+			setOrigin(tapOrigin ?? null);
+			setIsOpen(true);
+		},
+		[],
+	);
 
 	const closeLightbox = useCallback(() => {
 		setIsOpen(false);
 		setActiveArtwork(null);
 	}, []);
 
+	// Paging loops only with 3+ items (visual-direction 2.4); with 2 the ends clamp.
 	const step = useCallback((dir: 1 | -1) => {
 		const list = listRef.current;
 		const current = activeRef.current;
 		if (list.length <= 1 || !current) return;
 		const i = list.findIndex((a) => a.slug === current.slug);
 		if (i === -1) return;
-		const target = list[(i + dir + list.length) % list.length];
+		const raw = i + dir;
+		let targetIndex: number;
+		if (list.length >= 3) {
+			targetIndex = (raw + list.length) % list.length;
+		} else if (raw < 0 || raw >= list.length) {
+			return;
+		} else {
+			targetIndex = raw;
+		}
+		const target = list[targetIndex];
 		if (target) setActiveArtwork(target);
 	}, []);
 
@@ -72,6 +96,7 @@ export function LightboxProvider({
 			activeArtwork,
 			artworksList,
 			whatsappPhone,
+			origin,
 			openLightbox,
 			closeLightbox,
 			nextArtwork,
@@ -82,6 +107,7 @@ export function LightboxProvider({
 			activeArtwork,
 			artworksList,
 			whatsappPhone,
+			origin,
 			openLightbox,
 			closeLightbox,
 			nextArtwork,

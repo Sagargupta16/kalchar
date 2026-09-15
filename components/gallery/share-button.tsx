@@ -2,6 +2,7 @@
 
 import { Check, Share2 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const COPIED_CONFIRMATION_MS = 2000;
@@ -15,13 +16,14 @@ const COPIED_CONFIRMATION_MS = 2000;
  *
  * Progressive: renders as a normal button; the enhanced paths are feature-
  * detected at click time. The confirmation is a plain text swap (no motion), so
- * it's reduced-motion-safe by construction.
+ * it leaves the button position unchanged.
  */
 export function ShareButton({
 	title,
 	url,
 	className,
-}: Readonly<{ title: string; url: string; className?: string }>) {
+	iconOnly = false,
+}: Readonly<{ title: string; url: string; className?: string; iconOnly?: boolean }>) {
 	const [copied, setCopied] = useState(false);
 
 	const onShare = useCallback(async () => {
@@ -47,18 +49,26 @@ export function ShareButton({
 		}
 	}, [title, url]);
 
+	const label = copied ? "Link copied" : "Share";
+
 	return (
 		<button
 			type="button"
 			onClick={onShare}
 			aria-label={copied ? "Link copied" : `Share ${title}`}
 			className={cn(
-				"inline-flex min-h-11 items-center gap-2 rounded-(--radius-md) border border-line px-3 py-2 text-xs uppercase tracking-meta text-muted transition-colors duration-(--duration-fast) ease-(--ease-out) hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+				iconOnly
+					? "grid size-control shrink-0 place-items-center rounded-full border border-line/40 bg-surface-raised/80 text-ink transition-ui pressable hover:text-accent-text"
+					: buttonVariants({ variant: "ghost" }),
 				className,
 			)}
 		>
-			{copied ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}
-			{copied ? "Link copied" : "Share"}
+			{copied ? (
+				<Check size={iconOnly ? 18 : 14} aria-hidden="true" />
+			) : (
+				<Share2 size={iconOnly ? 18 : 14} aria-hidden="true" />
+			)}
+			{iconOnly ? null : label}
 		</button>
 	);
 }

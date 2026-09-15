@@ -1,0 +1,31 @@
+.page {
+	overflow-wrap: anywhere;
+}
+
+.question {
+	min-width: 0;
+}
+
+/* Native details owns the open/closed layout. Only the newly visible answer
+ * moves, so expanding a long answer does not recalculate layout every frame.
+ * The item reveal uses the same travel and tempo as other UI responses. */
+.answer {
+	display: grid;
+	grid-template-rows: 1fr;
+	white-space: pre-line;
+}
+
+details[open] .answer {
+	animation: faq-answer-in var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes faq-answer-in {
+	from {
+		opacity: 0;
+		transform: translateY(var(--reveal-travel-item));
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}

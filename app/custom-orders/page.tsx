@@ -1,11 +1,10 @@
-import { Brush, Clock, MessageCircle } from "lucide-react";
+import { ArrowDown, Brush, Clock, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
-import { Card } from "@/components/ui/card";
-import { Container } from "@/components/ui/container";
-import { IconCircle } from "@/components/ui/icon-circle";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import {
@@ -15,7 +14,9 @@ import {
 	getSite,
 	getStyleSamples,
 } from "@/lib/data";
+import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
+import { cn, toRoman } from "@/lib/utils";
 import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 export const metadata = createPageMetadata({
@@ -59,117 +60,160 @@ export default async function CustomOrdersPage() {
 
 	return (
 		<main>
-			<Section accent="vermillion">
-				<Container className="py-(--section-py)">
-					<PageHeader
-						eyebrow={customOrders.eyebrow ?? "Custom orders"}
-						title={customOrders.title ?? "Order a custom painting"}
-						lead={customOrders.lead}
-					/>
-
-					<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">
-						{/* How it works -- sticky on desktop so it stays beside the
-						    taller form as the visitor scrolls/fills it in. */}
-						<aside className="min-w-0 md:col-span-5">
-							<div className="md:sticky md:top-24">
-								<Reveal>
-									<h2 className="t-eyebrow">How it works</h2>
-								</Reveal>
-								<ol className="mt-6 space-y-5">
-									<Reveal as="li" delayMs={60}>
-										<StepItem
-											icon={<Brush size={16} />}
-											title="Send a brief"
-											body="Style, size, occasion. References welcome on WhatsApp once we connect."
-										/>
-									</Reveal>
-									<Reveal as="li" delayMs={120}>
-										<StepItem
-											icon={<MessageCircle size={16} />}
-											title="We talk it through"
-											body="We get back on WhatsApp, ask for missing details, and share a quote + timeline."
-										/>
-									</Reveal>
-									<Reveal as="li" delayMs={180}>
-										<StepItem
-											icon={<Clock size={16} />}
-											title="Painted, approved, shipped"
-											body="Progress shots along the way. Ships from India after your sign-off."
-										/>
-									</Reveal>
-								</ol>
-								{/* Reassurance -- no commitment until you've talked. */}
-								<Reveal delayMs={240}>
-									<p className="mt-8 border-t border-line pt-6 text-sm text-muted">
-										No payment until we&rsquo;ve agreed on the piece, a price, and a timeline.
-										Sending a brief is just the start of a conversation.
-									</p>
-								</Reveal>
-							</div>
-						</aside>
-
-						{/* Form */}
-						<section aria-label="Custom order form" className="min-w-0 md:col-span-7">
-							<h2 className="sr-only">Order details</h2>
-							<Reveal delayMs={120}>
-								<Card padding="lg">
-									<CustomOrderForm
-										phoneE164NoPlus={phone}
-										emailUrl={contact.email.url}
-										availableStyles={styles}
-										styleSamples={styleSamples}
-										sizes={presets.sizes}
-										budgets={presets.budgets}
-										timelines={presets.timelines}
-										submitLabel={customOrders.submitLabel ?? "Send via WhatsApp"}
-										fallbackEmailLabel={customOrders.fallbackEmailLabel ?? "Or email instead"}
-									/>
-								</Card>
-							</Reveal>
-						</section>
+			<Section accent="vermillion" background="wash" padded containerClassName="py-(--space-block)">
+				<PageHeader
+					eyebrow={customOrders.eyebrow ?? "Custom orders"}
+					title={customOrders.title ?? "Order a custom painting"}
+					lead={customOrders.lead}
+				>
+					<div className="mt-5 flex flex-wrap items-center gap-3">
+						<a href="#commission-brief" className={buttonVariants({ variant: "primary" })}>
+							Start your brief
+							<ArrowDown size={16} aria-hidden="true" />
+						</a>
+						<a
+							href="#how-it-works"
+							className={cn(buttonVariants({ variant: "link" }), "min-h-control text-ink")}
+						>
+							How it works
+						</a>
 					</div>
+				</PageHeader>
+			</Section>
 
-					{/* Examples -- finished pieces, to spark ideas and build confidence. */}
-					{examplePieces.length > 0 ? (
-						<div className="mt-20 border-t border-line pt-14">
+			<Section accent="vermillion" padded containerClassName="pt-(--space-block)">
+				<div className="grid gap-12 md:grid-cols-12 md:gap-14">
+					{/* How it works. On phones the form (the job) renders first and the
+					    steps follow it; from md the aside sits beside the taller form and
+					    sticks below the shrunk header. DOM order stays aside-first so a
+					    screen reader still hears the process before the fields. */}
+					<aside
+						id="how-it-works"
+						className="order-last min-w-0 scroll-mt-(--space-page) md:order-none md:col-span-4"
+					>
+						<div className="md:sticky md:top-[calc(var(--header-h-shrunk)+var(--space-page))]">
 							<Reveal>
-								<div className="flex items-baseline justify-between gap-4">
-									<div>
-										<p className="t-eyebrow flex items-center gap-2">
-											<AccentRule />
-											For inspiration
-										</p>
-										<h2 className="t-display mt-2 text-2xl sm:text-3xl">
-											A few pieces from the studio
-										</h2>
-									</div>
-								</div>
+								<p className="t-eyebrow">How it works</p>
+								<h2 className="t-headline mt-2 text-title">Three steps, one conversation</h2>
 							</Reveal>
-							<ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-5 lg:grid-cols-4">
-								{examplePieces.map((art, i) => (
-									<Reveal key={art.slug} as="li" delayMs={i * 60}>
-										<ArtworkCard artwork={art} siblings={examplePieces} priority={i < 2} />
-									</Reveal>
-								))}
-							</ul>
+							<ol className="mt-6 flex flex-col gap-6">
+								<Reveal as="li" delayMs={staggerDelay(1)}>
+									<StepItem
+										step={1}
+										icon={<Brush className="size-3.5" />}
+										title="Send a brief"
+										body="Style, size, occasion. References welcome on WhatsApp once we connect."
+									/>
+								</Reveal>
+								<Reveal as="li" delayMs={staggerDelay(2)}>
+									<StepItem
+										step={2}
+										icon={<MessageCircle className="size-3.5" />}
+										title="We talk it through"
+										body="We get back on WhatsApp, talk through the details, and share a price and timeline."
+									/>
+								</Reveal>
+								<Reveal as="li" delayMs={staggerDelay(3)}>
+									<StepItem
+										step={3}
+										icon={<Clock className="size-3.5" />}
+										title="Painted, approved, shipped"
+										body="Progress shots along the way. Ships from India after your sign-off."
+									/>
+								</Reveal>
+							</ol>
+							{/* Reassurance under a gold rule -- no commitment until you've talked. */}
+							<Reveal delayMs={staggerDelay(4)}>
+								<p
+									data-slot="reassurance"
+									className="mt-8 border-t border-(--color-gold-hairline) pt-6 text-sm text-muted"
+								>
+									No payment until we&rsquo;ve agreed on the piece, a price, and a timeline. Sending
+									a brief is just the start of a conversation.
+								</p>
+								<Link
+									href="/trust"
+									className={cn(
+										buttonVariants({ variant: "link" }),
+										"mt-3 min-h-control whitespace-normal",
+									)}
+								>
+									Questions about payment or delivery?
+								</Link>
+							</Reveal>
 						</div>
-					) : null}
-				</Container>
+					</aside>
+
+					{/* Form: the commission sheet owns its card surface. */}
+					<section
+						id="commission-brief"
+						aria-label="Custom order form"
+						className="min-w-0 scroll-mt-(--space-page) md:col-span-8"
+					>
+						<h2 className="sr-only">Order details</h2>
+						<Reveal eager delayMs={staggerDelay(1)}>
+							<CustomOrderForm
+								phoneE164NoPlus={phone}
+								emailUrl={contact.email.url}
+								availableStyles={styles}
+								styleSamples={styleSamples}
+								sizes={presets.sizes}
+								budgets={presets.budgets}
+								timelines={presets.timelines}
+								submitLabel={customOrders.submitLabel ?? "Send on WhatsApp"}
+								fallbackEmailLabel={customOrders.fallbackEmailLabel ?? "Or email instead"}
+							/>
+						</Reveal>
+					</section>
+				</div>
+
+				{/* Examples -- finished pieces, to spark ideas and build confidence.
+				    The canyon seam (--space-canyon) separates the strip from the sheet
+				    (visual-direction 2.8): >= 64px at 390, >= 96px at 1280. */}
+				{examplePieces.length > 0 ? (
+					<div data-slot="example-strip" className="mt-(--space-canyon)">
+						<Reveal>
+							<p className="t-eyebrow">For inspiration</p>
+							<h2 className="t-headline mt-2 text-title">A few pieces from the studio</h2>
+						</Reveal>
+						<GalleryGrid cols={4} className="mt-8">
+							{examplePieces.map((art, i) => (
+								<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
+									<ArtworkCard artwork={art} siblings={examplePieces} priority={i < 2} />
+								</Reveal>
+							))}
+						</GalleryGrid>
+					</div>
+				) : null}
 			</Section>
 		</main>
 	);
 }
 
+/**
+ * One commission step as wall text (visual-direction 2.8): the numeral voice
+ * carries the roman count in the vermillion section pigment; the icon stays
+ * in-cell at size-3.5, nothing removed.
+ */
 function StepItem({
+	step,
 	icon,
 	title,
 	body,
-}: Readonly<{ icon: React.ReactNode; title: string; body: string }>) {
+}: Readonly<{ step: number; icon: React.ReactNode; title: string; body: string }>) {
 	return (
 		<div className="flex gap-4">
-			<IconCircle size="sm">{icon}</IconCircle>
-			<div>
-				<h3 className="t-display text-lg">{title}</h3>
+			<span
+				aria-hidden="true"
+				className="t-numeral w-10 shrink-0 pt-1 text-title text-(--section-accent)"
+			>
+				{toRoman(step)}
+			</span>
+			<div className="min-w-0">
+				<h3 className="t-display flex items-center gap-2 text-h3">
+					{title}
+					<span className="text-muted">{icon}</span>
+				</h3>
 				<p className="mt-1 text-sm text-muted">{body}</p>
 			</div>
 		</div>

@@ -1,34 +1,203 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { DRAG_CLOSE_FRACTION, DRAG_VELOCITY_PX_S, DUR } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { adminIconBtnGhost, ICON_MD } from "./controls";
 
 let openDialogs = 0;
 let previousOverflow = "";
 
+/** How long the exit transition runs before the consumer may unmount (A1: fast, ease-in). */
+export const MODAL_EXIT_MS = DUR.fast * 1000;
+
+/**
+ * Consumer-side half of the A1 exit: `requestClose` flips `closing` (pass it
+ * to the Modal prop so the panel runs its fast ease-in exit) and calls
+ * `onClosed` after MODAL_EXIT_MS. Modal
+ * cannot defer its own `onClose`: consumers may veto a close (dirty checks,
+ * inline confirm steps), so the deferral belongs to the state owner.
+ */
+export function useModalExit(onClosed: () => void): {
+	closing: boolean;
+	requestClose: () => void;
+} {
+	const [closing, setClosing] = useState(false);
+	const timer = useRef<number | null>(null);
+	const done = useRef(onClosed);
+	done.current = onClosed;
+
+	useEffect(() => {
+		return () => {
+			if (timer.current !== null) window.clearTimeout(timer.current);
+		};
+	}, []);
+
+	const requestClose = useCallback(() => {
+		if (timer.current !== null) return;
+		setClosing(true);
+		timer.current = window.setTimeout(() => {
+			timer.current = null;
+			setClosing(false);
+			done.current();
+		}, MODAL_EXIT_MS);
+	}, []);
+
+	return { closing, requestClose };
+}
+
+interface ModalProps {
+	/** Accessible name of the dialog; also the visible header text unless `heading` is given. */
+	title: string;
+	/** Visible header content when it differs from the accessible name (thumb + piece title); `title` stays the aria name. */
+	heading?: ReactNode;
+	/** Id of the element that carries the title when the consumer renders it itself (the confirm dialog); the header is then not rendered. */
+	titleId?: string;
+	/** Id of the body text, wired to aria-describedby. */
+	describedBy?: string;
+	/** Centered confirmation card or an inset floating sheet on phones. */
+	placement?: "center" | "sheet";
+	/**
+	 * Only with placement="sheet". full = a tall editor (text
+	 * entry; X, Escape, backdrop close). content = bottom-anchored quick-choice
+	 * sheet (grabber, 62dvh cap, drag-to-close), the centred card from sm.
+	 */
+	detent?: "full" | "content";
+	/**
+	 * md = 28rem card from sm (confirms, quick-state sheet); lg = 32rem (the editor).
+	 * xl widens to 56rem on large screens. Defaults to md.
+	 */
+	size?: "md" | "lg" | "xl";
+	/** Header start slot. Default: the X button (aria-label "Close", adminIconBtnGhost) calling onClose. Pass null to omit. */
+	leading?: ReactNode | null;
+	/** Header end slot: at most one primary action (the editor's Save changes). */
+	action?: ReactNode;
+	/** DEPRECATED alias for a visible header with the default X; `placement="sheet"`, `leading` or `action` also show the header. Integration deletes. */
+	showClose?: boolean;
+	/** While true the panel runs its exit (fast, ease-in; A1). Drive it with useModalExit and unmount after MODAL_EXIT_MS. */
+	closing?: boolean;
+	/** The one close path: X, backdrop tap, Escape and the grabber drag all call it, so a consumer's dirty check covers all three. */
+	onClose: () => void;
+	children: ReactNode;
+}
+
+// Fill and elevation live on the placement variants, not the base: the
+// center card and the full editor sheet stay opaque (form legibility, dense
+// tool), while the content detent carries the iOS material below.
+const PANEL_BASE =
+	"relative z-raised flex w-full flex-col overflow-hidden text-ink starting:opacity-0 transition-[opacity,translate,scale] duration-(--duration-base) ease-(--ease-out)";
+const PANEL_CENTER =
+	"max-h-[calc(100dvh-2rem)] rounded-(--radius-sheet) border border-line/70 bg-surface-raised shadow-e5 starting:translate-y-4 starting:scale-(--panel-enter-scale)";
+const PANEL_SHEET =
+	"max-h-[calc(100dvh-2rem-var(--spacing-safe-bottom))] rounded-(--radius-sheet) border border-line/70 bg-surface-raised shadow-e5 starting:translate-y-12 starting:scale-(--panel-enter-scale) sm:max-h-[calc(100dvh-2rem)] sm:starting:translate-y-6";
+// Content detent (1.7): bottom-anchored, content height capped at --sheet-peek
+// (62dvh), top corners only, enters on the sheet curve; the centred card from
+// sm. Steering 2026-09-14: the quick-choice sheet is the iOS material surface
+// (material-glass-strong: translucent raised tint, static blur, hairline +
+// e4 in one box-shadow list with an opaque fallback), so it carries no
+// border-* or shadow-* utilities of its own.
+const PANEL_SHEET_CONTENT =
+	"material-glass-strong h-auto max-h-(--sheet-peek) rounded-(--radius-sheet) starting:translate-y-12 starting:scale-(--panel-enter-scale) ease-(--ease-sheet) sm:max-h-[calc(100dvh-2rem)] sm:starting:translate-y-6 sm:ease-(--ease-out)";
+// A1 exit: fast, ease-in, back to the pre-open pose.
+const PANEL_CLOSING = "opacity-0 duration-(--duration-fast) ease-(--ease-in)";
+const SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
+	md: "sm:max-w-md",
+	lg: "sm:max-w-lg",
+	xl: "sm:max-w-lg lg:max-w-4xl",
+};
+const DIALOG =
+	"fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-y-auto bg-transparent text-ink open:grid backdrop:bg-scrim/40 backdrop:backdrop-blur-sm dark:backdrop:bg-scrim/60";
+const DIALOG_CENTER = "place-items-center p-3 sm:p-4";
+const DIALOG_SHEET =
+	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
+const DIALOG_SHEET_CONTENT =
+	"place-items-end justify-items-center px-3 pt-4 pb-[max(1rem,var(--spacing-safe-bottom))] sm:place-items-center sm:p-4";
+
+function ModalHeader({
+	title,
+	heading,
+	titleId,
+	leading,
+	action,
+	onClose,
+	labelledBy,
+	visible,
+}: Readonly<
+	Pick<ModalProps, "title" | "heading" | "titleId" | "leading" | "action" | "onClose"> & {
+		labelledBy: string;
+		visible: boolean;
+	}
+>) {
+	if (!visible) {
+		if (titleId) return null;
+		return (
+			<h2 id={labelledBy} className="sr-only">
+				{title}
+			</h2>
+		);
+	}
+
+	return (
+		<>
+			<div className="flex min-h-control items-center gap-3 border-b border-line px-(--card-pad) py-3">
+				{leading === undefined ? (
+					<button type="button" onClick={onClose} aria-label="Close" className={adminIconBtnGhost}>
+						<X size={ICON_MD} aria-hidden="true" />
+					</button>
+				) : (
+					leading
+				)}
+				<h2
+					id={heading ? undefined : labelledBy}
+					className="t-heading min-w-0 flex-1 truncate text-lg"
+				>
+					{heading ?? title}
+				</h2>
+				{action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+			</div>
+			{heading ? (
+				<h2 id={labelledBy} className="sr-only">
+					{title}
+				</h2>
+			) : null}
+		</>
+	);
+}
+
 /**
  * Native modal dialogs isolate background content, trap focus, and give only
- * the topmost dialog Escape handling, including nested confirmations.
+ * the topmost dialog Escape handling, including nested confirmations. On
+ * phones `placement="sheet"` floats within the viewport (X top-left, primary action
+ * top-right, body scrolls, footer on the safe area); from sm it is the card.
+ * `detent="content"` is the bottom quick-choice sheet with a grabber and
+ * drag-to-close (1.7); the keyboard-friendly editor stays on the full detent.
  */
 export function Modal({
 	title,
+	heading,
 	titleId,
+	describedBy,
+	placement = "center",
+	detent = "full",
+	size = "md",
+	leading,
+	action,
+	showClose = false,
+	closing = false,
 	onClose,
 	children,
-	size = "sm",
-	showClose = false,
-}: Readonly<{
-	title: string;
-	titleId?: string;
-	onClose: () => void;
-	children: React.ReactNode;
-	size?: "sm" | "lg";
-	/** Show an explicit X button in the header (used by the editor). */
-	showClose?: boolean;
-}>) {
+}: Readonly<ModalProps>) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
+	const panelRef = useRef<HTMLDivElement>(null);
 	const generatedTitleId = useId();
 	const labelledBy = titleId ?? generatedTitleId;
+	const contentDetent = placement === "sheet" && detent === "content";
+	const showHeader =
+		placement === "sheet" || showClose || leading !== undefined || action !== undefined;
+	const drag = useRef<{ pointerId: number; startY: number; startTime: number; lastY: number }>(
+		null,
+	);
 
 	useEffect(() => {
 		const dialog = dialogRef.current;
@@ -80,52 +249,160 @@ export function Modal({
 		}
 	}
 
+	// Drag-to-close (content detent, priority 2): pointer-down on the grabber
+	// zone follows the finger with translateY; releasing past a quarter of the
+	// panel height or faster than DRAG_VELOCITY_PX_S closes; otherwise the
+	// panel eases back. Never `drag` on the whole panel: the body scrolls.
+	function onGrabberPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+		if (!contentDetent) return;
+		drag.current = {
+			pointerId: event.pointerId,
+			startY: event.clientY,
+			startTime: performance.now(),
+			lastY: event.clientY,
+		};
+		event.currentTarget.setPointerCapture(event.pointerId);
+		const panel = panelRef.current;
+		if (panel) panel.style.transition = "none";
+	}
+
+	function onGrabberPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+		const state = drag.current;
+		const panel = panelRef.current;
+		if (!state || state.pointerId !== event.pointerId || !panel) return;
+		state.lastY = event.clientY;
+		const delta = Math.max(0, event.clientY - state.startY);
+		panel.style.translate = `0 ${delta}px`;
+	}
+
+	function onGrabberPointerEnd(event: React.PointerEvent<HTMLDivElement>) {
+		const state = drag.current;
+		const panel = panelRef.current;
+		if (!state || state.pointerId !== event.pointerId || !panel) return;
+		drag.current = null;
+		const delta = Math.max(0, state.lastY - state.startY);
+		const seconds = Math.max((performance.now() - state.startTime) / 1000, 0.001);
+		const pastFraction = delta > panel.offsetHeight * DRAG_CLOSE_FRACTION;
+		const pastVelocity = delta / seconds > DRAG_VELOCITY_PX_S;
+		panel.style.transition = "";
+		if (delta > 0 && (pastFraction || pastVelocity)) {
+			onClose();
+			return;
+		}
+		panel.style.translate = "";
+	}
+
 	return (
 		<dialog
 			ref={dialogRef}
 			aria-labelledby={labelledBy}
-			onKeyDown={trapTab}
-			onCancel={(event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				onClose();
+			aria-describedby={describedBy}
+			onKeyDown={(event) => {
+				if (closing) {
+					event.preventDefault();
+					event.stopPropagation();
+					return;
+				}
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					onClose();
+					return;
+				}
+				trapTab(event);
 			}}
-			className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none place-items-center overflow-y-auto bg-transparent p-3 text-ink backdrop:bg-ink/40 backdrop:backdrop-blur-sm open:grid sm:p-4"
+			onCancel={(event) => {
+				if (event.cancelable) event.preventDefault();
+				event.stopPropagation();
+				if (!closing) onClose();
+			}}
+			className={cn(
+				DIALOG,
+				placement !== "sheet" && DIALOG_CENTER,
+				placement === "sheet" && (contentDetent ? DIALOG_SHEET_CONTENT : DIALOG_SHEET),
+			)}
 		>
 			<div
-				className={`relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-bg shadow-e5 sm:max-h-[calc(100dvh-2rem)] ${
-					size === "lg" ? "max-w-lg" : "max-w-sm"
-				}`}
+				ref={panelRef}
+				inert={closing || undefined}
+				className={cn(
+					PANEL_BASE,
+					placement !== "sheet" && PANEL_CENTER,
+					placement === "sheet" && (contentDetent ? PANEL_SHEET_CONTENT : PANEL_SHEET),
+					SIZE[size],
+					closing && PANEL_CLOSING,
+					closing &&
+						(placement === "sheet"
+							? "translate-y-4 sm:translate-y-0 sm:scale-(--panel-enter-scale)"
+							: "scale-(--panel-enter-scale)"),
+				)}
 			>
-				{showClose ? (
-					<div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-						<h2 id={labelledBy} className="t-display text-lg">
-							{title}
-						</h2>
-						<button
-							type="button"
-							onClick={onClose}
-							aria-label="Close"
-							className="grid h-11 w-11 place-items-center rounded-(--radius-sm) text-muted transition-colors hover:bg-bg-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-						>
-							<X size={16} />
-						</button>
-					</div>
+				{contentDetent ? (
+					<>
+						<div
+							aria-hidden="true"
+							className="absolute inset-x-0 top-0 z-10 h-11 cursor-grab touch-none active:cursor-grabbing"
+							onPointerDown={onGrabberPointerDown}
+							onPointerMove={onGrabberPointerMove}
+							onPointerUp={onGrabberPointerEnd}
+							onPointerCancel={onGrabberPointerEnd}
+						/>
+						<div
+							data-grabber=""
+							aria-hidden="true"
+							className="mx-auto mt-2 h-1 w-9 rounded-full bg-line-strong"
+						/>
+					</>
 				) : null}
-				{!showClose && !titleId ? (
-					<h2 id={labelledBy} className="sr-only">
-						{title}
-					</h2>
-				) : null}
+				<ModalHeader
+					title={title}
+					heading={heading}
+					titleId={titleId}
+					leading={leading}
+					action={action}
+					onClose={onClose}
+					labelledBy={labelledBy}
+					visible={showHeader}
+				/>
 				{children}
 			</div>
 			<button
 				type="button"
 				tabIndex={-1}
 				aria-label={`Close ${title}`}
+				disabled={closing}
 				onClick={onClose}
 				className="absolute inset-0 cursor-default"
 			/>
 		</dialog>
+	);
+}
+
+/** Scrollable dialog body; the page behind never rubber-bands when it reaches its end. */
+export function ModalBody({
+	children,
+	className,
+}: Readonly<{ children: ReactNode; className?: string }>) {
+	return (
+		<div className={cn("flex-1 overflow-y-auto overscroll-contain p-(--card-pad)", className)}>
+			{children}
+		</div>
+	);
+}
+
+/** Dialog footer on the canvas tone; sits on the home-indicator inset in the phone sheet. */
+export function ModalFooter({
+	children,
+	className,
+}: Readonly<{ children: ReactNode; className?: string }>) {
+	return (
+		<div
+			className={cn(
+				"flex items-center justify-between gap-3 border-t border-line bg-canvas px-(--card-pad) py-3 pb-[max(0.75rem,var(--spacing-safe-bottom))] sm:pb-3",
+				className,
+			)}
+		>
+			{children}
+		</div>
 	);
 }

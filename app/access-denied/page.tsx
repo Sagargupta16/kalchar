@@ -1,17 +1,17 @@
 /**
- * Shown when a non-maintainer Google account completes Google sign-in but
- * fails the maintainer allowlist check in auth.ts (configured as Auth.js's
- * `pages.error`). Explains the situation and offers a way to request access
- * from the root maintainer. No auto-redirect -- a manual "Back to site" link.
+ * Handles Auth.js sign-in errors and denied maintainer access. Offers manual
+ * account recovery and owner contact without automatically redirecting.
  */
 import { Lock } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/auth";
+import { AuthShell } from "@/components/layout/auth-shell";
 import { GmailIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
-import { getSite } from "@/lib/data";
+import { IconCircle } from "@/components/ui/icon-circle";
 import { getRootMaintainerEmail } from "@/lib/maintainers";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
 	title: "Access not granted",
@@ -24,64 +24,71 @@ interface AccessDeniedPageProps {
 
 export default async function AccessDeniedPage({ searchParams }: Readonly<AccessDeniedPageProps>) {
 	const { error } = await searchParams;
-	const isConfigurationError = error === "Configuration";
-	const { brand } = getSite();
+	const isSignInError = Boolean(error && error !== "AccessDenied");
 	const rootEmail = await getRootMaintainerEmail().catch(() => null);
-	const subject = isConfigurationError ? "Admin sign-in issue" : "Maintainer access request";
+	const subject = isSignInError ? "Admin sign-in issue" : "Maintainer access request";
 	const mailto = rootEmail ? `mailto:${rootEmail}?subject=${encodeURIComponent(subject)}` : null;
 
 	return (
-		<main className="grid min-h-dvh place-items-center px-(--container-px) py-16">
-			<div className="w-full max-w-md text-center">
-				<Link
-					href="/"
-					className="t-display inline-block text-3xl leading-none transition-colors hover:text-accent"
+		<AuthShell
+			eyebrow="Admin access"
+			title={isSignInError ? "Sign-in unavailable" : "Access not granted"}
+			lead={
+				isSignInError
+					? "We couldn't complete sign-in. Try again shortly, or let the site owner know."
+					: "We couldn't grant admin access. Try a Google account on the maintainer list, or ask the site owner to check your access."
+			}
+			icon={
+				<IconCircle size="lg">
+					<Lock size={24} aria-hidden="true" />
+				</IconCircle>
+			}
+		>
+			{mailto ? (
+				// A real button (44px, global focus, press cue); the address wraps at 390 and stays visible.
+				<a
+					href={mailto}
+					className={cn(
+						buttonVariants({ variant: "ghost" }),
+						"mt-6 w-full whitespace-normal break-words normal-case tracking-normal",
+					)}
 				>
-					<span className="not-italic">{brand.headline.latinPrefix}</span>
-					<span lang="hi" className="font-devanagari not-italic text-accent">
-						{brand.headline.devanagariCore}
+					<GmailIcon className="size-4 shrink-0" aria-hidden="true" />
+					<span className="min-w-0">
+						{isSignInError ? "Report sign-in issue" : "Request access"}
+						<span className="mt-1 block break-all text-xs text-muted">{rootEmail}</span>
 					</span>
+				</a>
+			) : (
+				<Link
+					href="/contact"
+					className={cn(buttonVariants({ variant: "ghost" }), "mt-6 w-full whitespace-normal")}
+				>
+					{isSignInError ? "Contact us about sign-in" : "Contact us about access"}
 				</Link>
+			)}
 
-				<div className="mt-10 grid h-14 w-14 mx-auto place-items-center rounded-full bg-bg-soft text-accent ring-1 ring-line">
-					<Lock size={22} aria-hidden="true" />
-				</div>
-
-				<h1 className="t-display mt-6 text-2xl sm:text-3xl">
-					{isConfigurationError ? "Sign-in unavailable" : "Access not granted"}
-				</h1>
-				<p className="t-lead mt-3 text-sm">
-					{isConfigurationError
-						? "The site could not verify maintainer access because an authentication service is unavailable. Try again shortly or report the issue to the site owner."
-						: "This Google account isn’t on the maintainer list, so it can’t open the admin panel. If you should have access, ask the site owner to add you."}
-				</p>
-
-				{mailto ? (
-					<a
-						href={mailto}
-						className="mt-6 inline-flex items-center gap-2 rounded-(--radius-sm) border border-line bg-bg px-4 py-2.5 text-sm text-ink transition-colors hover:border-accent hover:text-accent"
+			<div className="mt-6 flex flex-col gap-3">
+				<form
+					action={async () => {
+						"use server";
+						await signOut({ redirectTo: "/login" });
+					}}
+				>
+					<button
+						type="submit"
+						className={cn(buttonVariants({ variant: "primary" }), "w-full whitespace-normal")}
 					>
-						<GmailIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-						{isConfigurationError ? "Report issue to" : "Request access from"} {rootEmail}
-					</a>
-				) : null}
-
-				<div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-					<Link href="/" className={buttonVariants({ variant: "primary" })}>
-						Back to site
-					</Link>
-					<form
-						action={async () => {
-							"use server";
-							await signOut({ redirectTo: "/login" });
-						}}
-					>
-						<button type="submit" className={buttonVariants({ variant: "ghost" })}>
-							{isConfigurationError ? "Try sign-in again" : "Try a different account"}
-						</button>
-					</form>
-				</div>
+						{isSignInError ? "Try sign-in again" : "Try a different account"}
+					</button>
+				</form>
+				<Link href="/" className={cn(buttonVariants({ variant: "ghost" }), "w-full")}>
+					Back to site
+				</Link>
 			</div>
-		</main>
+			<p className="mt-4 text-sm text-muted">
+				You can still browse artwork and contact us without signing in.
+			</p>
+		</AuthShell>
 	);
 }

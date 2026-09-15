@@ -1,20 +1,39 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
+import { type CSSProperties, useId } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
-import { Chromacard } from "@/components/gallery/chromacard";
+import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
+import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { useLightbox } from "@/components/gallery/lightbox-context";
-import { Badge } from "@/components/ui/badge";
+import { TiltPlate } from "@/components/motion/tilt-plate";
 import { isPositivePrice } from "@/lib/catalog";
+import { PRESS_SCALE, SPRING_PRESS, STAGGER } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
+
+const AnimatedLink = motion.create(Link);
+const CARD_LIFT = { y: -6 } as const;
 
 interface ArtworkCardProps {
 	artwork: Artwork;
 	priority?: boolean;
 	className?: string;
 	siblings?: readonly Artwork[];
+	/** Image sizes hint; defaults to the 3-column gallery grid's. */
+	sizes?: string;
+	/** Position announced to screen readers when browsing a collection. */
+	index?: number;
+	/** Number of pieces in the current collection. */
+	total?: number;
+	/** Eager image reveal, staggered within the visible row. */
+	unveilDelayMs?: number;
+	/** Slower 700ms unveil for the spanning lead tile. */
+	unveilSlow?: boolean;
+	/** A gentle idle float for a featured piece. */
+	float?: boolean;
 }
 
 export function ArtworkCard({
@@ -22,80 +41,118 @@ export function ArtworkCard({
 	priority = false,
 	className,
 	siblings,
+	sizes = GALLERY_CARD_SIZES,
+	index,
+	total,
+	unveilDelayMs,
+	unveilSlow = false,
+	float = false,
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
+	const positionId = useId();
 
 	const handleClick = (e: React.MouseEvent) => {
-		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
-			e.preventDefault();
-			openLightbox(artwork, siblings);
-		}
+		if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+			return;
+		e.preventDefault();
+		openLightbox(
+			artwork,
+			siblings,
+			e.detail === 0
+				? undefined
+				: {
+						xPct: (e.clientX / window.innerWidth) * 100,
+						yPct: (e.clientY / window.innerHeight) * 100,
+					},
+		);
 	};
 
 	const imgSrc = `/artworks/${artwork.image}`;
 	const isAvailable = isPositivePrice(artwork.priceInr);
 	const isSold = artwork.status === "sold";
+	let statusLabel: string | null = null;
+	if (isSold) statusLabel = "sold";
+	else if (isPositivePrice(artwork.priceInr)) {
+		statusLabel = `available, ${formatInr(artwork.priceInr)}`;
+	}
+	const ariaLabel = [artwork.title, artwork.style, statusLabel].filter(Boolean).join(", ");
 
-	return (
-		<Link
-			href={`/work/${artwork.slug}`}
-			onClick={handleClick}
-			className={cn("group block focus-visible:outline-none", className)}
-			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
-		>
-			{/* Image plate */}
-			<div className="relative aspect-3/4 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline transition-[box-shadow] duration-(--duration-base) ease-(--ease-out) group-hover:shadow-e3 group-hover:ring-1 group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-accent">
+	let priceSlot: string | undefined;
+	if (isAvailable && typeof artwork.priceInr === "number" && !isSold) {
+		priceSlot = formatInr(artwork.priceInr);
+	}
+	const unveiling = typeof unveilDelayMs === "number";
+
+	const plate = (
+		<div className="relative aspect-4/5 overflow-hidden rounded-md bg-canvas">
+			<div
+				className={cn(
+					"absolute inset-0",
+					unveiling && "reveal-plate",
+					unveiling && unveilSlow && "reveal-plate-unveil",
+				)}
+				style={unveiling ? ({ animationDelay: `${unveilDelayMs}ms` } as CSSProperties) : undefined}
+			>
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-					sizes="(min-width: 1152px) 350px, (min-width: 1024px) 30vw, calc((100vw - 56px) / 2)"
-					className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
+					sizes={sizes}
+					className="absolute inset-0 h-full w-full object-contain p-3 sm:p-4"
 					priority={priority}
 				/>
+			</div>
+			<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+		</div>
+	);
 
-				{/* Gold border on hover */}
-				<div className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-gold-leaf/0 transition-all duration-(--duration-base) ease-(--ease-out) group-hover:border-gold-leaf/40" />
+	return (
+		<AnimatedLink
+			href={`/work/${artwork.slug}`}
+			onClick={handleClick}
+			className={cn(
+				"group @container flex h-full flex-col rounded-md border border-line/60 bg-surface p-1.5 shadow-e1 elevate-e3 transition-colors hover:border-accent/30",
+				className,
+			)}
+			aria-label={ariaLabel}
+			aria-describedby={index ? positionId : undefined}
+			whileHover={CARD_LIFT}
+			whileFocus={CARD_LIFT}
+			whileTap={{ scale: PRESS_SCALE }}
+			transition={SPRING_PRESS}
+		>
+			<TiltPlate>
+				{float ? <div className="plate-float [--float-travel:5px]">{plate}</div> : plate}
+			</TiltPlate>
 
-				{/* Status badges */}
-				{isAvailable && !isSold ? (
-					<Badge variant="success" className="absolute left-3 top-3 z-10 shadow-e1">
-						<Check size={11} className="text-(--section-accent)" />
-						Available
-					</Badge>
-				) : null}
-				{isSold ? (
-					<span className="pointer-events-none absolute -left-8 top-4 z-10 w-28 -rotate-45 bg-ruby py-0.5 text-center text-[0.6rem] font-semibold uppercase tracking-[var(--tracking-meta)] text-bg shadow-e1">
-						Sold
+			<div
+				className={cn("flex flex-1 flex-col gap-2 p-3 sm:p-4", unveiling && "reveal-up")}
+				style={
+					unveiling
+						? ({ animationDelay: `${unveilDelayMs + STAGGER.stepMs}ms` } as CSSProperties)
+						: undefined
+				}
+			>
+				<div className="flex items-start justify-between gap-2">
+					<h3 className="min-w-0 text-base leading-snug font-semibold tracking-tight text-ink sm:text-lg">
+						{artwork.title}
+					</h3>
+					<ArrowUpRight
+						size={18}
+						aria-hidden="true"
+						className="mt-1 shrink-0 text-muted transition-[color,translate] duration-(--duration-fast) group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-accent-text"
+					/>
+				</div>
+				<div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+					<p className="text-muted">{artwork.style}</p>
+					{priceSlot ? <p className="font-semibold tabular-nums text-ink">{priceSlot}</p> : null}
+				</div>
+				{index ? (
+					<span id={positionId} className="sr-only">
+						Piece {index}
+						{total ? ` of ${total}` : ""}
 					</span>
 				) : null}
 			</div>
-
-			{/* Meta */}
-			<div className="mt-3 flex items-baseline justify-between gap-2">
-				<h3 className="t-display min-w-0 truncate text-lg leading-tight transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:text-(--section-accent) sm:text-xl">
-					{artwork.title}
-				</h3>
-				<span className="t-meta shrink-0 whitespace-nowrap">{artwork.style}</span>
-			</div>
-
-			<Chromacard
-				palette={artwork.palette}
-				ariaLabel={`Palette from ${artwork.title}`}
-				className="mt-2"
-				groupHoverBloom
-			/>
-
-			{artwork.description ? (
-				<p className="mt-2 line-clamp-2 text-sm text-muted">{artwork.description}</p>
-			) : null}
-
-			<p className="mt-1.5 text-xs text-muted">{artwork.medium}</p>
-
-			{isAvailable && typeof artwork.priceInr === "number" ? (
-				<p className="mt-1.5 text-sm font-medium text-ink tabular-nums">
-					{formatInr(artwork.priceInr)}
-				</p>
-			) : null}
-		</Link>
+		</AnimatedLink>
 	);
 }

@@ -75,16 +75,13 @@ jobs:
             fi
           fi
 
-      - name: Elevation-token guard
-        # The design system routes ALL depth through the tokenized elevation
-        # scale (shadow-e0..e5 + shadow-hairline, globals.css). Raw Tailwind
-        # shadows and ad-hoc black/white rings were migrated out in v1.33.0;
-        # this fails the build if drift creeps back in.
-        run: |
-          if grep -rEn 'shadow-(sm|md|lg|xl|2xl)\b|ring-(black|white)/' components/ app/ --include='*.tsx'; then
-            echo '::error::Raw shadow/ring utility found. Use the elevation tokens (shadow-e0..e5, shadow-hairline) instead. See docs/UI-CONSISTENCY-PLAN.md.'
-            exit 1
-          fi
+      - name: UI token guard
+        # The design system routes depth, motion, type size, focus and z-order
+        # through tokens (app/globals.css) and shared strings (controls.ts).
+        # scripts/check-ui-tokens.mjs fails the build when raw utilities drift
+        # back in; warn-tier patterns become errors at the integration step.
+        # See .claude/rework/final/system.md section 8 and docs/UI-CONSISTENCY-PLAN.md.
+        run: pnpm lint:ui
 
       - name: Typecheck
         run: pnpm typecheck

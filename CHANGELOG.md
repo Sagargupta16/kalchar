@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.39.0 (2026-09-15)
+
+### Changed
+
+- Refine every public and admin page with consistent spacing, rounded surfaces, layered shadows, and shared motion. Remove decorative heading rules, shorten the footer, and replace narrow contact cards with readable full-width rows.
+- Simplify artwork browsing with search, independent availability filters, full-image previews, a compact viewer toolbar, thumbnail navigation, and touch gestures.
+- Rework the admin around grouped navigation, clear create/edit actions, preserved drafts, consistent validation, and reliable pending, retry, and Undo feedback.
+- Make artwork uploads a photo-first flow with immediate previews, background upload progress, and drafts that survive closing and reopening the composer.
+- Keep animations enabled across operating-system motion preferences, following the updated design direction.
+
+### Fixed
+
+- Protect unsaved admin edits during link navigation and reloads; restore keyboard focus and scrolling after menus and dialogs close.
+- Preserve custom-order briefs across navigation and reloads, keep list counts and photo ordering accurate after updates, and retain form inputs when requests fail.
+- Correct malformed sign-in callback handling, image-viewer gesture direction, error-page retries, and missing-content recovery.
+- Preserve explicit international phone prefixes when replying to an enquiry by WhatsApp or phone.
+- Refresh the About page's catalog counts after artwork and workshop changes, and keep shared artwork actions locked until the current save settles.
+- Route Add actions through the unsaved-draft confirmation and carry globally selected event photos into the creation form, including selections made during another submission.
+- Keep zoomed artwork within the viewer's frame when panning or zooming out, and close the viewer when browser history changes the artwork page.
+- Resolve SonarCloud findings with native dialogs, progress and status elements, simpler editor and viewer components, explicit category sorting, and linear contact parsing. Keep stylesheet analysis enabled and preserve the shared shadows and motion.
+- Replace fixed browser-test delays and forced interactions with observable UI states, and retain upload help text, keyboard focus, and clipboard failure recovery.
+- Release the workshop list after successful creation before moving keyboard focus to its new row.
+- Keep the home page's main actions above the featured artwork on phones, so they remain easy to find without scrolling past a large image.
+- Use a short tween for the Featured star's scale pop, avoiding unsupported spring keyframes and browser errors.
+- Preserve explicit artwork-frame positioning when applying hover shadows, preventing loaded detail images from collapsing into a thin line.
+
+## 1.38.2 (2026-09-13)
+
+### Fixed
+
+- **Hairline separators rendered as grey squares.** The divider between the style chips and "Available to buy" on `/work`, and the two dividers in the footer, drew as 20 to 32px blocks instead of 1px rules. `--container-px` was declared inside Tailwind's `@theme`, and Tailwind 4 turns every `--container-*` key into a named width for `w-`, `max-w-`, `min-w-`, `size-` and `basis-`, so a key called `px` shadowed the built-in 1px `w-px` utility. The token now lives in `:root`, where `px-(--container-px)` still resolves it ([app/globals.css](app/globals.css)).
+## 1.38.1 (2026-09-13)
+
+### Added
+
+- **Admin preview without signing in.** `pnpm dev:preview` ([scripts/admin-preview.mjs](scripts/admin-preview.mjs)) runs the dev server on port 3010 with `KALCHAR_TEST_FIXTURES=1` and the new `KALCHAR_ADMIN_PREVIEW=1`, so every `/admin` page renders as the synthetic maintainer `preview@kalchar.invalid` over the fixture catalog, for design review and responsive checks. The fixture now carries leads in every triage state, a maintainer roster, order presets, a second event and a profile photo, so every admin page has rows ([lib/catalog-fixture.ts](lib/catalog-fixture.ts)). Nothing can be saved: a banner under the header says so, the database proxy already threw in fixture mode, and the R2 client now does too ([lib/storage/r2.ts](lib/storage/r2.ts)). [lib/env.ts](lib/env.ts) refuses the preview flag without the fixtures and refuses both on Vercel; unit tests cover the guard and the synthetic access path.
+
 ## 1.38.0 (2026-09-13)
 
 ### Added

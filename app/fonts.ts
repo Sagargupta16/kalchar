@@ -7,9 +7,19 @@
  * fallback render until the woff2 lands.
  *
  * Three families, narrow weight/subset selection so the bundle stays small:
- *   - Cormorant Garamond -- italic display serif (the brand voice)
+ *   - Cormorant Garamond -- display serif (brand voice: italic titles, roman headlines)
  *   - Inter -- variable sans-serif body
  *   - Tiro Devanagari Hindi -- the Devanagari mark in the headline
+ *
+ * Face audit (visual-direction 1.1, 2026-09-14): the final type scale consumes
+ *   - 600 roman  -> .t-headline (display rungs; zero new bytes, already loaded)
+ *   - 500 italic -> .t-display and .t-numeral (work titles, pull quotes, numerals)
+ *   - 400 italic -> .drop-cap first letter (inherits the paragraph's weight)
+ * next/font loads the weight x style cross product, so no face can be dropped
+ * without taking a consumed weight with it; the set below stays as is.
+ * Fraunces trial (section 4 item 1, recommendation: keep Cormorant): a follow-up
+ * branch can swap the family behind the same --font-display variable and add
+ * font-optical-sizing to the display classes without touching any consumer.
  */
 import { Cormorant_Garamond, Inter, Tiro_Devanagari_Hindi } from "next/font/google";
 

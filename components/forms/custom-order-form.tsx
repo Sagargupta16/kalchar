@@ -1,29 +1,40 @@
 "use client";
 
-import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { AlertCircle, ArrowRight, Check, ImageUp, Mail } from "lucide-react";
+import { motion } from "motion/react";
+import { type SubmitEvent, useEffect, useMemo, useRef, useState } from "react";
 import { submitLead } from "@/app/admin/lead-actions";
+import { Field, inputClass, PresetRow } from "@/components/forms/custom-order-fields";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
+import {
+	MAX_BRIEF_LENGTH,
+	MAX_SHORT_LENGTH,
+	type OrderField,
+	orderDraft,
+	readOrderValues,
+	type SaveStatus,
+	useCustomOrderDraft,
+} from "@/components/forms/use-custom-order-draft";
 import { Button, buttonVariants } from "@/components/ui/button";
-import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
+import { IconCircle } from "@/components/ui/icon-circle";
+import { SPRING_ZOOM } from "@/lib/motion";
+import type { CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/whatsapp";
 
 /**
  * Custom-order form.
  *
- * Prepares explicit WhatsApp/email links while saving the brief independently.
- * Persistence status never claims that a message was opened or sent.
- * Catalog presets are supplied by the server through the data seam.
+ * One visible action that says what happens: "Continue to WhatsApp" saves the
+ * brief and, in the same slot, becomes the "Send on WhatsApp" link (focus moves
+ * to it). The save never gates the link; persistence status never claims that a
+ * message was opened or sent. Catalog presets come from the server through the
+ * data seam.
  */
-const MAX_BRIEF_LENGTH = 4000;
-const MAX_CONTACT_LENGTH = 200;
-type SaveStatus = "idle" | "saving" | "saved" | "failed";
-
 interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
 	emailUrl: string;
-	availableStyles: readonly ArtStyle[];
+	availableStyles: readonly string[];
 	/** style -> representative artwork thumbnail for the visual picker. */
 	styleSamples: Record<string, StyleSample>;
 	sizes: readonly string[];
@@ -44,45 +55,57 @@ export function CustomOrderForm({
 	submitLabel,
 	fallbackEmailLabel,
 }: Readonly<CustomOrderFormProps>) {
-	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+	const [{ values, saveStatus }, setSession] = useCustomOrderDraft();
 	const [error, setError] = useState<string | null>(null);
-	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
+	const prepared = saveStatus !== "idle";
+	const draft = useMemo(() => (prepared ? orderDraft(values) : null), [prepared, values]);
 	const submissionVersion = useRef(0);
+	const focusHandoff = useRef(false);
+	const whatsappRef = useRef<HTMLAnchorElement>(null);
+	const briefRef = useRef<HTMLTextAreaElement>(null);
 
-	function readDraft(formData: FormData): CustomOrderDraft | null {
-		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
-		if (!briefMessage) {
-			setError("Tell us a bit about what you'd like.");
-			return null;
+	// The submit button unmounts once the draft exists; move focus to the link
+	// that took its place so keyboard and screen-reader users are not stranded.
+	useEffect(() => {
+		if (draft && focusHandoff.current) {
+			whatsappRef.current?.focus();
+			focusHandoff.current = false;
 		}
-		const styleVal = formData.get("style") as string | null;
-		return {
-			name: (formData.get("name") as string | null)?.trim() || undefined,
-			contact: (formData.get("contact") as string | null)?.trim() || undefined,
-			style: (styleVal as CustomOrderDraft["style"]) || undefined,
-			size: (formData.get("size") as string | null) || undefined,
-			budget: (formData.get("budget") as string | null) || undefined,
-			timeline: (formData.get("timeline") as string | null) || undefined,
-			briefMessage,
-		};
+	}, [draft]);
+
+	function updateField(name: OrderField, value: string) {
+		submissionVersion.current += 1;
+		setSession((current) => ({
+			values: { ...current.values, [name]: value },
+			saveStatus: "idle",
+		}));
 	}
 
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
 		const formData = new FormData(e.currentTarget);
-		const next = readDraft(formData);
-		if (!next) return;
+		const nextValues = readOrderValues(formData);
+		const next = orderDraft(nextValues);
+		if (!next) {
+			// Single-error recipe (forms-copy c1/P2): focus moves to the failing field,
+			// whose aria-describedby reads the message out.
+			setError("Tell us a bit about what you'd like.");
+			briefRef.current?.focus();
+			return;
+		}
 		const version = ++submissionVersion.current;
-		setDraft(next);
-		setSaveStatus("saving");
+		focusHandoff.current = true;
+		setSession({ values: nextValues, saveStatus: "saving" });
 		try {
 			const result = await submitLead(formData);
 			if (submissionVersion.current === version) {
-				setSaveStatus(result.ok ? "saved" : "failed");
+				setSession((current) => ({ ...current, saveStatus: result.ok ? "saved" : "failed" }));
 			}
 		} catch {
-			if (submissionVersion.current === version) setSaveStatus("failed");
+			if (submissionVersion.current === version) {
+				setSession((current) => ({ ...current, saveStatus: "failed" }));
+			}
 		}
 	}
 
@@ -92,223 +115,281 @@ export function CustomOrderForm({
 		: null;
 
 	return (
-		<form
-			onSubmit={onSubmit}
-			onChange={() => {
-				// An old response must not mark an edited brief as saved.
-				submissionVersion.current += 1;
-				setDraft(null);
-				setSaveStatus("idle");
-				setError(null);
-			}}
-			className="space-y-6"
-			noValidate
+		<div
+			data-slot="commission-card"
+			className="rounded-(--radius-md) border border-line bg-surface p-(--card-pad-lg) shadow-e1"
 		>
-			{/* Honeypot: hidden from users + assistive tech; bots fill it and the
+			<p className="t-eyebrow">Commission brief</p>
+			<p className="mt-4 text-sm leading-relaxed text-muted">
+				Only your idea is required. Leave any other details open and we can work them out together.
+			</p>
+			<form
+				onSubmit={onSubmit}
+				// relative anchors the off-screen honeypot to the form; @container lets
+				// the field pairs split on the form's own width, not the viewport.
+				className="@container relative mt-6 flex flex-col gap-(--form-gap)"
+				noValidate
+			>
+				{/* Honeypot: hidden from users + assistive tech; bots fill it and the
 			    lead is silently dropped server-side. Not display:none (some bots
 			    skip those) -- off-screen + aria-hidden + no tab stop. */}
-			<div
-				aria-hidden="true"
-				className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
-			>
-				<label htmlFor="website">Leave this field empty</label>
-				<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
-			</div>
-			{/* Brief -- the one required field, given hero weight up top. */}
-			<Field id="brief" label="What would you like painted?" required>
-				<textarea
+				<div
+					aria-hidden="true"
+					className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
+				>
+					<label htmlFor="website">Leave this field empty</label>
+					<input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+				</div>
+				{/* Brief -- the one required field, given hero weight up top. Its error
+			    renders between label and control with the hidden "Error:" prefix
+			    (forms-copy c1/P2, GOV.UK error-message anatomy). */}
+				<Field
 					id="brief"
-					name="brief"
-					rows={5}
+					label="What would you like painted?"
 					required
-					maxLength={MAX_BRIEF_LENGTH}
-					aria-invalid={error ? true : undefined}
-					aria-describedby={error ? "brief-error" : undefined}
-					placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
-					className={cn(inputClass, "resize-y")}
-				/>
-			</Field>
-
-			{/* Visual style picker (replaces the old dropdown). */}
-			<StylePicker name="style" styles={availableStyles} samples={styleSamples} />
-
-			<div className="grid gap-6 sm:grid-cols-2">
-				<SelectField id="size" label="Approx size">
-					<select id="size" name="size" defaultValue="" className={selectClass}>
-						<option value="">No preference</option>
-						{sizes.map((s) => (
-							<option key={s} value={s}>
-								{s}
-							</option>
-						))}
-					</select>
-				</SelectField>
-
-				<SelectField id="budget" label="Budget">
-					<select id="budget" name="budget" defaultValue="" className={selectClass}>
-						<option value="">Open / not sure</option>
-						{budgets.map((b) => (
-							<option key={b} value={b}>
-								{b}
-							</option>
-						))}
-					</select>
-				</SelectField>
-			</div>
-
-			<div className="grid gap-6 sm:grid-cols-2">
-				<SelectField id="timeline" label="Timeline">
-					<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
-						<option value="">No specific timeline</option>
-						{timelines.map((t) => (
-							<option key={t} value={t}>
-								{t}
-							</option>
-						))}
-					</select>
-				</SelectField>
-
-				<Field id="name" label="Your name" optional>
-					<input
-						id="name"
-						name="name"
-						type="text"
-						autoComplete="name"
-						placeholder="What should we call you?"
-						className={inputClass}
+					description={
+						<p id="brief-hint" className="text-sm leading-relaxed text-muted">
+							Tell us the subject, colours, or occasion. If you have a specific date in mind,
+							include it here. Up to {MAX_BRIEF_LENGTH.toLocaleString("en-IN")} characters.
+						</p>
+					}
+					error={
+						error ? (
+							<p id="brief-error" role="alert" className="flex items-start gap-2 text-sm text-ruby">
+								<AlertCircle size={16} aria-hidden="true" className="mt-1 shrink-0" />
+								<span>
+									<span className="sr-only">Error: </span>
+									{error}
+								</span>
+							</p>
+						) : null
+					}
+				>
+					<textarea
+						ref={briefRef}
+						id="brief"
+						name="brief"
+						rows={5}
+						value={values.brief}
+						required
+						maxLength={MAX_BRIEF_LENGTH}
+						autoCapitalize="sentences"
+						aria-invalid={error ? true : undefined}
+						aria-describedby={error ? "brief-hint brief-error" : "brief-hint"}
+						onChange={(event) => {
+							updateField("brief", event.currentTarget.value);
+							// P7 re-check rule: after a failed submit the brief revalidates on
+							// every input and the message clears the instant it passes.
+							if (error && event.currentTarget.value.trim()) setError(null);
+						}}
+						placeholder="For example, a lotus painting for our living room."
+						className={cn(inputClass, "resize-y", error && "border-ruby-line bg-ruby-soft")}
 					/>
 				</Field>
-			</div>
-
-			<Field id="contact" label="Email or WhatsApp number" optional>
-				<input
-					id="contact"
-					name="contact"
-					type="text"
-					maxLength={MAX_CONTACT_LENGTH}
-					autoCapitalize="none"
-					spellCheck={false}
-					aria-describedby="contact-hint"
-					placeholder="Where can we reply?"
-					className={inputClass}
-				/>
-				<p id="contact-hint" className="mt-2 text-xs text-muted">
-					Leave a way for us to reply if you cannot send your message on WhatsApp.
-				</p>
-			</Field>
-
-			{/* Reference images are shared in the conversation. */}
-			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft p-3.5">
-				<span
-					className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line"
-					aria-hidden="true"
+				<a
+					href="#send-enquiry"
+					className="inline-flex min-h-control w-fit items-center gap-2 text-sm text-accent-text underline underline-offset-4"
 				>
-					<ImageUp size={14} />
-				</span>
-				<p className="text-xs leading-relaxed text-muted">
-					<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
-					can share photos directly on WhatsApp right after you send this brief.
-				</p>
-			</div>
+					Skip optional details
+					<ArrowRight size={14} aria-hidden="true" />
+				</a>
 
-			<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
+				<div className="border-t border-line pt-(--form-group-gap)">
+					<h3 className="t-display text-h3">A few details, if you know them</h3>
+					<p className="mt-2 text-sm text-muted">These are starting points for our conversation.</p>
+				</div>
+				<StylePicker
+					name="style"
+					styles={availableStyles}
+					samples={styleSamples}
+					value={values.style}
+					onChange={(value) => updateField("style", value)}
+				/>
 
-			<div className="flex flex-col items-start gap-3">
-				{saveStatus !== "saved" ? (
-					<Button
-						type="submit"
-						variant={draft ? "secondary" : "primary"}
-						size="lg"
-						disabled={saveStatus === "saving"}
-						className="w-full whitespace-normal text-center sm:w-auto"
+				{/* Structured preferences as chip rows (forms-copy c1 order: size, budget,
+			    timeline). Each group takes the full measure so the pills can wrap. */}
+				<PresetRow
+					name="size"
+					label="Approximate size"
+					neutralLabel="No preference"
+					options={sizes}
+					value={values.size}
+					onChange={(value) => updateField("size", value)}
+				/>
+				<PresetRow
+					name="budget"
+					label="Budget"
+					neutralLabel="Open / not sure"
+					options={budgets}
+					value={values.budget}
+					onChange={(value) => updateField("budget", value)}
+				/>
+				<PresetRow
+					name="timeline"
+					label="Timeline"
+					neutralLabel="No specific timeline"
+					options={timelines}
+					value={values.timeline}
+					onChange={(value) => updateField("timeline", value)}
+				/>
+
+				<div className="grid gap-(--form-gap) @md:grid-cols-2">
+					<Field id="name" label="Your name" optional>
+						<input
+							id="name"
+							name="name"
+							type="text"
+							value={values.name}
+							onChange={(event) => updateField("name", event.currentTarget.value)}
+							maxLength={MAX_SHORT_LENGTH}
+							autoComplete="name"
+							autoCorrect="off"
+							autoCapitalize="words"
+							className={inputClass}
+						/>
+					</Field>
+
+					<Field
+						id="contact"
+						label="Email or WhatsApp number"
+						optional
+						description={
+							<p id="contact-hint" className="text-sm text-muted">
+								Leave a way for us to reply if you cannot send your message on WhatsApp.
+							</p>
+						}
 					>
-						{getSaveButtonLabel(saveStatus)}
-						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-					</Button>
-				) : null}
-				{whatsappHref ? (
-					<a
-						href={whatsappHref}
-						target="_blank"
-						rel="noopener noreferrer"
-						className={cn(
-							buttonVariants({ variant: "primary", size: "lg" }),
-							"w-full whitespace-normal text-center sm:w-auto",
-						)}
-					>
-						{submitLabel}
-						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-					</a>
-				) : null}
-				<p className="text-xs text-muted">
-					Open WhatsApp to review and send your message. If it does not open, use email below.
-				</p>
-				<p className="text-xs text-muted">
-					We use your brief and contact details only to reply to your enquiry.
-				</p>
-				{mailtoHref ? (
-					<a
-						href={mailtoHref}
-						className="inline-flex items-center gap-2 text-sm text-(--section-accent) underline-offset-4 hover:underline"
-					>
-						<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
-					</a>
-				) : null}
-			</div>
-		</form>
+						<input
+							id="contact"
+							name="contact"
+							type="text"
+							value={values.contact}
+							onChange={(event) => updateField("contact", event.currentTarget.value)}
+							maxLength={MAX_SHORT_LENGTH}
+							autoCapitalize="none"
+							autoCorrect="off"
+							spellCheck={false}
+							aria-describedby="contact-hint"
+							placeholder="Email address or number with country code"
+							className={inputClass}
+						/>
+					</Field>
+				</div>
+
+				{/* Reference images are shared in the conversation. */}
+				<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-canvas p-4">
+					<IconCircle size="sm">
+						<ImageUp size={14} aria-hidden="true" />
+					</IconCircle>
+					<p className="text-sm text-muted">
+						<span className="font-medium text-ink">Have a reference or inspiration image?</span> You
+						can share photos directly on WhatsApp right after you send this brief.
+					</p>
+				</div>
+
+				<EnquiryStatus saveStatus={saveStatus} draft={draft} />
+
+				{/* One primary in one slot: the submit hands over to the WhatsApp link
+			    the moment the draft exists (the save runs alongside, never gating it). */}
+				<div className="mt-(--form-group-gap) flex flex-col items-start gap-3">
+					{whatsappHref ? (
+						<a
+							id="send-enquiry"
+							ref={whatsappRef}
+							href={whatsappHref}
+							target="_blank"
+							rel="noopener noreferrer"
+							aria-describedby="whatsapp-hint"
+							className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full sm:w-auto")}
+						>
+							{submitLabel}
+							<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+						</a>
+					) : (
+						<Button id="send-enquiry" type="submit" size="lg" className="w-full sm:w-auto">
+							Continue to WhatsApp
+							<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+						</Button>
+					)}
+					{saveStatus === "failed" ? (
+						<Button type="submit" variant="secondary" className="w-full sm:w-auto">
+							Try saving again
+						</Button>
+					) : null}
+					<p id="whatsapp-hint" className="text-sm text-muted">
+						{whatsappHref
+							? "WhatsApp opens with your message ready to review. If it does not open, send the same message by email."
+							: "Continue saves your brief and prepares a WhatsApp link. You review and send the message yourself."}
+					</p>
+					<p className="text-sm text-muted">
+						We use your brief and contact details only to reply to your enquiry.
+					</p>
+					{mailtoHref ? (
+						<a
+							href={mailtoHref}
+							className="inline-flex min-h-control items-center gap-2 text-sm text-accent-text underline-offset-4 hover:underline"
+						>
+							<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
+						</a>
+					) : null}
+				</div>
+			</form>
+		</div>
 	);
 }
 
 /* ----------------------------- helpers ----------------------------- */
 
-function getSaveButtonLabel(saveStatus: SaveStatus): string {
-	if (saveStatus === "saving") return "Saving enquiry...";
-	if (saveStatus === "failed") return "Try saving again";
-	return "Prepare enquiry";
-}
-
 function EnquiryStatus({
-	error,
 	saveStatus,
 	draft,
 }: Readonly<{
-	error: string | null;
 	saveStatus: SaveStatus;
 	draft: CustomOrderDraft | null;
 }>) {
+	// Specific beats generic (forms-copy c1 success anatomy): echo the choices
+	// the visitor made so the record reads back, skipping empty selections.
+	const echo = draft
+		? [
+				draft.style,
+				draft.size ? `around ${draft.size}` : null,
+				draft.budget ? `budget ${draft.budget}` : null,
+				draft.timeline,
+			]
+				.filter(Boolean)
+				.join(", ")
+		: "";
 	return (
 		<div aria-live="polite" aria-atomic="true">
-			{error ? (
-				<p id="brief-error" className="flex items-start gap-2 text-sm text-ruby" role="alert">
-					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-					<span>{error}</span>
-				</p>
-			) : null}
 			{saveStatus === "saving" ? (
-				<p className="text-sm text-muted">
-					Saving your enquiry. You can open WhatsApp while it saves.
-				</p>
+				<p className="text-sm text-muted">Saving your brief. You can send it on WhatsApp now.</p>
 			) : null}
 			{saveStatus === "failed" ? (
 				<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
-					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<AlertCircle size={16} aria-hidden="true" className="mt-1 shrink-0" />
 					<span>
-						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or email below, or
+						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or by email, or
 						try saving again.
 					</span>
 				</p>
 			) : null}
 			{saveStatus === "saved" && draft ? (
 				<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
-					<span
-						className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
-						aria-hidden="true"
+					{/* The check pops in on the zoom spring (a response to the visitor's tap, no bounce). */}
+					<motion.span
+						initial={{ scale: 0.8 }}
+						animate={{ scale: 1 }}
+						transition={SPRING_ZOOM}
+						className="flex shrink-0"
 					>
-						<Check size={14} />
-					</span>
+						<IconCircle size="sm" className="bg-(--section-accent) text-bg ring-0">
+							<Check size={14} />
+						</IconCircle>
+					</motion.span>
 					<div>
 						<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
-						<p className="mt-1 text-xs text-muted">
+						{echo ? <p className="mt-1 text-sm text-muted">{echo}.</p> : null}
+						<p className="mt-1 text-sm text-muted">
 							{draft.contact
 								? "We'll use your contact details to reply. You can also send your message on WhatsApp."
 								: "Send it on WhatsApp or email so we have a way to reply."}
@@ -316,70 +397,6 @@ function EnquiryStatus({
 					</div>
 				</div>
 			) : null}
-		</div>
-	);
-}
-
-const inputClass =
-	"block w-full min-h-12 rounded-(--radius-sm) border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";
-
-// Selects drop the OS chevron (appearance-none) so they match the cream/ink
-// fields; a lucide chevron is layered in via the SelectField wrapper. Extra
-// right padding leaves room for it.
-const selectClass = cn(inputClass, "appearance-none pr-11 cursor-pointer");
-
-function SelectField({
-	id,
-	label,
-	children,
-}: Readonly<{
-	id: string;
-	label: string;
-	children: React.ReactNode;
-}>) {
-	return (
-		<Field id={id} label={label} optional>
-			<div className="relative">
-				{children}
-				<ChevronDown
-					size={16}
-					aria-hidden="true"
-					className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted"
-				/>
-			</div>
-		</Field>
-	);
-}
-
-function Field({
-	id,
-	label,
-	optional,
-	required,
-	children,
-}: Readonly<{
-	id: string;
-	label: string;
-	optional?: boolean;
-	required?: boolean;
-	children: React.ReactNode;
-}>) {
-	let hint: React.ReactNode = null;
-	if (required) {
-		hint = <span className="text-xs text-muted">required</span>;
-	} else if (optional) {
-		hint = <span className="text-xs text-muted">optional</span>;
-	}
-	return (
-		<div>
-			<label
-				htmlFor={id}
-				className="flex items-baseline justify-between text-sm font-medium text-ink"
-			>
-				<span>{label}</span>
-				{hint}
-			</label>
-			<div className="mt-2">{children}</div>
 		</div>
 	);
 }

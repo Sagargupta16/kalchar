@@ -1,12 +1,16 @@
 "use client";
 
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { MobileDrawer } from "@/components/layout/mobile-drawer";
+import { useMobileMenu } from "@/components/layout/use-mobile-menu";
+import { Container } from "@/components/ui/container";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { DUR, EASE_OUT, SPRING_INDICATOR } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -23,53 +27,40 @@ const NAV: NavItem[] = [
 ];
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
-const NAV_INDICATOR_SPRING = { type: "spring", stiffness: 400, damping: 30 } as const;
-const MOBILE_DRAWER_TRANSITION = {
-	duration: 0.25,
-	ease: [0.16, 1, 0.3, 1],
-} as const;
 
 interface Props {
 	latinPrefix: string;
 	devanagariCore: string;
+	whatsappHref: string;
 }
 
-export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props>) {
+export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: Readonly<Props>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
+	const [menuPresent, setMenuPresent] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 	const scrollThresholdRef = useRef<HTMLSpanElement>(null);
+	const headerRef = useRef<HTMLElement>(null);
+	const dialogRef = useRef<HTMLDialogElement>(null);
+	const menuButtonRef = useRef<HTMLButtonElement>(null);
+	const closeMenu = useCallback(() => setOpen(false), []);
+	const toggleMenu = useCallback(() => {
+		setMenuPresent(true);
+		setOpen((value) => !value);
+	}, []);
+	useMobileMenu({
+		active: menuPresent,
+		dialogRef,
+		headerRef,
+		triggerRef: menuButtonRef,
+		onClose: closeMenu,
+	});
 
 	// Close on route change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
 	useEffect(() => {
 		setOpen(false);
 	}, [pathname]);
-
-	// Body scroll lock (iOS-safe)
-	useEffect(() => {
-		if (!open) return;
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") setOpen(false);
-		};
-		document.addEventListener("keydown", onKey);
-		const { body } = document;
-		const scrollY = globalThis.scrollY;
-		body.style.position = "fixed";
-		body.style.top = `-${scrollY}px`;
-		body.style.left = "0";
-		body.style.right = "0";
-		body.style.width = "100%";
-		return () => {
-			document.removeEventListener("keydown", onKey);
-			body.style.position = "";
-			body.style.top = "";
-			body.style.left = "";
-			body.style.right = "";
-			body.style.width = "";
-			globalThis.scrollTo(0, scrollY);
-		};
-	}, [open]);
 
 	// Observe a fixed document threshold instead of doing work on every scroll frame.
 	useEffect(() => {
@@ -95,140 +86,195 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore }: Readonly<Props
 				className="pointer-events-none absolute left-0 top-12 h-px w-px"
 			/>
 			<header
+				ref={headerRef}
 				className={cn(
-					"sticky top-0 z-40 border-b bg-bg/90 backdrop-blur-md transition-all duration-(--duration-base) ease-(--ease-out)",
-					scrolled ? "border-line shadow-e3" : "border-transparent",
+					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
+					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
+					// the material stays consistent with the mobile drawer.
+					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
+					// as the subtle edge and e1 shadow arrive, so content sliding under the
+					// bar is what reveals the material. Without backdrop-filter support the
+					// supports-[] fill never applies and the bar stays solid and readable.
+					"sticky top-0 z-nav border-b bg-bg backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-[border-color,box-shadow,background-color] duration-(--duration-base) ease-(--ease-out)",
+					scrolled
+						? "border-line shadow-e1 supports-[backdrop-filter]:bg-bg/85"
+						: "border-transparent",
 				)}
 			>
-				<div
-					className={cn(
-						"mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) transition-[padding] duration-(--duration-base) ease-(--ease-out)",
-						scrolled ? "py-2.5" : "py-3.5 md:py-4",
-					)}
-				>
-					{/* Brand mark */}
-					<Link
-						href="/"
-						className="group flex min-h-11 items-center gap-2.5 transition-colors hover:text-accent"
-						aria-label="Home"
-					>
-						<Image
-							src="/logo.jpg"
-							alt=""
-							width={36}
-							height={36}
-							priority
-							className="h-8 w-8 rounded-full ring-1 ring-line transition-all duration-(--duration-base) ease-(--ease-out) group-hover:ring-accent md:h-9 md:w-9"
-						/>
-						<span className="t-display text-xl tracking-tight md:text-[1.4rem]">
-							<span className="not-italic">{latinPrefix}</span>
-							<span lang="hi" className="font-devanagari not-italic text-accent">
-								{devanagariCore}
-							</span>
-						</span>
-					</Link>
+				<HeaderBar
+					latinPrefix={latinPrefix}
+					devanagariCore={devanagariCore}
+					scrolled={scrolled}
+					open={open}
+					isActive={isActive}
+					onToggle={toggleMenu}
+					triggerRef={menuButtonRef}
+					className={menuPresent ? "invisible" : undefined}
+				/>
+			</header>
+			<dialog
+				ref={dialogRef}
+				aria-label="Site navigation"
+				data-lenis-prevent
+				onCancel={(event) => {
+					event.preventDefault();
+					closeMenu();
+				}}
+				className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-visible border-0 bg-transparent p-0 text-ink backdrop:bg-transparent"
+			>
+				<HeaderBar
+					mobileOnly
+					latinPrefix={latinPrefix}
+					devanagariCore={devanagariCore}
+					scrolled={scrolled}
+					open={open}
+					isActive={isActive}
+					onToggle={toggleMenu}
+				/>
+				<MobileDrawer
+					open={open}
+					items={[...NAV, CONTACT]}
+					isActive={isActive}
+					whatsappHref={whatsappHref}
+					onClose={closeMenu}
+					onExitComplete={() => {
+						if (!open) setMenuPresent(false);
+					}}
+				/>
+			</dialog>
+		</>
+	);
+}
 
-					{/* Desktop nav */}
-					<div className="hidden items-center gap-6 lg:flex">
-						<nav aria-label="Primary">
-							<ul className="flex items-center gap-7">
-								{NAV.map((item) => {
-									const active = isActive(item.href);
-									return (
-										<li key={item.href} className="relative">
-											<Link
-												href={item.href}
-												aria-current={active ? "page" : undefined}
-												className={cn(
-													"relative inline-flex min-h-11 items-center text-xs uppercase tracking-[var(--tracking-meta)] transition-colors",
-													active ? "text-accent" : "text-muted hover:text-ink",
-												)}
-											>
-												{item.label}
-											</Link>
+interface HeaderBarProps {
+	latinPrefix: string;
+	devanagariCore: string;
+	scrolled: boolean;
+	open: boolean;
+	isActive: (href: string) => boolean;
+	onToggle: () => void;
+	triggerRef?: RefObject<HTMLButtonElement | null>;
+	className?: string;
+	mobileOnly?: boolean;
+}
+
+/** Both bars share their layout so entering the modal never moves the header controls. */
+function HeaderBar({
+	latinPrefix,
+	devanagariCore,
+	scrolled,
+	open,
+	isActive,
+	onToggle,
+	triggerRef,
+	className,
+	mobileOnly = false,
+}: Readonly<HeaderBarProps>) {
+	return (
+		<Container
+			className={cn("relative z-10 flex items-center justify-between gap-4 py-2", className)}
+		>
+			{/* Brand scaling keeps the bar at --header-h-shrunk in both scroll states. */}
+			<Link
+				href="/"
+				className="group flex min-h-control items-center gap-3 rounded-(--radius-sm) transition-colors hover:text-accent-text"
+				aria-label="Home"
+			>
+				<span
+					className={cn("inline-flex shrink-0 origin-left transition-ui", scrolled && "scale-90")}
+				>
+					<Image
+						src="/logo.jpg"
+						alt=""
+						width={36}
+						height={36}
+						priority
+						className="size-8 rounded-full ring-1 ring-line transition-ui group-hover:ring-accent md:size-9"
+					/>
+				</span>
+				<span className="t-headline text-xl md:text-2xl">
+					<span>{latinPrefix}</span>
+					<span lang="hi" className="devanagari-display text-accent">
+						{devanagariCore}
+					</span>
+				</span>
+			</Link>
+
+			{/* Desktop nav */}
+			{mobileOnly ? null : (
+				<div className="hidden items-center gap-(--space-group) lg:flex">
+					<nav aria-label="Primary">
+						<ul className="flex items-center gap-1">
+							{NAV.map((item) => {
+								const active = isActive(item.href);
+								return (
+									<li key={item.href}>
+										<Link
+											href={item.href}
+											aria-current={active ? "page" : undefined}
+											className={cn(
+												"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
+												active ? "text-accent-text" : "text-muted hover:text-ink",
+											)}
+										>
+											{item.label}
 											{active ? (
 												<motion.span
 													aria-hidden="true"
 													layoutId="nav-indicator"
-													className="pointer-events-none absolute -bottom-1 left-0 right-0 h-[2px] rounded-full bg-accent"
-													transition={NAV_INDICATOR_SPRING}
+													className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
+													transition={SPRING_INDICATOR}
 												/>
 											) : null}
-										</li>
-									);
-								})}
-							</ul>
-						</nav>
-						<Link
-							href={CONTACT.href}
-							className={cn(
-								"inline-flex h-11 items-center rounded-full px-4 text-xs uppercase tracking-[var(--tracking-meta)] font-medium transition-all duration-(--duration-base) ease-(--ease-out) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-								isActive(CONTACT.href)
-									? "bg-accent text-bg"
-									: "border border-accent/60 text-accent hover:bg-accent hover:text-bg",
-							)}
-						>
-							{CONTACT.label}
-						</Link>
-						<ThemeToggle />
-					</div>
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					</nav>
+					<Link
+						href={CONTACT.href}
+						aria-current={isActive(CONTACT.href) ? "page" : undefined}
+						className={cn(
+							"inline-flex min-h-control items-center rounded-(--radius-sm) px-4 text-sm font-medium transition-ui pressable",
+							isActive(CONTACT.href)
+								? "bg-accent text-bg"
+								: "border border-accent/60 text-accent-text hover:bg-accent hover:text-bg",
+						)}
+					>
+						{CONTACT.label}
+					</Link>
+					<ThemeToggle compact />
+				</div>
+			)}
 
-					{/* Mobile controls */}
-					<div className="flex items-center gap-1.5 lg:hidden">
-						<ThemeToggle />
-						<button
-							type="button"
-							onClick={() => setOpen((v) => !v)}
-							aria-expanded={open}
-							aria-controls="mobile-menu"
-							aria-label={open ? "Close menu" : "Open menu"}
-							className="inline-flex h-11 w-11 items-center justify-center rounded-(--radius-sm) text-ink transition-colors hover:bg-bg-soft hover:text-accent"
+			{/* Mobile controls */}
+			<div className="flex items-center gap-2 lg:hidden">
+				<ThemeToggle compact />
+				<button
+					ref={triggerRef}
+					type="button"
+					onClick={onToggle}
+					aria-expanded={open}
+					aria-controls="mobile-menu"
+					aria-label={open ? "Close menu" : "Open menu"}
+					className="relative grid size-control place-items-center rounded-(--radius-sm) text-ink transition-ui pressable hover:bg-canvas hover:text-accent-text active:bg-canvas"
+				>
+					{/* Hamburger and X cross-fade with a quarter turn (motion addendum C6). */}
+					<AnimatePresence mode="wait" initial={false}>
+						<motion.span
+							key={open ? "close" : "open"}
+							initial={{ rotate: -90, opacity: 0 }}
+							animate={{ rotate: 0, opacity: 1 }}
+							exit={{ rotate: 90, opacity: 0 }}
+							transition={{ duration: DUR.fast, ease: EASE_OUT }}
+							className="absolute inset-0 grid place-items-center"
 						>
 							{open ? <X size={20} /> : <Menu size={20} />}
-						</button>
-					</div>
-				</div>
-
-				{/* Mobile drawer */}
-				<AnimatePresence>
-					{open ? (
-						<motion.div
-							id="mobile-menu"
-							initial={{ height: 0, opacity: 0 }}
-							animate={{ height: "auto", opacity: 1 }}
-							exit={{ height: 0, opacity: 0 }}
-							transition={MOBILE_DRAWER_TRANSITION}
-							className="overflow-hidden lg:hidden"
-						>
-							<nav
-								aria-label="Primary mobile"
-								className="border-t border-line bg-bg px-(--container-px) py-2"
-							>
-								<ul className="flex flex-col">
-									{[...NAV, CONTACT].map((item) => {
-										const active = isActive(item.href);
-										return (
-											<li key={item.href}>
-												<Link
-													href={item.href}
-													aria-current={active ? "page" : undefined}
-													className={cn(
-														"flex min-h-12 items-center justify-between border-b border-line-soft py-3 text-sm transition-colors last:border-b-0",
-														active ? "text-accent font-medium" : "text-ink hover:text-accent",
-													)}
-												>
-													<span>{item.label}</span>
-													<ArrowRight size={14} className="text-muted" />
-												</Link>
-											</li>
-										);
-									})}
-								</ul>
-							</nav>
-						</motion.div>
-					) : null}
-				</AnimatePresence>
-			</header>
-		</>
+						</motion.span>
+					</AnimatePresence>
+				</button>
+			</div>
+		</Container>
 	);
 }
