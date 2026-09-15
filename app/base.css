@@ -1,0 +1,91 @@
+/* Base-layer element rules: html scroll padding and gutter, body, ::selection,
+   the global focus treatment, native control accents, touch-action and the
+   coarse-pointer 44px floor. Split out of app/globals.css (500-line ceiling);
+   globals.css imports this file at the position the block held (after the
+   :root.dark remaps), so the cascade and every token these rules read are
+   unchanged (Tailwind inlines the import at build). */
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+    -webkit-tap-highlight-color: transparent;
+    /* Keep in-page anchor / skip-link / focus targets clear of the sticky
+       header (WCAG 2.4.11 Focus Not Obscured) plus a little breathing room. */
+    scroll-padding-top: calc(var(--header-h-shrunk) + 1rem);
+    /* Desktop only (phones use overlay scrollbars): the page does not shift
+       15px when a modal locks body scroll or a short admin page follows a
+       long one. */
+    scrollbar-gutter: stable;
+  }
+
+  /* Admin tab-bar clearance for scroll-into-view: below xl (80rem, where the
+     bar hides) scrollIntoView and focus scrolling never park a control under
+     the fixed bar. The admin shell root renders data-admin-shell. */
+  @media (max-width: 79.9375rem) {
+    html:has([data-admin-shell]) {
+      scroll-padding-bottom: calc(var(--tabbar-offset) + var(--space-tight));
+    }
+  }
+
+  /* The skip-to-content target: same offset, so "Skip to content" doesn't
+     jump the focused region under the sticky header. */
+  #main {
+    scroll-margin-top: calc(var(--header-h-shrunk) + 1rem);
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow-x: clip;
+    padding-bottom: var(--spacing-safe-bottom);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  /* A shared 2px accent outline, offset 2px, for keyboard focus.
+     :where() keeps specificity low so controls can adjust the offset
+     without replacing the indicator. */
+  :where(a, button, [role="button"], summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  :where(.rounded-full):focus-visible {
+    outline-offset: 3px;
+  }
+  /* Inputs also swap their boundary so the field reads focused without a ring. */
+  :where(input, select, textarea):focus-visible {
+    border-color: var(--color-accent);
+  }
+
+  /* Native checkbox / radio render terracotta, no browser blue (system-5). */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-accent);
+  }
+
+  /* Double-tap zoom stops eating taps on controls; pinch zoom stays. */
+  button,
+  [role="button"],
+  a,
+  label,
+  select,
+  summary {
+    touch-action: manipulation;
+  }
+
+  /* House rule: 44px targets on touch. A safety net under the tokens, not a
+     replacement for min-h-control. Inputs get their height from adminField /
+     inputClass, so they are excluded here. */
+  @media (pointer: coarse) {
+    :where(button, [role="button"], select) {
+      min-height: var(--spacing-control);
+    }
+  }
+}

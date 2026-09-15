@@ -60,7 +60,8 @@
 			"label": "WhatsApp",
 			"display": "+91 87963 16773",
 			"url": "https://wa.me/918796316773",
-			"catalog": "https://wa.me/c/918796316773"
+			"catalog": "https://wa.me/c/918796316773",
+			"note": "Fastest reply, usually same-day"
 		},
 		"email": {
 			"label": "Email",
@@ -74,10 +75,21 @@
 		"display": "@sagar_sethh"
 	},
 	"sections": {
+		"hero": {
+			"title": "Folk art,\nfull of life."
+		},
 		"work": {
 			"eyebrow": "Selected work",
 			"title": "Original pieces, in progress and finished",
-			"lead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Filter by style. Open a piece for a closer look."
+			"pageTitle": "Artwork",
+			"pageLead": "Original paintings, rooted in Indian folk traditions.",
+			"lead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Filter by style. Open a piece for a closer look.",
+			"homeLead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Open a piece for a closer look."
+		},
+		"available": {
+			"eyebrow": "Available now",
+			"title": "Pieces ready to find a home",
+			"lead": "Each one ships from India. Tap a piece to see it up close and enquire on WhatsApp."
 		},
 		"about": {
 			"eyebrow": "About",
@@ -95,6 +107,11 @@
 			"eyebrow": "Workshops",
 			"title": "Hands-on sessions for every age group",
 			"lead": "Workshops are designed to be enjoyable, therapeutic and culturally meaningful. Held for individuals, schools, communities and corporate groups."
+		},
+		"events": {
+			"eyebrow": "Recent events",
+			"title": "From the workshop floor",
+			"lead": "Workshops held, exhibitions, and gatherings with the community."
 		},
 		"contact": {
 			"eyebrow": "Contact",
@@ -127,8 +144,8 @@
 				"Within 2 weeks",
 				"Specific date (mention in notes)"
 			],
-			"submitLabel": "Send order on WhatsApp",
-			"fallbackEmailLabel": "Or email the order instead"
+			"submitLabel": "Send on WhatsApp",
+			"fallbackEmailLabel": "Or email instead"
 		}
 	},
 	"workshops": [
@@ -172,31 +189,31 @@
 		"eyebrow": "FAQ",
 		"title": "Frequently asked questions",
 		"lead": "How enquiries, shipping, and care work for original folk art bought over WhatsApp.",
-		"_notes": "PLACEHOLDER COPY. Replace each 'answer' with Megha's real terms before relying on this page. Do not promise a returns policy that can't be honoured. Every answer is editable here in site.json, no code change needed.",
+		"_notes": "Order-specific payment, delivery, returns and care terms are confirmed directly. This FAQ does not define a payment method, returns window or delivery guarantee.",
 		"faqs": [
 			{
 				"question": "How do I buy a piece?",
-				"answer": "Details coming soon. Tap Enquire on any available piece to open a WhatsApp message; we confirm availability, price, and shipping there. No payment is taken on this site."
+				"answer": "Open an available piece and choose Enquire on WhatsApp. We'll confirm availability, price, and delivery details before you decide. No payment is taken on this website."
 			},
 			{
 				"question": "When and how do I pay?",
-				"answer": "Details coming soon. Payment is arranged directly over WhatsApp once the piece and shipping are confirmed."
+				"answer": "Payment is arranged directly over WhatsApp once the piece and delivery details are confirmed. Ask us about the process before placing your order."
 			},
 			{
 				"question": "Do you ship, and from where?",
-				"answer": "Details coming soon. Pieces ship from India; delivery timelines and courier details will be confirmed with you before you pay."
+				"answer": "Artwork ships from India. Share your delivery location so we can confirm shipping availability, cost, and an estimated timeline."
 			},
 			{
 				"question": "Can I return a piece?",
-				"answer": "Details coming soon. Each work is a one-of-a-kind original; the returns and damage-in-transit stance will be stated here once confirmed."
+				"answer": "Please ask us about returns and how transit damage is handled before placing your order. Confirm the terms for your piece in your conversation with us."
 			},
 			{
 				"question": "How should I care for the artwork?",
-				"answer": "Details coming soon. Handling and framing guidance for the medium will be added here."
+				"answer": "Care and framing depend on the materials used. Send us the artwork's title or a photo so we can share guidance for that piece."
 			},
 			{
 				"question": "Is the work original and authentic?",
-				"answer": "Details coming soon. Every piece is an original handmade work by Megha Seth; authenticity details will be confirmed here."
+				"answer": "The gallery features original handmade work by Megha Seth. If you need information about a particular piece or documentation for your order, ask us before purchasing."
 			}
 		]
 	}

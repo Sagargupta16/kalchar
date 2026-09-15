@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // The admin fixtures replace server actions and run without Next, credentials,
-// or a database. The same spec also runs in the normal browser suite.
+// or a database. The same specs also run in the normal browser suite.
 export default defineConfig({
 	testDir: "../e2e",
-	testMatch: "admin-components.spec.ts",
+	testMatch: /admin-(components|shell|catalog|catalog-add|catalog-editor|catalog-usability|catalog-layout|content-mobile|settings|leads|add-navigation|.*-usability)\.spec\.ts/,
 	outputDir: "../../.cache/admin-components",
 	fullyParallel: true,
 	workers: 2,

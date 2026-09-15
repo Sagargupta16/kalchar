@@ -1,13 +1,15 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { HeroPlates } from "@/components/home/hero-plates";
 import { Reveal } from "@/components/motion/reveal";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
+import { Section } from "@/components/ui/section";
 import { artworkPreloadSrcset } from "@/lib/image-base";
+import { staggerDelay } from "@/lib/motion";
 import type { Artwork, Site } from "@/lib/types";
 
-const FEATURED_SIZES = "(min-width: 768px) 40vw, 85vw";
+/** Shared with hero-plates.tsx: the front plate caps at 22rem on desktop. */
+const FEATURED_SIZES = "(min-width: 768px) 22rem, 85vw";
 
 interface HeroProps {
 	site: Site;
@@ -22,6 +24,7 @@ interface HeroProps {
 	styles: readonly string[];
 }
 
+/** The artwork and two clear actions lead; the headline paints before hydration. */
 export function Hero({
 	site,
 	featured,
@@ -32,7 +35,7 @@ export function Hero({
 	styles,
 }: Readonly<HeroProps>) {
 	return (
-		<section className="relative overflow-hidden border-b border-line">
+		<Section padded wash containerClassName="pt-8 pb-12 md:py-12">
 			{featured ? (
 				<link
 					rel="preload"
@@ -44,80 +47,68 @@ export function Hero({
 				/>
 			) : null}
 
-			<Container className="relative py-(--section-py)">
-				<div className="grid gap-10 md:grid-cols-12 md:items-center md:gap-12">
-					{/* Text column */}
-					<div className="md:col-span-7">
-						<Reveal eager>
-							<p className="t-eyebrow flex items-center gap-2">
-								<span aria-hidden="true" className="text-gold-leaf">
-									✦
-								</span>
-								{site.brand.tagline}
-							</p>
-						</Reveal>
+			<div className="grid gap-7 md:grid-cols-12 md:grid-rows-[auto_auto] md:gap-x-12 md:gap-y-6">
+				{/* Head: eyebrow + h1 */}
+				<div className="md:col-span-5 md:row-start-1 md:self-end">
+					<Reveal eager>
+						<p className="text-sm font-medium text-accent-text">{site.brand.tagline}</p>
+					</Reveal>
 
-						<Reveal
-							eager
-							delayMs={80}
-							as="h1"
-							className="t-display mt-4 text-5xl sm:text-6xl md:text-7xl"
-						>
-							<span className="block">
-								<span className="not-italic">{site.brand.headline.latinPrefix}</span>
-								<span
-									lang="hi"
-									className="flare-after relative inline-block font-devanagari not-italic text-accent"
-								>
-									{site.brand.headline.devanagariCore}
-								</span>
-							</span>
-							<span className="mt-2 block text-2xl text-muted sm:text-3xl md:text-4xl">
-								<span className="not-italic">{site.brand.headline.connector}</span>{" "}
-								<span>{site.brand.headline.suffix}</span>
-							</span>
-						</Reveal>
+					<h1 className="t-headline mt-4 whitespace-pre-line text-display">
+						{site.sections.hero?.title ?? site.brand.title}
+					</h1>
+				</div>
 
-						<p className="t-lead mt-6 max-w-xl">{site.brand.description}</p>
+				{/* Body: lead + chips + CTAs */}
+				<div className="md:col-span-5 md:col-start-1 md:row-start-2 md:self-start">
+					<p className="t-lead max-w-xl">{site.brand.description}</p>
 
-						{/* Style chips */}
-						<Reveal eager delayMs={180}>
-							<ul className="mt-7 flex flex-wrap gap-2" aria-label="Art styles">
+					<Reveal eager delayMs={staggerDelay(4)}>
+						<div className="mt-6 flex flex-wrap gap-3">
+							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
+								See the artwork
+								<ArrowUpRight size={18} aria-hidden="true" />
+							</Link>
+							<Link href="/custom-orders" className={buttonVariants({ variant: "secondary" })}>
+								Order a custom piece
+							</Link>
+						</div>
+					</Reveal>
+					<Reveal eager delayMs={staggerDelay(5)}>
+						<nav aria-label="Browse by style" className="mt-4">
+							<ul className="flex flex-wrap gap-x-4">
 								{styles.map((style) => (
 									<li key={style}>
-										<Badge>{style}</Badge>
+										<Link
+											href={`/work?style=${encodeURIComponent(style)}`}
+											className="inline-flex min-h-control items-center text-sm text-muted underline-offset-4 transition-colors hover:text-accent-text hover:underline"
+										>
+											{style}
+										</Link>
 									</li>
 								))}
 							</ul>
-						</Reveal>
-
-						{/* CTAs */}
-						<Reveal eager delayMs={260}>
-							<div className="mt-8 flex flex-wrap gap-3">
-								<Link href="/work" className={buttonVariants({ variant: "primary" })}>
-									See the artwork
-								</Link>
-								<Link href="/custom-orders" className={buttonVariants({ variant: "secondary" })}>
-									Order a custom piece
-								</Link>
-							</div>
-						</Reveal>
-					</div>
-
-					{/* Featured artwork plates (shuffle on reload, client island) */}
-					{featured ? (
-						<Reveal eager delayMs={120} className="md:col-span-5">
-							<HeroPlates
-								pool={pool}
-								defaultFront={featured}
-								defaultBack={secondary}
-								catalogIndex={catalogIndex}
-								totalCount={totalCount}
-							/>
-						</Reveal>
-					) : null}
+						</nav>
+					</Reveal>
 				</div>
-			</Container>
-		</section>
+
+				{/* Actions precede the artwork on phones; the desktop plate stays alongside. */}
+				{featured ? (
+					<Reveal
+						eager
+						delayMs={staggerDelay(2)}
+						className="mx-auto w-full max-w-xs py-4 sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[22rem] md:self-center"
+					>
+						<HeroPlates
+							pool={pool}
+							defaultFront={featured}
+							defaultBack={secondary}
+							catalogIndex={catalogIndex}
+							totalCount={totalCount}
+						/>
+					</Reveal>
+				) : null}
+			</div>
+		</Section>
 	);
 }

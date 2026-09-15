@@ -2,7 +2,6 @@
 
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +35,8 @@ interface ResponsiveImageProps {
 }
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
-const SETTLE_HIDDEN_STYLE = { opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const;
-const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-items-center bg-bg-soft text-muted";
+const SETTLE_HIDDEN_STYLE = { opacity: 0, transform: "scale(1.02)" } as const;
+const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-content-center gap-2 bg-canvas text-muted";
 type ImageSource = "remote" | "fallback" | "failed";
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
@@ -57,7 +56,6 @@ export function ResponsiveImage({
 }: Readonly<ResponsiveImageProps>) {
 	const [imageSource, setImageSource] = useState<ImageSource>("remote");
 	const [loaded, setLoaded] = useState(false);
-	const reduceMotion = usePrefersReducedMotion();
 
 	// Reset per image: when the same mounted instance is pointed at a new
 	// keyBase (lightbox arrows, hero shuffle), a previous photo's failure or
@@ -90,27 +88,35 @@ export function ResponsiveImage({
 		});
 	};
 	if (activeSource === "failed") {
+		// The caption is visual only: the labelled branch already names the image.
+		const caption = (
+			<>
+				<ImageOff className="mx-auto size-7 md:size-9" aria-hidden="true" />
+				<span className="t-meta">Image unavailable</span>
+			</>
+		);
 		if (!alt) {
 			return (
 				<div aria-hidden="true" className={FALLBACK_CLASS_NAME}>
-					<ImageOff size={28} aria-hidden="true" />
+					{caption}
 				</div>
 			);
 		}
 
 		return (
 			<div role="img" aria-label={alt} className={FALLBACK_CLASS_NAME}>
-				<ImageOff size={28} aria-hidden="true" />
+				{caption}
 			</div>
 		);
 	}
 
-	// Gallery-register settle: the image fades + lifts out of a soft blur as it
-	// decodes. Priority (LCP) images and reduced-motion users skip it. The hidden
+	// Gallery-register settle: the image fades in and settles from 1.02 as it
+	// decodes (opacity + transform only, compositor-safe). Priority (LCP) images
+	// skip it. The hidden
 	// state is an INLINE opacity:0 so the no-JS <noscript> net in layout.tsx
 	// unhides it for crawlers -- the same contract Reveal relies on.
 	const isFallback = activeSource === "fallback";
-	const animate = !isFallback && !priority && !reduceMotion;
+	const animate = !isFallback && !priority;
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
 	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
 	const image = (
@@ -128,8 +134,7 @@ export function ResponsiveImage({
 			style={settleStyle}
 			className={cn(
 				imgClass,
-				animate &&
-					"transition-[opacity,transform,filter] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
+				animate && "transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out)",
 			)}
 		/>
 	);

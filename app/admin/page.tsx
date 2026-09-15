@@ -1,11 +1,10 @@
-import { Image, Package, ShoppingBag, Star } from "lucide-react";
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllArtworks, getCategoryNames } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
-import { AdminPageHeader } from "./_components/admin-page-header";
+import { AdminPage } from "./_components/admin-page";
+import { AdminPanel } from "./_components/admin-panel";
 import { ArtworkGrid } from "./_components/artwork-grid";
-import { ArtworkRow } from "./_components/artwork-row";
-import { UploadForm } from "./_components/upload-form";
+import { isPiecesFilter, type PiecesFilter } from "./_components/artwork-list-state";
 
 /**
  * Server actions inherit this route's budget. Generating one artwork's variant
@@ -14,90 +13,43 @@ import { UploadForm } from "./_components/upload-form";
  */
 export const maxDuration = 60;
 
-export default async function AdminDashboard() {
+/**
+ * The paintings ARE the dashboard (Tier 1a): header, search, count chips (the
+ * stats, now tappable filters), then the thumbnail grid. The 2x2 stat tiles
+ * are gone (their numbers live in the chips) and the add form left the page
+ * (it lives behind the raised Add as a sheet, D-A5). The `?show=` URL contract
+ * survives through `initialFilter`.
+ */
+export default async function AdminDashboard({
+	searchParams,
+}: Readonly<{ searchParams: Promise<{ show?: string }> }>) {
 	await requireAdminPage();
-	const [artworks, categoryNames] = await Promise.all([getAllArtworks(), getCategoryNames()]);
-	const available = artworks.filter((a) => a.status === "available").length;
-	const sold = artworks.filter((a) => a.status === "sold").length;
-	const featured = artworks.filter((a) => a.featured).length;
+	const [{ show }, artworks, categoryNames] = await Promise.all([
+		searchParams,
+		getAllArtworks(),
+		getCategoryNames(),
+	]);
+	const filter: PiecesFilter = isPiecesFilter(show) ? show : "all";
 
 	return (
-		<div className="space-y-8">
-			<AdminPageHeader
-				title="Pieces"
-				description="Your catalog at a glance, plus add, reorder, and manage each piece."
-			/>
-
-			{/* Stats */}
-			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-				<StatCard icon={Image} label="Total pieces" value={artworks.length} />
-				<StatCard icon={ShoppingBag} label="Available" value={available} />
-				<StatCard icon={Package} label="Sold" value={sold} />
-				<StatCard icon={Star} label="Featured" value={featured} />
-			</div>
-
-			{/* Upload section */}
-			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
-				<h2 className="text-sm font-semibold">Add a new piece</h2>
-				<UploadForm categories={categoryNames} />
-			</section>
-
-			{/* Reorder section */}
-			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
-				<div className="mb-4">
-					<h2 className="text-sm font-semibold">Gallery order</h2>
-					<p className="mt-1 text-xs text-muted">
-						Drag pieces to reorder. This controls display order on the public site.
-					</p>
-				</div>
+		<AdminPage
+			title="Pieces"
+			description="Manage your artwork, prices and availability. Open a piece to edit its details."
+		>
+			{/* No panel title: the page h1 is already "Pieces" (one-name rule). */}
+			<AdminPanel
+				id="pieces"
+				className="scroll-mt-[calc(var(--header-h-shrunk)+1rem)] xl:scroll-mt-[calc(var(--header-h-shrunk)+4.5rem)]"
+			>
 				<ArtworkGrid
-					artworks={artworks.map((a) => ({
-						slug: a.slug,
-						title: a.title,
-						style: a.style,
-						status: a.status ?? "archive",
-						featured: a.featured,
-						priceInr: a.priceInr,
-						thumb: artworkBrowserImageUrl(a.image, 400, "webp"),
+					items={artworks.map((art) => ({
+						art,
+						thumb: artworkBrowserImageUrl(art.image, 400, "webp"),
 					}))}
+					categories={categoryNames}
+					initialFilter={filter}
 				/>
-			</section>
-
-			{/* Detailed management */}
-			<section className="rounded-(--radius-md) border border-line bg-bg p-5 sm:p-6">
-				<div className="mb-4">
-					<h2 className="text-sm font-semibold">Manage pieces</h2>
-					<p className="mt-1 text-xs text-muted">
-						Tap Edit to change any detail, price, status, image, or to delete a piece.
-					</p>
-				</div>
-				<div className="space-y-2">
-					{artworks.map((art) => (
-						<ArtworkRow
-							key={art.slug}
-							art={art}
-							thumb={artworkBrowserImageUrl(art.image, 400, "webp")}
-							categories={categoryNames}
-						/>
-					))}
-				</div>
-			</section>
-		</div>
-	);
-}
-
-function StatCard({
-	icon: Icon,
-	label,
-	value,
-}: Readonly<{ icon: typeof Image; label: string; value: number }>) {
-	return (
-		<div className="rounded-(--radius-md) border border-line bg-bg p-4">
-			<div className="flex items-center gap-2">
-				<Icon size={14} className="text-muted" />
-				<span className="text-xs text-muted">{label}</span>
-			</div>
-			<p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
-		</div>
+			</AdminPanel>
+		</AdminPage>
 	);
 }

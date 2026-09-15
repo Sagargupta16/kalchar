@@ -1,0 +1,354 @@
+/* Animation and typography classes. Imported after the shared tokens in
+   globals.css. Motion stays enabled independently of OS animation preferences. */
+
+/* ─── ANIMATION CLASSES ─── */
+
+/* Native scroll-driven progress avoids a JS scroll listener and updates on the
+   compositor. Browsers without scroll timelines simply hide the enhancement. */
+.scroll-progress-bar {
+  transform: scaleX(0);
+  animation: scroll-progress linear both;
+  animation-timeline: scroll(root block);
+}
+
+@keyframes scroll-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .scroll-progress-bar {
+    display: none;
+  }
+}
+
+/* Home hero artwork plates -- smooth ease when the random shuffle changes
+   the tilt angle on reload.
+   will-change is only promised while a shuffle is pending, not permanently. */
+.hero-plate {
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+[data-shuffle-status="pending"] .hero-plate {
+  will-change: transform;
+}
+
+/* Idle plate float (steering 2026-09-14): hero and single art plates breathe
+   on a compositor-only transform loop so the work reads alive between
+   gestures (portfolio-react's tile drift, adapted to painting scale). Named
+   knobs, set inline per plate so neighbours never sync:
+     --float-travel  max rise; 6px default, front plates up to 8px
+     --float-period  half-cycle; defaults to --duration-float (7s alternate)
+     --float-delay   negative phase offset (e.g. -3s) staggers siblings
+     --float-rotate  optional crest tilt, 0.5deg max, default 0
+     --float-state   consumers with an in-view gate set `paused` offscreen
+   Apply on a NESTED wrapper, never on an element that already transitions or
+   animates transform (.hero-plate shuffles; PlateFrame lifts on hover), and
+   never on the 21-plate grid (busy-ornament territory). Transform-only, so
+   offscreen instances pause through the visibility gate supplied by their host. */
+.plate-float {
+  animation: plate-float var(--float-period, var(--duration-float)) var(--ease-in-out) infinite alternate;
+  animation-delay: var(--float-delay, 0s);
+  animation-play-state: var(--float-state, running);
+}
+
+@keyframes plate-float {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(calc(-1 * var(--float-travel, 6px))) rotate(var(--float-rotate, 0deg));
+  }
+}
+
+/* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
+   route's server data resolves (route loading.tsx files). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-line) 55%, transparent),
+    transparent
+  );
+  animation: skeleton-sweep var(--duration-shimmer) ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Page enter -- a soft fade-up on client-side navigation, applied by
+   app/template.tsx. The first paint is NOT animated (would delay LCP); the
+   template only adds this class after the initial mount. */
+.page-enter {
+  animation: page-enter-in var(--duration-base) var(--ease-out) both;
+}
+
+/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
+   any keyframe, the browser holds it as a computed matrix (even identity,
+   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
+   this wrapper makes it the containing block for every `position: fixed`
+   descendant -- which un-pins the admin mobile tab bar and the reorder bar
+   from the viewport after a client navigation and sends taps to the wrong
+   place. A plain fade has no such side effect. */
+@keyframes page-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translate(var(--reveal-offset-x, 0px), var(--reveal-offset-y, var(--reveal-travel)));
+  animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes reveal-up-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hero flare line: grows on scaleX from the left (transform, never width, so
+   the document does not shift) once the hero copy has landed (--delay-flare). */
+.flare-after::after {
+  content: "";
+  display: block;
+  height: 1px;
+  width: var(--flare-w, 100%);
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: flare-grow var(--duration-slow) var(--ease-out) var(--delay-flare) forwards;
+}
+
+@keyframes flare-grow {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Plate unveil for artwork grids: the image is already at final size, only the
+   visible region grows (clip-path), so the painting is never resampled. Reveal
+   variant="plate" applies it on the eager path; never on the hero (LCP). */
+.reveal-plate {
+  clip-path: inset(0 0 100% 0);
+  animation: reveal-plate-in var(--duration-slow) var(--ease-out) both;
+}
+
+/* Single-plate unveil modifier (detail plate on client nav, about portrait,
+   spanning grid lead): duration and curve only, on top of .reveal-plate
+   (visual-direction 1.7). */
+.reveal-plate-unveil {
+  animation-duration: var(--duration-unveil);
+  animation-timing-function: var(--ease-emphatic);
+}
+
+@keyframes reveal-plate-in {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/* Theme toggle icon-in: the new glyph rotates into place. First consumer of
+   --ease-in-out (the toggle re-keys the icon on every mode change). */
+.theme-icon-in {
+  animation: theme-icon-in var(--duration-base) var(--ease-in-out) both;
+}
+
+@keyframes theme-icon-in {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
+}
+
+/* Gold-leaf sheen: one soft-light pass of gold across a plate frame on group
+   hover, or a slow loop where the caller sets data-sheen="loop" (period from
+   --sheen-every; the hero front plate sets 8s). Allowed by the house rules
+   ("gold-leaf shimmer" on the work). The host needs position: relative and
+   overflow: hidden. The band is the gold gradient ladder (metal = value
+   contrast within the gold) at 0.24 opacity so the sweep never lightens the
+   painting more than the old flat mix did (visual-direction 1.9). */
+.gold-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: soft-light;
+  opacity: 0.24;
+  background: var(--gradient-gold-sheen);
+  transform: translateX(-100%);
+}
+
+.group:hover .gold-sheen::after,
+.gold-sheen[data-sheen="loop"]::after {
+  animation: gold-sheen var(--duration-slow) var(--ease-in-out) both;
+}
+
+.gold-sheen[data-sheen="loop"]::after {
+  animation-iteration-count: infinite;
+  animation-duration: var(--sheen-every, 6s);
+  animation-timing-function: linear;
+}
+
+@keyframes gold-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Admin notice enter: opacity only. No transform inside position: relative
+   panels, and admin motion is feedback, not decoration. */
+.notice-in {
+  animation: notice-in var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Chrome's ThemeToggle adds .theme-switching to <html> for two frames around
+   the class flip so every token swaps in one repaint instead of 150ms of
+   staggered transition-colors (insp: beautifului.dev / Freeze transitions). */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* ─── TYPOGRAPHY ROLE CLASSES ─── */
+/* In @layer components so text-* and colour utilities can override them
+   (unlayered, they beat every utility and `t-meta text-micro` was dead).
+   Moved here from globals.css (500-line ceiling). */
+
+@layer components {
+  .t-display {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  /* Roman headline voice for the display rungs (t-headline text-display /
+     text-display-sm). 600 on purpose: Cormorant's strokes are light for a
+     poster rung on cream (visual-direction 1.1). Never under 16px, never on
+     running text. */
+  .t-headline {
+    font-family: var(--font-display);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: var(--tracking-headline);
+    line-height: 1.02; /* matches the display rung line-heights (steering 2026-09-14; was 0.95) */
+    text-wrap: balance;
+  }
+
+  /* Numeral voice: plate numbers, counts, prices in wall labels, wall dates.
+     Inherits its size from a text-* utility. */
+  .t-numeral {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sans heading voice (admin dialog titles and the like). */
+  .t-heading {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .t-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-micro);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .t-meta {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-body {
+    font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+    line-height: 1.7;
+    color: var(--color-ink-soft);
+    text-wrap: pretty;
+  }
+
+  .t-lead {
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    line-height: 1.65;
+    /* deliberate dek: larger than body, lighter than body; page files must
+       not recolour it (system-26) */
+    color: var(--color-muted);
+    text-wrap: pretty;
+  }
+
+  /* Brand span in the Devanagari face (chrome consumes). vertical-align reads
+     --devanagari-shift so display-size wordmarks can tune the baseline locally
+     (visual-direction 1.1 wordmark note). */
+  .devanagari-display {
+    font-family: var(--font-devanagari);
+    font-style: normal;
+    font-size: 1.08em;
+    line-height: 1.35;
+    letter-spacing: 0;
+    vertical-align: var(--devanagari-shift);
+  }
+
+  /* Back-to-top yields to the floating WhatsApp disc (visual-direction 2.14):
+     when the FAB is mounted, back-to-top moves up one FAB slot. Layout, not
+     animation; vu-chrome only adds the data hooks. */
+  html:has([data-enquire-fab]) [data-back-to-top] {
+    margin-bottom: calc(var(--spacing-fab) + 0.75rem);
+  }
+}
+
+/* ─── EDITORIAL TYPOGRAPHY ─── */
+
+.drop-cap::first-letter {
+  font-family: var(--font-display);
+  font-style: italic;
+  float: left;
+  font-size: 3.2rem;
+  line-height: 0.85;
+  padding: 0.3rem 0.5rem 0 0;
+  color: var(--section-accent, var(--color-accent));
+}

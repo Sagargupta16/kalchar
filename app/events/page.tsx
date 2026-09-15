@@ -2,13 +2,16 @@ import { ArrowRight, CalendarDays, Pin } from "lucide-react";
 import Link from "next/link";
 import { EventGallery } from "@/components/events/event-gallery";
 import { Reveal } from "@/components/motion/reveal";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
+import { ClosingCta } from "@/components/ui/closing-cta";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getAllEvents } from "@/lib/data";
+import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
-import { cn, formatEventDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export const metadata = createPageMetadata({
 	title: "Events",
@@ -17,107 +20,213 @@ export const metadata = createPageMetadata({
 	path: "/events/",
 });
 
-/** Reveal stagger: each event waits index * step, capped so later ones aren't slow. */
-const STAGGER_STEP_MS = 80;
-const STAGGER_MAX_INDEX = 4;
+const EVENT_DATE_LOCALE = "en-IN";
+
+/** Split an ISO date into wall-date parts ("24", "Sep", "2026"); null when invalid. */
+function wallDateParts(iso: string): { day: string; month: string; year: string } | null {
+	if (!iso) return null;
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return null;
+	return {
+		day: String(date.getUTCDate()),
+		month: date.toLocaleDateString(EVENT_DATE_LOCALE, { month: "short", timeZone: "UTC" }),
+		year: String(date.getUTCFullYear()),
+	};
+}
+
+/**
+ * The exhibition wall date (visual-direction 2.6): bare day numeral in the
+ * numeral voice (30px at 390, 44px in the 1280 chronology column) beside the
+ * stacked month/year meta with the kept calendar glyph. The first entry of
+ * each year hangs its year as a display watermark behind the numeral. In the
+ * lg chronology the date sits on a fit-width glass chip (material-glass,
+ * steering 2026-09-14): the sticky date is the one element content passes
+ * beneath, and the utility itself falls back to an opaque surface where
+ * backdrop-filter is unsupported. At 390 the date stays bare wall text.
+ */
+function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean }>) {
+	const date = wallDateParts(iso);
+	if (!date) return null;
+	return (
+		<div className="relative isolate lg:sticky lg:top-[calc(var(--header-h-shrunk)+var(--space-page))] lg:self-start">
+			{watermark ? (
+				<span
+					aria-hidden="true"
+					data-year-watermark
+					className="t-headline pointer-events-none absolute -top-8 -left-2 -z-10 hidden select-none text-display text-line lg:block"
+				>
+					{date.year}
+				</span>
+			) : null}
+			<Reveal eager>
+				<time
+					dateTime={iso}
+					className="flex items-baseline gap-3 lg:material-glass lg:w-fit lg:flex-col lg:items-start lg:gap-1 lg:rounded-(--radius-md) lg:px-3 lg:py-2"
+				>
+					<span className="t-numeral text-h2 text-(--section-accent) lg:text-h1">{date.day}</span>
+					<span className="t-meta flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-1.5">
+						<span className="inline-flex items-center gap-1.5">
+							<CalendarDays size={12} aria-hidden="true" />
+							{date.month}
+						</span>
+						<span>{date.year}</span>
+					</span>
+				</time>
+			</Reveal>
+		</div>
+	);
+}
 
 export default async function EventsPage() {
 	const events = await getAllEvents();
+	const firstGalleryIndex = events.findIndex((event) => event.images.length > 0);
 
 	return (
 		<main>
-			<Section accent="peacock">
-				<Container className="py-(--section-py)">
-					<PageHeader
-						eyebrow="Events"
-						title="Workshops, exhibitions, and gatherings"
-						lead="Moments from the louder room: hands-on sessions, shows, and the community that gathers around folk art."
-					/>
+			<Section accent="peacock" background="wash" padded containerClassName="py-(--space-block)">
+				<PageHeader
+					eyebrow="Events"
+					title="Workshops, exhibitions, and gatherings"
+					lead="A look back at hands-on sessions, exhibitions, and the community that gathers around folk art."
+				>
+					<Link
+						href="/workshops"
+						className={cn(buttonVariants({ variant: "secondary" }), "mt-5 w-full sm:w-auto")}
+					>
+						Find a workshop
+						<ArrowRight size={16} aria-hidden="true" />
+					</Link>
+				</PageHeader>
+			</Section>
 
-					{events.length > 0 ? (
-						<div className="mt-12 space-y-8 sm:mt-16 sm:space-y-10">
-							{events.map((event, i) => (
-								<Reveal
+			<Section accent="peacock" padded containerClassName="pt-(--space-block)">
+				{events.length > 0 ? (
+					<div className="relative">
+						{events.map((event, i) => {
+							const year = wallDateParts(event.eventDate)?.year;
+							const previousYear =
+								i > 0 ? wallDateParts(events[i - 1]?.eventDate ?? "")?.year : undefined;
+							return (
+								// The wrapper carries the anchor so home cards can deep-link to
+								// /events#<id>, plus the entry seam; the Reveal stays the
+								// <article> (e2e transform check).
+								<div
 									key={event.id}
-									as="article"
-									eager={i === 0}
-									delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
-									className="overflow-hidden rounded-(--radius-md) border border-line bg-bg-soft/40 p-5 sm:p-7"
+									id={event.id}
+									className="scroll-mt-(--space-page) border-t border-(--color-gold-hairline) first:border-t-0"
 								>
-									<header className="mb-5 flex flex-col gap-1.5 sm:mb-6">
-										<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-											{event.eventDate ? (
-												<p className="t-meta inline-flex items-center gap-1.5 text-(--section-accent)">
-													<CalendarDays size={13} aria-hidden="true" />
-													{formatEventDate(event.eventDate)}
-												</p>
+									<Reveal
+										as="article"
+										eager={i < 2}
+										delayMs={staggerDelay(i)}
+										className={cn(
+											"grid gap-4 py-(--space-block) lg:grid-cols-[10rem_1fr] lg:gap-10",
+											i === 0 && "pt-0",
+										)}
+									>
+										<WallDate
+											iso={event.eventDate}
+											watermark={year !== undefined && year !== previousYear}
+										/>
+										<div className="min-w-0">
+											<Reveal eager delayMs={staggerDelay(1)}>
+												<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+													{event.category ? <Badge>{event.category}</Badge> : null}
+													{event.featured ? (
+														<Badge variant="accent-soft">
+															<Pin size={12} aria-hidden="true" />
+															Featured
+														</Badge>
+													) : null}
+												</div>
+												<h2
+													className={cn(
+														"t-display text-title",
+														(event.category || event.featured) && "mt-2",
+													)}
+												>
+													{event.title}
+												</h2>
+											</Reveal>
+											{event.description ? (
+												<Reveal eager delayMs={staggerDelay(2)}>
+													<p className="t-body mt-2 max-w-(--measure-essay)">{event.description}</p>
+												</Reveal>
 											) : null}
-											{event.category ? (
-												<span className="rounded-full border border-line px-2.5 py-0.5 text-[0.65rem] uppercase tracking-[var(--tracking-meta)] text-muted">
-													{event.category}
-												</span>
-											) : null}
-											{event.featured ? (
-												<span className="inline-flex items-center gap-1 rounded-full bg-(--section-accent)/12 px-2.5 py-0.5 text-[0.65rem] uppercase tracking-[var(--tracking-meta)] text-(--section-accent)">
-													<Pin size={10} aria-hidden="true" />
-													Pinned
-												</span>
+											{event.images.length > 0 ? (
+												<div className="mt-6">
+													<EventGallery
+														images={event.images}
+														title={event.title}
+														lead={i === firstGalleryIndex}
+													/>
+												</div>
 											) : null}
 										</div>
-										<h2 className="t-display text-2xl sm:text-3xl">{event.title}</h2>
-										{event.description ? (
-											<p className="t-body max-w-2xl text-muted">{event.description}</p>
-										) : null}
-									</header>
-
-									<EventGallery images={event.images} title={event.title} />
-								</Reveal>
-							))}
-						</div>
-					) : (
-						<Reveal delayMs={120}>
-							<div className="mt-12 rounded-(--radius-md) border border-dashed border-line bg-bg-soft px-6 py-16 text-center">
-								<CalendarDays
-									size={28}
-									aria-hidden="true"
-									className="mx-auto text-(--section-accent)"
-								/>
-								<p className="t-display mt-4 text-xl">No events posted yet</p>
-								<p className="mx-auto mt-2 max-w-md text-sm text-muted">
-									Workshops, exhibitions, and gatherings will appear here. Follow along on Instagram
-									for the latest.
-								</p>
-							</div>
-						</Reveal>
-					)}
-
-					{/* Closing CTA: events are the proof; point interested visitors to
-					    the workshops they can actually book. Shown only when there are
-					    events, so the empty state stays quiet. Internal link, no popup. */}
-					{events.length > 0 ? (
-						<Reveal delayMs={120}>
-							<div className="mt-12 flex flex-col items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft/40 p-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between">
-								<div>
-									<p className="t-display text-xl">Want a session like these?</p>
-									<p className="mt-1 text-sm text-muted">
-										We run hands-on workshops for groups, schools, and studios.
-									</p>
+									</Reveal>
 								</div>
+							);
+						})}
+						{/* The exhibition timeline: one gold hairline running the full
+						    height of the chronology, between the date and record columns
+						    (10rem column + half the lg gap of 2.5rem; the column narrowed
+						    from 12rem with the calmer 44px day numeral and 68px watermark,
+						    steering 2026-09-14). Rendered last so the first entry wrapper
+						    stays :first-child for its border. */}
+						<div
+							aria-hidden="true"
+							data-timeline
+							className="absolute inset-y-0 left-[11.25rem] hidden w-px bg-(--color-gold-hairline) lg:block"
+						/>
+					</div>
+				) : (
+					<Reveal delayMs={staggerDelay(1)}>
+						<EmptyState
+							icon={<CalendarDays size={24} aria-hidden="true" />}
+							title="No events posted yet"
+							body="Workshops, exhibitions, and gatherings will appear here. Explore our workshops to enquire about a session."
+							action={
 								<Link
 									href="/workshops"
-									className={cn(buttonVariants({ variant: "secondary" }), "group shrink-0")}
+									className={cn(buttonVariants({ variant: "secondary" }), "group")}
 								>
 									See workshops
 									<ArrowRight
 										size={14}
 										aria-hidden="true"
-										className="transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:translate-x-1"
+										className="transition-transform group-hover:translate-x-1"
 									/>
 								</Link>
-							</div>
-						</Reveal>
-					) : null}
-				</Container>
+							}
+						/>
+					</Reveal>
+				)}
+
+				{/* Closing CTA: events are the proof; point interested visitors to
+				    the workshops they can actually book. Shown only when there are
+				    events, so the empty state stays quiet. Internal link, no popup. */}
+				{events.length > 0 ? (
+					<Reveal delayMs={staggerDelay(2)}>
+						<ClosingCta
+							className="bg-canvas"
+							title="Want a session like these?"
+							body="We run hands-on workshops for groups, schools, and studios."
+							action={
+								<Link
+									href="/workshops"
+									className={cn(buttonVariants({ variant: "secondary" }), "group w-full sm:w-auto")}
+								>
+									See workshops
+									<ArrowRight
+										size={14}
+										aria-hidden="true"
+										className="transition-transform group-hover:translate-x-1"
+									/>
+								</Link>
+							}
+						/>
+					</Reveal>
+				) : null}
 			</Section>
 		</main>
 	);

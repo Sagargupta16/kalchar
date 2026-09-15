@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { deriveStatus, getCtaCopy, isForSale, isPositivePrice } from "./catalog";
+import {
+	deriveStatus,
+	getCtaCopy,
+	isForSale,
+	isPositivePrice,
+	mostSaturatedSwatch,
+} from "./catalog";
 
 describe("isPositivePrice", () => {
 	it("accepts a set positive number", () => {
@@ -72,5 +78,29 @@ describe("getCtaCopy", () => {
 			expect(label).not.toContain(" -- ");
 			expect(note).not.toContain(" -- ");
 		}
+	});
+});
+
+describe("mostSaturatedSwatch (the lightbox glow)", () => {
+	it("picks the highest-chroma swatch, not index 0", () => {
+		// Near-white lead swatch must lose to the saturated red.
+		expect(mostSaturatedSwatch(["#f5f0e8", "#c0392b", "#8a8680"])).toBe("#c0392b");
+	});
+	it("a pastel palette still yields its most coloured swatch, never a grey", () => {
+		expect(mostSaturatedSwatch(["#d8d8d8", "#e8c8c8", "#c8d8e8"])).toBe("#e8c8c8");
+	});
+	it("supports 3-digit hex and a missing # prefix", () => {
+		expect(mostSaturatedSwatch(["#abc", "f00"])).toBe("f00");
+	});
+	it("skips invalid entries and keeps valid ones", () => {
+		expect(mostSaturatedSwatch(["not-a-colour", "#00ff00"])).toBe("#00ff00");
+	});
+	it("returns undefined for empty, missing or all-invalid palettes", () => {
+		expect(mostSaturatedSwatch(undefined)).toBeUndefined();
+		expect(mostSaturatedSwatch([])).toBeUndefined();
+		expect(mostSaturatedSwatch(["nope", "#12"])).toBeUndefined();
+	});
+	it("a flat grey palette still returns a swatch (chroma 0 beats none)", () => {
+		expect(mostSaturatedSwatch(["#888888", "#444444"])).toBe("#888888");
 	});
 });

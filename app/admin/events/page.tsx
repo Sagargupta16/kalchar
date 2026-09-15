@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllEvents } from "@/lib/data";
-import { AdminPageHeader } from "../_components/admin-page-header";
+import { AdminPage } from "../_components/admin-page";
 import { EventsManager } from "../_components/events-manager";
 
 /** An event batch processes up to 12 masters in one action; see app/admin/page.tsx. */
@@ -11,12 +11,11 @@ export default async function AdminEventsPage() {
 	const events = await getAllEvents();
 
 	return (
-		<div className="max-w-3xl space-y-6">
-			<AdminPageHeader
-				title="Events"
-				description="Add workshops held, exhibitions, classes, and gatherings. Each event is a photo gallery. The public page shows newest first; pin one to keep it at the top."
-			/>
+		<AdminPage
+			title="Events"
+			description="Workshops held, exhibitions, classes and gatherings, each with its own photo gallery. The public page shows the newest first; pin one to keep it at the top."
+		>
 			<EventsManager events={[...events]} />
-		</div>
+		</AdminPage>
 	);
 }

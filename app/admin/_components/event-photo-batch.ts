@@ -9,15 +9,19 @@
  * call is its own function invocation, so they run in parallel) and finally
  * hands the finished key-bases to createEvent or attachEventPhotos in one
  * ordered write. Sequencing lives in lib/event-photo-batch.ts (pure, tested);
- * this file only wires it to the form data and the server actions.
+ * this file only wires it to the form data and the server actions. The create
+ * form passes the `files` React state as the `images` entries, so anything the
+ * strip removed or reordered is what gets staged.
  */
 import { type ActionResult, isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
 import {
 	type BatchProgress,
 	describeParallelBatch,
 	firstFailureMessage,
 	processInParallel,
 } from "@/lib/event-photo-batch";
+import { formatBytes } from "@/lib/utils";
 import {
 	attachEventPhotos,
 	createEvent,
@@ -26,11 +30,41 @@ import {
 } from "../event-actions";
 import { stageFormImages } from "./stage-image";
 
+// Mirrors the staging and server write limits; validate the whole selection before uploading.
+const PHOTO_BATCH_LIMIT = 12;
+const PHOTO_SIZE_LIMIT_MB = 20;
+export const EVENT_PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
+const PHOTO_TYPES = new Set(EVENT_PHOTO_ACCEPT.split(","));
+
+export function validateEventPhotos(files: readonly File[]): string | null {
+	if (files.length > PHOTO_BATCH_LIMIT) {
+		return `Choose up to ${PHOTO_BATCH_LIMIT} photos at a time. You picked ${files.length}.`;
+	}
+	for (const file of files) {
+		if (file.size === 0) return `"${file.name}" is empty. Choose another photo.`;
+		if (file.size > PHOTO_SIZE_LIMIT_MB * 1024 * 1024) {
+			return `"${file.name}" is ${formatBytes(file.size)}. Photos must be ${PHOTO_SIZE_LIMIT_MB} MB or smaller.`;
+		}
+		if (!PHOTO_TYPES.has(file.type.toLowerCase())) {
+			return `"${file.name}" must be a JPG, PNG or WebP photo.`;
+		}
+	}
+	return null;
+}
+
+function selectedPhotos(formData: FormData): File[] {
+	return formData
+		.getAll("images")
+		.filter((value): value is File => value instanceof File && value.name !== "");
+}
+
 export interface BatchHandlers {
 	/** Called as the masters upload to R2, with the share of bytes sent. */
 	onStaging?: (fraction: number) => void;
 	/** Called each time a photo finishes processing. */
-	onProgress: (progress: BatchProgress) => void;
+	onProgress?: (progress: BatchProgress) => void;
+	/** Called with the selection index as each photo finishes processing (per-tile progress edges, N1). */
+	onPhotoDone?: (index: number) => void;
 	/** Called once when some photos failed but the rest were saved. */
 	onPartial: (notice: string) => void;
 }
@@ -59,14 +93,22 @@ export async function createEventWithPhotos(
 	formData: FormData,
 	handlers: BatchHandlers,
 ): Promise<ActionResult<{ id: string }>> {
+	if (!formString(formData, "title").trim()) {
+		return { ok: false, message: "Enter a title." };
+	}
+	const problem = validateEventPhotos(selectedPhotos(formData));
+	if (problem) return { ok: false, message: problem };
 	await stageFormImages(formData, handlers.onStaging);
 	const keys = stagedKeys(formData);
 	const reserved = await reserveEventId();
 	if (isFailure(reserved)) return reserved;
 
-	const outcome = await processInParallel(keys, (key) => processEventPhoto(reserved.id, key), {
-		onProgress: handlers.onProgress,
-	});
+	const outcome = await processInParallel(
+		keys,
+		(key, index) =>
+			processEventPhoto(reserved.id, key).finally(() => handlers.onPhotoDone?.(index)),
+		{ onProgress: handlers.onProgress },
+	);
 	if (keys.length > 0 && outcome.keyBases.length === 0) {
 		return { ok: false, message: firstFailureMessage(outcome) };
 	}
@@ -91,14 +133,20 @@ export async function addEventPhotos(
 	eventId: string,
 	formData: FormData,
 	handlers: BatchHandlers,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ images: string[] }>> {
+	const files = selectedPhotos(formData);
+	if (files.length === 0) return { ok: false, message: "Choose one or more photos." };
+	const problem = validateEventPhotos(files);
+	if (problem) return { ok: false, message: problem };
 	await stageFormImages(formData, handlers.onStaging);
 	const keys = stagedKeys(formData);
-	if (keys.length === 0) return { ok: true };
+	if (keys.length === 0) return { ok: false, message: "Choose one or more photos." };
 
-	const outcome = await processInParallel(keys, (key) => processEventPhoto(eventId, key), {
-		onProgress: handlers.onProgress,
-	});
+	const outcome = await processInParallel(
+		keys,
+		(key, index) => processEventPhoto(eventId, key).finally(() => handlers.onPhotoDone?.(index)),
+		{ onProgress: handlers.onProgress },
+	);
 	if (outcome.keyBases.length === 0) return { ok: false, message: firstFailureMessage(outcome) };
 
 	const attached = await attachEventPhotos(eventId, outcome.keyBases);
@@ -106,5 +154,5 @@ export async function addEventPhotos(
 
 	const notice = describeParallelBatch(outcome);
 	if (notice) handlers.onPartial(notice);
-	return { ok: true };
+	return { ok: true, images: outcome.keyBases };
 }

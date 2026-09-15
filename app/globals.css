@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "./animations.css";
+@import "./elevation.css";
+@import "./base.css";
 
 /*
  * Design System: Kalchar by Megha
@@ -12,17 +15,37 @@
  *   3. Component (radius, elevation, motion)
  *
  * Dark mode: class="dark" on <html>, remaps tier-2 only.
+ *
+ * SURFACES: three tones in both modes, never a fourth. canvas is the lowest
+ * ground (page, inset panels, fields), surface is the resting raised layer
+ * (panels, rows, cards), surface-raised is dialog and sheet chrome. Light maps
+ * canvas to bg-soft and surface to bg so nothing shifts there; dark maps canvas
+ * to bg and surface to bg-soft so panels never read sunken. The scrim is fixed
+ * to the light ink triplet so overlays dim (never whiten) in dark; text on a
+ * scrim is always text-bg dark:text-ink.
+ *
+ * TRAVEL CONTRACT: instant 100 = press-in; fast 150 = controls (hover, press,
+ * colour, lifts); base 400 = dialogs, sheets, header shrink, image settle;
+ * enter 400 and slow 500 = public reveals and hero plates only. Nothing under /admin
+ * runs longer than base. Never transition-all: use transition-ui or a bare
+ * transition-colors (both inherit fast / ease-out). JS mirror: lib/motion.ts
+ * (lib/motion.test.ts locks parity).
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─── TIER 1: PRIMITIVES ─── */
 
-@theme {
+/* `static`: every token is emitted on :root even before a utility uses it, so
+   a role like --color-surface-raised never exists only via its dark remap. */
+@theme static {
   /* Typography families (next/font injects --font-* CSS vars) */
   --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   --font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-devanagari: var(--font-devanagari), ui-serif, serif;
+  /* Tailwind's default family: <body class="font-sans"> and any stray font-sans
+     resolve to Inter instead of the UA stack (chrome-1). */
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 
   /* ─── TIER 2: SEMANTIC COLORS (light) ─── */
   --color-bg: oklch(0.97 0.014 80);
@@ -37,116 +60,363 @@
   --color-accent-hover: oklch(0.48 0.165 40);
   --color-accent-soft: oklch(0.74 0.12 50);
 
+  /* Surface roles (see SURFACES above). Light is pixel-identical to bg and
+     bg-soft; :root.dark remaps every one of these except the scrim. */
+  --color-canvas: var(--color-bg-soft);
+  --color-surface: var(--color-bg);
+  --color-surface-raised: var(--color-bg);
+  --color-scrim: oklch(0.18 0.022 60);
+  /* Lightbox room: near-black warm ink, identical in both modes (not remapped). */
+  --color-scrim-deep: oklch(0.10 0.012 60);
+  /* Row / tile hover fill (Radix step-4 analog); remapped in :root.dark. */
+  --color-surface-hover: oklch(0.955 0.016 78);
+  /* Form-control boundary only: 3.63:1 on bg (WCAG 1.4.11 needs 3:1 for an
+     input's border). --color-line stays decorative. */
+  --color-line-strong: oklch(0.60 0.022 75);
+  /* Text terracotta stays readable on both paper and the darker canvas.
+     Button fills and decorative accents keep the brighter pigment. */
+  --color-accent-text: oklch(0.50 0.155 40);
+
   /* Section pigments (Madhubani tradition) */
   --color-marigold: oklch(0.72 0.16 75);
   --color-pichwai: oklch(0.45 0.1 165);
   --color-vermillion: oklch(0.55 0.18 35);
   --color-peacock: oklch(0.46 0.1 220);
   --color-ruby: oklch(0.55 0.2 25);
+  /* Opaque ruby stops for destructive borders and soft fills. Mixed over the
+   * page background at use time, so one declaration serves both themes and
+   * contrast is scored on the real composite instead of an alpha guess. */
+  --color-ruby-line: color-mix(in oklch, var(--color-ruby) 40%, var(--color-bg));
+  --color-ruby-soft: color-mix(in oklch, var(--color-ruby) 10%, var(--color-bg));
+  /* Admin status colours (visual-direction-admin 1.15): dots, segmented-control
+     dots, status chips. Terracotta stays "you can act here" and is never a
+     status; the references resolve at use time so dark pigment remaps flow. */
+  --color-status-available: var(--color-pichwai);
+  --color-status-sold: var(--color-ruby);
+  --color-status-nfs: var(--color-line-strong);
 
   /* Metallic accents */
   --color-gold-leaf: oklch(0.76 0.12 85);
+  /* Gold ladder (visual-direction 1.3): gold is a line, an edge and a sheen;
+     never a fill wider than a rule, never body text. gold-2 aliases the leaf
+     so dark remaps follow it; the hairline provides a subtle edge on art
+     plates and selected controls. */
+  --color-gold-1: oklch(0.62 0.11 80);
+  --color-gold-2: var(--color-gold-leaf);
+  --color-gold-3: oklch(0.89 0.07 92);
+  --color-gold-hairline: color-mix(in oklch, var(--color-gold-leaf) 55%, var(--color-line));
 
   /* ─── TYPOGRAPHY TOKENS ─── */
-  --tracking-tight: -0.02em;
+  --tracking-tight: -0.02em; /* intentionally overrides Tailwind's -0.025em */
   --tracking-display: -0.015em;
+  --tracking-headline: -0.02em; /* t-headline poster rung; loosened from -0.03em at the calmer 56-68px endpoints (steering 2026-09-14) */
   --tracking-eyebrow: 0.18em;
   --tracking-meta: 0.14em;
 
-  /* ─── SPACING SCALE (4px base) ─── */
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
-  --space-16: 4rem;    /* 64px */
-  --space-24: 6rem;    /* 96px */
+  /* Type scale: fluid rungs whose endpoints equal the old snapped stacks at
+     360 and 1280 (D3). Written as `t-display text-h2` (voice + size stay two
+     axes). Nothing interactive under 14px; nothing under 11px anywhere. */
+  --text-h1: clamp(2.25rem, 2.03rem + 0.9vw, 2.75rem); /* 36 -> 44px: page h1 (desktop end calmed from 48, steering 2026-09-14) */
+  --text-h1--line-height: 1.05;
+  --text-h2: clamp(1.875rem, 1.6rem + 1.12vw, 2.5rem); /* 30 -> 40px: large sub-heads, numerals, wall dates (was 48) */
+  --text-h2--line-height: 1.05;
+  --text-title: clamp(1.5rem, 1.25rem + 1vw, 1.875rem); /* 24 -> 30px: in-page sub-heading */
+  --text-title--line-height: 1.1;
+  --text-h3: clamp(1.125rem, 1.05rem + 0.4vw, 1.25rem); /* 18 -> 20px: card and tile title */
+  --text-h3--line-height: 1.25;
+  --text-label: 0.8125rem; /* 13px: admin label, help and stat label */
+  --text-label--line-height: 1.25rem;
+  /* 11px floor: chips, badges, hints, footer micro lines. Letter-spacing is not
+     baked in (add tracking-meta explicitly) so non-uppercase copy can use it. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  /* Display rungs (roman headline voice, visual-direction 1.1). The rem term
+     keeps browser font-size settings scaling the middle of the range (WCAG
+     1.4.4). Desktop ends lowered 88/72 -> 68/56 per steering 2026-09-14
+     (portfolio-react parity: calmer type, artwork leads); 390 floors kept.
+     44px at 390 -> 68px at 1280. */
+  --text-display: clamp(2.75rem, 2.09rem + 2.7vw, 4.25rem);
+  --text-display--line-height: 1.02;
+  /* 40px at 390 -> 56px at 1280. */
+  --text-display-sm: clamp(2.5rem, 2.06rem + 1.8vw, 3.5rem);
+  --text-display-sm--line-height: 1.02;
 
-  /* Shrunk sticky-header height (logo h-8 = 2rem + py-2.5 = 1.25rem, +border).
-     Used as scroll-padding so anchor/skip-link/focus targets don't land hidden
-     behind the sticky bar (WCAG 2.4.11). Sized to the SHRUNK bar, which is the
-     one in play once the page has scrolled. */
-  --header-h-shrunk: 3.5rem;
+  /* ─── SPACING ─── */
+  /* The 4px grid IS Tailwind's --spacing (0.25rem): p-4, gap-3, mt-10 already
+     resolve to it, so there is no parallel --space-N ladder here. Buckets:
+     0-8px component-internal, 12-24px component padding, 32-96px layout. The
+     one sanctioned half step is 1.5 (6px) for icon-to-label gaps; 0.5, 2.5
+     and 3.5 are drift. Semantic rhythm (space-y-tight / -group / -page):
+     rows = tight, panels within a page = group, page header to content and
+     between page sections = page. */
+  --space-tight: 0.5rem; /* 8px */
+  --space-group: 1.5rem; /* 24px */
+  --space-page: 2rem; /* 32px */
+  /* Public header-to-content and content-to-CTA seam (32 to 48px); replaces
+     the snapped mt-10/12/14 stacks. */
+  --space-block: clamp(2rem, 4vw, 3rem);
+  /* Equal-card public grids: gap-(--grid-gap). */
+  --grid-gap: clamp(1rem, 2vw, 1.5rem);
+
+  /* THE touch target: min-h-control, size-control, min-w-control. */
+  --spacing-control: 2.75rem; /* 44px */
+  /* FAB-sized discs: the public floating WhatsApp disc (visual-direction 2.14)
+     and the admin raised Add (visual-direction-admin 1.3). "fab" collides with
+     no built-in utility; generates size-fab and z-fab. */
+  --spacing-fab: 3.5rem; /* 56px */
+  /* Mobile admin tab-bar row, excluding its 1px border-top: h-tabbar. */
+  --spacing-tabbar: 4rem; /* 64px */
+  /* Safe-area steps as real utilities: pb-safe-bottom, pt-safe-top,
+     right-safe-right, bottom-safe-bottom. */
+  --spacing-safe-top: env(safe-area-inset-top, 0px);
+  --spacing-safe-right: env(safe-area-inset-right, 0px);
+  --spacing-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --spacing-safe-left: env(safe-area-inset-left, 0px);
+
+  /* Shrunk sticky-header height: one 44px control + py-2 (1rem) + 1px border
+     = 61px. Tied to the control token so it cannot drift from the bar again
+     (D7). Used as scroll-padding so anchor / skip-link / focus targets never
+     land hidden behind the sticky bar (WCAG 2.4.11). */
+  --header-h-shrunk: calc(var(--spacing-control) + 1rem + 1px);
 
   /* ─── MOTION TOKENS ─── */
+  /* Travel contract (see the header): instant = press-in; fast = controls and
+     lifts; base = dialogs, sheets, header shrink, image settle; enter and slow =
+     public reveals and hero plates. JS mirror lib/motion.ts (test-locked). */
+  --duration-instant: 100ms; /* the pressable press-in rung */
   --duration-fast: 150ms;
-  --duration-base: 300ms;
-  --duration-slow: 500ms;
+  --duration-base: 400ms;
   --duration-enter: 400ms;
+  --duration-slow: 500ms;
+  --duration-shimmer: 1400ms; /* skeleton sweep loop (animations.css) */
+  --delay-flare: 600ms; /* flare-after start (animations.css) */
+  /* Single-plate unveil and the ambient wash drift (visual-direction 1.9).
+     Public only; never under /admin. */
+  --duration-unveil: 700ms;
+  --duration-drift: 30s;
+  /* Idle plate-float half-cycle (.plate-float runs `alternate`, so one full
+     breath is 14s). Hero and single art plates only; never the 21-plate grid,
+     never under /admin. JS mirror DUR.float (test-locked). */
+  --duration-float: 7s;
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* every entrance and gesture response */
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0); /* exits only; enter with --ease-out */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* drag reorder: neighbours shift; theme icon */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* CSS sheets at --duration-base (admin Modal sheet, BottomBar) */
+  /* Hero-scale entrances only (M3 emphasized-decelerate); never under /admin. */
+  --ease-emphatic: cubic-bezier(0.05, 0.7, 0.1, 1);
+  /* Step for the stagger utility; lib/motion.ts STAGGER.stepMs mirrors it. */
+  --stagger-step: 50ms;
+  /* Every bare transition-colors / -opacity / -transform inherits these, so
+     controls never append duration-* or ease-*. */
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--ease-out);
 
   /* ─── LAYOUT TOKENS ─── */
-  --container-px: clamp(1.25rem, 4vw, 2rem);
-  --section-py: clamp(4rem, 8vw, 6.5rem);
-  --content-max: 72rem;  /* 1152px */
-  --prose-max: 42rem;    /* 672px */
+  /* --container-px is declared in :root below, not here: see the note there. */
+  /* Shared section rhythm: 48px on phones, up to 80px on desktop. */
+  --section-py: clamp(3rem, 6vw, 5rem);
+  /* Home sections share the same compact vertical rhythm as public pages. */
+  --section-py-grand: clamp(3rem, 6vw, 5rem);
+  /* Within-page grand seam: 48 to 80px; at most twice per page. In the
+     --space namespace so space-y-canyon and mt-(--space-canyon) both work. */
+  --space-canyon: clamp(3rem, 2rem + 4vw, 5rem);
+  --content-max: 72rem; /* 1152px: Container default */
+  --prose-max: 48rem; /* 768px: Container narrow, admin single-column routes */
+  --header-max: 42rem; /* 672px: PageHeader, SectionHeader, SkeletonHeader */
 
   /* ─── RADIUS ─── */
-  --radius-sm: 0.375rem;   /* 6px - buttons, fields, badges */
-  --radius-md: 0.75rem;    /* 12px - cards, panels */
-  --radius-lg: 1rem;       /* 16px - image plates, lightbox */
-  --radius-full: 9999px;   /* pills, avatars */
+  /* A shared 16px curve for controls and cards; floating sheets use 24px.
+     Pills and avatars remain circular. */
+  --radius-md: 1rem;
+  --radius-sm: var(--radius-md);
+  --radius-lg: var(--radius-md);
+  --radius-full: 9999px; /* pills, avatars */
+  /* Bottom-sheet top corners (admin content-detent sheet, 1.7). */
+  --radius-sheet: 1.5rem;
 
-  /* ─── ELEVATION (the missing tier) ─────────────────────────────────
-   * A small, layered shadow scale. Shadows are tinted with --shadow-ink
-   * (the warm ink triplet, defined in :root) via oklch() alpha, not black,
-   * so they read as sunlit-paper depth on the cream ground rather than gray
-   * murk. Role map: hairline = every resting frame edge; e1 = resting card;
-   * e2 = card hover / small popover; e3 = header-on-scroll / dropdown;
-   * e4 = back-to-top FAB / lightbox chrome; e5 = modal / lightbox panel.
-   * Dark mode swaps drop-shadow (invisible on 0.14 ground) for an inset top
-   * highlight + deeper ambient shadow -- remapped in :root.dark below.
-   * Keep resting art plates at hairline only; the art is the hero. */
-  --shadow-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.07);
+  /* Photo hero in the admin add and edit sheets (IG post ratio) -> aspect-post. */
+  --aspect-post: 4 / 5;
+
+  /* ─── ELEVATION ─────────────────────────────────────────────────────
+   * Warm-ink layered scale. Role map: hairline = every resting frame edge;
+   * e1 = resting card, primary Button; e2 = card / plate / Button hover, small
+   * popover; e3 = header-on-scroll, dropdown, back-to-top at rest, hero front
+   * plate; e4 = back-to-top hover, lightbox chrome, More sheet; e5 = modal /
+   * lightbox panel. Hover lifts one level, never two. Art plates rest on the
+   * edged ladder so the idle float reads (steering 2026-09-14): grid plates
+   * e1-edged, goldRest plates (hero front, detail, featured) e2-edged, each
+   * rising one level on hover via PlateFrame. Bare var(--elev-*) on purpose: Tailwind
+   * inlines @theme shadow values, so only an indirection lets :root.dark remap
+   * them. Lists + numbers: app/elevation.css. */
+  --shadow-hairline: var(--elev-hairline);
   --shadow-e0: none;
-  --shadow-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.07), 0 1px 1px -0.5px oklch(var(--shadow-ink) / 0.05);
-  --shadow-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.06), 0 3px 6px -1px oklch(var(--shadow-ink) / 0.07), 0 6px 10px -2px oklch(var(--shadow-ink) / 0.05);
-  --shadow-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.06), 0 8px 14px -3px oklch(var(--shadow-ink) / 0.08), 0 16px 24px -6px oklch(var(--shadow-ink) / 0.06);
-  --shadow-e4: 0 2px 4px oklch(var(--shadow-ink) / 0.05), 0 10px 16px -3px oklch(var(--shadow-ink) / 0.07), 0 22px 32px -8px oklch(var(--shadow-ink) / 0.08), 0 36px 48px -12px oklch(var(--shadow-ink) / 0.06);
-  --shadow-e5: 0 4px 8px oklch(var(--shadow-ink) / 0.06), 0 14px 24px -6px oklch(var(--shadow-ink) / 0.09), 0 30px 44px -10px oklch(var(--shadow-ink) / 0.10), 0 56px 72px -16px oklch(var(--shadow-ink) / 0.08);
+  --shadow-e1: var(--elev-e1);
+  --shadow-e2: var(--elev-e2);
+  --shadow-e3: var(--elev-e3);
+  --shadow-e4: var(--elev-e4);
+  --shadow-e5: var(--elev-e5);
+  /* Edge + lift in one utility (shadow-e1-edged): two shadow-* utilities on one
+     element collapse to whichever Tailwind emits later, so never stack them. */
+  --shadow-e1-edged: var(--elev-hairline), var(--elev-e1);
+  --shadow-e2-edged: var(--elev-hairline), var(--elev-e2);
+  --shadow-e3-edged: var(--elev-hairline), var(--elev-e3);
+  /* Palette glow behind a plate on a dark ground (lightbox). List lives in
+     elevation.css; --plate-glow / --plate-glow-alpha are :root properties
+     (alpha remaps in dark), set inline from the artwork's most saturated
+     palette swatch (the sanctioned raw-colour exception). */
+  --shadow-glow: var(--elev-glow);
 
-  /* ─── SPACING SCALE FILL + RHYTHM ─── */
-  --space-5: 1.25rem;   /* 20px */
-  --space-14: 3.5rem;   /* 56px */
-  --space-20: 5rem;     /* 80px */
-  /* Fluid header->content block gap; replaces the snapped mt-10 sm:mt-14. */
-  --space-block: clamp(2.5rem, 4vw, 3.5rem);
-  --grid-gap: clamp(1.5rem, 3vw, 2.5rem);
-  --header-max: 42rem;  /* section header measure */
+  /* ─── Z SCALE ─── */
+  /* raised = chips over images, dialog-internal controls; sticky = ReorderBar;
+     nav = headers, tab bar, back-to-top, More-sheet scrim (a later sibling of
+     the nav); overlay = More sheet, skip link, scroll progress, lightbox chrome.
+     Shadows are bound to the band so a lower band never out-shadows a higher
+     one: raised hairline to e2; sticky e0 + border; nav e3 to e4; overlay e4 to e5. */
+  --z-index-raised: 10;
+  --z-index-sticky: 30;
+  /* Floating WhatsApp disc: above content chips, below sticky bars and nav. */
+  --z-index-fab: 35;
+  --z-index-nav: 40;
+  --z-index-overlay: 50;
+}
 
-  /* ─── MOTION: interaction rung + composed tokens ─── */
-  --duration-micro: 150ms;   /* hover/press feedback */
-  --duration-instant: 100ms;
+/* ─── ROOT TOKENS (plain custom properties, no utilities) ─── */
+
+:root {
+  /* Native <select> sheets, date pickers, checkboxes, scrollbars and the
+     <dialog> backdrop follow the class-based theme (system-5). */
+  color-scheme: light;
+  --section-accent: var(--color-accent);
+  /* Shadow tint: warm ink triplet (L C H), fed to oklch(.../a) in the
+   * elevation tokens so depth reads as warm brown, never flat black. Lives
+   * here (not @theme) because it's an oklch component triplet, not a color.
+   * Chroma lifted 0.022 -> 0.032 (hue 60 -> 68) so depth on cream reads
+   * warmer without getting heavier; alpha ladder untouched (visual-direction
+   * 1.2). Dark shadows stay black ambient by rule (elevation.css). */
+  --shadow-ink: 0.18 0.032 68;
+  /* Container inline padding. Kept out of @theme on purpose: Tailwind 4 turns
+   * every --container-* theme key into a named size for w-, max-w-, min-w-,
+   * size- and basis-, so a key called "px" shadowed the built-in 1px `w-px`
+   * utility and every hairline separator rendered as a 20 to 32px square.
+   * Consumers read it as px-(--container-px), which resolves from :root.
+   * Never below the landscape safe-area inset (notch-aware). */
+  --container-px: max(clamp(1.25rem, 4vw, 2rem), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  /* Distance from the viewport bottom to the mobile tab bar's top edge (1px =
+     its border-top). ReorderBar sits at bottom-(--tabbar-offset); the admin
+     <main> clears it with pb-[calc(var(--tabbar-offset)+var(--space-page))]. */
+  --tabbar-offset: calc(var(--spacing-tabbar) + 1px + env(safe-area-inset-bottom, 0px));
+  /* Form rhythm: fields 16 (24 from sm), groups 32, label to control 8, read as
+     gap-(--form-gap), mt-(--form-group-gap), gap-(--field-label-gap). A custom
+     property cannot carry a responsive variant, hence the media query below. */
+  --form-gap: 1rem;
+  --form-group-gap: 2rem;
+  --field-label-gap: 0.5rem;
+  /* Panel and card padding (D2): 16 (24 from sm) for AdminPanel and Card md;
+     lg for Card lg and ClosingCta; compact for nested rows and photo tiles. */
+  --card-pad: 1rem;
+  --card-pad-lg: 1.5rem;
+  --card-pad-compact: 0.75rem;
+  /* Reveal travel (.reveal-up, Reveal default; items travel less). lib/motion.ts
+     REVEAL_DISTANCE mirrors both (test-locked). */
+  --reveal-travel: 24px;
+  --reveal-travel-item: 16px;
+  --panel-enter-scale: 0.96;
+
+  /* Visual-upgrade properties (visual-direction 1.9; no utilities generated). */
+  /* Essay and description measure: max-w-(--measure-essay). */
+  --measure-essay: 62ch;
+  /* .devanagari-display reads it; display-size wordmark wrappers override
+     locally ([--devanagari-shift:-0.02em]) so "Kal" and the Devanagari core
+     share a baseline at 44 to 88px. */
+  --devanagari-shift: -0.04em;
+  /* Flat pigment band for page headers and closing CTAs: Section
+     background="wash" -> bg-(--section-wash). Computed once from whatever
+     --section-accent the page's <main> already sets. */
+  --wash-strength: 8%;
+  --section-wash: color-mix(in oklch, var(--section-accent) var(--wash-strength), var(--color-bg));
+  /* Organic two-ellipse PigmentWash stops (components/decor/pigment-wash.tsx). */
+  --wash-a: color-mix(in oklch, var(--section-accent) 10%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 7%, transparent);
+  /* Plate glow behind a dark-room plate; inline from the most saturated
+     palette swatch, ink fallback when a piece has no palette. */
+  --plate-glow: oklch(var(--shadow-ink));
+  --plate-glow-alpha: 35%;
+  /* Metal = value contrast within the gold: consumed by .gold-sheen and the
+     optional gilded display accent. Lives here, not @theme (gradients emit no
+     utility). */
+  --gradient-gold-sheen: linear-gradient(105deg, var(--color-gold-1), var(--color-gold-2) 35%, var(--color-gold-3) 50%, var(--color-gold-2) 65%, var(--color-gold-1));
+  /* CSS mirror of SHEET_DETENTS.peek for the pre-hydration frame (admin 1.15). */
+  --sheet-peek: 62dvh;
+  /* Painting-grid seams (admin pieces grid, event photo grid): 2px on phones,
+     4px from lg (media query below). */
+  --grid-gap-tight: 2px;
+  /* iOS-style material recipe, read by the material-glass utilities in
+     app/elevation.css. Fill percentages feed color-mix over the token surface
+     (dark remaps flow through --color-surface / --elev-*); blur is applied
+     statically, never animated (scripts/check-ui-tokens.mjs). */
+  --glass-blur: 16px;
+  --glass-blur-strong: 24px;
+  --glass-saturate: 1.5;
+  --glass-fill: 100%;
+  --glass-fill-strong: 100%;
+
+  /* DEPRECATED aliases: integration deletes all four. */
+  --space-3: 0.75rem; /* admin-nav.tsx More-sheet offset; use --space-tight */
+  --space-16: 4rem; /* reorder-bar.tsx / admin-nav.tsx bottom; use --tabbar-offset */
+  --duration-micro: 150ms; /* DEPRECATED alias of --duration-fast; chrome renames card.tsx:27; integration deletes */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* DEPRECATED: bounce; never use; integration deletes. Springs: lib/motion.ts */
+}
+
+/* Keep unsupported browsers opaque; responsive material utilities inherit
+   these percentages without nesting declarations inside an at-rule. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-fill: 85%;
+    --glass-fill-strong: 90%;
+  }
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --form-gap: 1.5rem;
+    --card-pad: 1.5rem;
+    --card-pad-lg: 2rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --grid-gap-tight: 4px;
+  }
 }
 
 /* ─── DARK MODE REMAPS ─── */
 
-:root {
-  --section-accent: var(--color-accent);
-  /* Shadow tint: the --color-ink light triplet (L C H), fed to oklch(.../a) in
-   * the elevation tokens so depth reads as warm brown, never flat black. Lives
-   * here (not @theme) because it's an oklch component triplet, not a color. */
-  --shadow-ink: 0.18 0.022 60;
-}
-
 :root.dark {
-  --color-bg: oklch(0.14 0.015 60);
+  color-scheme: dark;
+  --color-bg: oklch(0.14 0.015 60); /* renders #0e0804; SERVER_BRAND_COLORS.night must equal this (lib/server-brand-colors.ts) */
   --color-bg-soft: oklch(0.19 0.018 55);
   --color-bg-muted: oklch(0.23 0.016 58);
   --color-ink: oklch(0.93 0.012 80);
   --color-ink-soft: oklch(0.82 0.014 75);
-  --color-muted: oklch(0.62 0.016 65);
+  --color-muted: oklch(0.78 0.016 65); /* APCA Lc about -63 at caption size (D5) */
   --color-line: oklch(0.26 0.02 60);
   --color-line-soft: oklch(0.22 0.016 62);
   --color-accent: oklch(0.68 0.14 45);
   --color-accent-hover: oklch(0.74 0.14 45);
   --color-accent-soft: oklch(0.58 0.12 45);
+
+  /* Surface roles: canvas is the ground, surface one step up, raised two.
+     Three tones, never a fourth; the scrim is not remapped. */
+  --color-canvas: var(--color-bg);
+  --color-surface: var(--color-bg-soft);
+  --color-surface-raised: var(--color-bg-muted);
+  --color-surface-hover: oklch(0.21 0.017 56);
+  --color-line-strong: oklch(0.50 0.02 60); /* 3.31:1 on the dark bg */
+  /* Lifted 0.72/0.13/45 -> 0.75/0.12/47 so 14px links clear APCA Lc 60 with
+     margin (visual-direction 1.2; D6). */
+  --color-accent-text: oklch(0.75 0.12 47);
 
   --color-marigold: oklch(0.78 0.14 80);
   --color-pichwai: oklch(0.6 0.09 165);
@@ -154,252 +424,47 @@
   --color-peacock: oklch(0.65 0.09 220);
   --color-ruby: oklch(0.65 0.18 28);
   --color-gold-leaf: oklch(0.82 0.13 88);
+  --color-gold-1: oklch(0.66 0.12 82);
+  --color-gold-3: oklch(0.93 0.08 95);
+  --color-gold-hairline: color-mix(in oklch, var(--color-gold-leaf) 45%, var(--color-line));
 
-  /* Dark elevation: drop-shadows vanish on the 0.14 ground, so depth becomes a
-   * faint inset top highlight (catches light like a raised surface) plus a
-   * deeper ambient shadow. Pair with the bg-soft/bg-muted ramp (lighter =
-   * higher). Hairline flips to a light edge. */
-  --shadow-hairline: 0 0 0 1px oklch(1 0 0 / 0.07);
-  --shadow-e1: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.4);
-  --shadow-e2: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 8px -2px oklch(0 0 0 / 0.5);
-  --shadow-e3: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 10px 20px -6px oklch(0 0 0 / 0.55);
-  --shadow-e4: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 18px 32px -10px oklch(0 0 0 / 0.6);
-  --shadow-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 28px 52px -12px oklch(0 0 0 / 0.7);
+  /* Visual-upgrade dark values (visual-direction 1.9). */
+  --wash-strength: 12%;
+  --wash-a: color-mix(in oklch, var(--section-accent) 6%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 4%, transparent);
+  --plate-glow-alpha: 55%;
 }
 
-/* ─── BASE RESETS ─── */
+/* ─── TYPOGRAPHY ROLE CLASSES ─── */
+/* Moved to app/animations.css (500-line ceiling split: it already owns the
+   editorial typography block). Same @layer components; cascade unchanged. */
 
-html {
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  overflow-x: clip;
-  -webkit-tap-highlight-color: transparent;
-  /* Keep in-page anchor / skip-link / focus targets clear of the sticky
-     header (WCAG 2.4.11 Focus Not Obscured) plus a little breathing room. */
-  scroll-padding-top: calc(var(--header-h-shrunk) + var(--space-4));
+/* ─── UTILITIES ─── */
+
+/* Scoped transition for controls and cards. Pairs with hover:* and pressable.
+   Never transition-all (system-17). translate, scale and rotate are listed
+   because Tailwind 4 writes translate-* / scale-* / rotate-* to those
+   properties, not to transform (chrome handover H1: hover:-translate-y-0.5 on
+   Card, ChannelLink and the primary Button must ease, not snap). */
+@utility transition-ui {
+  transition-property: color, background-color, border-color, box-shadow, transform, translate, scale, rotate, opacity;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
 }
 
-/* The skip-to-content target: same offset, so "Skip to content" doesn't jump
-   the focused region under the sticky header. */
-#main {
-  scroll-margin-top: calc(var(--header-h-shrunk) + var(--space-4));
-}
-
-body {
-  min-height: 100dvh;
-  overflow-x: clip;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-::selection {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-/* ─── TYPOGRAPHY CLASSES ─── */
-
-.t-display {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: var(--tracking-display);
-  line-height: 1.05;
-  text-wrap: balance;
-}
-
-.t-heading {
-  font-family: var(--font-body);
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight);
-  line-height: 1.2;
-  text-wrap: balance;
-}
-
-.t-eyebrow {
-  font-family: var(--font-body);
-  font-size: 0.6875rem;
-  letter-spacing: var(--tracking-eyebrow);
-  text-transform: uppercase;
-  color: var(--color-muted);
-  font-weight: 500;
-}
-
-.t-meta {
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  letter-spacing: var(--tracking-meta);
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.t-body {
-  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
-  line-height: 1.7;
-  color: var(--color-ink-soft);
-}
-
-.t-lead {
-  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-  line-height: 1.65;
-  color: var(--color-muted);
-  text-wrap: pretty;
-}
-
-/* ─── ANIMATION CLASSES ─── */
-
-/* Native scroll-driven progress avoids a JS scroll listener and updates on the
-   compositor. Browsers without scroll timelines simply hide the enhancement. */
-.scroll-progress-bar {
-  transform: scaleX(0);
-  animation: scroll-progress linear both;
-  animation-timeline: scroll(root block);
-}
-
-@keyframes scroll-progress {
-  to {
-    transform: scaleX(1);
+@layer utilities {
+  /* Keep the control's existing transition properties during the press cue. */
+  .pressable {
+    touch-action: manipulation;
   }
-}
-
-@supports not (animation-timeline: scroll()) {
-  .scroll-progress-bar {
-    display: none;
-  }
-}
-
-/* Home hero artwork plates -- smooth ease when the random shuffle changes
-   the tilt angle on reload. Reduced motion flattens to the resting tilt. */
-.hero-plate {
-  transition: transform var(--duration-slow) var(--ease-out);
-  will-change: transform;
-}
-
-/* Skeleton shimmer -- loading placeholders sweep a soft highlight while a
-   route's server data resolves (route loading.tsx files). */
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: var(--color-bg-soft);
-}
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklch, var(--color-line) 55%, transparent),
-    transparent
-  );
-  animation: skeleton-sweep 1.4s ease-in-out infinite;
-}
-
-@keyframes skeleton-sweep {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Page enter -- a soft fade-up on client-side navigation, applied by
-   app/template.tsx. The first paint is NOT animated (would delay LCP); the
-   template only adds this class after the initial mount. */
-.page-enter {
-  animation: page-enter-in var(--duration-base) var(--ease-out) both;
-}
-
-/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
-   any keyframe, the browser holds it as a computed matrix (even identity,
-   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
-   this wrapper makes it the containing block for every `position: fixed`
-   descendant -- which un-pins the admin mobile tab bar and the reorder bar
-   from the viewport after a client navigation and sends taps to the wrong
-   place. A plain fade has no such side effect. */
-@keyframes page-enter-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.reveal-up {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
-}
-
-@keyframes reveal-up-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.flare-after::after {
-  content: "";
-  display: block;
-  height: 1px;
-  width: 0;
-  background: var(--color-accent);
-  animation: flare-grow var(--duration-slow) var(--ease-out) 0.6s forwards;
-}
-
-@keyframes flare-grow {
-  to {
-    width: var(--flare-w, 100%);
-  }
-}
-
-/* ─── EDITORIAL TYPOGRAPHY ─── */
-
-.drop-cap::first-letter {
-  font-family: var(--font-display);
-  font-style: italic;
-  float: left;
-  font-size: 3.2rem;
-  line-height: 0.85;
-  padding: 0.3rem 0.5rem 0 0;
-  color: var(--section-accent, var(--color-accent));
-}
-
-/* ─── REDUCED MOTION ─── */
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal-up {
-    opacity: 1;
-    transform: none;
-    animation: none;
+  .pressable:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: var(--duration-instant);
   }
 
-  .flare-after::after {
-    animation: none;
-    width: var(--flare-w, 100%);
-  }
-
-  /* Keep the static gallery composition, but skip all plate transitions. */
-  .hero-plate {
-    transition: none;
-  }
-
-  /* Skeletons stay a static tint (no sweep); page-enter is instant. */
-  .skeleton::after {
-    animation: none;
-  }
-  .page-enter {
-    animation: none;
-  }
-
-  .scroll-progress-bar {
-    display: none;
-    animation: none;
-  }
-
-  html {
-    scroll-behavior: auto;
+  /* Each child supplies --i; long lists stop accumulating delay after five steps. */
+  .stagger > * {
+    animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 5) * var(--stagger-step));
   }
 }

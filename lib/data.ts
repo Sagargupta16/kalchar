@@ -45,7 +45,6 @@ import {
 import { serverEnv } from "./env";
 import { parseSetting, type SiteSettings } from "./site-settings";
 import type {
-	ArtStyle,
 	Artwork,
 	Category,
 	Event,
@@ -67,7 +66,7 @@ function toArtwork(row: ArtworkRow): Artwork {
 	return {
 		slug: row.slug,
 		title: row.title,
-		style: row.style as ArtStyle,
+		style: row.style,
 		medium: row.medium,
 		year: row.year ?? undefined,
 		dimensions: row.dimensions ?? undefined,
@@ -148,6 +147,52 @@ export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);
 }
 
+/** `{ slug, title, image }` for admin pickers and row meta that must show titles, never slugs. */
+export interface ArtworkTitle {
+	slug: string;
+	title: string;
+	/** Stored image filename; pass to artworkBrowserImageUrl for a thumbnail. */
+	image: string;
+}
+
+/** Every artwork's slug, title and image filename in gallery order (testimonials picker and row). */
+export async function getArtworkTitles(): Promise<readonly ArtworkTitle[]> {
+	return (await getAllArtworks()).map(({ slug, title, image }) => ({ slug, title, image }));
+}
+
+/** Catalog-derived defaults and suggestions for the add-piece form (D30). Medium stays required; the datalist only speeds typing. */
+export interface ArtworkFieldSuggestions {
+	/** Distinct mediums, most used first, then alphabetical. */
+	mediums: readonly string[];
+	/** Distinct non-empty dimensions strings, most used first, then alphabetical. */
+	dimensions: readonly string[];
+	/** Category and medium of the piece with the highest `order` (the one createArtwork appended last), or null on an empty catalog. */
+	lastUsed: { style: string; medium: string } | null;
+}
+
+export async function getArtworkFieldSuggestions(): Promise<ArtworkFieldSuggestions> {
+	const all = await getAllArtworks();
+	const rank = (values: readonly (string | undefined)[]) => {
+		const counts = new Map<string, number>();
+		for (const raw of values) {
+			const value = raw?.trim();
+			if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+		}
+		return [...counts.entries()]
+			.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+			.map(([value]) => value);
+	};
+	const newest = all.reduce<Artwork | undefined>(
+		(best, a) => (!best || a.order > best.order ? a : best),
+		undefined,
+	);
+	return {
+		mediums: rank(all.map((a) => a.medium)),
+		dimensions: rank(all.map((a) => a.dimensions)),
+		lastUsed: newest ? { style: newest.style, medium: newest.medium } : null,
+	};
+}
+
 function toCategory(row: CategoryRow): Category {
 	return { id: row.id, name: row.name, order: row.order };
 }
@@ -165,7 +210,7 @@ export const getAllCategories = cache(async (): Promise<readonly Category[]> => 
  * Falls back to the `site.json` styles array when the DB has none yet
  * (pre-seed), so the site is never empty.
  */
-export async function getCategoryNames(): Promise<ArtStyle[]> {
+export async function getCategoryNames(): Promise<string[]> {
 	const rows = await getAllCategories();
 	if (rows.length > 0) return rows.map((c) => c.name);
 	return [...((siteJson as Site).styles ?? [])];
@@ -276,12 +321,15 @@ function toLead(row: LeadRow): Lead {
 export async function getLeadsPage(page: number) {
 	await requireMaintainer();
 	const pageNumber = Number.isSafeInteger(page) && page > 0 ? page : 1;
-	const rows = await db
-		.select()
-		.from(leads)
-		.orderBy(desc(leads.createdAt), asc(leads.id))
-		.limit(LEADS_PAGE_SIZE + 1)
-		.offset((pageNumber - 1) * LEADS_PAGE_SIZE);
+	const offset = (pageNumber - 1) * LEADS_PAGE_SIZE;
+	const rows = fixture
+		? fixture.leads.slice(offset, offset + LEADS_PAGE_SIZE + 1)
+		: await db
+				.select()
+				.from(leads)
+				.orderBy(desc(leads.createdAt), asc(leads.id))
+				.limit(LEADS_PAGE_SIZE + 1)
+				.offset(offset);
 	return {
 		leads: rows.slice(0, LEADS_PAGE_SIZE).map(toLead),
 		hasNextPage: rows.length > LEADS_PAGE_SIZE,
@@ -291,6 +339,7 @@ export async function getLeadsPage(page: number) {
 /** The roster is private even when accessed outside its admin page. */
 export async function getMaintainers() {
 	await requireMaintainer();
+	if (fixture) return fixture.maintainers;
 	return db
 		.select()
 		.from(maintainers)

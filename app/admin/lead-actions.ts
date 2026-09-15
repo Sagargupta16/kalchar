@@ -84,12 +84,12 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 	}
 }
 
-const LEAD_STATUSES: readonly LeadStatus[] = ["new", "contacted", "closed"];
+const LEAD_STATUSES = new Set<LeadStatus>(["new", "contacted", "closed"]);
 
 /** Update a lead's triage status (maintainer only). */
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<ActionResult> {
 	return runAdminAction(async () => {
-		if (!LEAD_STATUSES.includes(status)) throw new Error("Invalid status.");
+		if (!LEAD_STATUSES.has(status)) throw new Error("Invalid status.");
 		const updated = await db
 			.update(leads)
 			.set({ status })

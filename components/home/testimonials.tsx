@@ -1,36 +1,57 @@
 import { Reveal } from "@/components/motion/reveal";
+import { cardVariants } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
+import { staggerDelay } from "@/lib/motion";
 import type { Testimonial } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-/**
- * Quiet testimonial row. Renders nothing when empty, so an empty table never
- * ships a bare heading (same hide-at-zero rule as the "Available to buy" chip).
- * Reuses the pull-quote register from /about; a marigold accent, no avatars,
- * no star ratings, staying in the site's understated voice.
- */
+interface TestimonialsProps {
+	testimonials: readonly Testimonial[];
+	heading?: string;
+	/** Optional divider below the section. */
+	borderBottom?: boolean;
+	/** Home sections use grand spacing; detail pages keep the default rhythm. */
+	rhythm?: "default" | "grand";
+}
+
+/** Empty collections stay hidden; sparse collections keep their quotes centred and readable. */
 export function Testimonials({
 	testimonials,
 	heading = "In their words",
-}: Readonly<{ testimonials: readonly Testimonial[]; heading?: string }>) {
+	borderBottom = false,
+	rhythm = "default",
+}: Readonly<TestimonialsProps>) {
 	if (testimonials.length === 0) return null;
 
 	return (
-		<section className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<Section accent="marigold" padded rhythm={rhythm} borderBottom={borderBottom}>
 			<Reveal>
-				<p className="t-eyebrow text-center">{heading}</p>
+				<h2 className="t-eyebrow text-center">{heading}</h2>
 			</Reveal>
-			<ul className="mt-(--space-block) grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-				{testimonials.map((t, i) => (
-					<Reveal key={t.id} as="li" delayMs={i * 60}>
-						<figure className="flex h-full flex-col rounded-(--radius-md) border border-line bg-bg-soft/40 p-6">
-							<blockquote className="t-lead grow text-pretty">&ldquo;{t.quote}&rdquo;</blockquote>
-							<figcaption className="t-meta mt-4 normal-case tracking-normal text-muted">
-								{t.authorName}
-								{t.authorLocation ? `, ${t.authorLocation}` : ""}
-							</figcaption>
-						</figure>
-					</Reveal>
-				))}
+			<ul
+				className={cn(
+					"mx-auto mt-(--space-block) grid gap-(--grid-gap)",
+					testimonials.length === 1 ? "max-w-2xl" : "sm:grid-cols-2",
+					testimonials.length === 2 && "max-w-4xl",
+					testimonials.length >= 3 && "lg:grid-cols-3",
+				)}
+			>
+				{testimonials.map((t, i) => {
+					return (
+						<Reveal key={t.id} as="li" delayMs={staggerDelay(i)}>
+							<figure className={cn(cardVariants(), "flex h-full flex-col")}>
+								<blockquote className="t-display grow text-title text-pretty">
+									&ldquo;{t.quote}&rdquo;
+								</blockquote>
+								<figcaption className="mt-4 text-sm text-muted">
+									{t.authorName}
+									{t.authorLocation ? `, ${t.authorLocation}` : ""}
+								</figcaption>
+							</figure>
+						</Reveal>
+					);
+				})}
 			</ul>
-		</section>
+		</Section>
 	);
 }

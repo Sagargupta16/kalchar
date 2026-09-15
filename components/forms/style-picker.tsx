@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Brush, Check, Sparkles } from "lucide-react";
+import type { CSSProperties } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
-import type { ArtStyle } from "@/lib/types";
+import { PlateFrame } from "@/components/gallery/plate-frame";
 import { cn } from "@/lib/utils";
 
 export interface StyleSample {
@@ -13,9 +13,11 @@ export interface StyleSample {
 
 interface StylePickerProps {
 	name: string;
-	styles: readonly ArtStyle[];
-	/** style -> representative artwork thumbnail. Missing = text-only chip. */
+	styles: readonly string[];
+	/** style -> representative artwork thumbnail. Missing = brush-glyph plate. */
 	samples: Record<string, StyleSample>;
+	value: string;
+	onChange: (value: string) => void;
 }
 
 const OPEN = "" as const;
@@ -29,36 +31,47 @@ const OPEN = "" as const;
  * under `name` (the submit logic is unchanged). The first card is an
  * "Open to suggestion" option (empty value), matching the old <select>
  * default. Styles with a catalog thumbnail show the art; the rest fall back
- * to a text chip.
+ * to a brush glyph plate (the name already prints in the label).
  */
-export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps>) {
-	const [selected, setSelected] = useState<string>(OPEN);
+export function StylePicker({
+	name,
+	styles,
+	samples,
+	value,
+	onChange,
+}: Readonly<StylePickerProps>) {
+	const choices = value && !styles.includes(value) ? [...styles, value] : styles;
+	// The page's one floating plate (steering 2026-09-14): the first
+	// artwork-backed sample idles on the shared float breath. One plate only,
+	// never the whole picker grid; purely decorative, so radio semantics and
+	// the checked cues (ring, gold inset, check badge) are untouched.
+	const floatingStyle = styles.find((style) => samples[style]);
 
 	return (
 		<fieldset>
-			<legend className="flex items-baseline justify-between text-sm font-medium text-ink">
+			<legend className="flex w-full flex-wrap items-baseline justify-between gap-x-3 text-sm font-medium text-ink">
 				<span>Preferred style</span>
 				<span className="text-xs text-muted">optional</span>
 			</legend>
 			<div
 				role="radiogroup"
 				aria-label="Preferred style"
-				className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3"
+				className="mt-(--field-label-gap) grid grid-cols-2 gap-3 @md:grid-cols-3"
 			>
 				{/* Open to suggestion */}
 				<OptionCard
 					name={name}
 					value={OPEN}
 					label="Open to suggestion"
-					checked={selected === OPEN}
-					onSelect={setSelected}
+					checked={value === OPEN}
+					onSelect={onChange}
 				>
-					<div className="flex h-full w-full items-center justify-center bg-bg-soft text-(--section-accent)">
+					<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
 						<Sparkles size={22} aria-hidden="true" />
 					</div>
 				</OptionCard>
 
-				{styles.map((style) => {
+				{choices.map((style) => {
 					const sample = samples[style];
 					return (
 						<OptionCard
@@ -66,8 +79,9 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 							name={name}
 							value={style}
 							label={style}
-							checked={selected === style}
-							onSelect={setSelected}
+							checked={value === style}
+							floating={style === floatingStyle}
+							onSelect={onChange}
 						>
 							{sample ? (
 								<ArtImage
@@ -78,8 +92,8 @@ export function StylePicker({ name, styles, samples }: Readonly<StylePickerProps
 									className="absolute inset-0 h-full w-full object-cover"
 								/>
 							) : (
-								<div className="flex h-full w-full items-center justify-center bg-bg-soft">
-									<span className="t-display text-lg text-muted">{style}</span>
+								<div className="flex h-full w-full items-center justify-center bg-canvas text-(--section-accent)">
+									<Brush size={22} aria-hidden="true" />
 								</div>
 							)}
 						</OptionCard>
@@ -95,6 +109,7 @@ function OptionCard({
 	value,
 	label,
 	checked,
+	floating = false,
 	onSelect,
 	children,
 }: Readonly<{
@@ -102,18 +117,41 @@ function OptionCard({
 	value: string;
 	label: string;
 	checked: boolean;
+	/** Idle float on this sample's plate (one per page; decorative only). */
+	floating?: boolean;
 	onSelect: (value: string) => void;
 	children: React.ReactNode;
 }>) {
-	return (
-		<label
+	/* Sample plate: the museum frame owns the hairline, hover lift and the
+	   concentric gold inset (rested while selected). */
+	const plate = (
+		<PlateFrame
+			goldRest={checked}
 			className={cn(
-				"group relative cursor-pointer overflow-hidden rounded-(--radius-md) border bg-bg transition-all duration-(--duration-base) ease-(--ease-out) focus-within:ring-2 focus-within:ring-(--section-accent) focus-within:ring-offset-2 focus-within:ring-offset-bg",
-				checked
-					? "border-(--section-accent) shadow-e2"
-					: "border-line hover:border-(--section-accent)/50 hover:shadow-e1",
+				"aspect-2/1",
+				checked && "ring-2 ring-(--section-accent) ring-offset-2 ring-offset-bg",
 			)}
 		>
+			{children}
+			{/* Selected check */}
+			<span
+				className={cn(
+					"absolute right-2 top-2 grid size-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity",
+					checked ? "opacity-100" : "opacity-0",
+				)}
+				aria-hidden="true"
+			>
+				<Check size={12} />
+			</span>
+		</PlateFrame>
+	);
+	return (
+		// The radio is sr-only, so the global :focus-visible outline would land on a
+		// 1px element; has-focus-visible lifts the same 2px outline onto the card.
+		// Selection carries two non-colour cues (visual-direction 2.8): the 2px
+		// section-pigment ring offset 2px on the plate AND the resting gold inset
+		// line (goldRest), plus the check badge.
+		<label className="group relative block min-h-control min-w-0 cursor-pointer rounded-md transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2">
 			<input
 				type="radio"
 				name={name}
@@ -122,24 +160,20 @@ function OptionCard({
 				onChange={() => onSelect(value)}
 				className="sr-only"
 			/>
-			{/* Thumbnail / icon plate */}
-			<div className="relative aspect-4/3 overflow-hidden">
-				{children}
-				{/* Selected check */}
-				<span
-					className={cn(
-						"absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-(--section-accent) text-bg transition-opacity duration-(--duration-fast)",
-						checked ? "opacity-100" : "opacity-0",
-					)}
-					aria-hidden="true"
-				>
-					<Check size={12} />
-				</span>
-			</div>
+			{/* The float wrapper sits between the pressable label and the
+			    hover-lifting frame so no transform fights another; travel is
+			    trimmed to 4px for the tile scale. */}
+			{floating ? (
+				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
+					{plate}
+				</div>
+			) : (
+				plate
+			)}
 			{/* Label */}
 			<span
 				className={cn(
-					"block px-2.5 py-2 text-xs font-medium transition-colors",
+					"block px-1 py-2 text-sm font-medium transition-colors",
 					checked ? "text-(--section-accent)" : "text-ink",
 				)}
 			>

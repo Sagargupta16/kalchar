@@ -32,7 +32,7 @@ const HEADER = [
 
 /** RFC-4180 escape: wrap in quotes and double any embedded quote. */
 function csvCell(value: string): string {
-	return `"${value.replace(/"/g, '""')}"`;
+	return `"${value.replaceAll('"', '""')}"`;
 }
 
 export async function GET(): Promise<Response> {

@@ -1,16 +1,18 @@
-import Link from "next/link";
 import { ArtistAvatar } from "@/components/about/artist-avatar";
+import { PlateFrame } from "@/components/gallery/plate-frame";
+import { WallLabel } from "@/components/gallery/wall-label";
+import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
-import { AccentRule } from "@/components/ui/accent-rule";
-import { buttonVariants } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
-import { Section } from "@/components/ui/section";
+import { Section, SectionHeader } from "@/components/ui/section";
+import { staggerDelay } from "@/lib/motion";
 
 interface AboutTeaserProps {
 	eyebrow: string;
 	title: string;
 	lead?: string;
 	location: string;
+	/** Brand tagline for the portrait's wall label (visual-direction 2.1 change 6). */
+	tagline?: string;
 	/** Short artist intro shown when the maintainer enables it (with the avatar). */
 	intro?: string;
 	/** R2 key-base for the artist photo; falls back to the monogram when absent. */
@@ -25,6 +27,7 @@ export function AboutTeaser({
 	title,
 	lead,
 	location,
+	tagline,
 	intro,
 	profileImage,
 	monogram,
@@ -32,85 +35,77 @@ export function AboutTeaser({
 }: Readonly<AboutTeaserProps>) {
 	// The intro layout (avatar + text side by side) shows only when the
 	// maintainer has opted in via the home-intro toggle; otherwise the teaser
-	// keeps its original centered form.
+	// keeps its original centered form. Either way the section sits on the
+	// marigold wash band.
 	const showIntro = Boolean(intro);
 
 	if (showIntro) {
 		return (
-			<Section accent="marigold" background="soft" borderBottom>
-				<Container className="py-(--section-py)">
-					<div className="grid items-center gap-10 md:grid-cols-[auto_1fr] md:gap-12">
-						<Reveal className="mx-auto w-40 sm:w-48 md:w-56">
+			<Section id="about" accent="marigold" background="wash" padded rhythm="grand">
+				<div className="grid items-center gap-10 md:grid-cols-[auto_1fr] md:gap-12">
+					<Reveal className="w-40 sm:w-48 md:w-56">
+						{/* The artist plate: gold inset at rest, museum wall label below
+						    (visual-direction 2.1 change 6). The avatar's own chrome is
+						    neutralised so the frame owns radius and shadow. */}
+						<PlateFrame goldRest className="aspect-3/4">
 							<ArtistAvatar
 								imageKey={profileImage}
 								monogram={monogram ?? "म"}
 								alt={`${publicName ?? "The artist"}, folk artist`}
 								sizes="(min-width: 768px) 14rem, 12rem"
+								className="absolute inset-0 aspect-auto h-full w-full rounded-none shadow-none"
 							/>
+						</PlateFrame>
+						<WallLabel
+							variant="compact"
+							title={publicName ?? "The artist"}
+							meta={[tagline ?? "", location]}
+							className="mt-4"
+						/>
+					</Reveal>
+					<div>
+						<Reveal>
+							<SectionHeader eyebrow={eyebrow} title={title} lead={intro} />
 						</Reveal>
-						<div>
-							<Reveal>
-								<p className="t-eyebrow flex items-center gap-2">
-									<AccentRule />
-									{eyebrow}
-								</p>
-							</Reveal>
-							<Reveal
-								delayMs={80}
-								as="h2"
-								className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl"
-							>
-								{title}
-							</Reveal>
-							<Reveal delayMs={160}>
-								<p className="t-lead mt-4 max-w-lg">{intro}</p>
-							</Reveal>
-							<Reveal delayMs={220}>
-								<p className="mt-4 text-sm text-muted">Working from {location}</p>
-							</Reveal>
-							<Reveal delayMs={280}>
-								<div className="mt-7">
-									<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
-										Read more<span className="sr-only"> about Megha</span>
-									</Link>
-								</div>
-							</Reveal>
-						</div>
+						<Reveal delayMs={staggerDelay(1)}>
+							<p className="mt-4 text-sm text-muted">Working from {location}</p>
+						</Reveal>
+						<Reveal delayMs={staggerDelay(2)}>
+							<div className="mt-8">
+								<SectionCta href="/about">
+									Read more<span className="sr-only"> about Megha</span>
+								</SectionCta>
+							</div>
+						</Reveal>
 					</div>
-				</Container>
+				</div>
 			</Section>
 		);
 	}
 
 	return (
-		<Section accent="marigold" background="soft" borderBottom>
-			<Container size="narrow" className="py-(--section-py) text-center">
-				<Reveal>
-					<p className="t-eyebrow flex items-center justify-center gap-2">
-						<AccentRule />
-						{eyebrow}
-						<AccentRule />
-					</p>
-				</Reveal>
-				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-3xl sm:text-4xl md:text-5xl">
-					{title}
-				</Reveal>
-				{lead ? (
-					<Reveal delayMs={160}>
-						<p className="t-lead mt-5 mx-auto max-w-lg">{lead}</p>
-					</Reveal>
-				) : null}
-				<Reveal delayMs={200}>
-					<p className="mt-5 text-sm text-muted">Working from {location}</p>
-				</Reveal>
-				<Reveal delayMs={260}>
-					<div className="mt-7">
-						<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
-							Read more<span className="sr-only"> about Megha</span>
-						</Link>
-					</div>
-				</Reveal>
-			</Container>
+		<Section
+			id="about"
+			accent="marigold"
+			background="wash"
+			padded
+			rhythm="grand"
+			size="narrow"
+			containerClassName="text-center"
+		>
+			<Reveal>
+				<SectionHeader centered eyebrow={eyebrow} title={title} lead={lead} />
+			</Reveal>
+			<Reveal delayMs={staggerDelay(1)}>
+				<p className="mt-4 text-sm text-muted">Working from {location}</p>
+			</Reveal>
+			<Reveal delayMs={staggerDelay(2)}>
+				<div className="mt-8">
+					<SectionCta href="/about">
+						Read more<span className="sr-only"> about Megha</span>
+					</SectionCta>
+				</div>
+			</Reveal>
 		</Section>
 	);
 }

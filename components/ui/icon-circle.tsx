@@ -3,21 +3,22 @@ import { cn } from "@/lib/utils";
 
 interface IconCircleProps {
 	children: ReactNode;
-	size?: "sm" | "md" | "lg";
+	size?: "xs" | "sm" | "md" | "lg";
 	className?: string;
 }
 
-const SIZE_MAP = {
-	sm: "h-9 w-9",
-	md: "h-11 w-11",
-	lg: "h-14 w-14",
+const SIZE_MAP: Record<NonNullable<IconCircleProps["size"]>, string> = {
+	xs: "size-8",
+	sm: "size-9",
+	md: "size-control",
+	lg: "size-14",
 };
 
 export function IconCircle({ children, size = "md", className }: Readonly<IconCircleProps>) {
 	return (
 		<span
 			className={cn(
-				"grid shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-(--ease-out)",
+				"grid shrink-0 place-items-center rounded-full bg-canvas text-(--section-accent) ring-1 ring-line transition-ui",
 				SIZE_MAP[size],
 				className,
 			)}

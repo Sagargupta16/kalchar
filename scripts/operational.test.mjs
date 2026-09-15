@@ -404,3 +404,63 @@ test("public health rejects successful responses containing invalid image bytes"
 		/recognizable image bytes/,
 	);
 });
+
+test("UI token guard reports violations with file and line and stays quiet on clean trees", async () => {
+	const root = await mkdtemp(join(runDirectory, "ui-guard-"));
+	await mkdir(join(root, "components"), { recursive: true });
+	await writeFile(
+		join(root, "components", "dirty.tsx"),
+		[
+			'export const a = "shadow-md";',
+			'export const b = "transition-all";',
+			'export const c = "z-[110]";',
+			"export const d = <Reveal delayMs={120} />;",
+			"export const e = { stiffness: 300, damping: 30 };",
+			'export const f = "shadow-e2 shadow-hairline";',
+			"",
+		].join("\n"),
+	);
+	await writeFile(
+		join(root, "components", "clean.tsx"),
+		'export const ok = "shadow-e1 transition-ui z-nav";\n',
+	);
+
+	const now = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "now"]);
+	assert.equal(now.status, 1, now.stderr);
+	assert.match(now.stderr, /::error file=components\/dirty\.tsx,line=1::raw-shadow/);
+	assert.match(now.stdout, /::warning file=components\/dirty\.tsx,line=2::transition-all/);
+	assert.doesNotMatch(now.stderr + now.stdout, /clean\.tsx/);
+
+	const integration = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "integration"]);
+	assert.equal(integration.status, 1);
+	assert.match(integration.stderr, /line=2::transition-all/);
+	assert.match(integration.stderr, /line=3::arbitrary-z/);
+	assert.match(integration.stderr, /line=4::literal-stagger/);
+	assert.match(integration.stderr, /line=5::literal-spring/);
+	assert.match(integration.stderr, /line=6::stacked-shadow/);
+
+	await unlink(join(root, "components", "dirty.tsx"));
+	const clean = runCli("check-ui-tokens.mjs", ["--root", root, "--phase", "integration"]);
+	assert.equal(clean.status, 0, clean.stderr);
+	assert.match(clean.stdout, /0 errors, 0 warnings/);
+
+	const bad = runCli("check-ui-tokens.mjs", ["--root", join(root, "missing")]);
+	assert.equal(bad.status, 2);
+	assert.equal(runCli("check-ui-tokens.mjs", ["--phase", "later"]).status, 2);
+
+	const { scan } = await import("./check-ui-tokens.mjs");
+	assert.equal(
+		scan('className="ring-white/20"', "components/x.tsx", "now").errors[0]?.id,
+		"raw-ring",
+	);
+	// A resting shadow plus a hover lift is not a stack; the spring definitions are allowed in lib/motion.ts.
+	assert.equal(
+		scan('className="shadow-e1 hover:shadow-e2"', "components/x.tsx", "integration").errors.length,
+		0,
+	);
+	assert.equal(scan("stiffness: 340", "lib/motion.ts", "integration").errors.length, 0);
+	assert.equal(
+		scan("stiffness: 340", "components/x.tsx", "integration").errors[0]?.id,
+		"literal-spring",
+	);
+});

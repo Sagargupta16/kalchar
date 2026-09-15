@@ -1,179 +1,161 @@
 "use client";
 
-import { ImagePlus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
-import { unwrap } from "@/lib/action-result";
-import { formatBytes } from "@/lib/utils";
-import { createArtwork } from "../artwork-actions";
-import { adminBtnPrimary, adminField, adminLabel } from "./controls";
-import { PhotoPreview } from "./photo-preview";
-import { stageImage } from "./stage-image";
-import { UploadProgress, type UploadProgressState } from "./upload-progress";
+import { Check } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useId, useRef } from "react";
+import { DUR, EASE_IN, REVEAL_DISTANCE, SPRING_PANEL } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { adminHelp, ICON_MD } from "./controls";
+import { UploadComposerControls } from "./upload-composer-controls";
+import { UploadDetailsStep } from "./upload-details-step";
+import { UploadPhotoStep } from "./upload-photo-step";
+import { UploadSuccess } from "./upload-success";
+import { useArtworkValidationFocus } from "./use-artwork-validation-focus";
+import {
+	type UploadComposerState,
+	type UploadFormProps,
+	type UploadStep,
+	useUploadComposer,
+} from "./use-upload-composer";
 
-export function UploadForm({ categories }: Readonly<{ categories: readonly string[] }>) {
-	const router = useRouter();
-	const [pending, startTransition] = useTransition();
-	const [error, setError] = useState<string | null>(null);
-	const [ok, setOk] = useState<string | null>(null);
-	const [file, setFile] = useState<File | null>(null);
-	const [progress, setProgress] = useState<UploadProgressState | null>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
+export type { ArtworkFieldSuggestions } from "./use-upload-composer";
 
-	const clearFile = () => {
-		setFile(null);
-		if (inputRef.current) inputRef.current.value = "";
-	};
+/** Standalone form; Add supplies a persistent controller to the same composer view. */
+export function UploadForm(props: Readonly<UploadFormProps>) {
+	const composer = useUploadComposer(props);
+	return <UploadComposer composer={composer} />;
+}
 
-	function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		setError(null);
-		setOk(null);
-		const form = e.currentTarget;
-		const data = new FormData(form);
-		data.delete("image");
-		if (!file) {
-			setError("Choose an image first.");
-			return;
-		}
-		const chosen = file;
-		const uploading = `Uploading ${formatBytes(chosen.size)}`;
-		startTransition(async () => {
-			try {
-				// The master goes straight to R2 with live byte progress; only its
-				// staged key is submitted, so the action's body stays small.
-				setProgress({ label: uploading, fraction: 0 });
-				const key = await stageImage(chosen, (fraction) =>
-					setProgress({ label: uploading, fraction }),
-				);
-				setProgress({
-					label: "Generating 13 variants (AVIF, WebP, JPEG) and the palette",
-					fraction: null,
-				});
-				data.set("imageKey", key);
-				const { slug } = unwrap(await createArtwork(data));
-				setOk(`Added "${slug}". Variants generated.`);
-				form.reset();
-				clearFile();
-				router.refresh();
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Upload failed.");
-			} finally {
-				setProgress(null);
-			}
-		});
-	}
+export function UploadComposer({ composer }: Readonly<{ composer: UploadComposerState }>) {
+	const { step, direction, validationAttempt, added } = composer;
+	const id = useId();
+	const form = useArtworkValidationFocus(validationAttempt);
+	const heading = useRef<HTMLHeadingElement>(null);
+	const focusedStep = useRef<string | null>(null);
 
 	return (
-		<form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-title">Title *</label>
-				<input
-					id="new-artwork-title"
-					name="title"
-					placeholder="e.g. Lotus garden"
-					required
-					className={adminField}
-				/>
-			</div>
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-category">Category *</label>
-				<select
-					id="new-artwork-category"
-					name="style"
-					required
-					className={adminField}
-					defaultValue=""
-				>
-					<option value="" disabled>
-						Select a category
-					</option>
-					{categories.map((category) => (
-						<option key={category} value={category}>
-							{category}
-						</option>
-					))}
-				</select>
-			</div>
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-medium">Medium *</label>
-				<input
-					id="new-artwork-medium"
-					name="medium"
-					placeholder="e.g. Natural pigment on handmade paper"
-					required
-					className={adminField}
-				/>
-			</div>
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-dimensions">Dimensions</label>
-				<input
-					id="new-artwork-dimensions"
-					name="dimensions"
-					placeholder="e.g. 30 x 40 cm"
-					className={adminField}
-				/>
-			</div>
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-price">Price (INR)</label>
-				<input
-					id="new-artwork-price"
-					name="priceInr"
-					type="number"
-					min="0"
-					placeholder="Blank keeps it archived"
-					className={adminField}
-				/>
-			</div>
-			<div className={adminLabel}>
-				<label htmlFor="new-artwork-year">Year</label>
-				<input
-					id="new-artwork-year"
-					name="year"
-					type="number"
-					placeholder="e.g. 2026"
-					className={adminField}
-				/>
-			</div>
-			<div className={`${adminLabel} sm:col-span-2`}>
-				<label htmlFor="new-artwork-description">Description</label>
-				<textarea
-					id="new-artwork-description"
-					name="description"
-					placeholder="A short note about the piece"
-					rows={3}
-					className={adminField}
-				/>
-			</div>
-			<div className="space-y-3 sm:col-span-2">
-				<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent focus-within:ring-2 focus-within:ring-accent">
-					<ImagePlus size={18} aria-hidden="true" />
-					<span>{file ? "Change image" : "Choose image (JPG, PNG, or WebP)"}</span>
-					<input
-						ref={inputRef}
-						disabled={pending}
-						name="image"
-						type="file"
-						accept="image/jpeg,image/png,image/webp"
-						required
-						onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
-						className="sr-only"
-					/>
-				</label>
-				{file ? <PhotoPreview file={file} disabled={pending} onClear={clearFile} /> : null}
-			</div>
-			<div className="mt-1 space-y-2 sm:col-span-2">
-				<button type="submit" disabled={pending} className={`${adminBtnPrimary} w-full`}>
-					{pending ? "Adding..." : "Add piece"}
-				</button>
-				{pending && progress ? <UploadProgress state={progress} /> : null}
-				{error ? (
-					<p role="alert" className="text-sm text-ruby">
-						{error}
-					</p>
-				) : null}
-				{ok ? <output className="block text-sm text-accent">{ok}</output> : null}
-			</div>
-		</form>
+		<MotionConfig reducedMotion="never">
+			<form
+				ref={form}
+				id={id}
+				noValidate
+				onSubmit={(event) => {
+					event.preventDefault();
+					if (step === "photo") composer.goTo("details");
+					else composer.publish();
+				}}
+				className="grid gap-(--space-group)"
+			>
+				{!added ? <UploadSteps step={step} /> : null}
+				<div className="grid min-w-0 items-start gap-(--space-group) lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-8">
+					<UploadPhotoStep composer={composer} />
+					<div className="min-w-0 overflow-x-clip">
+						<AnimatePresence mode="wait" initial={false} custom={direction}>
+							<motion.section
+								key={added ? "success" : step}
+								custom={direction}
+								variants={{
+									enter: (travel: number) => ({ opacity: 0, x: travel * REVEAL_DISTANCE.block }),
+									active: { opacity: 1, x: 0, transition: SPRING_PANEL },
+									exit: (travel: number) => ({
+										opacity: 0,
+										x: -travel * REVEAL_DISTANCE.item,
+										transition: { duration: DUR.fast, ease: EASE_IN },
+									}),
+								}}
+								initial="enter"
+								animate="active"
+								exit="exit"
+								onAnimationComplete={(animation) => {
+									const current = added ? "success" : step;
+									if (animation === "active" && focusedStep.current !== current) {
+										focusedStep.current = current;
+										// A user may already be typing before the entrance finishes.
+										if (!heading.current?.parentElement?.contains(document.activeElement)) {
+											heading.current?.focus({ preventScroll: true });
+										}
+									}
+								}}
+								aria-labelledby={`${id}-step`}
+								className="grid gap-(--form-gap)"
+							>
+								<h2
+									ref={heading}
+									id={`${id}-step`}
+									tabIndex={-1}
+									className="text-2xl font-medium tracking-tight text-ink"
+								>
+									{uploadStepTitle(composer)}
+								</h2>
+								<UploadStepContent composer={composer} id={id} />
+							</motion.section>
+						</AnimatePresence>
+					</div>
+				</div>
+				<UploadComposerControls composer={composer} id={id} />
+			</form>
+		</MotionConfig>
 	);
+}
+
+function UploadSteps({ step }: Readonly<{ step: UploadStep }>) {
+	return (
+		<ol aria-label="Add piece progress" className="flex items-center gap-3 text-label">
+			<li
+				aria-current={step === "photo" ? "step" : undefined}
+				className="flex items-center gap-2 text-ink"
+			>
+				<span className="grid size-7 place-items-center rounded-full bg-accent text-bg">
+					{step === "details" ? <Check size={ICON_MD} aria-hidden="true" /> : "1"}
+				</span>
+				<span>Photo</span>
+			</li>
+			<li aria-hidden="true" className="h-px w-8 bg-line" />
+			<li
+				aria-current={step === "details" ? "step" : undefined}
+				className={cn("flex items-center gap-2", step === "details" ? "text-ink" : "text-muted")}
+			>
+				<span
+					className={cn(
+						"grid size-7 place-items-center rounded-full",
+						step === "details" ? "bg-accent text-bg" : "bg-canvas",
+					)}
+				>
+					2
+				</span>
+				<span>Details</span>
+			</li>
+		</ol>
+	);
+}
+
+function uploadStepTitle({ added, step }: UploadComposerState): string {
+	if (added) return "Your piece is live";
+	if (step === "photo") return "Start with your artwork";
+	return "Give it a name";
+}
+
+function UploadStepContent({
+	composer,
+	id,
+}: Readonly<{ composer: UploadComposerState; id: string }>) {
+	const { added, step, file } = composer;
+	if (added) {
+		return <UploadSuccess title={added.title} slug={added.slug} onAddAnother={composer.reset} />;
+	}
+	if (step === "photo") {
+		return (
+			<div className="grid gap-4">
+				<p className="text-sm leading-relaxed text-muted">
+					Choose a clear photo of the whole piece. Then add a title and a few details.
+				</p>
+				<p className={adminHelp}>
+					{file
+						? "Your photo uploads while you add the details."
+						: "Nothing appears in the gallery until you publish."}
+				</p>
+			</div>
+		);
+	}
+	return <UploadDetailsStep composer={composer} id={id} />;
 }

@@ -57,3 +57,29 @@ describe.each([false, true])("media boundary (fixtures: %s)", (fixtures) => {
 		expect(getRewrittenUrl(response)).toBeNull();
 	});
 });
+
+describe("local admin preview artwork", () => {
+	it("uses the matching public painting without changing generic fixtures", async () => {
+		vi.stubEnv("KALCHAR_ADMIN_PREVIEW", "1");
+		vi.stubEnv("VERCEL", "");
+		const nextConfig = await configForFixtures(true);
+		const response = await unstable_getResponseFromNextConfig({
+			url: "http://localhost:3010/media/artworks/radha-krishna-800.webp",
+			nextConfig,
+		});
+		const rewritten = new URL(getRewrittenUrl(response) ?? "");
+		expect(rewritten.pathname).toBe("/artworks/radha-krishna.jpg");
+		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+	});
+
+	it("never enables local artwork rewrites on Vercel", async () => {
+		vi.stubEnv("KALCHAR_ADMIN_PREVIEW", "1");
+		vi.stubEnv("VERCEL", "1");
+		const nextConfig = await configForFixtures(true);
+		const response = await unstable_getResponseFromNextConfig({
+			url: "https://kalchar.example/media/artworks/radha-krishna-800.webp",
+			nextConfig,
+		});
+		expect(getRewrittenUrl(response)).toBe("https://kalchar.example/logo.jpg");
+	});
+});

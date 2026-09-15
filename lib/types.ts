@@ -6,14 +6,6 @@
  * fields at that boundary.
  */
 
-/**
- * An art category name. Was a fixed union; now a free string because
- * categories are DB-managed and editable from /admin. The historical names
- * (Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media) are still the seed
- * defaults, but new ones can be added without a code change.
- */
-export type ArtStyle = string;
-
 export interface Category {
 	id: string;
 	name: string;
@@ -26,7 +18,8 @@ export type ArtworkStatus = "archive" | "available" | "sold";
 export interface Artwork {
 	slug: string;
 	title: string;
-	style: ArtStyle;
+	/** Category names are free strings, managed from the admin. */
+	style: string;
 	medium: string;
 	year?: number;
 	dimensions?: string;
@@ -142,6 +135,8 @@ export interface SectionCopy {
 	eyebrow?: string;
 	title: string;
 	lead?: string;
+	pageTitle?: string;
+	pageLead?: string;
 	[key: string]: unknown;
 }
 
@@ -164,7 +159,7 @@ export interface Site {
 	contact: Contact;
 	developer?: Developer;
 	nav: NavItem[];
-	styles: readonly ArtStyle[];
+	styles: readonly string[];
 	sections: Record<string, SectionCopy>;
 	workshops: Workshop[];
 	trust?: TrustContent;
@@ -182,7 +177,7 @@ export interface Site {
 export interface CustomOrderDraft {
 	name?: string;
 	contact?: string;
-	style?: ArtStyle | "Open to suggestion";
+	style?: string;
 	size?: string;
 	budget?: string;
 	timeline?: string;

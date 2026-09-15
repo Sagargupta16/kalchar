@@ -22,21 +22,25 @@ import { useState } from "react";
  * of admin rows), so stringifying each render is negligible.
  *
  * Returns `[items, setItems]` like `useState`, plus an optional `onResync`
- * callback invoked with the fresh list whenever it adopts server data (used by
- * managers that also track a reorder `baseline`).
+ * callback invoked with the fresh list (and the list it replaced) whenever it
+ * adopts server data (used by managers that also track a reorder `baseline`).
+ * `options.hold` defers adoption while true (a staged, unsaved reorder); the
+ * moment it turns false and the server list still differs from what was last
+ * adopted, that render adopts it and calls `onResync`.
  */
 export function useServerSyncedList<T>(
 	initial: T[],
-	onResync?: (next: T[]) => void,
+	onResync?: (next: T[], previous: T[]) => void,
+	options: Readonly<{ hold?: boolean }> = {},
 ): [T[], React.Dispatch<React.SetStateAction<T[]>>] {
 	const [items, setItems] = useState(initial);
 	const [seenKey, setSeenKey] = useState(() => JSON.stringify(initial));
 
 	const initialKey = JSON.stringify(initial);
-	if (seenKey !== initialKey) {
+	if (!options.hold && seenKey !== initialKey) {
 		setSeenKey(initialKey);
 		setItems(initial);
-		onResync?.(initial);
+		onResync?.(initial, items);
 	}
 
 	return [items, setItems];

@@ -32,7 +32,7 @@ export function ArtistAvatar({
 	return (
 		<div
 			className={cn(
-				"relative aspect-4/5 overflow-hidden rounded-(--radius-md) bg-bg-soft shadow-hairline",
+				"relative aspect-4/5 overflow-hidden rounded-(--radius-md) bg-canvas shadow-hairline",
 				className,
 			)}
 		>
@@ -48,7 +48,7 @@ export function ArtistAvatar({
 				<div
 					aria-label={alt}
 					role="img"
-					className="absolute inset-0 grid place-items-center bg-gradient-to-br from-(--section-accent)/12 to-bg-soft"
+					className="absolute inset-0 grid place-items-center bg-linear-to-br from-(--section-accent)/12 to-canvas"
 				>
 					<span
 						lang="hi"

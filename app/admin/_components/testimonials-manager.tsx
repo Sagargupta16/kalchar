@@ -1,176 +1,339 @@
 "use client";
 
-import { Plus, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, LoaderCircle, MessageSquareQuote, Plus } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { isFailure } from "@/lib/action-result";
+import { formString } from "@/lib/admin-helpers";
+import type { ArtworkTitle } from "@/lib/data";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import {
-	createTestimonial,
-	deleteTestimonial,
-	setTestimonialFeatured,
-} from "../testimonial-actions";
+import { createTestimonial } from "../testimonial-actions";
+import { useAdminDraftGuard } from "./admin-draft-guard";
+import { AdminNotice } from "./admin-notice";
+import { AdminPanelHeader } from "./admin-panel";
+import { AdminSwitch } from "./admin-switch";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminBtn,
 	adminBtnPrimary,
 	adminField,
-	adminIconBtnDestructive,
+	adminHelp,
 	adminLabel,
+	adminPanelInset,
+	ICON_LG,
+	ICON_MD,
+	ICON_SM,
 } from "./controls";
-import { useAdminAction } from "./use-admin-action";
+import { TestimonialRow } from "./testimonial-row";
+import { UndoBar, useUndo } from "./undo-bar";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEditorFocus } from "./use-editor-focus";
 import { useServerSyncedList } from "./use-server-synced-list";
 
+function testimonialHref(testimonial: Testimonial | null): string | null {
+	if (testimonial?.featured) return "/";
+	if (testimonial?.artworkSlug) return `/work/${testimonial.artworkSlug}`;
+	return null;
+}
+
 /**
- * Admin CRUD for testimonials: a create form, then a list where each row can be
- * featured (shown on home) or deleted. Mirrors the workshop/preset managers.
+ * Admin CRUD for testimonials: a collapsed create panel, then a list where
+ * each row can be featured (shown on home) or deleted. The picker and the row
+ * meta show piece titles, never slugs; the form value stays the slug.
  */
 export function TestimonialsManager({
 	testimonials: initial,
-	artworkSlugs,
-}: Readonly<{ testimonials: Testimonial[]; artworkSlugs: string[] }>) {
-	const confirm = useConfirm();
-	const { pending, err, run } = useAdminAction();
+	artworks,
+}: Readonly<{ testimonials: Testimonial[]; artworks: readonly ArtworkTitle[] }>) {
+	const { run: undoRun } = useAdminAction();
+	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(undoRun);
+	const headingId = useId();
+	const addRef = useRef<HTMLButtonElement>(null);
+	const undoTarget = useRef<string | null>(null);
+	const [creating, setCreating] = useState(false);
+	const [created, setCreated] = useState<Testimonial | null>(null);
+	const [arrivedId, setArrivedId] = useState<string | null>(null);
 	const [items, setItems] = useServerSyncedList(initial);
 
-	const onFeature = (id: string, featured: boolean) => {
-		run(
-			() => setTestimonialFeatured(id, featured),
-			() => setItems((prev) => prev.map((t) => (t.id === id ? { ...t, featured } : t))),
-		);
+	const artworkBySlug = new Map(artworks.map((a) => [a.slug, a]));
+
+	// Scroll the just-created row into view and highlight it while the timer runs (C13).
+	useEffect(() => {
+		if (!arrivedId) return;
+		const frame = requestAnimationFrame(() => {
+			const row = document.getElementById(`testimonial-${arrivedId}`);
+			row?.focus({ preventScroll: true });
+			row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		});
+		const timer = window.setTimeout(() => setArrivedId(null), SAVED_BADGE_DURATION_MS);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.clearTimeout(timer);
+		};
+	}, [arrivedId]);
+
+	const openPanel = () => {
+		setCreated(null);
+		setCreating(true);
 	};
 
-	const onDelete = async (id: string) => {
-		const ok = await confirm({
-			title: "Delete this testimonial?",
-			body: "This removes it from the site permanently.",
-			confirmLabel: "Delete",
-			destructive: true,
-		});
-		if (!ok) return;
-		run(
-			() => deleteTestimonial(id),
-			() => setItems((prev) => prev.filter((t) => t.id !== id)),
-		);
+	const closePanel = () => {
+		setCreating(false);
+		requestAnimationFrame(() => addRef.current?.focus());
 	};
+
+	const handleCreated = (fields: Omit<Testimonial, "order">) => {
+		const next = { ...fields, order: Math.max(0, ...items.map((item) => item.order)) + 1 };
+		setItems((previous) =>
+			previous.some((item) => item.id === next.id) ? previous : [...previous, next],
+		);
+		setCreated(next);
+		setArrivedId(next.id);
+		setCreating(false);
+	};
+
+	const handleDeleted = (id: string) => {
+		const index = items.findIndex((item) => item.id === id);
+		const next = items[index + 1] ?? items[index - 1];
+		setItems((previous) => previous.filter((item) => item.id !== id));
+		if (undoTarget.current === id) dismissUndo();
+		requestAnimationFrame(() => {
+			const target = next
+				? document.getElementById(`testimonial-${next.id}`)
+				: (document.getElementById("new-testimonial-quote") ?? addRef.current);
+			target?.focus();
+		});
+	};
+
+	const createdHref = testimonialHref(created);
 
 	return (
-		<div className="space-y-6">
-			<CreateForm
-				pending={pending}
-				artworkSlugs={artworkSlugs}
-				onCreate={(fd, reset) => run(() => createTestimonial(fd), reset)}
-			/>
+		<div className="space-y-group">
+			{/* Ruling 42 + Tier 2d: the create panel spans 4 of 12 columns beside the 8-column list from lg. */}
+			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
+				<div className="min-w-0 space-y-group lg:col-span-4">
+					{creating ? (
+						<CreateTestimonialForm
+							artworks={artworks}
+							onCancel={closePanel}
+							onCreate={handleCreated}
+						/>
+					) : (
+						<button
+							ref={addRef}
+							type="button"
+							onClick={openPanel}
+							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+						>
+							<Plus size={ICON_MD} aria-hidden="true" />
+							Add testimonial
+						</button>
+					)}
+					{created ? (
+						<AdminNotice variant="success">
+							<span className="min-w-0">
+								Testimonial from {created.authorName} added.
+								{createdHref === null
+									? " It is not shown in public yet: feature it or link it to a piece."
+									: " "}
+								{createdHref ? (
+									<Link
+										href={createdHref}
+										className="underline underline-offset-2 hover:text-accent-text"
+									>
+										View on site
+										<ExternalLink
+											size={ICON_SM}
+											aria-hidden="true"
+											className="ml-1 inline-block align-[-2px]"
+										/>
+									</Link>
+								) : null}
+							</span>
+						</AdminNotice>
+					) : null}
+				</div>
 
-			{err ? (
-				<p role="alert" className="text-sm text-ruby">
-					{err}
-				</p>
+				<section aria-labelledby={headingId} className="min-w-0 lg:col-span-8">
+					<AdminPanelHeader
+						as="h2"
+						id={headingId}
+						title={`All testimonials (${items.length})`}
+						description="A testimonial shows in public only when it is featured or linked to a piece."
+					/>
+					<ul aria-labelledby={headingId} className="space-y-tight">
+						{items.map((t) => (
+							<TestimonialRow
+								key={t.id}
+								testimonial={t}
+								artwork={artworkBySlug.get(t.artworkSlug ?? "")}
+								highlighted={t.id === arrivedId}
+								disabled={undoPending}
+								onChanged={(next) =>
+									setItems((prev) => prev.map((item) => (item.id === next.id ? next : item)))
+								}
+								onDeleted={handleDeleted}
+								offerUndo={(offer) => {
+									undoTarget.current = t.id;
+									offerUndo(offer);
+								}}
+							/>
+						))}
+						{items.length === 0 ? (
+							<EmptyState
+								as="li"
+								variant="compact"
+								voice="tool"
+								icon={<MessageSquareQuote size={ICON_LG} aria-hidden="true" />}
+								title="No testimonials yet"
+								body="Add one, then feature it or link it to a piece to show it in public."
+								action={
+									creating ? null : (
+										<button type="button" onClick={openPanel} className={adminBtn}>
+											Add testimonial
+										</button>
+									)
+								}
+							/>
+						) : null}
+					</ul>
+				</section>
+			</div>
+
+			{undo ? (
+				<UndoBar
+					message={undo.message}
+					pending={undoPending}
+					error={undoError}
+					onAction={undoNow}
+					onDismiss={dismissUndo}
+				/>
 			) : null}
-
-			{items.length === 0 ? (
-				<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
-					No testimonials yet. Add one above; featured ones show on the home page.
-				</p>
-			) : (
-				<ul className="space-y-2">
-					{items.map((t) => (
-						<li key={t.id} className="rounded-(--radius-sm) border border-line bg-bg p-4">
-							<blockquote className="text-sm text-ink">&ldquo;{t.quote}&rdquo;</blockquote>
-							<div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-								<p className="text-xs text-muted">
-									{t.authorName}
-									{t.authorLocation ? `, ${t.authorLocation}` : ""}
-									{t.artworkSlug ? ` · on ${t.artworkSlug}` : ""}
-								</p>
-								<div className="flex items-center gap-2">
-									<button
-										type="button"
-										disabled={pending}
-										onClick={() => onFeature(t.id, !t.featured)}
-										aria-pressed={t.featured}
-										className={cn(
-											adminBtn,
-											"px-2.5 py-1.5",
-											t.featured && "border-accent text-accent",
-										)}
-									>
-										<Star size={13} className={t.featured ? "fill-accent" : undefined} />
-										{t.featured ? "Featured" : "Feature"}
-									</button>
-									<button
-										type="button"
-										disabled={pending}
-										onClick={() => onDelete(t.id)}
-										aria-label="Delete testimonial"
-										className={adminIconBtnDestructive}
-									>
-										<Trash2 size={15} />
-									</button>
-								</div>
-							</div>
-						</li>
-					))}
-				</ul>
-			)}
 		</div>
 	);
 }
 
-function CreateForm({
-	pending,
-	artworkSlugs,
+function CreateTestimonialForm({
+	artworks,
+	onCancel,
 	onCreate,
 }: Readonly<{
-	pending: boolean;
-	artworkSlugs: string[];
-	onCreate: (fd: FormData, reset: () => void) => void;
+	artworks: readonly ArtworkTitle[];
+	onCancel: () => void;
+	onCreate: (testimonial: Omit<Testimonial, "order">) => void;
 }>) {
-	const [open, setOpen] = useState(false);
+	const { pending, pendingVisible, err, run } = useAdminAction();
+	const confirm = useConfirm();
+	const headingId = useId();
+	const switchId = useId();
+	const quoteRef = useEditorFocus<HTMLTextAreaElement>();
+	const [featured, setFeatured] = useState(false);
+	const [hasText, setHasText] = useState(false);
+	const dirty = hasText || featured;
+	useAdminDraftGuard(dirty || pending);
 
-	if (!open) {
-		return (
-			<button type="button" onClick={() => setOpen(true)} className={adminBtn}>
-				<Plus size={15} /> Add testimonial
-			</button>
-		);
-	}
+	const cancel = async () => {
+		if (pending) return;
+		if (
+			dirty &&
+			!(await confirm({
+				title: "Discard testimonial?",
+				body: "Your unsaved quote and author details will be lost.",
+				confirmLabel: "Discard testimonial",
+				cancelLabel: "Keep editing",
+			}))
+		)
+			return;
+		onCancel();
+	};
+
+	const submit = (form: HTMLFormElement) => {
+		if (pending) return;
+		for (const name of ["quote", "authorName"]) {
+			const field = form.elements.namedItem(name);
+			if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+				const requiredMessage =
+					name === "quote" ? "Quote is required." : "Author name is required.";
+				field.setCustomValidity(field.value.trim() ? "" : requiredMessage);
+			}
+		}
+		if (!form.reportValidity()) return;
+		const fd = new FormData(form);
+		void run(async () => {
+			const result = await createTestimonial(fd);
+			if (!isFailure(result)) {
+				onCreate({
+					id: result.id,
+					quote: formString(fd, "quote").trim(),
+					authorName: formString(fd, "authorName").trim(),
+					authorLocation: formString(fd, "authorLocation").trim() || undefined,
+					artworkSlug: formString(fd, "artworkSlug").trim() || undefined,
+					featured: fd.get("featured") === "on",
+				});
+			}
+			return result;
+		});
+	};
 
 	return (
 		<form
+			aria-labelledby={headingId}
 			onSubmit={(e) => {
 				e.preventDefault();
-				const form = e.currentTarget;
-				onCreate(new FormData(form), () => {
-					form.reset();
-					setOpen(false);
-				});
+				submit(e.currentTarget);
 			}}
-			className="space-y-3 rounded-(--radius-md) border border-line bg-bg-soft p-4"
+			onChange={(event) => {
+				const field = event.target;
+				if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+					field.setCustomValidity("");
+				}
+				const data = new FormData(event.currentTarget);
+				setHasText(
+					["quote", "authorName", "authorLocation", "artworkSlug"].some(
+						(name) => formString(data, name) !== "",
+					),
+				);
+			}}
+			className={cn(adminPanelInset, "@container/testimonial-form")}
 		>
-			<div className={adminLabel}>
-				<label htmlFor="new-testimonial-quote">Quote *</label>
-				<textarea
-					id="new-testimonial-quote"
-					name="quote"
-					required
-					rows={3}
-					placeholder="What they said"
-					className={cn(adminField, "w-full resize-y")}
-				/>
-			</div>
-			<div className="grid gap-3 sm:grid-cols-2">
+			<AdminPanelHeader
+				id={headingId}
+				title="Add a testimonial"
+				description="A few words from a buyer or guest, with their name."
+			/>
+			<p className={adminHelp}>Fields marked * are required.</p>
+			<fieldset
+				disabled={pending}
+				className="mt-(--form-gap) grid min-w-0 gap-(--form-gap) @sm/testimonial-form:grid-cols-2"
+			>
+				<div className={cn(adminLabel, "@sm/testimonial-form:col-span-2")}>
+					<label htmlFor="new-testimonial-quote">Quote *</label>
+					<textarea
+						ref={quoteRef}
+						id="new-testimonial-quote"
+						name="quote"
+						required
+						rows={3}
+						placeholder="What they said"
+						className={cn(adminField, "min-h-32 resize-y")}
+					/>
+				</div>
 				<div className={adminLabel}>
 					<label htmlFor="new-testimonial-author">Author name *</label>
 					<input
 						id="new-testimonial-author"
 						name="authorName"
 						required
+						autoCapitalize="words"
+						autoCorrect="off"
 						placeholder="e.g. Priya"
 						className={adminField}
 					/>
 				</div>
 				<div className={adminLabel}>
-					<label htmlFor="new-testimonial-location">Location</label>
+					<label htmlFor="new-testimonial-location">Location (optional)</label>
 					<input
 						id="new-testimonial-location"
 						name="authorLocation"
@@ -178,39 +341,70 @@ function CreateForm({
 						className={adminField}
 					/>
 				</div>
-			</div>
-			<label className="block text-xs font-medium text-muted" htmlFor="artworkSlug">
-				Link to an artwork (optional)
-			</label>
-			<select
-				id="artworkSlug"
-				name="artworkSlug"
-				defaultValue=""
-				className={cn(adminField, "w-full")}
-			>
-				<option value="">None</option>
-				{artworkSlugs.map((s) => (
-					<option key={s} value={s}>
-						{s}
-					</option>
-				))}
-			</select>
-			<label className="flex min-h-11 items-center gap-2 text-sm text-ink">
-				<input type="checkbox" name="featured" /> Feature on home page
-			</label>
-			<div className="flex items-center gap-2">
-				<button type="submit" disabled={pending} className={adminBtnPrimary}>
-					{pending ? "Adding..." : "Add"}
-				</button>
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => setOpen(false)}
-					className={adminBtn}
+				<div className={cn(adminLabel, "@sm/testimonial-form:col-span-2")}>
+					<label htmlFor="new-testimonial-artwork">Link to an artwork (optional)</label>
+					<select
+						id="new-testimonial-artwork"
+						name="artworkSlug"
+						defaultValue=""
+						aria-describedby="new-testimonial-visibility"
+						className={adminField}
+					>
+						<option value="">None</option>
+						{artworks.map((a) => (
+							<option key={a.slug} value={a.slug}>
+								{a.title}
+							</option>
+						))}
+					</select>
+				</div>
+				{/* The Featured switch row (visual-direction-admin 1.9, Tier 2d): the label and the
+				    switch share one 44px hit target; a hidden input carries the form value. */}
+				<label
+					htmlFor={switchId}
+					className="flex min-h-control cursor-pointer items-center justify-between gap-3 text-sm text-ink @sm/testimonial-form:col-span-2"
 				>
+					Feature on home page
+					<AdminSwitch
+						id={switchId}
+						checked={featured}
+						onChange={setFeatured}
+						disabled={pending}
+						label="Feature on home page"
+					/>
+					{featured ? <input type="hidden" name="featured" value="on" /> : null}
+				</label>
+				<p
+					id="new-testimonial-visibility"
+					className={cn(adminHelp, "@sm/testimonial-form:col-span-2")}
+				>
+					Link a piece to show the quote on its artwork page. Feature it to show it on home. Leave
+					both unset to keep it in admin only.
+				</p>
+			</fieldset>
+			<div className="mt-(--form-group-gap) flex flex-col-reverse gap-2 @sm/testimonial-form:flex-row @sm/testimonial-form:justify-end">
+				<button type="button" disabled={pending} onClick={cancel} className={adminBtn}>
 					Cancel
 				</button>
+				<button
+					type="submit"
+					disabled={pending}
+					aria-busy={pending}
+					className={cn(adminBtnPrimary, "w-full @sm/testimonial-form:w-auto")}
+				>
+					{pendingVisible ? (
+						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
+					) : (
+						<Plus size={ICON_MD} aria-hidden="true" />
+					)}
+					Add testimonial
+				</button>
 			</div>
+			{err ? (
+				<AdminNotice variant="error" className="mt-(--form-gap)">
+					{err}
+				</AdminNotice>
+			) : null}
 		</form>
 	);
 }

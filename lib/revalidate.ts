@@ -10,9 +10,8 @@
  *
  * Here each entity maps to its consumers once. Adding a consumer is a one-line
  * change in this file, and the `Entity` union turns a misspelt entity into a
- * type error. The lists below are exactly what the former helpers produced, in
- * the same order, so adopting this module changed no behaviour; the sequences
- * are locked by lib/revalidate.test.ts.
+ * type error. New consumers belong in this registry and the route coverage
+ * checks in lib/revalidate.test.ts.
  *
  * Consumers, from the lib/data imports under app/ (update both when adding a page):
  *   /               artworks, categories, workshops, events, testimonials, profile
@@ -21,7 +20,7 @@
  *   /custom-orders  artworks, categories, orderPresets
  *   /events         events
  *   /workshops      workshops
- *   /about          profile
+ *   /about          profile, artworks, workshops
  *   /catalog.csv    artworks (category names arrive on the artwork rows)
  *   /sitemap.xml    artworks (slugs only, so a category rename does not touch it)
  *   /admin/...      the matching admin manager
@@ -40,6 +39,7 @@ export const REVALIDATION = {
 		// Every detail page includes catalog-derived previous/next links.
 		["/work/[slug]", "page"],
 		"/custom-orders",
+		"/about",
 		"/admin",
 		// The Meta Commerce feed and the sitemap both derive from the catalog, so a
 		// price, status, create or delete change must refresh them too.
@@ -55,7 +55,7 @@ export const REVALIDATION = {
 		"/admin",
 		"/admin/categories",
 	],
-	workshops: ["/", "/workshops", "/admin/workshops"],
+	workshops: ["/", "/workshops", "/about", "/admin/workshops"],
 	orderPresets: ["/custom-orders", "/admin/presets"],
 	events: ["/", "/events", "/admin/events"],
 	profile: ["/", "/about", "/admin/profile"],
