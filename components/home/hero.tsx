@@ -59,23 +59,6 @@ export function Hero({
 					</h1>
 				</div>
 
-				{/* Plate: directly under the headline on phones, majority column on md+ */}
-				{featured ? (
-					<Reveal
-						eager
-						delayMs={staggerDelay(2)}
-						className="mx-auto w-full max-w-xs py-4 sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[22rem] md:self-center"
-					>
-						<HeroPlates
-							pool={pool}
-							defaultFront={featured}
-							defaultBack={secondary}
-							catalogIndex={catalogIndex}
-							totalCount={totalCount}
-						/>
-					</Reveal>
-				) : null}
-
 				{/* Body: lead + chips + CTAs */}
 				<div className="md:col-span-5 md:col-start-1 md:row-start-2 md:self-start">
 					<p className="t-lead max-w-xl">{site.brand.description}</p>
@@ -108,6 +91,23 @@ export function Hero({
 						</nav>
 					</Reveal>
 				</div>
+
+				{/* Actions precede the artwork on phones; the desktop plate stays alongside. */}
+				{featured ? (
+					<Reveal
+						eager
+						delayMs={staggerDelay(2)}
+						className="mx-auto w-full max-w-xs py-4 sm:max-w-sm md:col-span-7 md:col-start-6 md:row-span-2 md:row-start-1 md:max-w-[22rem] md:self-center"
+					>
+						<HeroPlates
+							pool={pool}
+							defaultFront={featured}
+							defaultBack={secondary}
+							catalogIndex={catalogIndex}
+							totalCount={totalCount}
+						/>
+					</Reveal>
+				) : null}
 			</div>
 		</Section>
 	);

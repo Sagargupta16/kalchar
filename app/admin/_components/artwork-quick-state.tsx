@@ -7,7 +7,7 @@ import {
 	artworkStatusLabel,
 	quickStateBlockedReason,
 } from "@/lib/artwork-status";
-import { SPRING_INDICATOR } from "@/lib/motion";
+import { DUR, EASE_OUT } from "@/lib/motion";
 import type { ArtworkStatus } from "@/lib/types";
 import { adminIconBtn, ICON_MD } from "./controls";
 import type { SegmentedOption } from "./segmented";
@@ -58,9 +58,8 @@ interface FeaturedToggleProps {
 
 /**
  * The row star (1.9): gold-leaf fill when on, a sub-300ms scale pop on the
- * flip (Motion animate keyed on the pressed state, SPRING_INDICATOR; press-in
- * comes from pressable). The label stays the verb phrase in both states (the
- * state is aria-pressed).
+ * flip (a DUR.fast tween with EASE_OUT; press-in comes from pressable).
+ * The label stays the verb phrase in both states (the state is aria-pressed).
  */
 export function FeaturedToggle({
 	title,
@@ -83,7 +82,7 @@ export function FeaturedToggle({
 				className="grid"
 				initial={false}
 				animate={featured ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-				transition={SPRING_INDICATOR}
+				transition={{ type: "tween", duration: DUR.fast, ease: EASE_OUT }}
 			>
 				<Star size={ICON_MD} className={featured ? "fill-current text-gold-leaf" : undefined} />
 			</motion.span>

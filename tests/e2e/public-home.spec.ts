@@ -36,21 +36,23 @@ async function fontSizeForToken(page: Page, token: string) {
 	}, token);
 }
 
-test("hero art is in the first phone screen", { tag: "@mobile" }, async ({ page }) => {
+test("hero actions are visible before scrolling on phones", { tag: "@mobile" }, async ({ page }) => {
 	await page.goto("/");
 	await settleAnimations(page);
 
-	const h1 = page.locator("main h1");
-	const plate = page.locator("[data-shuffle-status]");
-	await expect(plate.locator('.hero-plate a img').last()).toBeInViewport({ ratio: 0.5 });
+	const hero = page.locator("main section").first();
+	const browse = hero.getByRole("link", { name: "See the artwork", exact: true });
+	const commission = hero.getByRole("link", { name: "Order a custom piece", exact: true });
+	await expect(browse).toBeInViewport({ ratio: 1 });
+	await expect(commission).toBeInViewport({ ratio: 1 });
 
-	const h1Box = await h1.boundingBox();
+	const plate = page.locator("[data-shuffle-status]");
+	const actionBox = await commission.boundingBox();
 	const plateBox = await plate.boundingBox();
 	const viewport = page.viewportSize();
-	if (!h1Box || !plateBox || !viewport) throw new Error("missing hero geometry");
+	if (!actionBox || !plateBox || !viewport) throw new Error("missing hero geometry");
 
-	expect(plateBox.y).toBeGreaterThan(h1Box.y + h1Box.height);
-	expect(plateBox.y).toBeLessThan(viewport.height / 2);
+	expect(plateBox.y).toBeGreaterThan(actionBox.y + actionBox.height);
 	expect(plateBox.width).toBeLessThanOrEqual(viewport.width - 32);
 	expect(Math.abs(plateBox.x - (viewport.width - plateBox.width) / 2)).toBeLessThanOrEqual(1);
 
@@ -450,16 +452,6 @@ test("keyboard focus shows the global outline with no ring", async ({ page }) =>
 		throw new Error(`Tab never reached ${predicate}`);
 	};
 
-	await reachByTab('a[aria-label^="View "]');
-	const plateStyles = await page.evaluate(() => {
-		const el = document.activeElement as HTMLElement;
-		const cs = getComputedStyle(el);
-		return { outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, boxShadow: cs.boxShadow };
-	});
-	expect(plateStyles.outlineStyle).toBe("solid");
-	expect(plateStyles.outlineWidth).toBe("2px");
-	expect(plateStyles.boxShadow).toBe("none");
-
 	await reachByTab('a[href^="/work?style="], a[href^="/work/?style="]');
 	const chipStyles = await page.evaluate(() => {
 		const el = document.activeElement as HTMLElement;
@@ -469,4 +461,14 @@ test("keyboard focus shows the global outline with no ring", async ({ page }) =>
 	expect(chipStyles.outlineStyle).toBe("solid");
 	expect(chipStyles.outlineWidth).toBe("2px");
 	expect(chipStyles.boxShadow).toBe("none");
+
+	await reachByTab('a[aria-label^="View "]');
+	const plateStyles = await page.evaluate(() => {
+		const el = document.activeElement as HTMLElement;
+		const cs = getComputedStyle(el);
+		return { outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, boxShadow: cs.boxShadow };
+	});
+	expect(plateStyles.outlineStyle).toBe("solid");
+	expect(plateStyles.outlineWidth).toBe("2px");
+	expect(plateStyles.boxShadow).toBe("none");
 });
