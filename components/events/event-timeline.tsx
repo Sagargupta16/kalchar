@@ -2,7 +2,7 @@
 
 import { CalendarDays, Pin } from "lucide-react";
 import { motion, useScroll } from "motion/react";
-import { type CSSProperties, useRef } from "react";
+import { type CSSProperties, type RefObject, useEffect, useRef } from "react";
 import { KineticText } from "@/components/motion/kinetic-text";
 import { useViewReveal } from "@/components/motion/use-view-reveal";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ export function EventTimeline({ events }: Readonly<{ events: readonly Event[] }>
 	const ref = useRef<HTMLDivElement>(null);
 	const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 60%"] });
 	const firstGalleryIndex = events.findIndex((event) => event.images.length > 0);
+	useHashAnchor(ref);
 
 	return (
 		<div ref={ref} className="relative">
@@ -53,6 +54,37 @@ export function EventTimeline({ events }: Readonly<{ events: readonly Event[] }>
 			})}
 		</div>
 	);
+}
+
+/** How long a deep link keeps re-anchoring while photos above it decode. */
+const ANCHOR_HOLD_MS = 4000;
+
+/**
+ * Deep links (/events#<id>, from the home cards) land on their record even
+ * though the photos above it only learn their true ratio as they decode and
+ * grow the page: while the timeline resizes during the first few seconds the
+ * record is scrolled back to the top. Any reader input ends the hold.
+ */
+function useHashAnchor(ref: RefObject<HTMLElement | null>) {
+	useEffect(() => {
+		const host = ref.current;
+		const id = decodeURIComponent(globalThis.location.hash.slice(1));
+		const target = id ? document.getElementById(id) : null;
+		if (!host || !target || !host.contains(target)) return;
+		const observer = new ResizeObserver(() => target.scrollIntoView({ block: "start" }));
+		const release = () => observer.disconnect();
+		observer.observe(host);
+		const timer = setTimeout(release, ANCHOR_HOLD_MS);
+		const intents = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+		for (const intent of intents) {
+			globalThis.addEventListener(intent, release, { once: true, passive: true });
+		}
+		return () => {
+			release();
+			clearTimeout(timer);
+			for (const intent of intents) globalThis.removeEventListener(intent, release);
+		};
+	}, [ref]);
 }
 
 interface EventRecordProps {
