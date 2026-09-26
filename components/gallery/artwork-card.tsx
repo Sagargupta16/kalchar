@@ -17,6 +17,7 @@ import { cn, formatInr } from "@/lib/utils";
 
 const AnimatedLink = motion.create(Link);
 const CARD_LIFT = { y: -8 } as const;
+const WALL_LIFT = { y: -6 } as const;
 
 interface ArtworkCardProps {
 	artwork: Artwork;
@@ -35,6 +36,12 @@ interface ArtworkCardProps {
 	revealDelayMs?: number;
 	/** A gentle idle float for a featured piece. */
 	float?: boolean;
+	/**
+	 * card = the bordered 4:5 mat (home strips, custom orders); wall = the
+	 * /work gallery hang: the plate at the painting's own ratio with no mat,
+	 * a sliding "View" label on hover and the caption as wall text.
+	 */
+	variant?: "card" | "wall";
 }
 
 export function ArtworkCard({
@@ -48,6 +55,7 @@ export function ArtworkCard({
 	unveilDelayMs,
 	revealDelayMs = 0,
 	float = false,
+	variant = "card",
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 	const positionId = useId();
@@ -87,6 +95,82 @@ export function ArtworkCard({
 	const cardDelay = {
 		"--card-delay": `${eager ? unveilDelayMs : revealDelayMs}ms`,
 	} as CSSProperties;
+
+	const position = index ? (
+		<span id={positionId} className="sr-only">
+			Piece {index}
+			{total ? ` of ${total}` : ""}
+		</span>
+	) : null;
+
+	if (variant === "wall") {
+		return (
+			<AnimatedLink
+				ref={revealRef}
+				href={`/work/${artwork.slug}`}
+				onClick={handleClick}
+				data-motion-reveal={eager ? undefined : true}
+				data-reveal={eager ? undefined : revealState}
+				style={cardDelay}
+				className={cn("group flex flex-col rounded-md", eager && "card-unveil-eager", className)}
+				aria-label={ariaLabel}
+				aria-describedby={index ? positionId : undefined}
+				whileHover={WALL_LIFT}
+				whileFocus={WALL_LIFT}
+				whileTap={{ scale: PRESS_SCALE }}
+				transition={SPRING_PRESS}
+			>
+				<div
+					className="relative overflow-hidden rounded-md bg-canvas shadow-e2-edged elevate-e3"
+					style={{ aspectRatio: artwork.aspectRatio }}
+				>
+					<div className="card-wipe absolute inset-0">
+						<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
+							<ArtImage
+								src={imgSrc}
+								alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
+								sizes={sizes}
+								className="absolute inset-0 h-full w-full object-contain"
+								priority={priority}
+							/>
+						</div>
+					</div>
+					<span
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-(--color-gold-hairline) opacity-0 transition-opacity group-hover:opacity-100"
+					/>
+					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+					<span
+						aria-hidden="true"
+						className="plate-peek absolute right-2 bottom-2 z-raised inline-flex min-h-8 items-center gap-1 rounded-full bg-scrim/85 px-3 text-xs font-medium text-bg dark:text-ink"
+					>
+						View
+						<ArrowUpRight size={14} />
+					</span>
+				</div>
+
+				<div className="card-caption mt-3 flex items-start justify-between gap-3">
+					<div className="min-w-0">
+						<p aria-hidden="true" className="t-meta truncate text-(length:--text-micro)">
+							{index ? (
+								<span className="max-sm:hidden">{`No. ${String(index).padStart(2, "0")} · `}</span>
+							) : null}
+							{artwork.style}
+						</p>
+						<h3 className="t-display mt-1 text-h3 text-ink transition-colors group-hover:text-accent-text">
+							{artwork.title}
+						</h3>
+					</div>
+					{priceSlot ? (
+						<p className="t-numeral shrink-0 whitespace-nowrap pt-4 text-base text-accent-text">
+							{priceSlot}
+						</p>
+					) : null}
+				</div>
+				{position}
+			</AnimatedLink>
+		);
+	}
 
 	// Three nested layers, one transform each: the wipe (clip-path + scale
 	// settle on entrance), the hover zoom (1.05 inside the mat, pointer devices
@@ -151,12 +235,7 @@ export function ArtworkCard({
 					<p className="text-muted">{artwork.style}</p>
 					{priceSlot ? <p className="font-semibold tabular-nums text-ink">{priceSlot}</p> : null}
 				</div>
-				{index ? (
-					<span id={positionId} className="sr-only">
-						Piece {index}
-						{total ? ` of ${total}` : ""}
-					</span>
-				) : null}
+				{position}
 			</div>
 		</AnimatedLink>
 	);

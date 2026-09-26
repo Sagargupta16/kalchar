@@ -11,6 +11,8 @@ interface PageHeaderProps {
 	children?: ReactNode;
 	className?: string;
 	centered?: boolean;
+	/** Set the title's last word in the accent italic (the hero's "life." move). */
+	accentLast?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export function PageHeader({
 	children,
 	className,
 	centered = false,
+	accentLast = false,
 }: Readonly<PageHeaderProps>) {
 	return (
 		<header
@@ -45,7 +48,7 @@ export function PageHeader({
 				{eyebrow}
 			</p>
 			<h1 className="t-headline type-page kinetic-eager mt-3">
-				<KineticText text={title} startIndex={1} />
+				<KineticText text={title} startIndex={1} accentLast={accentLast} />
 			</h1>
 			{lead ? (
 				<Reveal eager delayMs={staggerDelay(5)}>

@@ -37,7 +37,7 @@ const AVAILABLE = "Available to buy" as const;
  *  isolate keeps the sliding ink span's -z-10 inside the pill instead of
  *  behind the rail's backdrop. */
 const PILL =
-	"relative isolate inline-flex min-h-control shrink-0 snap-start items-center gap-2 rounded-full border px-4 text-sm font-medium transition-ui pressable";
+	"relative isolate inline-flex min-h-control shrink-0 snap-start items-center gap-2 rounded-full border px-4 text-sm font-medium transition-ui pressable hover:-translate-y-0.5";
 
 /**
  * Resolve the style from `?style=<name>` (case-insensitive, validated against the
@@ -264,12 +264,13 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 					</button>
 				) : null}
 			</div>
-			{/* Single-row horizontal rail on phones (a half-cut last pill is the swipe
-			    cue), sticky under the shrunk header with a glass fill until lg, where
-			    it sits static and transparent (visual-direction 2.2). */}
+			{/* The filter dock: a full-bleed glass strip that sticks under the shrunk
+			    header at every width. One swipeable row on phones (a half-cut last
+			    pill is the swipe cue); it wraps from sm. The ink pill slides between
+			    styles on a spring (layoutId). */}
 			<fieldset
 				ref={railRef}
-				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 bg-bg/90 px-(--container-px) py-3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible lg:static lg:mx-0 lg:bg-transparent lg:p-0"
+				className="z-sticky m-0 -mx-(--container-px) sticky top-(--header-h-shrunk) flex min-w-0 snap-x items-center gap-2 overflow-x-auto border-0 border-b border-line/70 bg-bg/85 px-(--container-px) py-3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
 			>
 				<legend className="sr-only">Filter artwork</legend>
 				<LayoutGroup>
@@ -288,7 +289,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 									PILL,
 									isActive
 										? "border-ink text-bg"
-										: "border-line text-muted hover:border-accent hover:text-accent-text",
+										: "border-line bg-surface/70 text-ink-soft hover:border-accent hover:text-accent-text",
 								)}
 							>
 								{isActive ? (

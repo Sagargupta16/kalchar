@@ -2,14 +2,21 @@
 
 import { Palette } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useRef } from "react";
-import { Reveal } from "@/components/motion/reveal";
+import { type CSSProperties, useMemo, useRef } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DUR, EASE_IN, gridStaggerDelay, REVEAL_DISTANCE, SPRING_LAYOUT } from "@/lib/motion";
+import {
+	CARD_STAGGER_MS,
+	DUR,
+	EASE_IN,
+	EASE_OUT,
+	gridStaggerDelay,
+	SPRING_LAYOUT,
+} from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { ArtworkCard } from "./artwork-card";
-import { EAGER_CARD_COUNT, GalleryGrid } from "./gallery-grid";
+import { EAGER_CARD_COUNT } from "./gallery-grid";
+import "@/components/editorial/editorial.css";
 
 interface WorkFilterResultsProps {
 	items: readonly Artwork[];
@@ -19,6 +26,18 @@ interface WorkFilterResultsProps {
 	onClearSearch: () => void;
 	onClearFilters: () => void;
 }
+
+/** Plate widths on the justified wall: two per row on phones, three to four from sm. */
+const WALL_SIZES = "(min-width: 1024px) 22rem, (min-width: 640px) 34vw, calc((100vw - 52px) / 2)";
+
+/** Cards a filter tap brings in rise and settle; the first render skips this (initial={false}). */
+const CARD_ENTER = { opacity: 0, scale: 0.94, y: 24 } as const;
+const CARD_REST = {
+	opacity: 1,
+	scale: 1,
+	y: 0,
+	transition: { duration: DUR.base, ease: EASE_OUT },
+} as const;
 
 const CARD_EXIT = {
 	opacity: 0,
@@ -94,39 +113,35 @@ export function WorkFilterResults({
 	}
 
 	return (
-		<GalleryGrid className="mt-5">
+		<ul className="art-wall mt-6 sm:mt-8">
 			<AnimatePresence mode="popLayout" initial={false}>
 				{visible.map((art, i) => {
 					const eager = eagerArtworkSlugs.current.has(art.slug);
-					const card = (
-						<ArtworkCard
-							artwork={art}
-							siblings={visible}
-							priority={i < 3}
-							index={indexBySlug.get(art.slug)}
-							total={items.length}
-							unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
-						/>
-					);
 					return (
 						<motion.li
 							key={art.slug}
 							layout="position"
-							className="min-w-0 [&>div]:h-full"
+							style={{ "--ar": art.aspectRatio } as CSSProperties}
 							transition={SPRING_LAYOUT}
+							initial={CARD_ENTER}
+							animate={CARD_REST}
 							exit={CARD_EXIT}
 						>
-							{eager ? (
-								card
-							) : (
-								<Reveal eager={false} distance={REVEAL_DISTANCE.item} delayMs={gridStaggerDelay(i)}>
-									{card}
-								</Reveal>
-							)}
+							<ArtworkCard
+								variant="wall"
+								artwork={art}
+								siblings={visible}
+								priority={i < 3}
+								sizes={WALL_SIZES}
+								index={indexBySlug.get(art.slug)}
+								total={items.length}
+								unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
+								revealDelayMs={(i % 3) * CARD_STAGGER_MS}
+							/>
 						</motion.li>
 					);
 				})}
 			</AnimatePresence>
-		</GalleryGrid>
+		</ul>
 	);
 }

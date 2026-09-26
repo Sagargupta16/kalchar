@@ -1,0 +1,204 @@
+/* Editorial page language for /work, /work/[slug], /events and /about
+   (rework 2026-09-26). Imported from the components that use it, so it is
+   global and unlayered like components/motion/kinetic.css. Every loop and
+   entrance moves transform, opacity or clip-path only. Motion stays on
+   regardless of the OS preference. */
+
+/* ─── MASTHEAD ORNAMENT ─── */
+/* The giant devanagari glyph that hangs off the right edge of a pigment
+   masthead. Pure ornament: aria-hidden, pointer-events none, a slow sway. */
+.masthead-glyph {
+  position: absolute;
+  right: -0.08em;
+  bottom: -0.32em;
+  font-size: clamp(12rem, 8rem + 22vw, 30rem);
+  line-height: 1;
+  opacity: 0.1;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 60% 80%;
+  animation: glyph-sway 18s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes glyph-sway {
+  from {
+    transform: rotate(-4deg) translateY(0);
+  }
+  to {
+    transform: rotate(3deg) translateY(-3%);
+  }
+}
+
+/* Stats rule under the masthead: the hairline draws in from the left. */
+.stat-rule {
+  transform-origin: 0 50%;
+  animation: stat-rule-in 1100ms var(--ease-emphatic) 250ms both;
+}
+
+@keyframes stat-rule-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ─── ARTWORK WALL (justified rows) ─── */
+/* Each piece is a flex item whose grow and basis are both proportional to
+   its own aspect ratio (--ar), so every plate in a row lands at the same
+   height and at its true ratio: row-major reading order, nothing cropped,
+   no JS measurement. The trailing spacer keeps the last row at the target
+   height instead of stretching one lone piece across the screen. */
+.art-wall {
+  --row-h: 9.5rem;
+  --wall-gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.75rem var(--wall-gap);
+}
+
+.art-wall::after {
+  content: "";
+  flex: 1e4 1 0;
+}
+
+.art-wall > li {
+  flex: var(--ar) 1 calc(var(--ar) * var(--row-h));
+  min-width: 0;
+  /* A row that holds a single wide-set piece stops growing at about twice
+     the target height instead of filling the screen with one plate. */
+  max-width: calc(var(--ar) * var(--row-h) * 1.9);
+}
+
+@media (min-width: 40rem) {
+  .art-wall {
+    --row-h: 15rem;
+    --wall-gap: 1.25rem;
+    row-gap: 2.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .art-wall {
+    --row-h: 19rem;
+    --wall-gap: 1.75rem;
+    row-gap: 3rem;
+  }
+}
+
+/* The hover label that slides up inside the plate (fine pointers only). */
+.plate-peek {
+  transform: translateY(calc(100% + 1rem));
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .plate-peek,
+  .group:focus-visible .plate-peek {
+    transform: none;
+  }
+}
+
+/* ─── SCROLL REVEALS (useViewReveal hosts) ─── */
+/* Mosaic tiles and palette swatches share the host's data-reveal state. */
+[data-reveal="armed"] .tile-wipe {
+  clip-path: inset(100% 0 0 0);
+}
+[data-reveal="in"] .tile-wipe,
+.tile-wipe-eager {
+  animation: tile-wipe 900ms var(--ease-emphatic) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+@keyframes tile-wipe {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+[data-reveal="armed"] .tile-settle {
+  transform: scale(1.12);
+}
+[data-reveal="in"] .tile-settle,
+.tile-wipe-eager .tile-settle {
+  animation: tile-settle 1200ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+@keyframes tile-settle {
+  from {
+    transform: scale(1.12);
+  }
+}
+
+[data-reveal="armed"] .swatch {
+  transform: scale(0);
+}
+[data-reveal="in"] .swatch,
+.swatch-eager .swatch {
+  animation: swatch-pop 700ms var(--ease-emphatic) both;
+  animation-delay: calc(200ms + var(--i, 0) * 90ms);
+}
+
+@keyframes swatch-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+/* Generic rise for blocks inside a reveal host. */
+[data-reveal="armed"] .rise {
+  opacity: 0;
+  transform: translateY(36px);
+}
+[data-reveal="in"] .rise {
+  animation: rise-in var(--duration-unveil) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+}
+
+/* ─── TIMELINE ─── */
+/* The events spine: a static hairline plus a pigment fill that Motion
+   scales with scroll progress (scaleY only). */
+.timeline-fill {
+  transform-origin: 50% 0;
+}
+
+/* The node on the spine fills when its record scrolls in. */
+.timeline-node {
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+[data-reveal="armed"] .timeline-node {
+  transform: scale(0.4);
+}
+[data-reveal="in"] .timeline-node {
+  animation: node-pop 700ms var(--ease-emphatic) both;
+}
+
+@keyframes node-pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+/* ─── ABOUT: MONOGRAM MEDALLION ─── */
+/* The portrait placeholder's ring of text turns slowly; the glyph breathes. */
+.ring-spin {
+  animation: ring-spin 48s linear infinite;
+}
+
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
