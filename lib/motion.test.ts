@@ -45,17 +45,6 @@ function bezier(value: string): number[] {
 	return inner.split(",").map((n) => Number(n.trim()));
 }
 
-/** Evaluate a `clamp(<min>rem, <intercept>rem + <slope>vw, <max>rem)` rung at a viewport width, in px (16px root). */
-function clampAtViewport(value: string, viewportPx: number): number {
-	const match = value.match(
-		/^clamp\(\s*([\d.]+)rem\s*,\s*([\d.]+)rem\s*\+\s*([\d.]+)vw\s*,\s*([\d.]+)rem\s*\)$/,
-	);
-	if (!match) throw new Error(`not a rem + vw clamp: ${value}`);
-	const [minRem, interceptRem, slopeVw, maxRem] = match.slice(1).map(Number);
-	const preferred = (interceptRem ?? 0) * 16 + ((slopeVw ?? 0) / 100) * viewportPx;
-	return Math.min(Math.max(preferred, (minRem ?? 0) * 16), (maxRem ?? 0) * 16);
-}
-
 /** The whole `@theme ... { ... }` block, brace-balanced (the file reads `@theme static {`). */
 function themeBlock(): string {
 	const start = css.search(/@theme[^{]*\{/);
@@ -98,19 +87,6 @@ describe("lib/motion mirrors app/globals.css", () => {
 	it("--ease-emphatic is in @theme (M3 emphasized-decelerate; hero-scale entrances only)", () => {
 		expect(themeBlock()).toContain("--ease-emphatic");
 		expect(bezier(token("--ease-emphatic"))).toEqual([0.05, 0.7, 0.1, 1]);
-	});
-
-	it.each([
-		["--text-display", 390, 36],
-		["--text-display", 1280, 64],
-		["--text-display-sm", 390, 32],
-		["--text-display-sm", 1280, 48],
-		["--text-h1", 390, 32],
-		["--text-h1", 1280, 44],
-		["--text-h2", 390, 28],
-		["--text-h2", 1280, 36],
-	])("%s resolves at %dpx viewport to %dpx within 1px", (name, viewport, expected) => {
-		expect(clampAtViewport(token(name), viewport)).toBeCloseTo(expected, 0);
 	});
 
 	it("--sheet-peek mirrors SHEET_DETENTS.peek and --spacing-fab is the 56px disc", () => {

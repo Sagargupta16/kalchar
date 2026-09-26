@@ -354,7 +354,7 @@
   /* iOS-style material recipe, read by the material-glass utilities in
      app/elevation.css. Fill percentages feed color-mix over the token surface
      (dark remaps flow through --color-surface / --elev-*); blur is applied
-     statically, never animated (scripts/check-ui-tokens.mjs). */
+     statically, never animated. */
   --glass-blur: 16px;
   --glass-blur-strong: 24px;
   --glass-saturate: 1.5;

@@ -89,7 +89,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				ref={headerRef}
 				className={cn(
 					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
-					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
+					// STATIC (never animated) and always on, so
 					// the material stays consistent with the mobile drawer.
 					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
 					// as the subtle edge and e1 shadow arrive, so content sliding under the

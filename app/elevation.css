@@ -104,7 +104,7 @@
    themselves (--color-surface* and --elev-* both remap in :root.dark). Where
    backdrop-filter is unsupported the fill tokens stay at 100%, keeping the
    surface opaque and readable. Blur is static: fade opacity if
-   needed, never the radius (scripts/check-ui-tokens.mjs). */
+   needed, never the radius. */
 @utility material-glass {
   background-color: color-mix(in oklch, var(--glass-tint, var(--color-surface)) var(--glass-fill), transparent);
   box-shadow: var(--elev-hairline), var(--elev-e2);
