@@ -60,13 +60,7 @@ export function EventsTeaser({
 
 	return (
 		<Section id="events" accent="peacock" padded rhythm="grand">
-			<Spread
-				header={
-					<Reveal>
-						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
-					</Reveal>
-				}
-			>
+			<Spread header={<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />}>
 				<ul className={cn("grid gap-(--grid-gap)", gridCols)}>
 					{events.map((event, i) => {
 						const date = wallDateParts(event.eventDate);

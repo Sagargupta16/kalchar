@@ -3,11 +3,15 @@
 import { ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
-import { DUR, EASE_IN, EASE_OUT, SPRING_SHEET } from "@/lib/motion";
+import { DUR, EASE_IN, EASE_OUT, KINETIC, SPRING_SHEET } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+
+/** Rows slide in from the right edge after the panel starts settling, one kinetic step apart. */
+const ROW_FROM = { opacity: 0, x: 40 } as const;
+const ROW_TO = { opacity: 1, x: 0 } as const;
+const ROW_LEAD_MS = 80;
 
 export interface DrawerNavItem {
 	label: string;
@@ -36,8 +40,8 @@ interface MobileDrawerProps {
  * 90% fill, static 24px blur + saturate, hairline + e4 in one box-shadow
  * list; opaque readable fallback without backdrop-filter). "Message on
  * WhatsApp" keeps its content but moves from the first row to a pinned
- * full-width primary above the safe area. Rows cascade on the CSS stagger
- * utility; the panel settles in on SPRING_SHEET (the open answers the
+ * full-width primary above the safe area. Rows slide in from the right, one
+ * KINETIC step (70ms) apart, fading as they travel 40px; the panel settles in on SPRING_SHEET (the open answers the
  * visitor's tap, so a spring; the blurred material fades in with the panel's
  * opacity, never by animating the blur radius) and exits at DUR.fast EASE_IN
  * (motion addendum C6).
@@ -81,11 +85,20 @@ export function MobileDrawer({
 							data-lenis-prevent
 							className="min-h-0 flex-1 overflow-y-auto px-(--container-px)"
 						>
-							<ul className="stagger flex flex-col gap-1 py-(--space-tight)">
+							<ul className="flex flex-col gap-1 py-(--space-tight)">
 								{items.map((item, i) => {
 									const active = isActive(item.href);
 									return (
-										<li key={item.href} style={{ "--i": i } as CSSProperties}>
+										<motion.li
+											key={item.href}
+											initial={ROW_FROM}
+											animate={ROW_TO}
+											transition={{
+												duration: DUR.reveal,
+												ease: EASE_OUT,
+												delay: (ROW_LEAD_MS + i * KINETIC.stepMs) / 1000,
+											}}
+										>
 											<Link
 												href={item.href}
 												onClick={onClose}
@@ -105,7 +118,7 @@ export function MobileDrawer({
 													className="shrink-0 text-muted transition-[translate,color] group-hover:translate-x-0.5"
 												/>
 											</Link>
-										</li>
+										</motion.li>
 									);
 								})}
 							</ul>
