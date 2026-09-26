@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.39.2 (2026-09-26)
+
+### Fixed
+
+- Show a single floating control on phones: back-to-top steps aside while the WhatsApp disc is mounted, so two stacked discs no longer cover body copy.
+- Give the home Custom Orders steps the same ledger as Workshops (roman numerals, display titles, hairline rows) instead of a second numbering style.
+- Raise the home Workshops and Custom Orders descriptions from 14px to the 16px body size.
+- Render the hero's style links as the same pills as the Artwork filters.
+- Stretch paired action buttons to full width on phones (hero and Custom Orders), so the two buttons no longer sit at mismatched widths.
+- Align CLAUDE.md, DEVELOPMENT.md and MEMORY.md with the motion policy shipped in 1.39.0.
+
 ## 1.39.1 (2026-09-26)
 
 ### Fixed
