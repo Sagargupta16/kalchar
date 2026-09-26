@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.0 (2026-09-26)
+
+### Changed
+
+- Brighter paper, deeper ink, more vivid terracotta and section pigments, white card surfaces, stronger layered shadows, and larger display, page and section type (88px hero rung on desktop).
+- Animate the home hero headline word by word from masks, with the last word in accent italic, and give the hero plates scroll parallax and an 8 degree pointer tilt.
+- Add a large art-style marquee after the hero that speeds up with scrolling, reverses on scroll-up and pauses on hover or focus.
+- Reveal section titles word by word, wipe artwork images up into their mats with a staggered settle, and lift cards with an image zoom and a sliding arrow chip on hover.
+- Set the home Workshops and Custom Orders sections on deep pigment bands with cream type.
+- Fade and rise public pages on client navigation, follow the hovered header link with a sliding pill, and stagger the mobile drawer links.
+- Rebuild the admin as a neutral dashboard: full-height sidebar with the brand mark and a sliding active pill, a Group / Page crumb, stat tiles with count-up on Pieces, segmented filters and view toggles, status chips, staggered tiles and rows, one button hierarchy, and matching skeletons on every admin page.
+- Show a new-enquiry badge on the admin Enquiries navigation.
+- Split the event create form out of the events manager to stay under the 500-line ceiling.
+
 ## 1.39.2 (2026-09-26)
 
 ### Fixed
