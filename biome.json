@@ -18,7 +18,8 @@
 			"!**/out",
 			"!**/node_modules",
 			"!**/_opt",
-			"!pnpm-lock.yaml"
+			"!pnpm-lock.yaml",
+			"!skills-lock.json"
 		]
 	},
 	"formatter": {
