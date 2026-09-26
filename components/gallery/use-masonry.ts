@@ -87,6 +87,8 @@ export function placeMasonry(
 export function useMasonry<T extends HTMLElement>(
 	ratios: readonly number[],
 	extraPx: number,
+	/** Cap for short strips, so three pieces never spread over four columns. */
+	maxColumns = 4,
 ): {
 	/** Callback ref for the host, so a host that mounts later (after an empty state) is measured too. */
 	hostRef: (node: T | null) => void;
@@ -94,7 +96,10 @@ export function useMasonry<T extends HTMLElement>(
 	itemStyle: (index: number) => CSSProperties;
 	columnOf: (index: number) => number;
 } {
-	const columns = useSyncExternalStore(subscribe, columnsNow, () => 2);
+	const columns = Math.min(
+		useSyncExternalStore(subscribe, columnsNow, () => 2),
+		maxColumns,
+	);
 	const [width, setWidth] = useState(0);
 	const [node, setNode] = useState<T | null>(null);
 

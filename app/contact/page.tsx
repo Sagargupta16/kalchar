@@ -236,7 +236,7 @@ function WhatsAppContactCard({
 					</p>
 					<h2 className="mt-2 text-base font-medium text-ink">Chat on WhatsApp</h2>
 					{channel.display?.trim() ? (
-						<p className="t-numeral type-section mt-1 select-all break-words text-ink transition-colors group-hover:text-(--section-accent)">
+						<p className="mt-1 select-all break-words text-2xl font-semibold tracking-tight tabular-nums lining-nums text-ink transition-colors group-hover:text-(--section-accent) sm:text-3xl">
 							{channel.display.trim()}
 						</p>
 					) : null}
@@ -270,7 +270,7 @@ function EmailContactCard({ channel, href }: Readonly<{ channel: ContactChannel;
 					<p className="t-meta">Longer briefs</p>
 					<h2 className="mt-2 text-base font-medium text-ink">Email us</h2>
 					{channel.display?.trim() ? (
-						<p className="t-display mt-1 text-h3 text-ink [overflow-wrap:anywhere] transition-colors group-hover:text-(--section-accent)">
+						<p className="mt-1 text-lg font-semibold tracking-tight text-ink [overflow-wrap:anywhere] transition-colors group-hover:text-(--section-accent) sm:text-xl">
 							{channel.display.trim()}
 						</p>
 					) : null}

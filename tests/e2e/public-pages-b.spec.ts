@@ -188,10 +188,11 @@ test("the phone number is the numeral headline on a standard bordered card", asy
 	await expect(card).toHaveCSS("border-bottom-width", "1px");
 	await expect(card).toHaveCSS("border-top-color", await resolveColor(page, "--color-line"));
 
-	const phone = card.locator(".t-numeral");
+	// Plain sans with lining, tabular figures: an italic old-style phone number misreads.
+	const phone = card.locator("p.select-all");
 	await expect(phone).toBeVisible();
-	await expect(phone).toHaveCSS("font-style", "italic");
-	await expect(phone).toHaveCSS("font-variant-numeric", "tabular-nums");
+	await expect(phone).toHaveCSS("font-style", "normal");
+	await expect(phone).toHaveCSS("font-variant-numeric", /tabular-nums/);
 	await expect(phone).toHaveCSS("user-select", "all");
 	const size = await phone.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
 	expect(size).toBeGreaterThanOrEqual(24);

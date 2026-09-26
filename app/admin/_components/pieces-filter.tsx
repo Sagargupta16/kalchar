@@ -151,7 +151,9 @@ export function PiecesFilter({
 					</button>
 				) : null}
 			</div>
-			<div className="flex min-w-0 items-center gap-2">
+			{/* Phones: the tabs get the full width and the view toggle drops beside
+			    the count; from sm the toggle sits at the end of the tab row. */}
+			<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 				<FilterTabs
 					label="Show"
 					value={filter}
@@ -161,23 +163,30 @@ export function PiecesFilter({
 						label: FILTER_LABEL[key],
 						count: counts[key],
 					}))}
-					className="min-w-0 flex-1"
+					className="col-span-2 min-w-0 sm:col-span-1"
 				/>
-				<ViewToggle view={view} onView={onView} />
+				<div className="col-start-2 row-start-2 sm:row-start-1">
+					<ViewToggle view={view} onView={onView} />
+				</div>
+				<output
+					className={cn(
+						adminHelp,
+						"col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-2",
+					)}
+				>
+					<span className="font-medium text-ink tabular-nums">
+						{shown === total ? totalLabel : `Showing ${shown} of ${totalLabel}`}
+					</span>
+					{hint ? (
+						<>
+							<span aria-hidden="true" className="text-line-strong">
+								/
+							</span>
+							<span>{hint}</span>
+						</>
+					) : null}
+				</output>
 			</div>
-			<output className={cn(adminHelp, "flex flex-wrap items-center gap-x-2 gap-y-1")}>
-				<span className="font-medium text-ink tabular-nums">
-					{shown === total ? totalLabel : `Showing ${shown} of ${totalLabel}`}
-				</span>
-				{hint ? (
-					<>
-						<span aria-hidden="true" className="text-line-strong">
-							/
-						</span>
-						<span>{hint}</span>
-					</>
-				) : null}
-			</output>
 		</div>
 	);
 }

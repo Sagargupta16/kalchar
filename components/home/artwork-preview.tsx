@@ -1,4 +1,5 @@
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { ArtworkWall } from "@/components/gallery/artwork-wall";
 import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
@@ -68,33 +69,35 @@ export function ArtworkPreview({
 						</Reveal>
 					) : null}
 				</div>
-				{/* Masonry by CSS columns: every painting at its own ratio, edge to
-				    edge, two columns on phones. A short strip reads top to bottom per
-				    column, which keeps DOM order and focus order the same. */}
-				<ul
-					className={cn(
-						"gap-3 sm:gap-6",
-						single ? "mx-auto w-full max-w-sm" : "mt-8 columns-2",
-						columns === 2 && "mx-auto w-full max-w-3xl",
-						columns === 3 && "lg:columns-3",
-						columns === 4 && "lg:columns-4",
-					)}
-				>
-					{artworks.map((art, index) => (
-						<li key={art.slug} className="mb-6 min-w-0 break-inside-avoid sm:mb-8">
+				{/* Every painting at its own ratio, edge to edge, on the same
+				    shortest-column masonry as /work so short strips stay balanced. */}
+				{single ? (
+					<ul className="mx-auto w-full max-w-sm">
+						<li>
 							<ArtworkCard
 								variant="wall"
-								artwork={art}
+								artwork={artworks[0] as Artwork}
 								siblings={siblings}
-								priority={index < priorityCount}
+								priority={priorityCount > 0}
 								sizes={imageSizes}
-								index={(catalogIndex[art.slug] ?? 0) + 1}
+								index={(catalogIndex[(artworks[0] as Artwork).slug] ?? 0) + 1}
 								total={totalCount}
-								revealDelayMs={cardRevealDelay(index, columns)}
 							/>
 						</li>
-					))}
-				</ul>
+					</ul>
+				) : (
+					<ArtworkWall
+						artworks={artworks}
+						siblings={siblings}
+						sizes={imageSizes}
+						priorityCount={priorityCount}
+						catalogIndex={catalogIndex}
+						totalCount={totalCount}
+						maxColumns={columns}
+						revealDelays={artworks.map((_, index) => cardRevealDelay(index, columns))}
+						className={cn(columns === 2 && "mx-auto w-full max-w-3xl")}
+					/>
+				)}
 			</div>
 		</Section>
 	);

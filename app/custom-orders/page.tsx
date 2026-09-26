@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowRight, Brush, Clock, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
-import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { ArtworkWall } from "@/components/gallery/artwork-wall";
 import { PageHero } from "@/components/layout/page-hero";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
@@ -194,18 +194,12 @@ export default async function CustomOrdersPage() {
 							}
 						/>
 						{/* Same edge-to-edge, natural-ratio masonry as the home strips. */}
-						<ul className="mt-8 columns-2 gap-3 sm:gap-6 lg:columns-4">
-							{examplePieces.map((art, i) => (
-								<li key={art.slug} className="mb-6 min-w-0 break-inside-avoid sm:mb-8">
-									<ArtworkCard
-										variant="wall"
-										artwork={art}
-										siblings={examplePieces}
-										priority={i < 2}
-									/>
-								</li>
-							))}
-						</ul>
+						<ArtworkWall
+							artworks={examplePieces}
+							siblings={examplePieces}
+							priorityCount={2}
+							maxColumns={4}
+						/>
 					</div>
 				) : null}
 			</Section>
