@@ -3,7 +3,7 @@ import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
 import { Section, SectionHeader } from "@/components/ui/section";
-import { gridStaggerDelay } from "@/lib/motion";
+import { cardRevealDelay, staggerDelay } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -55,18 +55,22 @@ export function ArtworkPreview({
 	return (
 		<Section id={id} padded rhythm="grand">
 			<div className={cn(single && "grid items-center gap-8 md:grid-cols-2 md:gap-12")}>
-				<Reveal>
+				<div>
 					<SectionHeader
 						eyebrow={eyebrow}
 						title={title}
 						lead={lead}
 						action={single ? undefined : action}
 					/>
-					{single ? <div className="mt-6">{action}</div> : null}
-				</Reveal>
+					{single ? (
+						<Reveal delayMs={staggerDelay(2)}>
+							<div className="mt-6">{action}</div>
+						</Reveal>
+					) : null}
+				</div>
 				<ul
 					className={cn(
-						"grid items-stretch gap-4 sm:gap-6",
+						"grid items-stretch gap-4 overflow-x-clip sm:gap-6",
 						single ? "mx-auto w-full max-w-sm grid-cols-1" : "mt-8 grid-cols-2",
 						columns === 2 && "mx-auto w-full max-w-3xl",
 						columns === 3 && "lg:grid-cols-3",
@@ -74,7 +78,7 @@ export function ArtworkPreview({
 					)}
 				>
 					{artworks.map((art, index) => (
-						<Reveal key={art.slug} as="li" variant="item" delayMs={gridStaggerDelay(index)}>
+						<li key={art.slug} className="min-w-0">
 							<ArtworkCard
 								artwork={art}
 								siblings={siblings}
@@ -82,8 +86,9 @@ export function ArtworkPreview({
 								sizes={imageSizes}
 								index={(catalogIndex[art.slug] ?? 0) + 1}
 								total={totalCount}
+								revealDelayMs={cardRevealDelay(index, columns)}
 							/>
-						</Reveal>
+						</li>
 					))}
 				</ul>
 			</div>

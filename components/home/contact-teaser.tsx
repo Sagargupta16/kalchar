@@ -2,7 +2,7 @@ import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { ChannelLink } from "@/components/ui/channel-link";
-import { Section } from "@/components/ui/section";
+import { Section, SectionHeader } from "@/components/ui/section";
 import { staggerDelay } from "@/lib/motion";
 import type { Contact } from "@/lib/types";
 
@@ -25,16 +25,14 @@ export function ContactTeaser({
 	return (
 		<Section id="contact" accent="peacock" padded containerClassName="py-(--space-block)">
 			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
-				<Reveal>
-					<header className="max-w-lg">
-						<p className="t-eyebrow">{eyebrow}</p>
-						<h2 className="t-headline mt-3 text-h2">{title}</h2>
-						{lead ? <p className="t-lead mt-4">{lead}</p> : null}
-					</header>
-					<SectionCta href="/contact" className="mt-6">
-						Full contact page
-					</SectionCta>
-				</Reveal>
+				<div className="max-w-xl">
+					<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
+					<Reveal delayMs={staggerDelay(2)}>
+						<SectionCta href="/contact" className="mt-6">
+							Full contact page
+						</SectionCta>
+					</Reveal>
+				</div>
 				<div className="grid gap-3">
 					<Reveal delayMs={staggerDelay(0)}>
 						<ChannelLink

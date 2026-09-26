@@ -3,15 +3,19 @@ import { resolve } from "node:path";
 import { parse } from "postcss";
 import { describe, expect, it } from "vitest";
 import {
+	CARD_STAGGER_MS,
+	cardRevealDelay,
 	DUR,
 	EASE_IN,
 	EASE_IN_OUT,
 	EASE_OUT,
 	EASE_SHEET,
 	gridStaggerDelay,
+	KINETIC,
 	PRESS_SCALE,
 	perSegmentEase,
 	REVEAL_DISTANCE,
+	REVEAL_TRAVEL,
 	SHEEN_EVERY_S,
 	SHEET_DETENTS,
 	SPRING_SHEET,
@@ -208,6 +212,44 @@ describe("app/animations.css", () => {
 			expect(read(file)).not.toContain("prefers-reduced-motion");
 		}
 		expect(read("components/motion/motion-provider.tsx")).toContain('reducedMotion="never"');
+	});
+});
+
+describe("bold pass motion (components/motion/kinetic.css)", () => {
+	const kinetic = read("components/motion/kinetic.css");
+
+	it("--duration-kinetic and --kinetic-step mirror KINETIC", () => {
+		expect(token("--duration-kinetic", kinetic)).toBe(`${KINETIC.durationMs}ms`);
+		expect(token("--kinetic-step", kinetic)).toBe(`${KINETIC.stepMs}ms`);
+	});
+
+	it("public reveals and the page enter reuse existing CSS durations", () => {
+		expect(token("--duration-unveil")).toBe(`${DUR.reveal * 1000}ms`);
+		expect(token("--duration-slow")).toBe(`${DUR.page * 1000}ms`);
+		expect(animations).toMatch(
+			/\.page-enter\s*\{\s*animation: page-enter-in var\(--duration-slow\)/,
+		);
+	});
+
+	it("public reveal travel is bolder than the admin mirror", () => {
+		expect(REVEAL_TRAVEL.block).toBeGreaterThanOrEqual(40);
+		expect(REVEAL_TRAVEL.block).toBeLessThanOrEqual(48);
+		expect(REVEAL_TRAVEL.item).toBeGreaterThan(REVEAL_DISTANCE.item);
+	});
+
+	it("never animates a blur or a layout property", () => {
+		expect(kinetic).not.toMatch(/filter:\s*blur/);
+		expect(kinetic).not.toMatch(/transition[^;]*\b(width|height|top|left)\b/);
+		expect(kinetic).not.toContain("prefers-reduced-motion");
+	});
+});
+
+describe("cardRevealDelay", () => {
+	it("staggers left to right within a row and restarts each row", () => {
+		expect(cardRevealDelay(0, 3)).toBe(0);
+		expect(cardRevealDelay(2, 3)).toBe(2 * CARD_STAGGER_MS);
+		expect(cardRevealDelay(3, 3)).toBe(0);
+		expect(cardRevealDelay(-1, 0)).toBe(0);
 	});
 });
 

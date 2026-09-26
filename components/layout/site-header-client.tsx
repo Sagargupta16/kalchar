@@ -170,6 +170,11 @@ function HeaderBar({
 	className,
 	mobileOnly = false,
 }: Readonly<HeaderBarProps>) {
+	// The pill follows the hovered or focused link and slides home to the
+	// active one when the pointer leaves the nav (layoutId + SPRING_INDICATOR).
+	const [hovered, setHovered] = useState<string | null>(null);
+	const activeHref = NAV.find((item) => isActive(item.href))?.href ?? null;
+	const pillHref = hovered ?? activeHref;
 	return (
 		<Container
 			className={cn("relative z-10 flex items-center justify-between gap-4 py-2", className)}
@@ -203,7 +208,7 @@ function HeaderBar({
 			{/* Desktop nav */}
 			{mobileOnly ? null : (
 				<div className="hidden items-center gap-(--space-group) lg:flex">
-					<nav aria-label="Primary">
+					<nav aria-label="Primary" onPointerLeave={() => setHovered(null)}>
 						<ul className="flex items-center gap-1">
 							{NAV.map((item) => {
 								const active = isActive(item.href);
@@ -212,17 +217,28 @@ function HeaderBar({
 										<Link
 											href={item.href}
 											aria-current={active ? "page" : undefined}
+											onPointerEnter={() => setHovered(item.href)}
+											onFocus={() => setHovered(item.href)}
+											onBlur={() => setHovered(null)}
 											className={cn(
-												"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
+												"relative isolate inline-flex min-h-control items-center rounded-full px-4 text-sm font-medium transition-colors",
 												active ? "text-accent-text" : "text-muted hover:text-ink",
 											)}
 										>
 											{item.label}
-											{active ? (
+											{pillHref === item.href ? (
 												<motion.span
 													aria-hidden="true"
 													layoutId="nav-indicator"
-													className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
+													className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-canvas shadow-hairline"
+													transition={SPRING_INDICATOR}
+												/>
+											) : null}
+											{active ? (
+												<motion.span
+													aria-hidden="true"
+													layoutId="nav-underline"
+													className="pointer-events-none absolute inset-x-4 bottom-1.5 h-0.5 rounded-full bg-accent"
 													transition={SPRING_INDICATOR}
 												/>
 											) : null}
