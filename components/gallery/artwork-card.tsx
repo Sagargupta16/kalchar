@@ -17,6 +17,10 @@ import { cn, formatInr } from "@/lib/utils";
 
 const AnimatedLink = motion.create(Link);
 const CARD_LIFT = { y: -8 } as const;
+const WALL_LIFT = { y: -6 } as const;
+
+/** Wall card caption height in px (mt-3 + the h-[4.5rem] block); the masonry layout adds it to each plate. */
+export const WALL_CAPTION_PX = 84;
 
 interface ArtworkCardProps {
 	artwork: Artwork;
@@ -35,6 +39,12 @@ interface ArtworkCardProps {
 	revealDelayMs?: number;
 	/** A gentle idle float for a featured piece. */
 	float?: boolean;
+	/**
+	 * card = the bordered 4:5 mat (home strips, custom orders); wall = the
+	 * /work gallery hang: the plate at the painting's own ratio with no mat,
+	 * a sliding "View" label on hover and the caption as wall text.
+	 */
+	variant?: "card" | "wall";
 }
 
 export function ArtworkCard({
@@ -48,6 +58,7 @@ export function ArtworkCard({
 	unveilDelayMs,
 	revealDelayMs = 0,
 	float = false,
+	variant = "card",
 }: Readonly<ArtworkCardProps>) {
 	const { openLightbox } = useLightbox();
 	const positionId = useId();
@@ -87,6 +98,80 @@ export function ArtworkCard({
 	const cardDelay = {
 		"--card-delay": `${eager ? unveilDelayMs : revealDelayMs}ms`,
 	} as CSSProperties;
+
+	const position = index ? (
+		<span id={positionId} className="sr-only">
+			Piece {index}
+			{total ? ` of ${total}` : ""}
+		</span>
+	) : null;
+
+	if (variant === "wall") {
+		return (
+			<AnimatedLink
+				ref={revealRef}
+				href={`/work/${artwork.slug}`}
+				onClick={handleClick}
+				data-motion-reveal={eager ? undefined : true}
+				data-reveal={eager ? undefined : revealState}
+				style={cardDelay}
+				className={cn("group flex flex-col rounded-md", eager && "card-unveil-eager", className)}
+				aria-label={ariaLabel}
+				aria-describedby={index ? positionId : undefined}
+				whileHover={WALL_LIFT}
+				whileFocus={WALL_LIFT}
+				whileTap={{ scale: PRESS_SCALE }}
+				transition={SPRING_PRESS}
+			>
+				<div
+					className="relative overflow-hidden rounded-md bg-canvas shadow-e2-edged elevate-e3"
+					style={{ aspectRatio: artwork.aspectRatio }}
+				>
+					<div className="card-wipe absolute inset-0">
+						<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
+							<ArtImage
+								src={imgSrc}
+								alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
+								sizes={sizes}
+								className="absolute inset-0 h-full w-full object-contain"
+								priority={priority}
+							/>
+						</div>
+					</div>
+					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+					<span
+						aria-hidden="true"
+						className="plate-peek absolute right-2 bottom-2 z-raised inline-flex min-h-8 items-center gap-1 rounded-full bg-scrim/85 px-3 text-xs font-medium text-bg dark:text-ink"
+					>
+						View
+						<ArrowUpRight size={14} />
+					</span>
+				</div>
+
+				{/* Fixed-height caption (WALL_CAPTION_PX, masonry math depends on it):
+				    meta row with the price, then the title clamped to two lines. */}
+				<div className="card-caption mt-3 h-[4.5rem] min-w-0">
+					<div className="flex items-baseline justify-between gap-2">
+						<p aria-hidden="true" className="t-meta min-w-0 truncate text-(length:--text-micro)">
+							{index ? (
+								<span className="max-sm:hidden">{`No. ${String(index).padStart(2, "0")} · `}</span>
+							) : null}
+							{artwork.style}
+						</p>
+						{priceSlot ? (
+							<p className="t-numeral shrink-0 whitespace-nowrap text-sm lining-nums text-accent-text">
+								{priceSlot}
+							</p>
+						) : null}
+					</div>
+					<h3 className="t-display mt-1 line-clamp-2 text-h3 text-ink transition-colors group-hover:text-accent-text">
+						{artwork.title}
+					</h3>
+				</div>
+				{position}
+			</AnimatedLink>
+		);
+	}
 
 	// Three nested layers, one transform each: the wipe (clip-path + scale
 	// settle on entrance), the hover zoom (1.05 inside the mat, pointer devices
@@ -151,12 +236,7 @@ export function ArtworkCard({
 					<p className="text-muted">{artwork.style}</p>
 					{priceSlot ? <p className="font-semibold tabular-nums text-ink">{priceSlot}</p> : null}
 				</div>
-				{index ? (
-					<span id={positionId} className="sr-only">
-						Piece {index}
-						{total ? ` of ${total}` : ""}
-					</span>
-				) : null}
+				{position}
 			</div>
 		</AnimatedLink>
 	);
