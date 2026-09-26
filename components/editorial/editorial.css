@@ -99,11 +99,13 @@
 }
 
 /* ─── SCROLL REVEALS (useViewReveal hosts) ─── */
-/* Mosaic tiles and palette swatches share the host's data-reveal state. */
-[data-reveal="armed"] .tile-wipe {
+/* Mosaic tiles read their own host's data-mosaic state (a mosaic sits inside
+   a record that is itself a data-reveal host); swatches and rises read
+   data-reveal. */
+[data-mosaic="armed"] .tile-wipe {
   clip-path: inset(100% 0 0 0);
 }
-[data-reveal="in"] .tile-wipe,
+[data-mosaic="in"] .tile-wipe,
 .tile-wipe-eager {
   animation: tile-wipe 900ms var(--ease-emphatic) both;
   animation-delay: calc(var(--i, 0) * 80ms);
@@ -118,10 +120,10 @@
   }
 }
 
-[data-reveal="armed"] .tile-settle {
+[data-mosaic="armed"] .tile-settle {
   transform: scale(1.12);
 }
-[data-reveal="in"] .tile-settle,
+[data-mosaic="in"] .tile-settle,
 .tile-wipe-eager .tile-settle {
   animation: tile-settle 1200ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 80ms);
@@ -200,5 +202,17 @@
 @keyframes ring-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* A shorter hang for strips (the detail page's "More" row fits four). */
+@media (min-width: 40rem) {
+  .art-wall.art-wall-compact {
+    --row-h: 12rem;
+  }
+}
+@media (min-width: 64rem) {
+  .art-wall.art-wall-compact {
+    --row-h: 14rem;
   }
 }

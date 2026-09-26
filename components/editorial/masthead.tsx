@@ -10,6 +10,8 @@ import "./editorial.css";
 export interface MastheadStat {
 	value: number;
 	label: string;
+	/** Start of the count-up (defaults to 0). */
+	from?: number;
 }
 
 interface MastheadProps {
@@ -103,7 +105,7 @@ function StatRow({ stats }: Readonly<{ stats: readonly MastheadStat[] }>) {
 				>
 					<dt className="t-meta">{stat.label}</dt>
 					<dd className="t-headline text-h2 lining-nums text-(--section-accent) lg:text-h1">
-						<CountUp value={stat.value} delayMs={250 + i * 140} />
+						<CountUp value={stat.value} from={stat.from} delayMs={250 + i * 140} />
 					</dd>
 				</Reveal>
 			))}

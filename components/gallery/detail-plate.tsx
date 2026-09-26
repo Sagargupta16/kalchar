@@ -1,8 +1,9 @@
 "use client";
 
 import { Maximize2 } from "lucide-react";
+import { motion, useScroll, useTransform } from "motion/react";
 import type { CSSProperties, MouseEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkStatusBadge } from "@/components/gallery/artwork-status-badge";
 import { useLightbox } from "@/components/gallery/lightbox-context";
@@ -22,6 +23,9 @@ import { cn } from "@/lib/utils";
  */
 let hasMountedOnce = false;
 
+/** How far (px) the plate trails the page while its wall scrolls out of view. */
+const PARALLAX_PX = 90;
+
 interface DetailPlateProps {
 	artwork: Artwork;
 	/** Catalog list wired into the lightbox so paging sweeps the archive. */
@@ -32,17 +36,16 @@ interface DetailPlateProps {
 }
 
 /**
- * The detail page's plate (visual-direction 2.3): full-bleed on phones at a
- * <= 72dvh cap (bound through width, since the box is aspect-ratio driven),
- * sticky beside the info column from md on tall-enough viewports, resting
- * gold inset line, and lightbox v2 as the tap target: the whole plate opens
- * it, with a 44px Expand affordance at the bottom-right.
+ * The detail page's plate, hung on the painting-tinted wall band: at its own
+ * ratio, capped at 64dvh on phones and at the viewport height from md (bound
+ * through width, since the box is aspect-ratio driven), with the resting
+ * gold inset line and lightbox v2 as the tap target (the whole plate opens
+ * it, with a 44px Expand affordance at the bottom-right).
  *
- * The plate hangs on the museum wall (steering 2026-09-14): a .plate-float
- * wrapper (animations.css) breathes the frame above the e2-edged rest. The
- * full-plate trigger and Expand control stay still for precise interaction.
- * Paused below md via --float-state, where the plate is full-bleed
- * and a drifting flush edge reads as jitter, not suspension.
+ * Depth comes from two transforms on separate nodes: the host trails the
+ * page on scroll (parallax), and the .plate-float wrapper breathes the frame.
+ * The full-plate trigger and Expand control ride the host, never the float,
+ * so they stay still relative to the painting.
  */
 export function DetailPlate({
 	artwork,
@@ -53,6 +56,11 @@ export function DetailPlate({
 }: Readonly<DetailPlateProps>) {
 	const { openLightbox, closeLightbox } = useLightbox();
 	const [unveil] = useState(() => hasMountedOnce);
+	// Scroll parallax: as the wall scrolls away the plate drifts down at a
+	// fraction of the scroll, so it reads as hanging in front of the band.
+	const hostRef = useRef<HTMLDivElement>(null);
+	const { scrollYProgress } = useScroll({ target: hostRef, offset: ["start start", "end start"] });
+	const parallaxY = useTransform(scrollYProgress, [0, 1], [0, PARALLAX_PX]);
 	// The root viewer outlives this page, including soft Back/Forward navigation.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: artwork.slug also closes a viewer when this detail instance changes pieces
 	useEffect(() => {
@@ -77,13 +85,13 @@ export function DetailPlate({
 	const isSold = artwork.status === "sold";
 
 	return (
-		<div className="md:top-[calc(var(--header-h-shrunk)+var(--space-page))] [@media(min-width:48rem)_and_(min-height:43.8125rem)]:sticky">
-			<div className="-mx-(--container-px) md:mx-0">
+		<motion.div ref={hostRef} style={{ y: parallaxY }}>
+			<div>
 				<div
 					style={{ "--plate-ratio": artwork.aspectRatio } as CSSProperties}
-					className="relative mx-auto aspect-(--plate-ratio) w-[min(100%,calc(72dvh*var(--plate-ratio)))] md:w-[min(100%,calc((100dvh-var(--header-h-shrunk)-4rem)*var(--plate-ratio)))]"
+					className="relative mx-auto aspect-(--plate-ratio) w-[min(100%,calc(64dvh*var(--plate-ratio)))] md:w-[min(100%,calc((100dvh-var(--header-h-shrunk)-6rem)*var(--plate-ratio)))]"
 				>
-					<div className="plate-float absolute inset-0 [--float-travel:7px] max-md:[--float-state:paused]">
+					<div className="plate-float absolute inset-0 [--float-travel:7px]">
 						<PlateFrame
 							radius="lg"
 							goldRest
@@ -117,6 +125,6 @@ export function DetailPlate({
 					</LightboxIconButton>
 				</div>
 			</div>
-		</div>
+		</motion.div>
 	);
 }
