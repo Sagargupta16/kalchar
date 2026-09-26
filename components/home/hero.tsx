@@ -90,7 +90,9 @@ export function Hero({
 						</Reveal>
 						<Reveal eager delayMs={staggerDelay(5)}>
 							<nav aria-label="Browse by style" className="mt-5">
-								<ul className="flex flex-wrap gap-2">
+								{/* One row from xl: the column is narrower than the six pills, but the
+								    plate sits far enough right that they can run past it. */}
+								<ul className="flex flex-wrap gap-2 xl:w-max xl:flex-nowrap">
 									{styles.map((style) => (
 										<li key={style}>
 											<Link
