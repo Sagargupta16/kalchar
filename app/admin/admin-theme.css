@@ -71,18 +71,16 @@ html:has([data-admin-shell]) {
   --admin-stagger-step: 40ms;
   --admin-rise: 12px;
 
-  background-color: var(--color-canvas);
-}
-
-/* Admin elevation: short, neutral, low-alpha. Resting cards read by their
-   hairline; shadows only confirm a lift. */
-html:has([data-admin-shell]) {
+  /* Admin elevation: short, neutral, low-alpha. Resting cards read by their
+     hairline; shadows only confirm a lift. */
   --elev-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.06);
   --elev-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.05);
   --elev-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.04), 0 6px 16px -4px oklch(var(--shadow-ink) / 0.1);
   --elev-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.04), 0 12px 28px -8px oklch(var(--shadow-ink) / 0.14);
   --elev-e4: 0 2px 6px oklch(var(--shadow-ink) / 0.05), 0 20px 44px -12px oklch(var(--shadow-ink) / 0.18);
   --elev-e5: 0 4px 10px oklch(var(--shadow-ink) / 0.06), 0 32px 72px -16px oklch(var(--shadow-ink) / 0.24);
+
+  background-color: var(--color-canvas);
 }
 
 /* ─── DARK ─── */

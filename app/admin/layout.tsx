@@ -116,7 +116,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 													className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-label text-muted ring-1 ring-line sm:inline-flex"
 												>
 													<span aria-hidden="true" className="size-1.5 rounded-full bg-marigold" />
-													Preview, nothing saves
+													<span>Preview, nothing saves</span>
 												</span>
 											) : null}
 											<a

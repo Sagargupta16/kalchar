@@ -33,11 +33,10 @@ interface StyleMarqueeProps {
 
 function fillTrack(styles: readonly string[]): { id: string; name: string }[] {
 	if (styles.length === 0) return [];
-	const items: { id: string; name: string }[] = [];
-	for (let round = 0; items.length < Math.max(MIN_ITEMS, styles.length); round++) {
-		for (const name of styles) items.push({ id: `${round}:${name}`, name });
-	}
-	return items;
+	const rounds = Math.ceil(Math.max(MIN_ITEMS, styles.length) / styles.length);
+	return Array.from({ length: rounds }, (_, round) =>
+		styles.map((name) => ({ id: `${round}:${name}`, name })),
+	).flat();
 }
 
 /**
