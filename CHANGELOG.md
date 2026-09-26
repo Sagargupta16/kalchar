@@ -15,6 +15,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Rebuild the admin as a neutral dashboard: full-height sidebar with the brand mark and a sliding active pill, a Group / Page crumb, stat tiles with count-up on Pieces, segmented filters and view toggles, status chips, staggered tiles and rows, one button hierarchy, and matching skeletons on every admin page.
 - Show a new-enquiry badge on the admin Enquiries navigation.
 - Split the event create form out of the events manager to stay under the 500-line ceiling.
+- Drop the fixed visual and motion rules and the design-choice restriction from CLAUDE.md; design direction is now open.
+- Remove the UI token guard (`scripts/check-ui-tokens.mjs`, `pnpm lint:ui`, its CI step and test) and the type-size lock in `lib/motion.test.ts`.
 
 ## 1.39.2 (2026-09-26)
 
