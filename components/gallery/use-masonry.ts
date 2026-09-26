@@ -102,7 +102,8 @@ export function useMasonry<T extends HTMLElement>(
 		if (!node) return;
 		setWidth(node.clientWidth);
 		const observer = new ResizeObserver(([entry]) => {
-			if (entry) setWidth(entry.contentRect.width);
+			// A transient zero width (a detached or collapsing host) keeps the last layout.
+			if (entry && entry.contentRect.width > 0) setWidth(entry.contentRect.width);
 		});
 		observer.observe(node);
 		return () => observer.disconnect();
