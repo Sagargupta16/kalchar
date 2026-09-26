@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
-import { DUR, EASE_OUT, REVEAL_DISTANCE, REVEAL_VIEWPORT_MARGIN } from "@/lib/motion";
+import { DUR, EASE_OUT, REVEAL_TRAVEL, REVEAL_VIEWPORT_MARGIN } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -35,7 +35,7 @@ export function Reveal({
 }: Readonly<RevealProps>) {
 	const plate = variant === "plate";
 	const axis = DIR[direction];
-	const travel = distance ?? (variant === "item" ? REVEAL_DISTANCE.item : REVEAL_DISTANCE.block);
+	const travel = distance ?? (variant === "item" ? REVEAL_TRAVEL.item : REVEAL_TRAVEL.block);
 	const offset = SIGN[direction] * travel;
 
 	if (eager) {
@@ -76,7 +76,7 @@ export function Reveal({
 			whileInView={animate}
 			viewport={{ once: true, margin: REVEAL_VIEWPORT_MARGIN }}
 			transition={{
-				duration: plate ? DUR.slow : DUR.enter,
+				duration: DUR.reveal,
 				ease: EASE_OUT,
 				delay: delayMs / 1000,
 			}}

@@ -1,4 +1,5 @@
 import { devices, expect, test } from "@playwright/test";
+import { settleAnimations } from "./helpers/animation-settle";
 
 // Real-page geometry for the admin content routes against pnpm dev:preview
 // (port 3010, fixture data, no sign-in). Use a config with webServer disabled
@@ -27,6 +28,8 @@ test.describe("admin content layout @preview @mobile", () => {
 			if (scheme === "dark") {
 				await page.evaluate(() => document.documentElement.classList.add("dark"));
 			}
+			// Admin lists arrive on a staggered 12px rise; measure the settled rows.
+			await settleAnimations(page);
 		};
 
 		test(`event row geometry (${scheme})`, async ({ page }) => {

@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.0 (2026-09-26)
+
+### Changed
+
+- Brighter paper, deeper ink, more vivid terracotta and section pigments, white card surfaces and stronger layered shadows. Type follows the portfolio-react scale: hero 37 to 72px, section titles 28 to 36px, page titles 32 to 48px, marquee 28 to 48px.
+- Animate the home hero headline word by word from masks, with the last word in accent italic, and give the hero plates scroll parallax and an 8 degree pointer tilt.
+- Add a large art-style marquee after the hero that speeds up with scrolling, reverses on scroll-up and pauses on hover or focus.
+- Reveal section titles word by word, wipe artwork images up into their mats with a staggered settle, and lift cards with an image zoom and a sliding arrow chip on hover.
+- Set the home Workshops and Custom Orders sections on deep pigment bands with cream type.
+- Fade and rise public pages on client navigation, follow the hovered header link with a sliding pill, and stagger the mobile drawer links.
+- Rebuild the admin as a neutral dashboard: full-height sidebar with the brand mark and a sliding active pill, a Group / Page crumb, stat tiles with count-up on Pieces, segmented filters and view toggles, status chips, staggered tiles and rows, one button hierarchy, and matching skeletons on every admin page.
+- Show a new-enquiry badge on the admin Enquiries navigation.
+- Show every painting edge to edge at its own aspect ratio, never cropped, in masonry walls (2 columns on phones, up to 4 on desktop) on /work, the home strips, the custom-orders inspiration strip and event photo mosaics.
+- Rework /work with a pigment masthead, count-up stats and a sticky glass filter rail; /work/[slug] as a full-bleed wall tinted by the painting's own palette with a sticky details column, palette discs, previewed prev/next tiles and a "More" strip.
+- Rework /events as a scroll-filled timeline with natural-ratio photo mosaics, and /about as chaptered story pages with a kinetic pull quote, tradition tiles and a monogram medallion when no portrait is set.
+- Open workshops, custom orders, contact, FAQ and 404 on deep pigment heroes; turn the custom-order form into five numbered steps with a sticky progress rail and a live summary; add a smooth-height FAQ accordion, scan-line QR cards and a poster 404.
+- Replace the mobile drawer with a full-screen curtain of numbered links, give the footer a night band with a rising wordmark (links and credits kept), and add spring hover and press to buttons.
+- Split the event create form out of the events manager to stay under the 500-line ceiling.
+- Drop the fixed visual and motion rules and the design-choice restriction from CLAUDE.md; design direction is now open.
+- Remove the UI token guard (`scripts/check-ui-tokens.mjs`, `pnpm lint:ui`, its CI step and test) and the type-size lock in `lib/motion.test.ts`.
+
 ## 1.39.2 (2026-09-26)
 
 ### Fixed

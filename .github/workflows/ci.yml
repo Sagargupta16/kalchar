@@ -75,14 +75,6 @@ jobs:
             fi
           fi
 
-      - name: UI token guard
-        # The design system routes depth, motion, type size, focus and z-order
-        # through tokens (app/globals.css) and shared strings (controls.ts).
-        # scripts/check-ui-tokens.mjs fails the build when raw utilities drift
-        # back in; warn-tier patterns become errors at the integration step.
-        # See .claude/rework/final/system.md section 8 and docs/UI-CONSISTENCY-PLAN.md.
-        run: pnpm lint:ui
-
       - name: Typecheck
         run: pnpm typecheck
 

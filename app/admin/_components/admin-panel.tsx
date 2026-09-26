@@ -35,7 +35,7 @@ interface AdminPanelProps {
 	title?: string;
 	description?: ReactNode;
 	action?: ReactNode;
-	/** surface = panel on the canvas (default); inset = create form nested inside a panel. */
+	/** surface = resting panel on the canvas (default); inset = a create form (one elevation rung higher). */
 	variant?: "surface" | "inset";
 	as?: "section" | "div";
 	headingAs?: "h2" | "h3";

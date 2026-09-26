@@ -28,6 +28,7 @@ import {
 import { InlineReorderControls } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -73,6 +74,7 @@ function PresetGroup({
 	hint: string;
 	items: OrderPreset[];
 }>) {
+	const stagger = useEntranceStagger();
 	const confirm = useConfirm();
 	const router = useRouter();
 	const { pending, pendingVisible, err, run } = useAdminAction();
@@ -199,7 +201,7 @@ function PresetGroup({
 				)
 			}
 		>
-			<ul ref={listRef} className="space-y-tight">
+			<ul ref={listRef} className={cn("space-y-tight", stagger)}>
 				{items.map((p, i) => (
 					<li
 						key={p.id}

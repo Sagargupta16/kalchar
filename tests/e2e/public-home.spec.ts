@@ -97,7 +97,10 @@ test("style links have 44px targets and select their destination style", async (
 	for (const chip of await chips.all()) {
 		const href = await chip.getAttribute("href");
 		expect(href).toMatch(/^\/work\/?\?style=/);
-		expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+		// Poll: a chip caught mid entrance rise measures 43.99997px.
+		await expect
+			.poll(async () => (await chip.boundingBox())?.height ?? 0)
+			.toBeGreaterThanOrEqual(44);
 		await expect(chip).toHaveCSS("backdrop-filter", "none");
 	}
 
@@ -178,27 +181,27 @@ for (const theme of ["light", "dark"] as const) {
 	});
 }
 
-test("section headings use the shared h2 size below the hero headline", async ({ page }) => {
+test("section headings use the bold section rung below the hero headline", async ({ page }) => {
 	await page.goto("/");
 	const sizes = await page
 		.locator("main section header h2")
 		.evaluateAll((els) => els.map((el) => Number.parseFloat(getComputedStyle(el).fontSize)));
 	expect(sizes.length).toBeGreaterThanOrEqual(6);
-	const expected = await fontSizeForToken(page, "--text-h2");
-	const heroSize = await fontSizeForToken(page, "--text-display");
+	const expected = await fontSizeForToken(page, "--type-section");
+	const heroSize = await fontSizeForToken(page, "--type-hero");
 	for (const size of sizes) {
 		expect(Math.abs(size - expected)).toBeLessThanOrEqual(1);
 		expect(size).toBeLessThan(heroSize);
 	}
 });
 
-test("the hero h1 carries the roman headline voice on the display rung", async ({ page }) => {
+test("the hero h1 carries the roman headline voice on the poster rung", async ({ page }) => {
 	await page.goto("/");
 	const probe = await page.locator("main h1").evaluate((el) => {
 		const cs = getComputedStyle(el);
 		return { fontSize: Number.parseFloat(cs.fontSize), fontWeight: cs.fontWeight, fontStyle: cs.fontStyle };
 	});
-	const expected = await fontSizeForToken(page, "--text-display");
+	const expected = await fontSizeForToken(page, "--type-hero");
 	expect(Math.abs(probe.fontSize - expected)).toBeLessThanOrEqual(1);
 	expect(probe.fontWeight).toBe("600");
 	expect(probe.fontStyle).toBe("normal");
@@ -318,7 +321,11 @@ test("home artwork previews fit their item count and keep the single piece besid
 		);
 		if (!gridBox || !cards[0]) throw new Error("missing grid geometry");
 		const viewportWidth = page.viewportSize()?.width ?? 0;
-		const columns = await grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+		// Shortest-column masonry on a CSS grid: the track count is the layout contract.
+		const columns = await grid.evaluate((el) => {
+			const tracks = getComputedStyle(el).gridTemplateColumns;
+			return tracks === "none" ? 1 : tracks.split(" ").length;
+		});
 		expect(columns).toBe(Math.min(cards.length, viewportWidth >= 1024 ? desktopColumns : 2));
 		for (const card of cards) {
 			expect(Math.abs(card.width - cards[0].width)).toBeLessThanOrEqual(1);

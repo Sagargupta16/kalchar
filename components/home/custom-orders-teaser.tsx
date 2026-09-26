@@ -26,23 +26,27 @@ export function CustomOrdersTeaser({
 	});
 
 	return (
-		<Section id="custom-orders" accent="vermillion" background="wash" padded rhythm="grand">
+		<Section id="custom-orders" accent="vermillion" background="pigment" padded rhythm="grand">
 			<Spread
 				header={
-					<Reveal>
+					<>
 						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
-						<div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
-							<a
-								href={quickWa}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={buttonVariants({ variant: "primary" })}
-							>
-								Start on WhatsApp
-							</a>
-							<SectionCta href="/custom-orders">Open the brief form</SectionCta>
-						</div>
-					</Reveal>
+						<Reveal delayMs={staggerDelay(2)}>
+							<div className="mt-8 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
+								<a
+									href={quickWa}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={buttonVariants({ variant: "primary", size: "lg" })}
+								>
+									Start on WhatsApp
+								</a>
+								<SectionCta href="/custom-orders" className="min-h-12">
+									Open the brief form
+								</SectionCta>
+							</div>
+						</Reveal>
+					</>
 				}
 			>
 				<ol className="divide-y divide-line">
@@ -88,7 +92,7 @@ function ProcessStep({
 				{toRoman(step)}
 			</span>
 			<div className="min-w-0 flex-1">
-				<h3 className="t-display text-h3 text-ink">{title}</h3>
+				<h3 className="t-display text-title text-ink">{title}</h3>
 				<p className="mt-2 text-base leading-relaxed text-muted">{body}</p>
 			</div>
 		</div>

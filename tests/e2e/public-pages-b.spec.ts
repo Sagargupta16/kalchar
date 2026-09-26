@@ -157,8 +157,8 @@ test("the example strip follows the shared compact section spacing", async ({ pa
 	await page.goto("/custom-orders/");
 	const strip = page.locator('[data-slot="example-strip"]');
 	await expect(strip).toBeVisible();
-	const grid = page.locator("main .md\\:grid-cols-12").first();
-	const gridBox = await grid.boundingBox();
+	// The strip follows the how-it-works aside under the commission sheet.
+	const gridBox = await page.locator("#how-it-works").boundingBox();
 	const stripBox = await strip.boundingBox();
 	const gap = (stripBox?.y ?? 0) - ((gridBox?.y ?? 0) + (gridBox?.height ?? 0));
 	const margin = await strip.evaluate((element) => Number.parseFloat(getComputedStyle(element).marginTop));
@@ -188,10 +188,11 @@ test("the phone number is the numeral headline on a standard bordered card", asy
 	await expect(card).toHaveCSS("border-bottom-width", "1px");
 	await expect(card).toHaveCSS("border-top-color", await resolveColor(page, "--color-line"));
 
-	const phone = card.locator(".t-numeral");
+	// Plain sans with lining, tabular figures: an italic old-style phone number misreads.
+	const phone = card.locator("p.select-all");
 	await expect(phone).toBeVisible();
-	await expect(phone).toHaveCSS("font-style", "italic");
-	await expect(phone).toHaveCSS("font-variant-numeric", "tabular-nums");
+	await expect(phone).toHaveCSS("font-style", "normal");
+	await expect(phone).toHaveCSS("font-variant-numeric", /tabular-nums/);
 	await expect(phone).toHaveCSS("user-select", "all");
 	const size = await phone.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
 	expect(size).toBeGreaterThanOrEqual(24);

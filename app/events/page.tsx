@@ -1,13 +1,12 @@
-import { ArrowRight, CalendarDays, Pin } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import Link from "next/link";
-import { EventGallery } from "@/components/events/event-gallery";
+import { Masthead, type MastheadStat } from "@/components/editorial/masthead";
+import { EventTimeline } from "@/components/events/event-timeline";
+import { wallDateParts } from "@/components/events/wall-date";
 import { Reveal } from "@/components/motion/reveal";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { ClosingCta } from "@/components/ui/closing-cta";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Section, SectionHeader } from "@/components/ui/section";
 import { getAllEvents } from "@/lib/data";
 import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
@@ -20,214 +19,107 @@ export const metadata = createPageMetadata({
 	path: "/events/",
 });
 
-const EVENT_DATE_LOCALE = "en-IN";
-
-/** Split an ISO date into wall-date parts ("24", "Sep", "2026"); null when invalid. */
-function wallDateParts(iso: string): { day: string; month: string; year: string } | null {
-	if (!iso) return null;
-	const date = new Date(iso);
-	if (Number.isNaN(date.getTime())) return null;
-	return {
-		day: String(date.getUTCDate()),
-		month: date.toLocaleDateString(EVENT_DATE_LOCALE, { month: "short", timeZone: "UTC" }),
-		year: String(date.getUTCFullYear()),
-	};
-}
-
-/**
- * The exhibition wall date (visual-direction 2.6): bare day numeral in the
- * numeral voice (30px at 390, 44px in the 1280 chronology column) beside the
- * stacked month/year meta with the kept calendar glyph. The first entry of
- * each year hangs its year as a display watermark behind the numeral. In the
- * lg chronology the date sits on a fit-width glass chip (material-glass,
- * steering 2026-09-14): the sticky date is the one element content passes
- * beneath, and the utility itself falls back to an opaque surface where
- * backdrop-filter is unsupported. At 390 the date stays bare wall text.
- */
-function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean }>) {
-	const date = wallDateParts(iso);
-	if (!date) return null;
+function WorkshopsLink({ className }: Readonly<{ className?: string }>) {
 	return (
-		<div className="relative isolate lg:sticky lg:top-[calc(var(--header-h-shrunk)+var(--space-page))] lg:self-start">
-			{watermark ? (
-				<span
-					aria-hidden="true"
-					data-year-watermark
-					className="t-headline pointer-events-none absolute -top-8 -left-2 -z-10 hidden select-none text-display text-line lg:block"
-				>
-					{date.year}
-				</span>
-			) : null}
-			<Reveal eager>
-				<time
-					dateTime={iso}
-					className="flex items-baseline gap-3 lg:material-glass lg:w-fit lg:flex-col lg:items-start lg:gap-1 lg:rounded-(--radius-md) lg:px-3 lg:py-2"
-				>
-					<span className="t-numeral text-h2 text-(--section-accent) lg:text-h1">{date.day}</span>
-					<span className="t-meta flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-1.5">
-						<span className="inline-flex items-center gap-1.5">
-							<CalendarDays size={12} aria-hidden="true" />
-							{date.month}
-						</span>
-						<span>{date.year}</span>
-					</span>
-				</time>
-			</Reveal>
-		</div>
+		<Link
+			href="/workshops"
+			className={cn(buttonVariants({ variant: "primary", size: "lg" }), "group", className)}
+		>
+			See workshops
+			<ArrowRight
+				size={16}
+				aria-hidden="true"
+				className="transition-transform group-hover:translate-x-1"
+			/>
+		</Link>
 	);
 }
 
 export default async function EventsPage() {
 	const events = await getAllEvents();
-	const firstGalleryIndex = events.findIndex((event) => event.images.length > 0);
+	const photos = events.reduce((sum, event) => sum + event.images.length, 0);
+	const years = events
+		.map((event) => Number(wallDateParts(event.eventDate)?.year))
+		.filter((year) => Number.isFinite(year));
+	const stats: MastheadStat[] =
+		events.length > 0
+			? [
+					{ value: events.length, label: events.length === 1 ? "Event" : "Events" },
+					{ value: photos, label: photos === 1 ? "Photo" : "Photos" },
+					...(years.length > 0
+						? [
+								{
+									value: Math.min(...years),
+									from: Math.min(...years) - 24,
+									label: "Gathering since",
+								},
+							]
+						: []),
+				]
+			: [];
 
 	return (
 		<main>
-			<Section accent="peacock" background="wash" padded containerClassName="py-(--space-block)">
-				<PageHeader
-					eyebrow="Events"
-					title="Workshops, exhibitions, and gatherings"
-					lead="A look back at hands-on sessions, exhibitions, and the community that gathers around folk art."
-				>
+			<Masthead
+				accent="peacock"
+				glyph="उत्सव"
+				eyebrow="Events"
+				title="Workshops, exhibitions, and gatherings"
+				lead="A look back at hands-on sessions, exhibitions, and the community that gathers around folk art."
+				accentLast
+				stats={stats}
+				actions={
 					<Link
 						href="/workshops"
-						className={cn(buttonVariants({ variant: "secondary" }), "mt-5 w-full sm:w-auto")}
+						className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "group")}
 					>
 						Find a workshop
-						<ArrowRight size={16} aria-hidden="true" />
-					</Link>
-				</PageHeader>
-			</Section>
-
-			<Section accent="peacock" padded containerClassName="pt-(--space-block)">
-				{events.length > 0 ? (
-					<div className="relative">
-						{events.map((event, i) => {
-							const year = wallDateParts(event.eventDate)?.year;
-							const previousYear =
-								i > 0 ? wallDateParts(events[i - 1]?.eventDate ?? "")?.year : undefined;
-							return (
-								// The wrapper carries the anchor so home cards can deep-link to
-								// /events#<id>, plus the entry seam; the Reveal stays the
-								// <article> (e2e transform check).
-								<div
-									key={event.id}
-									id={event.id}
-									className="scroll-mt-(--space-page) border-t border-(--color-gold-hairline) first:border-t-0"
-								>
-									<Reveal
-										as="article"
-										eager={i < 2}
-										delayMs={staggerDelay(i)}
-										className={cn(
-											"grid gap-4 py-(--space-block) lg:grid-cols-[10rem_1fr] lg:gap-10",
-											i === 0 && "pt-0",
-										)}
-									>
-										<WallDate
-											iso={event.eventDate}
-											watermark={year !== undefined && year !== previousYear}
-										/>
-										<div className="min-w-0">
-											<Reveal eager delayMs={staggerDelay(1)}>
-												<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-													{event.category ? <Badge>{event.category}</Badge> : null}
-													{event.featured ? (
-														<Badge variant="accent-soft">
-															<Pin size={12} aria-hidden="true" />
-															Featured
-														</Badge>
-													) : null}
-												</div>
-												<h2
-													className={cn(
-														"t-display text-title",
-														(event.category || event.featured) && "mt-2",
-													)}
-												>
-													{event.title}
-												</h2>
-											</Reveal>
-											{event.description ? (
-												<Reveal eager delayMs={staggerDelay(2)}>
-													<p className="t-body mt-2 max-w-(--measure-essay)">{event.description}</p>
-												</Reveal>
-											) : null}
-											{event.images.length > 0 ? (
-												<div className="mt-6">
-													<EventGallery
-														images={event.images}
-														title={event.title}
-														lead={i === firstGalleryIndex}
-													/>
-												</div>
-											) : null}
-										</div>
-									</Reveal>
-								</div>
-							);
-						})}
-						{/* The exhibition timeline: one gold hairline running the full
-						    height of the chronology, between the date and record columns
-						    (10rem column + half the lg gap of 2.5rem; the column narrowed
-						    from 12rem with the calmer 44px day numeral and 68px watermark,
-						    steering 2026-09-14). Rendered last so the first entry wrapper
-						    stays :first-child for its border. */}
-						<div
+						<ArrowRight
+							size={16}
 							aria-hidden="true"
-							data-timeline
-							className="absolute inset-y-0 left-[11.25rem] hidden w-px bg-(--color-gold-hairline) lg:block"
+							className="transition-transform group-hover:translate-x-1"
 						/>
-					</div>
+					</Link>
+				}
+			/>
+
+			<Section accent="peacock" padded containerClassName="pt-(--space-canyon)">
+				{events.length > 0 ? (
+					<EventTimeline events={events} />
 				) : (
 					<Reveal delayMs={staggerDelay(1)}>
 						<EmptyState
 							icon={<CalendarDays size={24} aria-hidden="true" />}
 							title="No events posted yet"
 							body="Workshops, exhibitions, and gatherings will appear here. Explore our workshops to enquire about a session."
-							action={
-								<Link
-									href="/workshops"
-									className={cn(buttonVariants({ variant: "secondary" }), "group")}
-								>
-									See workshops
-									<ArrowRight
-										size={14}
-										aria-hidden="true"
-										className="transition-transform group-hover:translate-x-1"
-									/>
-								</Link>
-							}
+							action={<WorkshopsLink />}
 						/>
 					</Reveal>
 				)}
-
-				{/* Closing CTA: events are the proof; point interested visitors to
-				    the workshops they can actually book. Shown only when there are
-				    events, so the empty state stays quiet. Internal link, no popup. */}
-				{events.length > 0 ? (
-					<Reveal delayMs={staggerDelay(2)}>
-						<ClosingCta
-							className="bg-canvas"
-							title="Want a session like these?"
-							body="We run hands-on workshops for groups, schools, and studios."
-							action={
-								<Link
-									href="/workshops"
-									className={cn(buttonVariants({ variant: "secondary" }), "group w-full sm:w-auto")}
-								>
-									See workshops
-									<ArrowRight
-										size={14}
-										aria-hidden="true"
-										className="transition-transform group-hover:translate-x-1"
-									/>
-								</Link>
-							}
-						/>
-					</Reveal>
-				) : null}
 			</Section>
+
+			{/* Closing band: events are the proof; point interested visitors to the
+			    workshops they can actually book. Shown only when there are events,
+			    so the empty state stays quiet. */}
+			{events.length > 0 ? (
+				<Section accent="pichwai" background="pigment" padded>
+					<div
+						data-slot="closing-cta"
+						className="grid gap-8 md:grid-cols-12 md:items-end md:gap-10"
+					>
+						<div className="md:col-span-8">
+							<SectionHeader
+								eyebrow="Book a session"
+								title="Want a session like these?"
+								lead="We run hands-on workshops for groups, schools, and studios."
+							/>
+						</div>
+						<Reveal delayMs={staggerDelay(3)} className="md:col-span-4 md:text-right">
+							<WorkshopsLink className="w-full sm:w-auto" />
+						</Reveal>
+					</div>
+				</Section>
+			) : null}
 		</main>
 	);
 }

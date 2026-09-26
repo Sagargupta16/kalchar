@@ -154,7 +154,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 **Visual / motion.**
 
 - **Mobile-first.** Most traffic is WhatsApp / Instagram link-taps on phones. Design for phone width first, then scale up.
-- **Motion always on.** `MotionConfig reducedMotion="never"` (`components/motion/motion-provider.tsx`) keeps animation running whatever the OS reduced-motion setting, since 1.39.0. MEMORY.md "Motion exclusions" is the source of truth for the policy.
+- **Motion always on.** `MotionConfig reducedMotion="never"` (`components/motion/motion-provider.tsx`) keeps animation running whatever the OS reduced-motion setting, since 1.39.0.
 - **No raw hex / rgb in components.** Browser-rendered color flows through CSS custom properties. The only exceptions are `data/artworks.json` palette arrays, SVG data URIs, and pre-CSS/server image outputs that import the named constants in `lib/server-brand-colors.ts`.
 - **No magic timings.** Use the named tokens (`--duration-fast/base/slow`, `--ease-out-soft/glide/spring`).
 - **Consistent corner radius.** `rounded-md` on every surface (cards, panels, fields, buttons, image plates). Pills and the theme toggle stay `rounded-full`. No sharp corners.

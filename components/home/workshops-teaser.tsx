@@ -29,14 +29,8 @@ export function WorkshopsTeaser({
 	lead,
 }: Readonly<WorkshopsTeaserProps>) {
 	return (
-		<Section id="workshops" accent="pichwai" padded rhythm="grand">
-			<Spread
-				header={
-					<Reveal>
-						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
-					</Reveal>
-				}
-			>
+		<Section id="workshops" accent="pichwai" background="pigment" padded rhythm="grand">
+			<Spread header={<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />}>
 				<ul className="divide-y divide-line">
 					{workshops.map((item, i) => (
 						<Reveal key={item.slug} as="li" delayMs={staggerDelay(i)}>
@@ -51,7 +45,7 @@ export function WorkshopsTeaser({
 									{toRoman(i + 1)}
 								</span>
 								<div className="min-w-0 flex-1">
-									<h3 className="t-display text-h3 transition-colors group-hover:text-(--section-accent)">
+									<h3 className="t-display text-title transition-colors group-hover:text-(--section-accent)">
 										{item.title}
 									</h3>
 									<p className="mt-2 line-clamp-3 text-base leading-relaxed text-muted">

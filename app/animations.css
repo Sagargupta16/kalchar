@@ -89,33 +89,30 @@
   }
 }
 
-/* Page enter -- a soft fade-up on client-side navigation, applied by
-   app/template.tsx. The first paint is NOT animated (would delay LCP); the
-   template only adds this class after the initial mount. */
+/* Page enter -- fade + 16px rise on client-side navigation, applied by
+   app/template.tsx (never under /admin, never on the first paint: LCP).
+   fill-mode is `backwards`, NOT `both`: a filled translate would persist as a
+   computed value after the animation and make this wrapper the containing
+   block for every `position: fixed` descendant (un-pinning bars and sending
+   taps to the wrong place). Backwards fill holds the from-state only until the
+   animation starts; once it ends the wrapper has no translate at all. */
 .page-enter {
-  animation: page-enter-in var(--duration-base) var(--ease-out) both;
+  animation: page-enter-in var(--duration-slow) var(--ease-out) backwards;
 }
 
-/* Opacity-only on purpose -- NO transform. The moment `transform` appears in
-   any keyframe, the browser holds it as a computed matrix (even identity,
-   `matrix(1,0,0,1,0,0)`) under `fill-mode: both`, and a non-none transform on
-   this wrapper makes it the containing block for every `position: fixed`
-   descendant -- which un-pins the admin mobile tab bar and the reorder bar
-   from the viewport after a client navigation and sends taps to the wrong
-   place. A plain fade has no such side effect. */
 @keyframes page-enter-in {
   from {
     opacity: 0;
-  }
-  to {
-    opacity: 1;
+    translate: 0 16px;
   }
 }
 
+/* Public fade-up: 700ms (--duration-unveil) so the travel reads; Reveal passes
+   the bold REVEAL_TRAVEL offsets inline. */
 .reveal-up {
   opacity: 0;
   transform: translate(var(--reveal-offset-x, 0px), var(--reveal-offset-y, var(--reveal-travel)));
-  animation: reveal-up-in var(--duration-enter) var(--ease-out) both;
+  animation: reveal-up-in var(--duration-unveil) var(--ease-out) both;
 }
 
 @keyframes reveal-up-in {

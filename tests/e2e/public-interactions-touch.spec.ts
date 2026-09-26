@@ -161,19 +161,24 @@ test("@mobile pressable controls scale on touch", async ({ page }) => {
 	);
 });
 
-test("@mobile uniform previews show whole paintings in two columns", async ({ page }) => {
+test("@mobile the gallery wall hangs whole paintings two to a row", async ({ page }) => {
 	await page.goto("/work/");
 	const cards = galleryCards(page);
 	await expect(cards.nth(1)).toBeVisible();
 	const first = await cards.first().boundingBox();
 	const second = await cards.nth(1).boundingBox();
 	if (!first || !second) throw new Error("Both first-row artwork cards must be visible");
-	expect(Math.abs(first.width - second.width)).toBeLessThanOrEqual(2);
+	// Justified rows: both plates share the row, and each keeps its own ratio.
 	expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(2);
 	expect(second.x).toBeGreaterThan(first.x + first.width);
-	const image = cards.first().locator("img");
-	await expect(image).toHaveCSS("object-fit", "contain");
-	const preview = await image.boundingBox();
-	if (!preview) throw new Error("The artwork preview must be visible");
-	expect(Math.abs(preview.width / preview.height - 4 / 5)).toBeLessThan(0.02);
+	for (const card of [cards.first(), cards.nth(1)]) {
+		const image = card.locator("img");
+		await expect(image).toHaveCSS("object-fit", "contain");
+		const ratios = await image.evaluate((el) => {
+			const plate = el.closest("[style*=aspect-ratio]") as HTMLElement;
+			const box = plate.getBoundingClientRect();
+			return { box: box.width / box.height, data: Number.parseFloat(plate.style.aspectRatio) };
+		});
+		expect(Math.abs(ratios.box - ratios.data)).toBeLessThan(0.02);
+	}
 });

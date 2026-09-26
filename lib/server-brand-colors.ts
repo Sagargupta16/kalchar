@@ -5,7 +5,7 @@
  * paper = light --color-bg. Change both together with globals.css.
  */
 export const SERVER_BRAND_COLORS = {
-	paper: "#faf8f3",
+	paper: "#fdf9f0",
 	night: "#0e0804",
 	ink: "#2a221b",
 	terracotta: "#a84f32",
