@@ -2,7 +2,6 @@ import { ArrowDown, ArrowRight, Brush, Clock, MessageCircle } from "lucide-react
 import Link from "next/link";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
-import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { PageHero } from "@/components/layout/page-hero";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
@@ -194,13 +193,19 @@ export default async function CustomOrdersPage() {
 								</Link>
 							}
 						/>
-						<GalleryGrid cols={4} className="mt-8">
+						{/* Same edge-to-edge, natural-ratio masonry as the home strips. */}
+						<ul className="mt-8 columns-2 gap-3 sm:gap-6 lg:columns-4">
 							{examplePieces.map((art, i) => (
-								<Reveal key={art.slug} as="li" delayMs={staggerDelay(i)}>
-									<ArtworkCard artwork={art} siblings={examplePieces} priority={i < 2} />
-								</Reveal>
+								<li key={art.slug} className="mb-6 min-w-0 break-inside-avoid sm:mb-8">
+									<ArtworkCard
+										variant="wall"
+										artwork={art}
+										siblings={examplePieces}
+										priority={i < 2}
+									/>
+								</li>
 							))}
-						</GalleryGrid>
+						</ul>
 					</div>
 				) : null}
 			</Section>
