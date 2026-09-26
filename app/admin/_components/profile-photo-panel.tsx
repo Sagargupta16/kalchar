@@ -15,18 +15,20 @@ import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanel } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
-import { adminBtnPrimary, adminHelp, FOCUS_WITHIN } from "./controls";
+import { adminBtn, adminBtnGhost, adminBtnPrimary, adminHelp, FOCUS_WITHIN } from "./controls";
 import { stageImage } from "./stage-image";
 import type { UploadProgressState } from "./upload-progress";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 
 /** Text-shaped picker trigger under the portrait, with the file input's focus ring. */
+// The picker is a label (it wraps the sr-only file input), styled as the
+// secondary button; Remove is the quiet ghost that turns ruby on hover.
 const changePhotoLabel = cn(
-	"inline-flex min-h-control cursor-pointer items-center rounded-md px-2 text-sm font-semibold text-accent-text transition-ui pressable has-disabled:pointer-events-none has-disabled:opacity-50",
+	adminBtn,
+	"cursor-pointer has-disabled:pointer-events-none has-disabled:opacity-50",
 	FOCUS_WITHIN,
 );
-const removePhotoBtn =
-	"inline-flex min-h-control items-center rounded-md px-2 text-sm font-medium text-muted transition-ui pressable hover:text-ruby disabled:pointer-events-none disabled:opacity-50";
+const removePhotoBtn = cn(adminBtnGhost, "hover:bg-ruby-soft hover:text-ruby");
 
 /** The saved photo and the selected upload stay independent until the upload succeeds. */
 export function ProfilePhotoPanel({ imageKey }: Readonly<{ imageKey?: string }>) {
