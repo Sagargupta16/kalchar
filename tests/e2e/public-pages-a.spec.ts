@@ -74,39 +74,33 @@ for (const theme of ["light", "dark"] as const) {
 	}
 }
 
-test("about counts line reads live seam values in the numeral voice", async ({ page }) => {
+test("about masthead stats count up to the live seam values", async ({ page }) => {
 	await page.goto("/about/");
-	const counts = page
-		.locator("main p")
-		.filter({ hasText: /pieces/ })
-		.first();
-	await expect(counts).toBeVisible();
-	const numerals = counts.locator(".t-numeral");
-	await expect(numerals).toHaveCount(3);
-	await expect(counts).toContainText(/tradition/);
-	await expect(counts).toContainText(/workshop/);
-	const first = numerals.first();
-	await expect(first).toHaveCSS("font-style", "italic");
-	expect(Number((await first.textContent())?.trim())).toBeGreaterThan(0);
+	const stats = page.locator("main section").first().locator("dl");
+	await expect(stats.locator("dt")).toHaveText([/piece/i, /tradition/i, /workshop/i]);
+	const values = stats.locator("dd");
+	await expect(values).toHaveCount(3);
+	// The server HTML carries the final value; the count-up lands back on it.
+	for (const value of await values.all()) {
+		await expect.poll(async () => Number((await value.textContent())?.trim())).toBeGreaterThan(0);
+	}
 });
 
-test("about pull quote uses spacing and quotation typography without framing lines", async ({
-	page,
-}) => {
+test("about pull quote sits on a pigment band in the italic display voice", async ({ page }) => {
 	await page.goto("/about/");
 	const quote = page.locator("main blockquote");
 	await expect(quote).toBeVisible();
 	await quote.scrollIntoViewIfNeeded();
 	await expect(quote.locator(".rule-draw")).toHaveCount(0);
 	await expect(quote).toHaveCSS("border-top-width", "0px");
-	await expect(quote).toHaveCSS("border-bottom-width", "0px");
 	await expect(quote).toHaveCSS("border-left-width", "0px");
-	await expect(quote).toHaveCSS("padding-top", "32px");
-	await expect(quote).toHaveCSS("padding-bottom", "32px");
 	await expect(quote).toHaveCSS("text-align", "center");
-	await expect(quote.locator('span[aria-hidden="true"]')).toHaveText("“");
+	await expect(quote.locator('span[aria-hidden="true"]').first()).toHaveText("“");
 	await expect(quote.locator("p")).not.toBeEmpty();
 	await expect(quote.locator("p")).toHaveCSS("font-style", "italic");
+	// The band behind it is the deep pigment, not the paper.
+	const band = quote.locator("xpath=ancestor::section[1]");
+	await expect(band).toHaveClass(/band-pigment/);
 });
 
 test("about portrait rests its gold inset and owns the route's priority image", async ({
@@ -141,7 +135,7 @@ test("the about portrait idles on the float breath and continues across OS prefe
 
 test("about essay column holds the 62ch measure", async ({ page }) => {
 	await page.goto("/about/");
-	const essay = page.locator("main .drop-cap").locator("..").locator("..");
+	const essay = page.locator("main .drop-cap");
 	const metrics = await essay.evaluate((el) => ({
 		width: el.getBoundingClientRect().width,
 		maxWidth: Number.parseFloat(getComputedStyle(el).maxWidth),
@@ -150,27 +144,25 @@ test("about essay column holds the 62ch measure", async ({ page }) => {
 	expect(metrics.width).toBeLessThanOrEqual(metrics.maxWidth + 1);
 });
 
-test("event entries are records: top rules only, no card chrome", async ({ page }) => {
+test("event entries are timeline records: a node on the spine, no card chrome", async ({
+	page,
+}) => {
 	await page.goto("/events/");
 	const articles = page.locator("main article");
 	await expect(articles).toHaveCount(2);
 	for (const article of await articles.all()) {
 		await expect(article).toHaveCSS("box-shadow", "none");
 		await expect(article).toHaveCSS("border-top-width", "0px");
+		await expect(article.locator(".timeline-node")).toHaveCount(1);
+		await expect(article.locator("h2")).not.toBeEmpty();
 	}
-	// The seam between records is the gold hairline on the second wrapper only.
-	const gold = await resolveColor(page, "--color-gold-hairline");
-	await expect(page.locator("#fixture-event")).toHaveCSS("border-top-width", "0px");
-	const second = page.locator("#fixture-event-past");
-	await expect(second).toHaveCSS("border-top-width", "1px");
-	await expect(second).toHaveCSS("border-top-color", gold);
 });
 
-test("wall dates set the day in the numeral voice", async ({ page }, testInfo) => {
+test("wall dates set the day in the headline voice", async ({ page }, testInfo) => {
 	await page.goto("/events/");
 	const day = page.locator("#fixture-event time span").first();
 	await expect(day).toHaveText("1");
-	await expect(day).toHaveCSS("font-style", "italic");
+	await expect(day).toHaveCSS("font-style", "normal");
 	const size = await day.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
 	if (testInfo.project.name === "mobile-chromium") {
 		expect(size).toBeGreaterThanOrEqual(28);
@@ -211,7 +203,7 @@ test("only the lead event plate floats, never the grid", async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await page.goto("/events/");
 	// One floating plate per page (steering 2026-09-14): the lead gallery's
-	// lead tile; the other five inline tiles and the second gallery stay still.
+	// lead tile; the other inline tiles and the second gallery stay still.
 	const floats = page.locator("main .plate-float");
 	await expect(floats).toHaveCount(1);
 	const lead = page.getByRole("button", { name: /^View photo 1 from Studio gathering/ });
@@ -221,34 +213,34 @@ test("only the lead event plate floats, never the grid", async ({ page }) => {
 	expect(await floats.evaluate((el) => getComputedStyle(el).animationName)).toBe("plate-float");
 });
 
-test("the lg wall date sits on the glass material chip", async ({ page }) => {
+test("the lg wall date sticks in the date column and the spine fills with scroll", async ({
+	page,
+}) => {
 	await page.goto("/events/");
-	// Glass is applied only by lg:material-glass; the wall-date test also covers the mobile date.
 	test.skip(
 		!(await page.evaluate(() => matchMedia("(min-width: 64rem)").matches)),
-		"The glass date chip is displayed only at the lg breakpoint",
+		"The sticky date column exists only at the lg breakpoint",
 	);
-	const chip = page.locator("#fixture-event time");
-	const material = await chip.evaluate((el) => {
-		const computed = getComputedStyle(el);
-		return { backdrop: computed.backdropFilter, shadow: computed.boxShadow };
-	});
-	// material-glass: static blur + saturate over the token tint, with the
-	// hairline + e2 elevation in one box-shadow list (solid fallback where
-	// backdrop-filter is unsupported; Chromium supports it).
-	expect(material.backdrop).toContain("blur(16px)");
-	expect(material.backdrop).toContain("saturate(1.5)");
-	expect(material.shadow).not.toBe("none");
+	const date = page.locator("#fixture-event time").locator("..");
+	await expect(date).toHaveCSS("position", "sticky");
+	// The pigment fill is a scaleY transform driven by scroll progress.
+	const fill = page.locator("main [data-timeline] .timeline-fill");
+	await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+	await expect
+		.poll(() => fill.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).d))
+		.toBeGreaterThan(0.5);
 });
 
 test("event lightbox mirrors the v2 room: paging, loop, scrim caption, no commerce", async ({
 	page,
 }) => {
 	await page.goto("/events/");
-	// The overflow tile opens at its own position (6 of 7).
+	// The overflow tile is the fifth mosaic slot and opens at its own position (5 of 7).
 	await page.getByRole("button", { name: /^View all 7 photos from / }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
+	await expect(dialog.getByText("05 / 7")).toBeVisible();
+	await page.keyboard.press("ArrowRight");
 	await expect(dialog.getByText("06 / 7")).toBeVisible();
 	await page.keyboard.press("ArrowRight");
 	await expect(dialog.getByText("07 / 7")).toBeVisible();
