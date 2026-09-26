@@ -36,7 +36,10 @@ export default function NotFound() {
 							<span aria-hidden="true" className="h-px w-8 bg-(--section-accent)" />
 							Page not found
 						</p>
-						<p aria-hidden="true" className="t-numeral status-numeral kinetic-eager mt-4 text-ink [word-spacing:-0.3em]">
+						<p
+							aria-hidden="true"
+							className="t-numeral status-numeral kinetic-eager mt-4 text-ink [word-spacing:-0.3em]"
+						>
 							<KineticText text="4 0 4" accentLast />
 						</p>
 						<h1 className="t-headline type-page kinetic-eager mt-6 max-w-2xl">

@@ -39,7 +39,11 @@ export function PageHero({
 	className,
 }: Readonly<PageHeroProps>) {
 	return (
-		<Section accent={accent} background="pigment" className={cn("overflow-hidden dark:[--band-mix:42%]", className)}>
+		<Section
+			accent={accent}
+			background="pigment"
+			className={cn("overflow-hidden dark:[--band-mix:42%]", className)}
+		>
 			<Container className="relative">
 				{glyph ? (
 					<span aria-hidden="true" lang="hi" className="page-hero-glyph">
