@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { KineticText } from "@/components/motion/kinetic-text";
 import { Section } from "@/components/ui/section";
 import { getSite } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -44,8 +45,10 @@ export function AuthShell({ eyebrow, title, lead, icon, children }: Readonly<Aut
 						</span>
 					</Link>
 					{icon ? <div className="mt-6 flex justify-center">{icon}</div> : null}
-					{eyebrow ? <p className="t-eyebrow mt-6">{eyebrow}</p> : null}
-					<h1 className={cn("t-headline text-title", eyebrow ? "mt-3" : "mt-6")}>{title}</h1>
+					{eyebrow ? <p className="t-eyebrow eyebrow-eager mt-6">{eyebrow}</p> : null}
+					<h1 className={cn("t-headline kinetic-eager text-title", eyebrow ? "mt-3" : "mt-6")}>
+						<KineticText text={title} startIndex={1} />
+					</h1>
 					<p className="t-lead mt-3">{lead}</p>
 					{/* The auth foreground sheet on the glass material: the utility
 					    carries its own hairline + e2 elevation (one box-shadow list, so
@@ -53,7 +56,7 @@ export function AuthShell({ eyebrow, title, lead, icon, children }: Readonly<Aut
 					    opaque without backdrop-filter support. */}
 					<div
 						data-slot="auth-card"
-						className="material-glass mt-6 rounded-(--radius-md) p-(--card-pad-lg)"
+						className="material-glass reveal-up mt-6 rounded-(--radius-md) p-(--card-pad-lg) [--reveal-offset-y:28px] [animation-delay:280ms]"
 					>
 						{children}
 					</div>

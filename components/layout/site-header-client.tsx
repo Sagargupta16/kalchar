@@ -5,7 +5,14 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+	type CSSProperties,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { useMobileMenu } from "@/components/layout/use-mobile-menu";
 import { Container } from "@/components/ui/container";
@@ -28,13 +35,28 @@ const NAV: NavItem[] = [
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
 
+/** Band tokens without the band's own paint: the brand terracotta, mixed deep. */
+const BAND_TOKENS_ONLY = {
+	"--section-accent": "var(--color-accent)",
+	"--band-mix": "62%",
+	background: "none",
+} as CSSProperties;
+
 interface Props {
 	latinPrefix: string;
 	devanagariCore: string;
 	whatsappHref: string;
+	instagram?: { href: string; handle: string };
+	tagline: string;
 }
 
-export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: Readonly<Props>) {
+export function SiteHeaderClient({
+	latinPrefix,
+	devanagariCore,
+	whatsappHref,
+	instagram,
+	tagline,
+}: Readonly<Props>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [menuPresent, setMenuPresent] = useState(false);
@@ -122,25 +144,33 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				}}
 				className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-visible border-0 bg-transparent p-0 text-ink backdrop:bg-transparent"
 			>
-				<HeaderBar
-					mobileOnly
-					latinPrefix={latinPrefix}
-					devanagariCore={devanagariCore}
-					scrolled={scrolled}
-					open={open}
-					isActive={isActive}
-					onToggle={toggleMenu}
-				/>
-				<MobileDrawer
-					open={open}
-					items={[...NAV, CONTACT]}
-					isActive={isActive}
-					whatsappHref={whatsappHref}
-					onClose={closeMenu}
-					onExitComplete={() => {
-						if (!open) setMenuPresent(false);
-					}}
-				/>
+				{/* The menu lives on the pigment band tokens (pigment-band.css remaps
+				    every semantic colour on the band's direct children), so the bar
+				    above the curtain turns cream with it. The wrapper paints nothing
+				    itself: the curtain inside owns the ground and its wipe. */}
+				<div className="band-pigment h-full" style={BAND_TOKENS_ONLY}>
+					<HeaderBar
+						mobileOnly
+						latinPrefix={latinPrefix}
+						devanagariCore={devanagariCore}
+						scrolled={scrolled}
+						open={open}
+						isActive={isActive}
+						onToggle={toggleMenu}
+					/>
+					<MobileDrawer
+						open={open}
+						items={[...NAV, CONTACT]}
+						isActive={isActive}
+						whatsappHref={whatsappHref}
+						instagram={instagram}
+						tagline={tagline}
+						onClose={closeMenu}
+						onExitComplete={() => {
+							if (!open) setMenuPresent(false);
+						}}
+					/>
+				</div>
 			</dialog>
 		</>
 	);
