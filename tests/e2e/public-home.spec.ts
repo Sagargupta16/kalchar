@@ -318,7 +318,11 @@ test("home artwork previews fit their item count and keep the single piece besid
 		);
 		if (!gridBox || !cards[0]) throw new Error("missing grid geometry");
 		const viewportWidth = page.viewportSize()?.width ?? 0;
-		const columns = await grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+		// Masonry by CSS columns: the column count is the preview's layout contract.
+		const columns = await grid.evaluate((el) => {
+			const count = getComputedStyle(el).columnCount;
+			return count === "auto" ? 1 : Number(count);
+		});
 		expect(columns).toBe(Math.min(cards.length, viewportWidth >= 1024 ? desktopColumns : 2));
 		for (const card of cards) {
 			expect(Math.abs(card.width - cards[0].width)).toBeLessThanOrEqual(1);
