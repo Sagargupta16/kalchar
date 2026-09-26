@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.39.1 (2026-09-26)
+
+### Fixed
+
+- Send nosniff, frame-blocking, referrer and permissions headers on every page, not only on proxied images.
+- Check event photo references by prefix instead of building a pattern from the event id, clearing a CodeQL regex-injection alert.
+- Decode `&amp;` last in the health check's sitemap parser, so escaped entities are not unescaped twice.
+- Exclude the vendor-generated `skills-lock.json` from Biome, so a local skill install no longer fails `pnpm lint`.
+
 ## 1.39.0 (2026-09-15)
 
 ### Changed

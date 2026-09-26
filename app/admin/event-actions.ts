@@ -21,6 +21,7 @@ import { formString, nextOrderSql } from "./_helpers";
 // --- Event actions ---
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PHOTO_NAME_PATTERN = /^photo-[0-9a-f-]{36}$/i;
 const MAX_EVENT_PHOTOS_PER_WRITE = 12;
 
 function assertEventId(id: string): void {
@@ -42,9 +43,11 @@ function parseEventPhotoKeyBases(eventId: string, values: readonly unknown[]): s
 		throw new Error(`Attach at most ${MAX_EVENT_PHOTOS_PER_WRITE} photos at a time.`);
 	}
 	if (new Set(keyBases).size !== keyBases.length) throw new Error("Duplicate photo reference.");
-	const owned = new RegExp(`^events/${eventId}/photo-[0-9a-f-]{36}$`, "i");
+	const prefix = `events/${eventId}/`;
 	for (const keyBase of keyBases) {
-		if (!owned.test(keyBase)) throw new Error("Invalid photo reference.");
+		const owned =
+			keyBase.startsWith(prefix) && PHOTO_NAME_PATTERN.test(keyBase.slice(prefix.length));
+		if (!owned) throw new Error("Invalid photo reference.");
 	}
 	return keyBases;
 }
