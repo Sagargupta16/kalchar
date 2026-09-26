@@ -2,7 +2,7 @@
 
 import { Palette } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { type CSSProperties, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -14,8 +14,9 @@ import {
 	SPRING_LAYOUT,
 } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
-import { ArtworkCard } from "./artwork-card";
+import { ArtworkCard, WALL_CAPTION_PX } from "./artwork-card";
 import { EAGER_CARD_COUNT } from "./gallery-grid";
+import { useMasonry } from "./use-masonry";
 import "@/components/editorial/editorial.css";
 
 interface WorkFilterResultsProps {
@@ -27,8 +28,9 @@ interface WorkFilterResultsProps {
 	onClearFilters: () => void;
 }
 
-/** Plate widths on the justified wall: two per row on phones, three to four from sm. */
-const WALL_SIZES = "(min-width: 1024px) 22rem, (min-width: 640px) 34vw, calc((100vw - 52px) / 2)";
+/** Plate widths on the masonry wall: two columns on phones, three from sm, four from lg. */
+const WALL_SIZES =
+	"(min-width: 1152px) 270px, (min-width: 1024px) 23vw, (min-width: 640px) 31vw, calc((100vw - 52px) / 2)";
 
 /** Cards a filter tap brings in rise and settle; the first render skips this (initial={false}). */
 const CARD_ENTER = { opacity: 0, scale: 0.94, y: 24 } as const;
@@ -85,6 +87,8 @@ export function WorkFilterResults({
 	// Catalogue positions and each initial card's wrapper stay stable under filtering.
 	// Replacing an eager card with Reveal would disconnect the viewer's focus trigger.
 	const indexBySlug = useMemo(() => new Map(items.map((item, i) => [item.slug, i + 1])), [items]);
+	const ratios = useMemo(() => visible.map((art) => art.aspectRatio), [visible]);
+	const wall = useMasonry<HTMLUListElement>(ratios, WALL_CAPTION_PX);
 	const eagerArtworkSlugs = useRef(
 		new Set(visible.slice(0, EAGER_CARD_COUNT).map((art) => art.slug)),
 	);
@@ -113,7 +117,7 @@ export function WorkFilterResults({
 	}
 
 	return (
-		<ul className="art-wall mt-6 sm:mt-8">
+		<ul ref={wall.hostRef} className="mt-6 sm:mt-8" style={wall.hostStyle}>
 			<AnimatePresence mode="popLayout" initial={false}>
 				{visible.map((art, i) => {
 					const eager = eagerArtworkSlugs.current.has(art.slug);
@@ -121,7 +125,7 @@ export function WorkFilterResults({
 						<motion.li
 							key={art.slug}
 							layout="position"
-							style={{ "--ar": art.aspectRatio } as CSSProperties}
+							style={wall.itemStyle(i)}
 							transition={SPRING_LAYOUT}
 							initial={CARD_ENTER}
 							animate={CARD_REST}
@@ -136,7 +140,7 @@ export function WorkFilterResults({
 								index={indexBySlug.get(art.slug)}
 								total={items.length}
 								unveilDelayMs={eager ? gridStaggerDelay(i) : undefined}
-								revealDelayMs={(i % 3) * CARD_STAGGER_MS}
+								revealDelayMs={wall.columnOf(i) * CARD_STAGGER_MS}
 							/>
 						</motion.li>
 					);

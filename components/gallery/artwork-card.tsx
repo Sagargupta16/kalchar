@@ -19,6 +19,9 @@ const AnimatedLink = motion.create(Link);
 const CARD_LIFT = { y: -8 } as const;
 const WALL_LIFT = { y: -6 } as const;
 
+/** Wall card caption height in px (mt-3 + the h-[4.5rem] block); the masonry layout adds it to each plate. */
+export const WALL_CAPTION_PX = 84;
+
 interface ArtworkCardProps {
 	artwork: Artwork;
 	priority?: boolean;
@@ -135,10 +138,6 @@ export function ArtworkCard({
 							/>
 						</div>
 					</div>
-					<span
-						aria-hidden="true"
-						className="pointer-events-none absolute inset-1.5 rounded-[calc(var(--radius-md)-6px)] border border-(--color-gold-hairline) opacity-0 transition-opacity group-hover:opacity-100"
-					/>
 					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
 					<span
 						aria-hidden="true"
@@ -149,23 +148,25 @@ export function ArtworkCard({
 					</span>
 				</div>
 
-				<div className="card-caption mt-3 flex items-start justify-between gap-3">
-					<div className="min-w-0">
-						<p aria-hidden="true" className="t-meta truncate text-(length:--text-micro)">
+				{/* Fixed-height caption (WALL_CAPTION_PX, masonry math depends on it):
+				    meta row with the price, then the title clamped to two lines. */}
+				<div className="card-caption mt-3 h-[4.5rem] min-w-0">
+					<div className="flex items-baseline justify-between gap-2">
+						<p aria-hidden="true" className="t-meta min-w-0 truncate text-(length:--text-micro)">
 							{index ? (
 								<span className="max-sm:hidden">{`No. ${String(index).padStart(2, "0")} · `}</span>
 							) : null}
 							{artwork.style}
 						</p>
-						<h3 className="t-display mt-1 text-h3 text-ink transition-colors group-hover:text-accent-text">
-							{artwork.title}
-						</h3>
+						{priceSlot ? (
+							<p className="t-numeral shrink-0 whitespace-nowrap text-sm lining-nums text-accent-text">
+								{priceSlot}
+							</p>
+						) : null}
 					</div>
-					{priceSlot ? (
-						<p className="t-numeral shrink-0 whitespace-nowrap pt-4 text-base text-accent-text">
-							{priceSlot}
-						</p>
-					) : null}
+					<h3 className="t-display mt-1 line-clamp-2 text-h3 text-ink transition-colors group-hover:text-accent-text">
+						{artwork.title}
+					</h3>
 				</div>
 				{position}
 			</AnimatedLink>

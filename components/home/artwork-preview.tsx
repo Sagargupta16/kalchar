@@ -68,18 +68,22 @@ export function ArtworkPreview({
 						</Reveal>
 					) : null}
 				</div>
+				{/* Masonry by CSS columns: every painting at its own ratio, edge to
+				    edge, two columns on phones. A short strip reads top to bottom per
+				    column, which keeps DOM order and focus order the same. */}
 				<ul
 					className={cn(
-						"grid items-stretch gap-4 overflow-x-clip sm:gap-6",
-						single ? "mx-auto w-full max-w-sm grid-cols-1" : "mt-8 grid-cols-2",
+						"gap-3 sm:gap-6",
+						single ? "mx-auto w-full max-w-sm" : "mt-8 columns-2",
 						columns === 2 && "mx-auto w-full max-w-3xl",
-						columns === 3 && "lg:grid-cols-3",
-						columns === 4 && "lg:grid-cols-4",
+						columns === 3 && "lg:columns-3",
+						columns === 4 && "lg:columns-4",
 					)}
 				>
 					{artworks.map((art, index) => (
-						<li key={art.slug} className="min-w-0">
+						<li key={art.slug} className="mb-6 min-w-0 break-inside-avoid sm:mb-8">
 							<ArtworkCard
+								variant="wall"
 								artwork={art}
 								siblings={siblings}
 								priority={index < priorityCount}

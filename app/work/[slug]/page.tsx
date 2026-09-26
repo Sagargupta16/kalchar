@@ -146,8 +146,8 @@ function getSiblings(all: readonly Artwork[], slug: string): { prev?: Artwork; n
 /** Up to this many same-style pieces in the "More" strip under the spread. */
 const RELATED_COUNT = 4;
 
-/** Plate widths in the related strip: two per row on phones, up to four from lg. */
-const RELATED_SIZES = "(min-width: 1024px) 16rem, (min-width: 640px) 30vw, 45vw";
+/** Plate widths in the related masonry: two columns on phones, four from lg. */
+const RELATED_SIZES = "(min-width: 1152px) 270px, (min-width: 1024px) 23vw, 45vw";
 
 /**
  * Artwork detail page as an editorial spread. The top is a full-bleed wall
@@ -323,9 +323,9 @@ export default async function ArtworkDetailPage({ params }: Readonly<PageProps>)
 							title={`More ${art.style}`}
 							action={<SectionCta href={styleHref}>See every {art.style} piece</SectionCta>}
 						/>
-						<ul className="art-wall art-wall-compact mt-8">
+						<ul className="mt-8 columns-2 gap-3 sm:gap-6 lg:columns-4">
 							{related.map((piece, i) => (
-								<li key={piece.slug} style={{ "--ar": piece.aspectRatio } as CSSProperties}>
+								<li key={piece.slug} className="mb-6 break-inside-avoid">
 									<ArtworkCard
 										variant="wall"
 										artwork={piece}

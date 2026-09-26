@@ -41,50 +41,6 @@
   }
 }
 
-/* ─── ARTWORK WALL (justified rows) ─── */
-/* Each piece is a flex item whose grow and basis are both proportional to
-   its own aspect ratio (--ar), so every plate in a row lands at the same
-   height and at its true ratio: row-major reading order, nothing cropped,
-   no JS measurement. The trailing spacer keeps the last row at the target
-   height instead of stretching one lone piece across the screen. */
-.art-wall {
-  --row-h: 9.5rem;
-  --wall-gap: 0.75rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 1.75rem var(--wall-gap);
-}
-
-.art-wall::after {
-  content: "";
-  flex: 1e4 1 0;
-}
-
-.art-wall > li {
-  flex: var(--ar) 1 calc(var(--ar) * var(--row-h));
-  min-width: 0;
-  /* A row that holds a single wide-set piece stops growing at about twice
-     the target height instead of filling the screen with one plate. */
-  max-width: calc(var(--ar) * var(--row-h) * 1.9);
-}
-
-@media (min-width: 40rem) {
-  .art-wall {
-    --row-h: 15rem;
-    --wall-gap: 1.25rem;
-    row-gap: 2.5rem;
-  }
-}
-
-@media (min-width: 64rem) {
-  .art-wall {
-    --row-h: 19rem;
-    --wall-gap: 1.75rem;
-    row-gap: 3rem;
-  }
-}
-
 /* The hover label that slides up inside the plate (fine pointers only). */
 .plate-peek {
   transform: translateY(calc(100% + 1rem));
@@ -202,17 +158,5 @@
 @keyframes ring-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-/* A shorter hang for strips (the detail page's "More" row fits four). */
-@media (min-width: 40rem) {
-  .art-wall.art-wall-compact {
-    --row-h: 12rem;
-  }
-}
-@media (min-width: 64rem) {
-  .art-wall.art-wall-compact {
-    --row-h: 14rem;
   }
 }
