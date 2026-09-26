@@ -71,6 +71,8 @@ export function BackToTop() {
 				className={cn(
 					"group fixed z-nav grid size-control place-items-center rounded-full border border-line bg-surface text-ink shadow-e3 backdrop-blur-(--glass-blur) backdrop-saturate-(--glass-saturate) transition-ui pressable supports-[backdrop-filter]:bg-surface/85 hover:-translate-y-0.5 hover:border-(--color-gold-hairline) hover:text-accent-text hover:shadow-e4",
 					"bottom-[calc(var(--spacing-safe-bottom)+--spacing(5)+var(--fixed-bar-h,0px))] right-[calc(var(--spacing-safe-right)+--spacing(5))]",
+					// Phones get one floating control: two stacked discs cover body copy.
+					"max-md:[html:has([data-enquire-fab])_&]:hidden",
 					shown
 						? "pointer-events-auto translate-y-0 opacity-100"
 						: "pointer-events-none translate-y-2 opacity-0",

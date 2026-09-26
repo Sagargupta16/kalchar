@@ -54,7 +54,9 @@ export function WorkshopsTeaser({
 									<h3 className="t-display text-h3 transition-colors group-hover:text-(--section-accent)">
 										{item.title}
 									</h3>
-									<p className="mt-2 line-clamp-3 text-sm text-muted">{item.blurb}</p>
+									<p className="mt-2 line-clamp-3 text-base leading-relaxed text-muted">
+										{item.blurb}
+									</p>
 									{item.durationHours ? (
 										<div className="mt-3 flex items-center gap-1.5">
 											<IconCircle size="sm">

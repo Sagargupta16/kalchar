@@ -64,7 +64,7 @@ export function Hero({
 					<p className="t-lead max-w-xl">{site.brand.description}</p>
 
 					<Reveal eager delayMs={staggerDelay(4)}>
-						<div className="mt-6 flex flex-wrap gap-3">
+						<div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
 							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
 								See the artwork
 								<ArrowUpRight size={18} aria-hidden="true" />
@@ -76,12 +76,12 @@ export function Hero({
 					</Reveal>
 					<Reveal eager delayMs={staggerDelay(5)}>
 						<nav aria-label="Browse by style" className="mt-4">
-							<ul className="flex flex-wrap gap-x-4">
+							<ul className="flex flex-wrap gap-2">
 								{styles.map((style) => (
 									<li key={style}>
 										<Link
 											href={`/work?style=${encodeURIComponent(style)}`}
-											className="inline-flex min-h-control items-center text-sm text-muted underline-offset-4 transition-colors hover:text-accent-text hover:underline"
+											className="inline-flex min-h-control items-center rounded-full border border-line px-4 text-sm font-medium text-muted transition-ui pressable hover:border-accent hover:text-accent-text"
 										>
 											{style}
 										</Link>

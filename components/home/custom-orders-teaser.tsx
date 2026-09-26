@@ -4,6 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { Section, SectionHeader } from "@/components/ui/section";
 import { staggerDelay } from "@/lib/motion";
+import { toRoman } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 interface CustomOrdersTeaserProps {
@@ -30,7 +31,7 @@ export function CustomOrdersTeaser({
 				header={
 					<Reveal>
 						<SectionHeader eyebrow={eyebrow} title={title} lead={lead} />
-						<div className="mt-6 flex flex-wrap items-center gap-3">
+						<div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
 							<a
 								href={quickWa}
 								target="_blank"
@@ -44,7 +45,7 @@ export function CustomOrdersTeaser({
 					</Reveal>
 				}
 			>
-				<ol className="grid gap-6">
+				<ol className="divide-y divide-line">
 					<Reveal as="li" delayMs={staggerDelay(0)}>
 						<ProcessStep
 							step={1}
@@ -72,20 +73,23 @@ export function CustomOrdersTeaser({
 	);
 }
 
-/** Compact numbered steps keep the commission process easy to scan on a phone. */
+/** Numbered steps share the workshops ledger: roman numeral, display title, hairline rows. */
 function ProcessStep({
 	step,
 	title,
 	body,
 }: Readonly<{ step: number; title: string; body: string }>) {
 	return (
-		<div className="flex items-start gap-4">
-			<span aria-hidden="true" className="t-numeral shrink-0 text-title text-(--section-accent)">
-				0{step}
+		<div className="flex gap-5 py-6 md:gap-6 md:py-8">
+			<span
+				aria-hidden="true"
+				className="t-numeral w-10 shrink-0 pt-1 text-title text-(--section-accent)"
+			>
+				{toRoman(step)}
 			</span>
-			<div className="min-w-0">
-				<h3 className="text-base font-semibold text-ink">{title}</h3>
-				<p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+			<div className="min-w-0 flex-1">
+				<h3 className="t-display text-h3 text-ink">{title}</h3>
+				<p className="mt-2 text-base leading-relaxed text-muted">{body}</p>
 			</div>
 		</div>
 	);
