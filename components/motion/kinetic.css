@@ -10,14 +10,14 @@
 :root {
   --duration-kinetic: 850ms;
   --kinetic-step: 70ms;
-  /* 52px at 390 -> 104px from ~1440. */
-  --type-hero: clamp(3.25rem, 1.9rem + 5.6vw, 6.5rem);
-  /* 36px at 390 -> 60px from ~1120. */
-  --type-section: clamp(2.25rem, 1.45rem + 3.3vw, 3.75rem);
-  /* Inner page h1: 44px at 390 -> 88px from ~1420. */
-  --type-page: clamp(2.75rem, 1.7rem + 4.3vw, 5.5rem);
-  /* Style marquee band: 48px at 390 -> 120px. */
-  --type-marquee: clamp(3rem, 1.8rem + 5vw, 7.5rem);
+  /* Portfolio-react hero scale: 37px at 390 -> 72px from ~1020. */
+  --type-hero: clamp(2.25rem, 1rem + 5.5vw, 4.5rem);
+  /* Portfolio-react section scale: 28px at 390 -> 36px from 1200. */
+  --type-section: clamp(1.75rem, 3vw, 2.25rem);
+  /* Inner page h1: 32px at 390 -> 48px from ~940. */
+  --type-page: clamp(2rem, 1.25rem + 3vw, 3rem);
+  /* Style marquee band: 28px at 390 -> 48px from ~1070. */
+  --type-marquee: clamp(1.75rem, 1rem + 3vw, 3rem);
   --tracking-hero: -0.035em;
   --tracking-section: -0.03em;
 }

@@ -116,9 +116,9 @@
   /* Type scale: fluid rungs whose endpoints equal the old snapped stacks at
      360 and 1280 (D3). Written as `t-display text-h2` (voice + size stay two
      axes). Nothing interactive under 14px; nothing under 11px anywhere. */
-  --text-h1: clamp(2.5rem, 2.062rem + 1.798vw, 3.5rem); /* 40 -> 56px: page h1 (raised 2026-09-26 revamp) */
+  --text-h1: clamp(2rem, 1.671rem + 1.348vw, 2.75rem); /* 32 -> 44px: page h1 (portfolio-react scale) */
   --text-h1--line-height: 1.05;
-  --text-h2: clamp(2rem, 1.562rem + 1.798vw, 3rem); /* 32 -> 48px: large sub-heads, numerals, wall dates */
+  --text-h2: clamp(1.75rem, 1.531rem + 0.899vw, 2.25rem); /* 28 -> 36px: large sub-heads, numerals, wall dates */
   --text-h2--line-height: 1.05;
   --text-title: clamp(1.5rem, 1.25rem + 1vw, 1.875rem); /* 24 -> 30px: in-page sub-heading */
   --text-title--line-height: 1.1;
@@ -134,11 +134,11 @@
      keeps browser font-size settings scaling the middle of the range (WCAG
      1.4.4). Desktop ends lowered 88/72 -> 68/56 per steering 2026-09-14
      (portfolio-react parity: calmer type, artwork leads); 390 floors kept.
-     48px at 390 -> 88px at 1280 (raised again in the 2026-09-26 revamp). */
-  --text-display: clamp(3rem, 1.904rem + 4.494vw, 5.5rem);
+     36px at 390 -> 64px at 1280 (portfolio-react scale, 2026-09-26). */
+  --text-display: clamp(2.25rem, 1.483rem + 3.146vw, 4rem);
   --text-display--line-height: 1.02;
-  /* 40px at 390 -> 64px at 1280. */
-  --text-display-sm: clamp(2.5rem, 1.843rem + 2.697vw, 4rem);
+  /* 32px at 390 -> 48px at 1280. */
+  --text-display-sm: clamp(2rem, 1.562rem + 1.798vw, 3rem);
   --text-display-sm--line-height: 1.02;
 
   /* ─── SPACING ─── */

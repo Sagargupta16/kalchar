@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- Brighter paper, deeper ink, more vivid terracotta and section pigments, white card surfaces, stronger layered shadows, and larger display, page and section type (88px hero rung on desktop).
+- Brighter paper, deeper ink, more vivid terracotta and section pigments, white card surfaces and stronger layered shadows. Type follows the portfolio-react scale: hero 37 to 72px, section titles 28 to 36px, page titles 32 to 48px, marquee 28 to 48px.
 - Animate the home hero headline word by word from masks, with the last word in accent italic, and give the hero plates scroll parallax and an 8 degree pointer tilt.
 - Add a large art-style marquee after the hero that speeds up with scrolling, reverses on scroll-up and pauses on hover or focus.
 - Reveal section titles word by word, wipe artwork images up into their mats with a staggered settle, and lift cards with an image zoom and a sliding arrow chip on hover.

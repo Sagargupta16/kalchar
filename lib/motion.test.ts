@@ -101,14 +101,14 @@ describe("lib/motion mirrors app/globals.css", () => {
 	});
 
 	it.each([
-		["--text-display", 390, 48],
-		["--text-display", 1280, 88],
-		["--text-display-sm", 390, 40],
-		["--text-display-sm", 1280, 64],
-		["--text-h1", 390, 40],
-		["--text-h1", 1280, 56],
-		["--text-h2", 390, 32],
-		["--text-h2", 1280, 48],
+		["--text-display", 390, 36],
+		["--text-display", 1280, 64],
+		["--text-display-sm", 390, 32],
+		["--text-display-sm", 1280, 48],
+		["--text-h1", 390, 32],
+		["--text-h1", 1280, 44],
+		["--text-h2", 390, 28],
+		["--text-h2", 1280, 36],
 	])("%s resolves at %dpx viewport to %dpx within 1px", (name, viewport, expected) => {
 		expect(clampAtViewport(token(name), viewport)).toBeCloseTo(expected, 0);
 	});
