@@ -48,23 +48,23 @@
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 
   /* ─── TIER 2: SEMANTIC COLORS (light) ─── */
-  --color-bg: oklch(0.97 0.014 80);
-  --color-bg-soft: oklch(0.94 0.02 75);
-  --color-bg-muted: oklch(0.91 0.018 78);
-  --color-ink: oklch(0.18 0.022 60);
-  --color-ink-soft: oklch(0.32 0.02 60);
-  --color-muted: oklch(0.43 0.018 60);
-  --color-line: oklch(0.87 0.022 75);
+  --color-bg: oklch(0.982 0.012 85);
+  --color-bg-soft: oklch(0.955 0.018 78);
+  --color-bg-muted: oklch(0.925 0.02 78);
+  --color-ink: oklch(0.16 0.025 50);
+  --color-ink-soft: oklch(0.3 0.022 55);
+  --color-muted: oklch(0.42 0.02 55);
+  --color-line: oklch(0.885 0.02 75);
   --color-line-soft: oklch(0.92 0.015 78);
-  --color-accent: oklch(0.55 0.165 40);
-  --color-accent-hover: oklch(0.48 0.165 40);
-  --color-accent-soft: oklch(0.74 0.12 50);
+  --color-accent: oklch(0.56 0.19 38);
+  --color-accent-hover: oklch(0.49 0.19 38);
+  --color-accent-soft: oklch(0.75 0.14 48);
 
   /* Surface roles (see SURFACES above). Light is pixel-identical to bg and
      bg-soft; :root.dark remaps every one of these except the scrim. */
   --color-canvas: var(--color-bg-soft);
-  --color-surface: var(--color-bg);
-  --color-surface-raised: var(--color-bg);
+  --color-surface: oklch(0.995 0.006 85);
+  --color-surface-raised: oklch(0.995 0.006 85);
   --color-scrim: oklch(0.18 0.022 60);
   /* Lightbox room: near-black warm ink, identical in both modes (not remapped). */
   --color-scrim-deep: oklch(0.10 0.012 60);
@@ -75,13 +75,13 @@
   --color-line-strong: oklch(0.60 0.022 75);
   /* Text terracotta stays readable on both paper and the darker canvas.
      Button fills and decorative accents keep the brighter pigment. */
-  --color-accent-text: oklch(0.50 0.155 40);
+  --color-accent-text: oklch(0.5 0.175 38);
 
   /* Section pigments (Madhubani tradition) */
-  --color-marigold: oklch(0.72 0.16 75);
-  --color-pichwai: oklch(0.45 0.1 165);
-  --color-vermillion: oklch(0.55 0.18 35);
-  --color-peacock: oklch(0.46 0.1 220);
+  --color-marigold: oklch(0.74 0.17 72);
+  --color-pichwai: oklch(0.46 0.12 165);
+  --color-vermillion: oklch(0.57 0.21 33);
+  --color-peacock: oklch(0.47 0.12 225);
   --color-ruby: oklch(0.55 0.2 25);
   /* Opaque ruby stops for destructive borders and soft fills. Mixed over the
    * page background at use time, so one declaration serves both themes and
@@ -108,17 +108,17 @@
 
   /* ─── TYPOGRAPHY TOKENS ─── */
   --tracking-tight: -0.02em; /* intentionally overrides Tailwind's -0.025em */
-  --tracking-display: -0.015em;
-  --tracking-headline: -0.02em; /* t-headline poster rung; loosened from -0.03em at the calmer 56-68px endpoints (steering 2026-09-14) */
+  --tracking-display: -0.025em;
+  --tracking-headline: -0.035em; /* t-headline poster rung; loosened from -0.03em at the calmer 56-68px endpoints (steering 2026-09-14) */
   --tracking-eyebrow: 0.18em;
   --tracking-meta: 0.14em;
 
   /* Type scale: fluid rungs whose endpoints equal the old snapped stacks at
      360 and 1280 (D3). Written as `t-display text-h2` (voice + size stay two
      axes). Nothing interactive under 14px; nothing under 11px anywhere. */
-  --text-h1: clamp(2.25rem, 2.03rem + 0.9vw, 2.75rem); /* 36 -> 44px: page h1 (desktop end calmed from 48, steering 2026-09-14) */
+  --text-h1: clamp(2.5rem, 2.062rem + 1.798vw, 3.5rem); /* 40 -> 56px: page h1 (raised 2026-09-26 revamp) */
   --text-h1--line-height: 1.05;
-  --text-h2: clamp(1.875rem, 1.6rem + 1.12vw, 2.5rem); /* 30 -> 40px: large sub-heads, numerals, wall dates (was 48) */
+  --text-h2: clamp(2rem, 1.562rem + 1.798vw, 3rem); /* 32 -> 48px: large sub-heads, numerals, wall dates */
   --text-h2--line-height: 1.05;
   --text-title: clamp(1.5rem, 1.25rem + 1vw, 1.875rem); /* 24 -> 30px: in-page sub-heading */
   --text-title--line-height: 1.1;
@@ -134,11 +134,11 @@
      keeps browser font-size settings scaling the middle of the range (WCAG
      1.4.4). Desktop ends lowered 88/72 -> 68/56 per steering 2026-09-14
      (portfolio-react parity: calmer type, artwork leads); 390 floors kept.
-     44px at 390 -> 68px at 1280. */
-  --text-display: clamp(2.75rem, 2.09rem + 2.7vw, 4.25rem);
+     48px at 390 -> 88px at 1280 (raised again in the 2026-09-26 revamp). */
+  --text-display: clamp(3rem, 1.904rem + 4.494vw, 5.5rem);
   --text-display--line-height: 1.02;
-  /* 40px at 390 -> 56px at 1280. */
-  --text-display-sm: clamp(2.5rem, 2.06rem + 1.8vw, 3.5rem);
+  /* 40px at 390 -> 64px at 1280. */
+  --text-display-sm: clamp(2.5rem, 1.843rem + 2.697vw, 4rem);
   --text-display-sm--line-height: 1.02;
 
   /* ─── SPACING ─── */
@@ -333,11 +333,11 @@
   /* Flat pigment band for page headers and closing CTAs: Section
      background="wash" -> bg-(--section-wash). Computed once from whatever
      --section-accent the page's <main> already sets. */
-  --wash-strength: 8%;
+  --wash-strength: 12%;
   --section-wash: color-mix(in oklch, var(--section-accent) var(--wash-strength), var(--color-bg));
   /* Organic two-ellipse PigmentWash stops (components/decor/pigment-wash.tsx). */
-  --wash-a: color-mix(in oklch, var(--section-accent) 10%, transparent);
-  --wash-b: color-mix(in oklch, var(--color-marigold) 7%, transparent);
+  --wash-a: color-mix(in oklch, var(--section-accent) 16%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 11%, transparent);
   /* Plate glow behind a dark-room plate; inline from the most saturated
      palette swatch, ink fallback when a piece has no palette. */
   --plate-glow: oklch(var(--shadow-ink));
@@ -403,8 +403,8 @@
   --color-muted: oklch(0.78 0.016 65); /* APCA Lc about -63 at caption size (D5) */
   --color-line: oklch(0.26 0.02 60);
   --color-line-soft: oklch(0.22 0.016 62);
-  --color-accent: oklch(0.68 0.14 45);
-  --color-accent-hover: oklch(0.74 0.14 45);
+  --color-accent: oklch(0.7 0.16 42);
+  --color-accent-hover: oklch(0.76 0.16 42);
   --color-accent-soft: oklch(0.58 0.12 45);
 
   /* Surface roles: canvas is the ground, surface one step up, raised two.
@@ -429,9 +429,9 @@
   --color-gold-hairline: color-mix(in oklch, var(--color-gold-leaf) 45%, var(--color-line));
 
   /* Visual-upgrade dark values (visual-direction 1.9). */
-  --wash-strength: 12%;
-  --wash-a: color-mix(in oklch, var(--section-accent) 6%, transparent);
-  --wash-b: color-mix(in oklch, var(--color-marigold) 4%, transparent);
+  --wash-strength: 16%;
+  --wash-a: color-mix(in oklch, var(--section-accent) 10%, transparent);
+  --wash-b: color-mix(in oklch, var(--color-marigold) 6%, transparent);
   --plate-glow-alpha: 55%;
 }
 
