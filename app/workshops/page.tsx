@@ -1,17 +1,17 @@
-import { Clock, MessageCircle } from "lucide-react";
+import { ArrowDown, ArrowRight, Clock, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { PageHero } from "@/components/layout/page-hero";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { ClosingCta } from "@/components/ui/closing-cta";
 import { EmptyState } from "@/components/ui/empty-state";
-import { IconCircle } from "@/components/ui/icon-circle";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Section, SectionHeader } from "@/components/ui/section";
 import { getAllWorkshops, getSite } from "@/lib/data";
 import { staggerDelay } from "@/lib/motion";
 import { createPageMetadata } from "@/lib/page-metadata";
 import { cn, toRoman } from "@/lib/utils";
 import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
+import { WorkshopLedger } from "./workshop-ledger";
 
 export const metadata = createPageMetadata({
 	title: "Workshops",
@@ -19,6 +19,28 @@ export const metadata = createPageMetadata({
 		"Hands-on folk-art sessions for individuals, schools, communities, and corporate groups.",
 	path: "/workshops/",
 });
+
+/** Who the sessions are for, from the workshops lead in site.json. */
+const AUDIENCES = ["Individuals", "Schools", "Communities", "Corporate groups"] as const;
+
+const BOOKING_STEPS = [
+	{
+		title: "Pick a session",
+		body: "Choose a workshop below, or ask for one shaped around your group.",
+	},
+	{ title: "Message us", body: "Share the group size, age range and a few dates on WhatsApp." },
+	{
+		title: "We plan it together",
+		body: "Pricing, timing and the plan for the day come back to you.",
+	},
+] as const;
+
+function durationRange(hours: readonly number[]): string | null {
+	if (hours.length === 0) return null;
+	const min = Math.min(...hours);
+	const max = Math.max(...hours);
+	return min === max ? `${min}` : `${min} to ${max}`;
+}
 
 export default async function WorkshopsPage() {
 	const { contact, sections } = getSite();
@@ -35,152 +57,178 @@ export default async function WorkshopsPage() {
 		phoneE164NoPlus: phone,
 		message: "Hi, I'd like to bring a workshop to our group or school.",
 	});
+	const ledger = workshops.map((item) => ({
+		slug: item.slug,
+		title: item.title,
+		blurb: item.blurb,
+		durationHours: item.durationHours,
+		enquireUrl: buildWhatsAppLink({
+			phoneE164NoPlus: phone,
+			message: `Hi, I'd like to enquire about the "${item.title}" workshop.`,
+		}),
+	}));
+	const hours = durationRange(
+		workshops.flatMap((item) => (item.durationHours ? [item.durationHours] : [])),
+	);
 
 	return (
 		<main className="[--shadow-ink:0.2_0.02_165]">
-			<Section accent="pichwai" background="wash" padded containerClassName="py-(--space-block)">
-				<PageHeader
-					eyebrow={workshopsCopy?.eyebrow ?? "Workshops"}
-					title={workshopsCopy?.title ?? "Hands-on sessions"}
-					lead={workshopsCopy?.lead}
-				>
-					<p className="mt-5 max-w-prose text-sm text-muted">
-						{workshops.length > 0
-							? "Choose a workshop below to ask about dates and pricing on WhatsApp."
-							: "Ask us about upcoming sessions or a workshop for your group."}
+			<PageHero
+				accent="pichwai"
+				glyph="सीख"
+				eyebrow={workshopsCopy?.eyebrow ?? "Workshops"}
+				title={workshopsCopy?.title ?? "Hands-on sessions"}
+				lead={workshopsCopy?.lead}
+				aside={
+					workshops.length > 0 ? (
+						<Reveal eager delayMs={staggerDelay(4)} className="hidden lg:block">
+							<dl className="grid grid-cols-2 gap-px overflow-hidden rounded-(--radius-md) border border-line bg-line">
+								<div className="bg-canvas p-5">
+									<dt className="t-meta">On offer</dt>
+									<dd className="t-numeral type-page mt-2 text-ink">
+										{String(workshops.length).padStart(2, "0")}
+									</dd>
+									<dd className="mt-1 text-sm text-muted">
+										{workshops.length === 1 ? "workshop" : "workshops"}
+									</dd>
+								</div>
+								<div className="bg-canvas p-5">
+									<dt className="t-meta">Per session</dt>
+									<dd className="t-numeral type-page mt-2 text-ink">{hours ?? "Flexible"}</dd>
+									<dd className="mt-1 text-sm text-muted">{hours ? "hours" : "timing"}</dd>
+								</div>
+								<div className="col-span-2 bg-canvas p-5">
+									<dt className="t-meta">Booked over</dt>
+									<dd className="mt-2 flex items-center gap-2 text-base font-medium text-ink">
+										<MessageCircle
+											size={16}
+											aria-hidden="true"
+											className="text-(--section-accent)"
+										/>
+										WhatsApp, dates and pricing on request
+									</dd>
+								</div>
+							</dl>
+						</Reveal>
+					) : undefined
+				}
+			>
+				<Reveal eager delayMs={staggerDelay(5)}>
+					<p className="mt-6 flex flex-wrap gap-2">
+						{AUDIENCES.map((audience) => (
+							<span
+								key={audience}
+								className="inline-flex items-center rounded-full border border-line-strong px-3 py-1.5 text-sm font-medium text-ink"
+							>
+								{audience}
+							</span>
+						))}
 					</p>
-					<div className="mt-2 flex flex-wrap gap-x-6">
+					<div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
+						{workshops.length > 0 ? (
+							<a href="#programme" className={buttonVariants({ variant: "primary", size: "lg" })}>
+								See the workshops
+								<ArrowDown size={16} aria-hidden="true" />
+							</a>
+						) : null}
 						<a
 							href="#group-enquiry"
-							className={cn(
-								buttonVariants({ variant: "link" }),
-								"max-w-full justify-start whitespace-normal px-0 text-left text-ink",
-							)}
+							className={buttonVariants({ variant: "secondary", size: "lg" })}
 						>
 							Planning for a group or school?
 						</a>
-						<Link
-							href="/contact/"
-							className={cn(
-								buttonVariants({ variant: "link" }),
-								"max-w-full justify-start whitespace-normal px-0 text-left",
-							)}
-						>
-							Other ways to enquire
-						</Link>
 					</div>
-				</PageHeader>
-			</Section>
+				</Reveal>
+			</PageHero>
 
-			<Section accent="pichwai" padded containerClassName="pt-(--space-block)">
-				{workshops.length > 0 ? (
-					// The programme as a numbered ledger (2.7): hairline rows under one
-					// gold opening rule, no card shells, roman numerals in the pigment.
-					<ul className="divide-y divide-line border-t border-(--color-gold-hairline)">
-						{workshops.map((item, i) => {
-							const enquireUrl = buildWhatsAppLink({
-								phoneE164NoPlus: phone,
-								message: `Hi, I'd like to enquire about the "${item.title}" workshop.`,
-							});
-							return (
-								<Reveal
-									key={item.slug}
-									as="li"
-									delayMs={staggerDelay(i)}
-									className="grid grid-cols-[2.5rem_1fr] gap-x-3 py-6 md:grid-cols-12 md:items-start md:gap-x-6 md:py-8"
-								>
-									<span
-										aria-hidden="true"
-										className="t-numeral pt-1 text-title text-(--section-accent) md:col-span-1 md:pt-0"
+			<Section
+				id="programme"
+				accent="pichwai"
+				padded
+				containerClassName="pt-(--space-canyon)"
+				className="scroll-mt-(--space-page)"
+			>
+				<SectionHeader
+					eyebrow="The programme"
+					title={workshops.length > 0 ? "Choose a session" : "Sessions on request"}
+					lead={
+						workshops.length > 0
+							? "Tap Enquire to ask about dates and pricing on WhatsApp."
+							: "Ask us about upcoming sessions or a workshop for your group."
+					}
+					action={
+						<Link href="/contact/" className={cn(buttonVariants({ variant: "ghost" }), "group")}>
+							Other ways to enquire
+							<ArrowRight size={14} aria-hidden="true" />
+						</Link>
+					}
+				/>
+
+				<div className="mt-(--space-block)">
+					{workshops.length > 0 ? (
+						<WorkshopLedger workshops={ledger} />
+					) : (
+						<Reveal delayMs={staggerDelay(1)}>
+							<EmptyState
+								icon={<Clock size={24} aria-hidden="true" />}
+								title="No workshops listed yet"
+								body="Ask on WhatsApp about the next session."
+								action={
+									<a
+										href={upcomingEnquiryUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className={cn(
+											buttonVariants({ variant: "secondary" }),
+											"w-full whitespace-normal sm:w-auto",
+										)}
 									>
-										{toRoman(i + 1)}
-									</span>
-									<div className="min-w-0 md:col-span-7">
-										<h2
-											id={item.slug}
-											className="t-display wrap-anywhere scroll-mt-(--space-page) text-h3"
-										>
-											{item.title}
-										</h2>
-										<p className="wrap-anywhere mt-2 max-w-prose whitespace-pre-line text-base leading-relaxed text-muted">
-											{item.blurb}
-										</p>
-									</div>
-									<div className="col-start-2 mt-4 flex min-w-0 flex-col gap-3 md:col-span-4 md:col-start-9 md:mt-0 md:items-end">
-										{item.durationHours ? (
-											<div className="flex items-center gap-1.5">
-												<IconCircle size="sm">
-													<Clock size={14} aria-hidden="true" />
-												</IconCircle>
-												<span className="t-meta text-(--section-accent)">
-													{item.durationHours} {item.durationHours === 1 ? "hour" : "hours"}
-												</span>
-											</div>
-										) : null}
-										<a
-											href={enquireUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											aria-label={`Enquire on WhatsApp about ${item.title}`}
-											className={cn(
-												buttonVariants({ variant: "secondary" }),
-												"w-full max-w-full whitespace-normal text-center md:w-auto",
-											)}
-										>
-											<MessageCircle size={14} aria-hidden="true" />
-											Enquire on WhatsApp
-										</a>
-									</div>
-								</Reveal>
-							);
-						})}
-					</ul>
-				) : (
-					<Reveal delayMs={staggerDelay(1)}>
-						<EmptyState
-							icon={<Clock size={24} aria-hidden="true" />}
-							title="No workshops listed yet"
-							body="Ask on WhatsApp about the next session."
-							action={
-								<a
-									href={upcomingEnquiryUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									className={cn(
-										buttonVariants({ variant: "secondary" }),
-										"w-full whitespace-normal sm:w-auto",
-									)}
-								>
-									<MessageCircle size={14} aria-hidden="true" />
-									Ask on WhatsApp
-								</a>
-							}
-						/>
-					</Reveal>
-				)}
+										<MessageCircle size={14} aria-hidden="true" />
+										Ask on WhatsApp
+									</a>
+								}
+							/>
+						</Reveal>
+					)}
+				</div>
+
+				{/* How booking works: three beats on the section pigment. */}
+				<ol className="mt-(--space-canyon) grid gap-px overflow-hidden rounded-(--radius-md) border border-line bg-line md:grid-cols-3">
+					{BOOKING_STEPS.map((step, i) => (
+						<Reveal
+							key={step.title}
+							as="li"
+							delayMs={staggerDelay(i)}
+							className="bg-surface p-(--card-pad-lg)"
+						>
+							<p className="t-meta text-(--section-accent)">Step {toRoman(i + 1)}</p>
+							<h3 className="t-headline mt-3 text-h3">{step.title}</h3>
+							<p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
+						</Reveal>
+					))}
+				</ol>
 
 				{/* Group enquiry CTA: rendered in both branches. */}
 				<div id="group-enquiry" className="scroll-mt-(--space-page)">
-					<Reveal delayMs={staggerDelay(3)}>
-						<ClosingCta
-							eyebrow="Group / school enquiries"
-							title="Bring a workshop to your space"
-							body="Tell us about the group, age range, and preferred dates on WhatsApp."
-							action={
-								<a
-									href={groupEnquiryUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									className={cn(
-										buttonVariants({ variant: "primary" }),
-										"w-full whitespace-normal sm:w-auto",
-									)}
-								>
-									Ask about a group workshop
-								</a>
-							}
-						/>
-					</Reveal>
+					<ClosingCta
+						eyebrow="Group and school enquiries"
+						title="Bring a workshop to your space"
+						body="Tell us about the group, age range, and preferred dates on WhatsApp."
+						action={
+							<a
+								href={groupEnquiryUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={cn(
+									buttonVariants({ variant: "primary", size: "lg" }),
+									"w-full whitespace-normal sm:w-auto",
+								)}
+							>
+								Ask about a group workshop
+								<ArrowRight size={16} aria-hidden="true" />
+							</a>
+						}
+					/>
 				</div>
 			</Section>
 		</main>

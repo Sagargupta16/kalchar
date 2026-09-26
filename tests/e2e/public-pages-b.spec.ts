@@ -157,8 +157,8 @@ test("the example strip follows the shared compact section spacing", async ({ pa
 	await page.goto("/custom-orders/");
 	const strip = page.locator('[data-slot="example-strip"]');
 	await expect(strip).toBeVisible();
-	const grid = page.locator("main .md\\:grid-cols-12").first();
-	const gridBox = await grid.boundingBox();
+	// The strip follows the how-it-works aside under the commission sheet.
+	const gridBox = await page.locator("#how-it-works").boundingBox();
 	const stripBox = await strip.boundingBox();
 	const gap = (stripBox?.y ?? 0) - ((gridBox?.y ?? 0) + (gridBox?.height ?? 0));
 	const margin = await strip.evaluate((element) => Number.parseFloat(getComputedStyle(element).marginTop));

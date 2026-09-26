@@ -17,6 +17,15 @@ export function SiteHeader() {
 			latinPrefix={brand.headline.latinPrefix}
 			devanagariCore={brand.headline.devanagariCore}
 			whatsappHref={whatsappHref}
+			instagram={
+				contact.instagram.url.trim()
+					? {
+							href: contact.instagram.url.trim(),
+							handle: contact.instagram.display ?? contact.instagram.label,
+						}
+					: undefined
+			}
+			tagline={brand.tagline}
 		/>
 	);
 }

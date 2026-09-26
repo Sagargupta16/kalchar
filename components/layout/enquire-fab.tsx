@@ -112,6 +112,19 @@ export function EnquireFab({ whatsappHref }: Readonly<EnquireFabProps>) {
 				>
 					<WhatsAppIcon className="size-6" aria-hidden="true" />
 				</span>
+				{/* A ring pings out every few seconds while shown (chrome.css); paused while hidden. */}
+				<span
+					aria-hidden="true"
+					className="fab-ping"
+					style={{ "--float-state": shown ? "running" : "paused" } as CSSProperties}
+				/>
+				{/* Hover-capable pointers get the action spelled out beside the disc. */}
+				<span
+					aria-hidden="true"
+					className="pointer-events-none absolute top-1/2 right-full mr-3 hidden -translate-y-1/2 translate-x-2 whitespace-nowrap rounded-full bg-ink px-4 py-2 text-sm font-medium text-bg opacity-0 shadow-e3 transition-[opacity,translate] duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:block"
+				>
+					Message on WhatsApp
+				</span>
 			</a>
 		</>
 	);
