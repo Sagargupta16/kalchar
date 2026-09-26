@@ -23,14 +23,6 @@ interface AdminPageHeaderProps {
 	actions?: ReactNode;
 }
 
-/**
- * Alignment rule 1 (one left edge per page): the header sits inside the same
- * --card-pad inset the panels below it use, so the h1 lines up with every
- * panel title, row title and form label (the panel's 1px border is the only
- * remaining delta). The actions slot ends at the panels' content edge (rule 2).
- */
-const HEADER_INSET = "px-(--card-pad)";
-
 export function AdminPageHeader({
 	title,
 	description,
@@ -38,16 +30,19 @@ export function AdminPageHeader({
 	actions,
 }: Readonly<AdminPageHeaderProps>) {
 	return (
-		<header
-			className={cn(
-				"flex min-w-0 flex-wrap items-start justify-between gap-x-6 gap-y-4",
-				HEADER_INSET,
-			)}
-		>
+		// Alignment rule 1 (one left edge per page): the header shares the panels'
+		// outer edge, so the title, the stats strip and every panel start on one
+		// line; the actions slot ends at the panels' right edge (rule 2).
+		<header className="flex min-w-0 flex-wrap items-end justify-between gap-x-6 gap-y-4">
 			<div className="min-w-0 max-w-(--header-max) flex-[1_1_20rem]">
-				<h1 className="t-heading text-h1 wrap-break-word text-ink">{title}</h1>
+				{/* Admin pins --text-h1 to 28-32px (admin-theme.css): a tool title, not a poster. */}
+				<h1 className="t-heading text-h1 font-semibold tracking-tight wrap-break-word text-ink">
+					{title}
+				</h1>
 				{description ? (
-					<p className="mt-2 text-pretty text-sm leading-relaxed text-muted">{description}</p>
+					<p className="mt-1.5 max-w-(--measure-essay) text-pretty text-sm leading-relaxed text-muted">
+						{description}
+					</p>
 				) : null}
 				{children ? <div className="mt-3">{children}</div> : null}
 			</div>
@@ -77,7 +72,7 @@ export function AdminPage({
 	children,
 }: Readonly<AdminPageProps>) {
 	return (
-		<div className={cn("min-w-0 space-y-page", WIDTH[width], className)}>
+		<div className={cn("min-w-0 space-y-group", WIDTH[width], className)}>
 			<AdminPageHeader title={title} description={description} actions={actions}>
 				{intro}
 			</AdminPageHeader>
@@ -94,10 +89,10 @@ export function AdminPage({
  */
 export function AdminPageHeaderSkeleton() {
 	return (
-		<div className={cn(HEADER_INSET, "max-w-(--header-max) space-y-3")}>
-			{/* h-11 tracks the calmed text-h1 line box (44px x 1.05 at 1280; steering 2026-09-14). */}
-			<Skeleton className="h-9 w-40 sm:h-11" />
-			<Skeleton className="h-4 w-64 max-w-full" />
+		<div className="max-w-(--header-max) space-y-2">
+			{/* h-8 / h-9 track the admin text-h1 line box (28-32px x 1.15). */}
+			<Skeleton className="h-8 w-40 sm:h-9" />
+			<Skeleton className="h-4 w-80 max-w-full" />
 		</div>
 	);
 }
@@ -118,7 +113,7 @@ export function AdminPageSkeleton({
 			aria-busy="true"
 			aria-live="polite"
 			className={cn(
-				"min-w-0 space-y-page starting:opacity-0 transition-opacity delay-(--duration-fast) duration-(--duration-fast)",
+				"min-w-0 space-y-group starting:opacity-0 transition-opacity delay-(--duration-fast) duration-(--duration-fast)",
 				WIDTH[width],
 			)}
 		>

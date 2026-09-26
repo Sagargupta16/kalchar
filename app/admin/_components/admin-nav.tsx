@@ -21,6 +21,7 @@ import {
 	badgeCount,
 	badgeName,
 	CountPill,
+	NAV_SECTION_LABEL,
 	type NavCounts,
 	useAddContext,
 	useIsActive,
@@ -76,7 +77,15 @@ function MobileNavLink({
 				<motion.span
 					layoutId="admin-tab-active"
 					aria-hidden="true"
-					className="absolute inset-x-1 inset-y-2 -z-10 rounded-(--radius-sm) bg-canvas"
+					className="absolute inset-x-1 inset-y-2 -z-10 rounded-(--radius-sm) bg-bg-muted shadow-hairline"
+					transition={SPRING_INDICATOR}
+				/>
+			) : null}
+			{active ? (
+				<motion.span
+					layoutId="admin-tab-rule"
+					aria-hidden="true"
+					className="absolute top-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-accent"
 					transition={SPRING_INDICATOR}
 				/>
 			) : null}
@@ -278,7 +287,7 @@ export function AdminNavMobile({
 								className={cn(
 									TAB_CELL,
 									moreOpen || moreActive
-										? "bg-canvas text-accent-text"
+										? "bg-bg-muted text-accent-text"
 										: "text-muted hover:text-ink",
 								)}
 							>
@@ -333,7 +342,7 @@ export function AdminNavMobile({
 						</div>
 						{MORE_GROUPS.map((group, gi) => (
 							<div key={group.label} className="py-2">
-								<p className="px-3 pb-1 text-label font-medium text-muted">{group.label}</p>
+								<p className={NAV_SECTION_LABEL}>{group.label}</p>
 								<ul aria-label={group.label} className="grid gap-1">
 									{group.items.map((item, index) => {
 										const active = isActive(item.href);
@@ -346,7 +355,9 @@ export function AdminNavMobile({
 													aria-current={active ? "page" : undefined}
 													className={cn(
 														"flex min-h-control items-center gap-3 rounded-(--radius-sm) px-3 text-sm font-medium transition-ui pressable",
-														active ? "bg-canvas text-accent-text" : "text-ink hover:bg-canvas",
+														active
+															? "bg-bg-muted text-accent-text"
+															: "text-ink hover:bg-surface-hover",
 													)}
 												>
 													<item.icon size={ICON_MD} aria-hidden="true" />

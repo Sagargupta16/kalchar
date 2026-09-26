@@ -38,7 +38,7 @@ export function BottomBar({
 				role={role}
 				aria-live={ariaLive}
 				className={cn(
-					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line material-glass xl:bottom-0 starting:translate-y-2 starting:opacity-0 transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
+					"fixed inset-x-0 bottom-(--tabbar-offset) z-sticky border-t border-line material-glass xl:bottom-0 xl:left-64 starting:translate-y-2 starting:opacity-0 transition-[opacity,translate] duration-(--duration-base) ease-(--ease-out)",
 					className,
 				)}
 			>

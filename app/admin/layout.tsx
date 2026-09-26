@@ -1,18 +1,20 @@
-import { ExternalLink, LogOut, Settings } from "lucide-react";
-import Link from "next/link";
+import { ExternalLink, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
-import { Container } from "@/components/ui/container";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { requireAdminPage } from "@/lib/admin-auth";
 import { getArtworkFieldSuggestions, getCategoryNames } from "@/lib/data";
 import { serverEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { AddSheetProvider } from "./_components/add-sheet";
+import { AdminBrand } from "./_components/admin-brand";
+import { AdminCrumb } from "./_components/admin-crumb";
 import { AdminDraftProvider } from "./_components/admin-draft-guard";
-import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
+import { AdminNavDesktop, AdminNavMobile, type NavCounts } from "./_components/admin-nav";
 import { ConfirmProvider } from "./_components/confirm-dialog";
-import { adminBtn, ICON_MD } from "./_components/controls";
+import { adminBtn, adminIconBtnGhost, adminInitialsDisc, ICON_MD } from "./_components/controls";
+import { getNewEnquiryCount } from "./_new-enquiries";
+import "./admin-theme.css";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 
@@ -28,12 +30,21 @@ async function signOutAction() {
 	await signOut({ redirectTo: "/" });
 }
 
+/**
+ * The admin shell (product-dashboard register, admin-theme.css): on desktop a
+ * full-height white sidebar (brand, Add, grouped nav, account footer) beside a
+ * sticky translucent top bar with the page crumb; on phones the top bar holds
+ * the brand and the tab bar carries navigation. data-admin-shell sits on the
+ * outermost element so the providers' dialogs render inside the themed tree.
+ */
 export default async function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
 	const email = await requireAdminPage();
-	const [categoryNames, suggestions] = await Promise.all([
+	const [categoryNames, suggestions, newEnquiries] = await Promise.all([
 		getCategoryNames(),
 		getArtworkFieldSuggestions(),
+		getNewEnquiryCount(),
 	]);
+	const counts: NavCounts = { "/admin/leads": newEnquiries };
 
 	const sheetSignOut = (
 		<form action={signOutAction}>
@@ -44,94 +55,105 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 		</form>
 	);
 
+	const avatar = (
+		<span
+			role="img"
+			title={email}
+			aria-label={`Signed in as ${email}`}
+			className={cn(adminInitialsDisc, "size-9 text-xs")}
+		>
+			{initials(email)}
+		</span>
+	);
+
 	return (
-		<ConfirmProvider>
-			<AdminDraftProvider>
-				<AddSheetProvider categories={categoryNames} suggestions={suggestions}>
-					<div data-admin-shell className="min-h-dvh bg-canvas">
+		<div data-admin-shell className="min-h-dvh bg-canvas text-ink">
+			<ConfirmProvider>
+				<AdminDraftProvider>
+					<AddSheetProvider categories={categoryNames} suggestions={suggestions}>
 						<a
 							href="#admin-content"
 							className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-4 focus:z-overlay focus:rounded-md focus:bg-surface focus:px-4 focus:py-3 focus:text-ink"
 						>
 							Skip admin navigation
 						</a>
-						<header className="sticky top-0 z-nav border-b border-line bg-surface">
-							<Container className="flex max-w-[90rem] items-center justify-between gap-2 py-2 sm:gap-4">
-								<Link
-									href="/admin"
-									className="flex min-h-control min-w-0 items-center gap-2 rounded-md sm:gap-3"
-								>
-									<span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent text-bg">
-										<Settings size={ICON_MD} aria-hidden="true" />
-									</span>
-									<span className="text-sm font-semibold">
-										Kalchar <span className="hidden min-[360px]:inline">Admin</span>
-									</span>
-								</Link>
-								<div className="flex shrink-0 items-center gap-2 sm:gap-3">
-									<a
-										href="/"
-										target="_blank"
-										rel="noreferrer"
-										aria-label="View site (opens in a new tab)"
-										className={cn(adminBtn, "rounded-md text-muted")}
-									>
-										<ExternalLink size={ICON_MD} aria-hidden="true" />
-										View site
-									</a>
-									<ThemeToggle compact className="hidden xl:grid" />
-									<span
-										title={email}
-										className="hidden max-w-48 truncate text-label text-muted xl:inline"
-									>
+						<div className="xl:grid xl:grid-cols-[16rem_minmax(0,1fr)]">
+							<aside className="sticky top-0 z-nav hidden h-dvh min-h-0 flex-col border-r border-line bg-surface xl:flex">
+								<div className="flex h-(--header-h-shrunk) shrink-0 items-center border-b border-line px-4">
+									<AdminBrand />
+								</div>
+								<AdminNavDesktop counts={counts} />
+								<div className="flex shrink-0 items-center gap-2 border-t border-line p-3">
+									{avatar}
+									<span title={email} className="min-w-0 flex-1 truncate text-label text-muted">
 										{email}
 									</span>
-									<span
-										role="img"
-										title={email}
-										aria-label={`Signed in as ${email}`}
-										className="grid size-control place-items-center rounded-full bg-bg-muted text-xs font-semibold uppercase text-ink ring-1 ring-line"
-									>
-										{initials(email)}
-									</span>
-									<form action={signOutAction} className="hidden xl:block">
+									<ThemeToggle compact />
+									<form action={signOutAction}>
 										<button
 											type="submit"
 											aria-label="Sign out"
 											title="Sign out"
-											className={cn(adminBtn, "min-w-control text-muted")}
+											className={adminIconBtnGhost}
 										>
 											<LogOut size={ICON_MD} aria-hidden="true" />
-											<span className="hidden sm:inline">Sign out</span>
 										</button>
 									</form>
 								</div>
-							</Container>
-						</header>
-
-						{serverEnv.adminPreview ? (
-							<p className="border-b border-line bg-surface px-(--container-px) py-2 text-center text-label text-muted">
-								Preview mode: fixture data, nothing you change here is saved.
-							</p>
-						) : null}
-
-						<Container className="max-w-[90rem] xl:grid xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start xl:gap-8">
-							<aside className="sticky top-[calc(var(--header-h-shrunk)+var(--space-group))] my-(--space-group) hidden max-h-[calc(100dvh-var(--header-h-shrunk)-var(--space-group)*2)] min-h-0 flex-col border-r border-line pr-4 xl:flex">
-								<AdminNavDesktop />
 							</aside>
-							<main
-								id="admin-content"
-								tabIndex={-1}
-								className="min-w-0 scroll-mt-[calc(var(--header-h-shrunk)+var(--space-group))] pt-(--space-group) pb-[calc(var(--tabbar-offset)+var(--space-page))] sm:pt-(--space-page) xl:pb-(--space-page)"
-							>
-								{children}
-							</main>
-						</Container>
 
-						<AdminNavMobile email={email} signOut={sheetSignOut} />
-					</div>
-				</AddSheetProvider>
-			</AdminDraftProvider>
-		</ConfirmProvider>
+							<div className="min-w-0">
+								<header className="sticky top-0 z-nav border-b border-line bg-canvas/85 backdrop-blur-md backdrop-saturate-150">
+									<div className="mx-auto flex max-w-(--content-max) items-center justify-between gap-3 px-(--container-px) py-2">
+										<AdminBrand className="xl:hidden" />
+										<div className="hidden min-w-0 xl:block">
+											<AdminCrumb />
+										</div>
+										<div className="flex shrink-0 items-center gap-2">
+											{serverEnv.adminPreview ? (
+												<span
+													title="Preview mode: fixture data, nothing you change here is saved."
+													className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-label text-muted ring-1 ring-line sm:inline-flex"
+												>
+													<span aria-hidden="true" className="size-1.5 rounded-full bg-marigold" />
+													Preview, nothing saves
+												</span>
+											) : null}
+											<a
+												href="/"
+												target="_blank"
+												rel="noreferrer"
+												aria-label="View site (opens in a new tab)"
+												className={cn(adminBtn, "min-w-control px-3 text-muted")}
+											>
+												<ExternalLink size={ICON_MD} aria-hidden="true" />
+												<span className="hidden sm:inline">View site</span>
+											</a>
+											<span className="xl:hidden">{avatar}</span>
+										</div>
+									</div>
+								</header>
+
+								{serverEnv.adminPreview ? (
+									<p className="border-b border-line bg-surface px-(--container-px) py-2 text-center text-label text-muted sm:hidden">
+										Preview mode: fixture data, nothing saves.
+									</p>
+								) : null}
+
+								<main
+									id="admin-content"
+									tabIndex={-1}
+									className="mx-auto min-w-0 max-w-(--content-max) scroll-mt-[calc(var(--header-h-shrunk)+var(--space-group))] px-(--container-px) pt-(--space-group) pb-[calc(var(--tabbar-offset)+var(--space-page))] sm:pt-(--space-page) xl:pb-(--space-canyon)"
+								>
+									{children}
+								</main>
+							</div>
+						</div>
+
+						<AdminNavMobile email={email} counts={counts} signOut={sheetSignOut} />
+					</AddSheetProvider>
+				</AdminDraftProvider>
+			</ConfirmProvider>
+		</div>
 	);
 }
