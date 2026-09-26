@@ -37,8 +37,8 @@ interface DetailPlateProps {
 
 /**
  * The detail page's plate, hung on the painting-tinted wall band: at its own
- * ratio, capped at 64dvh on phones and at the viewport height from md (bound
- * through width, since the box is aspect-ratio driven), with the resting
+ * ratio, filling its column edge to edge with no mat (the box is aspect-ratio
+ * driven, so the painting is never cropped), with the hover
  * gold inset line and lightbox v2 as the tap target (the whole plate opens
  * it, with a 44px Expand affordance at the bottom-right).
  *
@@ -89,12 +89,11 @@ export function DetailPlate({
 			<div>
 				<div
 					style={{ "--plate-ratio": artwork.aspectRatio } as CSSProperties}
-					className="relative mx-auto aspect-(--plate-ratio) w-[min(100%,calc(64dvh*var(--plate-ratio)))] md:w-[min(100%,calc((100dvh-var(--header-h-shrunk)-6rem)*var(--plate-ratio)))]"
+					className="relative aspect-(--plate-ratio) w-full"
 				>
 					<div className="plate-float absolute inset-0 [--float-travel:7px]">
 						<PlateFrame
 							radius="lg"
-							goldRest
 							className={cn("absolute inset-0", unveil && "reveal-plate reveal-plate-unveil")}
 						>
 							<ArtImage

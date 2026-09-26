@@ -18,11 +18,10 @@ import "@/components/editorial/editorial.css";
 /**
  * Inline photo mosaic for one event, with an image-only lightbox.
  *
- * The mosaic is the photo recap of a dated record: the cover photo leads as
- * a large square (two columns, two rows from sm), up to four more tile
- * beside and under it, and the last carries a "+N" overlay when there are
- * more. Tiles fill their frame (object-cover: these are photographs of the
- * day, not paintings; the lightbox always shows the whole frame). When the
+ * The mosaic is the photo recap of a dated record: a masonry of up to five
+ * photos (two columns on phones, three from sm), each frame at the photo's
+ * own ratio so shots of every shape sit edge to edge and whole, the last
+ * carrying a "+N" overlay when there are more. When the
  * mosaic scrolls in, each tile wipes up from its bottom edge while the photo
  * settles from 1.12, rippling across the set; the page's lead mosaic plays on
  * first paint and its cover (the LCP) skips the clip.
@@ -55,18 +54,22 @@ interface EventGalleryProps {
 	lead?: boolean;
 }
 
-/** Mosaic grid and per-tile spans for a given photo count. */
-function mosaicLayout(count: number): { grid: string; tile: (i: number) => string } {
-	if (count === 1) return { grid: "grid-cols-1", tile: () => "aspect-3/2" };
-	if (count === 2) return { grid: "grid-cols-2", tile: () => "aspect-4/3" };
+/** Masonry columns and image sizes for a given photo count. */
+function mosaicLayout(count: number): { columns: string; sizes: string } {
+	if (count === 1) {
+		return { columns: "max-w-3xl", sizes: "(min-width: 1152px) 768px, 100vw" };
+	}
+	if (count === 2) {
+		return { columns: "columns-2", sizes: "(min-width: 1152px) 420px, 50vw" };
+	}
 	return {
-		grid: "grid-cols-2 sm:grid-cols-4",
-		tile: (i) => (i === 0 ? "col-span-2 aspect-square sm:row-span-2" : "aspect-square"),
+		columns: "columns-2 sm:columns-3",
+		sizes: "(min-width: 1152px) 280px, (min-width: 640px) 30vw, 50vw",
 	};
 }
 
-const LEAD_SIZES = "(min-width: 1152px) 540px, (min-width: 640px) 50vw, 100vw";
-const TILE_SIZES = "(min-width: 1152px) 270px, (min-width: 640px) 25vw, 50vw";
+/** Frame ratio before a photo decodes (the common phone landscape shot). */
+const PLACEHOLDER_RATIO = 4 / 3;
 
 export function EventGallery({ images, title, lead = false }: Readonly<EventGalleryProps>) {
 	const [lightboxAt, setLightboxAt] = useState<number | null>(null);
@@ -101,17 +104,17 @@ export function EventGallery({ images, title, lead = false }: Readonly<EventGall
 			<ul
 				ref={revealRef}
 				data-mosaic={lead ? undefined : revealState}
-				className={cn("grid gap-2 sm:gap-3", layout.grid)}
+				className={cn("gap-2 sm:gap-3", layout.columns)}
 			>
 				{inline.map((keyBase, i) => {
 					const showOverflow = overflow > 0 && i === MAX_INLINE - 1;
 					return (
-						<li key={keyBase} className={layout.tile(i)}>
+						<li key={keyBase} className="mb-2 break-inside-avoid sm:mb-3">
 							<PhotoTile
 								keyBase={keyBase}
 								title={title}
 								index={i}
-								sizes={i === 0 && inline.length > 2 ? LEAD_SIZES : TILE_SIZES}
+								sizes={layout.sizes}
 								priority={lead && i === 0}
 								eager={lead}
 								overflow={showOverflow ? overflow : undefined}
@@ -167,6 +170,9 @@ function PhotoTile({
 	totalForLabel,
 	onOpen,
 }: Readonly<PhotoTileProps>) {
+	// The frame takes the photo's own ratio once it decodes (placeholder until
+	// then), so every shot sits edge to edge and whole: nothing is cropped.
+	const [ratio, setRatio] = useState(PLACEHOLDER_RATIO);
 	/* Three layers, one transform each: the frame lifts on hover (PlateFrame
 	   elevate + gold inset), the wipe clips inside the frame so the lift's
 	   shadow is never cropped, and the photo settles then zooms on hover. */
@@ -178,7 +184,8 @@ function PhotoTile({
 					alt={`${title}, photo ${index + 1}`}
 					sizes={sizes}
 					priority={priority}
-					className="absolute inset-0 h-full w-full object-cover"
+					onNaturalSize={(w, h) => setRatio(w / h)}
+					className="absolute inset-0 h-full w-full object-contain"
 				/>
 			</div>
 		</div>
@@ -215,7 +222,8 @@ function PhotoTile({
 					? `View all ${totalForLabel} photos from ${title}`
 					: `View photo ${index + 1} from ${title}`
 			}
-			className="group pressable relative block h-full w-full rounded-(--radius-md)"
+			style={{ aspectRatio: ratio }}
+			className="group pressable relative block w-full rounded-(--radius-md)"
 		>
 			{/* Only the page's lead cover idles on the float breath: one plate per
 			    page, never the whole mosaic. The wrapper sits between the pressable

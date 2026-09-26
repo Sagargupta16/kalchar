@@ -23,11 +23,16 @@ export default function EventsLoading() {
 							<Skeleton className="h-6 w-24 rounded-full" />
 							<Skeleton className="mt-3 h-8 w-2/3" />
 							<Skeleton className="mt-3 h-4 w-full max-w-(--measure-essay)" />
-							<div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-								<Skeleton className="col-span-2 aspect-square rounded-(--radius-md) sm:row-span-2" />
-								{[0, 1, 2, 3].map((tile) => (
-									<Skeleton key={tile} className="aspect-square rounded-(--radius-md)" />
-								))}
+							<div className="mt-6 columns-2 gap-2 sm:columns-3 sm:gap-3">
+								{["aspect-4/3", "aspect-3/4", "aspect-4/3", "aspect-square", "aspect-4/3"].map(
+									(aspect, tile) => (
+										<Skeleton
+											// biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder slots
+											key={tile}
+											className={`mb-2 break-inside-avoid rounded-(--radius-md) sm:mb-3 ${aspect}`}
+										/>
+									),
+								)}
 							</div>
 						</div>
 					</div>
