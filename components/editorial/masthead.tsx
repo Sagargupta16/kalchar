@@ -101,7 +101,7 @@ function StatRow({ stats }: Readonly<{ stats: readonly MastheadStat[] }>) {
 					key={stat.label}
 					eager
 					delayMs={staggerDelay(3) + i * 90}
-					className="flex min-w-0 flex-col-reverse gap-2"
+					className="flex min-w-0 flex-col-reverse justify-end gap-2"
 				>
 					<dt className="t-meta">{stat.label}</dt>
 					<dd className="t-headline text-h2 lining-nums text-(--section-accent) lg:text-h1">

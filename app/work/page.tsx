@@ -41,6 +41,7 @@ export default async function WorkPage() {
 					{ value: availableCount, label: "Available now" },
 				]}
 				aside={<PlateFan artworks={all} />}
+				asideClassName="hidden lg:block"
 				actions={
 					<>
 						{availableCount > 0 ? (
