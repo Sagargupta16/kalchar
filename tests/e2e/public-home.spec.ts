@@ -97,7 +97,10 @@ test("style links have 44px targets and select their destination style", async (
 	for (const chip of await chips.all()) {
 		const href = await chip.getAttribute("href");
 		expect(href).toMatch(/^\/work\/?\?style=/);
-		expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+		// Poll: a chip caught mid entrance rise measures 43.99997px.
+		await expect
+			.poll(async () => (await chip.boundingBox())?.height ?? 0)
+			.toBeGreaterThanOrEqual(44);
 		await expect(chip).toHaveCSS("backdrop-filter", "none");
 	}
 

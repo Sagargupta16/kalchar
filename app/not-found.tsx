@@ -34,7 +34,7 @@ export default function NotFound() {
 					<div className="relative z-10 flex min-h-[72svh] flex-col justify-center py-16">
 						<p className="t-eyebrow eyebrow-eager flex items-center gap-3">
 							<span aria-hidden="true" className="h-px w-8 bg-(--section-accent)" />
-							Page not found
+							<span>Page not found</span>
 						</p>
 						<p
 							aria-hidden="true"

@@ -54,7 +54,7 @@ export function ArtworkStory({ art }: Readonly<{ art: Artwork }>) {
 					<Reveal>
 						<p className="t-eyebrow flex items-center gap-3">
 							<span aria-hidden="true" className="h-px w-8 bg-(--section-accent)" />
-							About the piece
+							<span>About the piece</span>
 						</p>
 					</Reveal>
 					{art.description ? (

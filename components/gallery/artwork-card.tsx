@@ -47,6 +47,41 @@ interface ArtworkCardProps {
 	variant?: "card" | "wall";
 }
 
+/** A plain primary click: modified or non-left clicks keep the native link behaviour. */
+function isPlainPrimaryClick(e: React.MouseEvent): boolean {
+	return !(
+		e.defaultPrevented ||
+		e.metaKey ||
+		e.ctrlKey ||
+		e.shiftKey ||
+		e.altKey ||
+		e.button !== 0
+	);
+}
+
+/** Where the lightbox grows from; keyboard activation (detail 0) opens from the centre. */
+function pointerOrigin(e: React.MouseEvent): { xPct: number; yPct: number } | undefined {
+	if (e.detail === 0) return undefined;
+	return {
+		xPct: (e.clientX / window.innerWidth) * 100,
+		yPct: (e.clientY / window.innerHeight) * 100,
+	};
+}
+
+/** Sale state, the accessible name and the visible price for one card. */
+function describeArtwork(artwork: Artwork) {
+	const isSold = artwork.status === "sold";
+	const isAvailable = isPositivePrice(artwork.priceInr);
+	const price =
+		isAvailable && typeof artwork.priceInr === "number" ? formatInr(artwork.priceInr) : undefined;
+	let statusLabel: string | null = null;
+	if (isSold) statusLabel = "sold";
+	else if (price) statusLabel = `available, ${price}`;
+	const ariaLabel = [artwork.title, artwork.style, statusLabel].filter(Boolean).join(", ");
+	const priceSlot = isSold ? undefined : price;
+	return { isSold, isAvailable, ariaLabel, priceSlot };
+}
+
 export function ArtworkCard({
 	artwork,
 	priority = false,
@@ -65,35 +100,13 @@ export function ArtworkCard({
 	const [revealRef, revealState] = useViewReveal<HTMLAnchorElement>();
 
 	const handleClick = (e: React.MouseEvent) => {
-		if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
-			return;
+		if (!isPlainPrimaryClick(e)) return;
 		e.preventDefault();
-		openLightbox(
-			artwork,
-			siblings,
-			e.detail === 0
-				? undefined
-				: {
-						xPct: (e.clientX / window.innerWidth) * 100,
-						yPct: (e.clientY / window.innerHeight) * 100,
-					},
-		);
+		openLightbox(artwork, siblings, pointerOrigin(e));
 	};
 
 	const imgSrc = `/artworks/${artwork.image}`;
-	const isAvailable = isPositivePrice(artwork.priceInr);
-	const isSold = artwork.status === "sold";
-	let statusLabel: string | null = null;
-	if (isSold) statusLabel = "sold";
-	else if (isPositivePrice(artwork.priceInr)) {
-		statusLabel = `available, ${formatInr(artwork.priceInr)}`;
-	}
-	const ariaLabel = [artwork.title, artwork.style, statusLabel].filter(Boolean).join(", ");
-
-	let priceSlot: string | undefined;
-	if (isAvailable && typeof artwork.priceInr === "number" && !isSold) {
-		priceSlot = formatInr(artwork.priceInr);
-	}
+	const { isSold, isAvailable, ariaLabel, priceSlot } = describeArtwork(artwork);
 	const eager = typeof unveilDelayMs === "number";
 	const cardDelay = {
 		"--card-delay": `${eager ? unveilDelayMs : revealDelayMs}ms`,
@@ -106,72 +119,26 @@ export function ArtworkCard({
 		</span>
 	) : null;
 
-	if (variant === "wall") {
-		return (
-			<AnimatedLink
-				ref={revealRef}
-				href={`/work/${artwork.slug}`}
-				onClick={handleClick}
-				data-motion-reveal={eager ? undefined : true}
-				data-reveal={eager ? undefined : revealState}
-				style={cardDelay}
-				className={cn("group flex flex-col rounded-md", eager && "card-unveil-eager", className)}
-				aria-label={ariaLabel}
-				aria-describedby={index ? positionId : undefined}
-				whileHover={WALL_LIFT}
-				whileFocus={WALL_LIFT}
-				whileTap={{ scale: PRESS_SCALE }}
-				transition={SPRING_PRESS}
-			>
-				<div
-					className="relative overflow-hidden rounded-md bg-canvas shadow-e2-edged elevate-e3"
-					style={{ aspectRatio: artwork.aspectRatio }}
-				>
-					<div className="card-wipe absolute inset-0">
-						<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
-							<ArtImage
-								src={imgSrc}
-								alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-								sizes={sizes}
-								className="absolute inset-0 h-full w-full object-contain"
-								priority={priority}
-							/>
-						</div>
-					</div>
-					<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
-					<span
-						aria-hidden="true"
-						className="plate-peek absolute right-2 bottom-2 z-raised inline-flex min-h-8 items-center gap-1 rounded-full bg-scrim/85 px-3 text-xs font-medium text-bg dark:text-ink"
-					>
-						View
-						<ArrowUpRight size={14} />
-					</span>
-				</div>
-
-				{/* Fixed-height caption (WALL_CAPTION_PX, masonry math depends on it):
-				    meta row with the price, then the title clamped to two lines. */}
-				<div className="card-caption mt-3 h-[4.5rem] min-w-0">
-					<div className="flex items-baseline justify-between gap-2">
-						<p aria-hidden="true" className="t-meta min-w-0 truncate text-(length:--text-micro)">
-							{index ? (
-								<span className="max-sm:hidden">{`No. ${String(index).padStart(2, "0")} · `}</span>
-							) : null}
-							{artwork.style}
-						</p>
-						{priceSlot ? (
-							<p className="t-numeral shrink-0 whitespace-nowrap text-sm lining-nums text-accent-text">
-								{priceSlot}
-							</p>
-						) : null}
-					</div>
-					<h3 className="t-display mt-1 line-clamp-2 text-h3 text-ink transition-colors group-hover:text-accent-text">
-						{artwork.title}
-					</h3>
-				</div>
-				{position}
-			</AnimatedLink>
-		);
-	}
+	const common = {
+		artwork,
+		revealRef,
+		revealState,
+		handleClick,
+		eager,
+		cardDelay,
+		className,
+		ariaLabel,
+		describedBy: index ? positionId : undefined,
+		index,
+		sizes,
+		imgSrc,
+		priority,
+		isAvailable,
+		isSold,
+		priceSlot,
+		position,
+	};
+	if (variant === "wall") return <WallCard {...common} />;
 
 	// Three nested layers, one transform each: the wipe (clip-path + scale
 	// settle on entrance), the hover zoom (1.05 inside the mat, pointer devices
@@ -238,6 +205,112 @@ export function ArtworkCard({
 				</div>
 				{position}
 			</div>
+		</AnimatedLink>
+	);
+}
+
+interface WallCardProps {
+	artwork: Artwork;
+	revealRef: ReturnType<typeof useViewReveal<HTMLAnchorElement>>[0];
+	revealState: ReturnType<typeof useViewReveal<HTMLAnchorElement>>[1];
+	handleClick: (e: React.MouseEvent) => void;
+	eager: boolean;
+	cardDelay: CSSProperties;
+	className?: string;
+	ariaLabel: string;
+	describedBy?: string;
+	index?: number;
+	sizes: string;
+	imgSrc: string;
+	priority: boolean;
+	isAvailable: boolean;
+	isSold: boolean;
+	priceSlot?: string;
+	position: React.ReactNode;
+}
+
+/** The /work gallery hang: the plate at the painting's own ratio, no mat, caption as wall text. */
+function WallCard({
+	artwork,
+	revealRef,
+	revealState,
+	handleClick,
+	eager,
+	cardDelay,
+	className,
+	ariaLabel,
+	describedBy,
+	index,
+	sizes,
+	imgSrc,
+	priority,
+	isAvailable,
+	isSold,
+	priceSlot,
+	position,
+}: Readonly<WallCardProps>) {
+	return (
+		<AnimatedLink
+			ref={revealRef}
+			href={`/work/${artwork.slug}`}
+			onClick={handleClick}
+			data-motion-reveal={eager ? undefined : true}
+			data-reveal={eager ? undefined : revealState}
+			style={cardDelay}
+			className={cn("group flex flex-col rounded-md", eager && "card-unveil-eager", className)}
+			aria-label={ariaLabel}
+			aria-describedby={describedBy}
+			whileHover={WALL_LIFT}
+			whileFocus={WALL_LIFT}
+			whileTap={{ scale: PRESS_SCALE }}
+			transition={SPRING_PRESS}
+		>
+			<div
+				className="relative overflow-hidden rounded-md bg-canvas shadow-e2-edged elevate-e3"
+				style={{ aspectRatio: artwork.aspectRatio }}
+			>
+				<div className="card-wipe absolute inset-0">
+					<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
+						<ArtImage
+							src={imgSrc}
+							alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
+							sizes={sizes}
+							className="absolute inset-0 h-full w-full object-contain"
+							priority={priority}
+						/>
+					</div>
+				</div>
+				<ArtworkStatusBadge isAvailable={isAvailable} isSold={isSold} placement="bottom-left" />
+				<span
+					aria-hidden="true"
+					className="plate-peek absolute right-2 bottom-2 z-raised inline-flex min-h-8 items-center gap-1 rounded-full bg-scrim/85 px-3 text-xs font-medium text-bg dark:text-ink"
+				>
+					View
+					<ArrowUpRight size={14} />
+				</span>
+			</div>
+
+			{/* Fixed-height caption (WALL_CAPTION_PX, masonry math depends on it):
+			    meta row with the price, then the title clamped to two lines. */}
+			<div className="card-caption mt-3 h-[4.5rem] min-w-0">
+				<div className="flex items-baseline justify-between gap-2">
+					<p aria-hidden="true" className="t-meta min-w-0 truncate text-(length:--text-micro)">
+						{index ? (
+							<span className="max-sm:hidden">{`No. ${String(index).padStart(2, "0")} · `}</span>
+						) : null}
+						{artwork.style}
+					</p>
+					{priceSlot ? (
+						<p className="t-numeral shrink-0 whitespace-nowrap text-sm lining-nums text-accent-text">
+							{priceSlot}
+						</p>
+					) : null}
+				</div>
+				<h3 className="t-display mt-1 line-clamp-2 text-h3 text-ink transition-colors group-hover:text-accent-text">
+					{artwork.title}
+				</h3>
+			</div>
+			{position}
 		</AnimatedLink>
 	);
 }
