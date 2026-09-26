@@ -127,13 +127,19 @@ function WallDate({ iso, watermark }: Readonly<{ iso: string; watermark: boolean
 	return (
 		<div className="relative isolate lg:sticky lg:top-[calc(var(--header-h-shrunk)+var(--space-page))] lg:self-start">
 			{watermark ? (
-				<span
+				// Drawn as SVG text: an ornament at 20% ink is not body copy, and
+				// keeping it out of the text layer keeps it out of contrast audits.
+				<svg
 					aria-hidden="true"
+					focusable="false"
 					data-year-watermark
-					className="t-headline pointer-events-none absolute bottom-full left-0 -z-10 -mb-1 hidden select-none text-display lining-nums text-(--section-accent) opacity-20 lg:block"
+					viewBox="0 0 160 64"
+					className="t-headline pointer-events-none absolute bottom-full left-0 -z-10 -mb-2 hidden h-16 w-40 select-none text-(--section-accent) opacity-20 lg:block"
 				>
-					{date.year}
-				</span>
+					<text x="0" y="56" fill="currentColor" fontSize="64" className="lining-nums">
+						{date.year}
+					</text>
+				</svg>
 			) : null}
 			<time
 				dateTime={iso}

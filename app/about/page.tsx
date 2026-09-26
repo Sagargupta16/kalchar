@@ -101,9 +101,7 @@ export default async function AboutPage() {
 								className="md:sticky md:top-[calc(var(--header-h-shrunk)+var(--space-page))] md:col-span-3 md:self-start"
 							>
 								<p aria-hidden="true" className="flex items-center gap-4">
-									<span className="t-headline text-h1 text-(--section-accent)">
-										{toRoman(i + 1)}
-									</span>
+									<span className="t-headline text-h1 text-accent-text">{toRoman(i + 1)}</span>
 									<span className="h-px flex-1 bg-line md:max-w-16" />
 								</p>
 							</Reveal>
