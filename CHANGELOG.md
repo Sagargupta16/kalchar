@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.1 (2026-09-30)
+
+### Changed
+
+- **Three major dependency upgrades, no behaviour change.** Motion 12 to 13 (its one breaking change, the dropped Emotion prop filter, does not apply here), Vitest 4 to 5 (Vite is now an explicit dev dependency as Vitest 5 requires; `clearMocks` defaults to true, which the suite already assumed) and TypeScript 6 to 7, the native compiler. Next 16.3 type-checks through the project-local `tsc` CLI, so `next build` runs on the new compiler too: the type step dropped to under a second. Verified: all three typecheck scopes, 491 unit tests, Biome, the Playwright admin suite (333 passed; one load-timing flake per full run, the same rate `dev` shows on Motion 12, and none when a spec runs alone), a fixture production build and a dev-server smoke of every route.
+
 ## 1.40.0 (2026-09-26)
 
 ### Changed
