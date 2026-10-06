@@ -6,6 +6,8 @@ overrides:
   # nanoid <3.3.18 (GHSA-2v37-7h3g-55p8) reaches us through postcss; cap at <4
   # because nanoid 4+ is ESM-only and postcss requires the CJS 3.x line.
   "nanoid@<3.3.18": ">=3.3.18 <4"
+  # source-map-js <1.2.2 (GHSA-68fv-2mgg-jv7q) also reaches us through postcss.
+  "source-map-js@<1.2.2": ">=1.2.2 <2"
   esbuild: ">=0.28.1"
   # Keep Next's optional image optimizer and our R2 pipeline on the same
   # patched native parser, including the GHSA-rgj7-g3m4-5g8c fixes.
