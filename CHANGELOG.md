@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.39.1 (2026-10-11)
+
+### Security
+
+- Update `sharp` to 0.35.5 for the high-severity librsvg advisory GHSA-wq5f-xc86-pv6w (CVE-2026-96889), which affects every `sharp` below 0.35.5. CI's production audit failed on it, which blocked every pull request. Only `sharp` and its platform binaries change in the lockfile.
+
 ## 1.39.0 (2026-09-15)
 
 ### Changed
