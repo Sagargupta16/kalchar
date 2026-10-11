@@ -23,7 +23,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Drop the fixed visual and motion rules and the design-choice restriction from CLAUDE.md; design direction is now open.
 - Remove the UI token guard (`scripts/check-ui-tokens.mjs`, `pnpm lint:ui`, its CI step and test) and the type-size lock in `lib/motion.test.ts`.
 
-## 1.39.2 (2026-09-26)
+## 1.39.3 (2026-09-26)
 
 ### Fixed
 
@@ -34,7 +34,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Stretch paired action buttons to full width on phones (hero and Custom Orders), so the two buttons no longer sit at mismatched widths.
 - Align CLAUDE.md, DEVELOPMENT.md and MEMORY.md with the motion policy shipped in 1.39.0.
 
-## 1.39.1 (2026-09-26)
+## 1.39.2 (2026-09-26)
 
 ### Fixed
 
@@ -42,6 +42,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Check event photo references by prefix instead of building a pattern from the event id, clearing a CodeQL regex-injection alert.
 - Decode `&amp;` last in the health check's sitemap parser, so escaped entities are not unescaped twice.
 - Exclude the vendor-generated `skills-lock.json` from Biome, so a local skill install no longer fails `pnpm lint`.
+
+## 1.39.1 (2026-10-11)
+
+### Security
+
+- Update `sharp` to 0.35.5 for the high-severity librsvg advisory GHSA-wq5f-xc86-pv6w (CVE-2026-96889), which affects every `sharp` below 0.35.5. CI's production audit failed on it, which blocked every pull request. Only `sharp` and its platform binaries change in the lockfile.
 
 ## 1.39.0 (2026-09-15)
 
