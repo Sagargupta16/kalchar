@@ -10,5 +10,6 @@ overrides:
   "source-map-js@<1.2.2": ">=1.2.2 <2"
   esbuild: ">=0.28.1"
   # Keep Next's optional image optimizer and our R2 pipeline on the same
-  # patched native parser, including the GHSA-rgj7-g3m4-5g8c fixes.
-  sharp: "^0.35.4"
+  # patched native parser, including the GHSA-rgj7-g3m4-5g8c and
+  # GHSA-wq5f-xc86-pv6w (librsvg) fixes.
+  sharp: "^0.35.5"
