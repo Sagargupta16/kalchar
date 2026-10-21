@@ -10,6 +10,14 @@ Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2.
 
 Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/admin` panel + auth are server-rendered. Catalog data lives in **Neon Postgres** (read through one seam, `lib/data.ts`); artwork images live in **Cloudflare R2**; admin login is **Auth.js + Google**, gated to a maintainer allowlist in the DB. Full picture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/architecture-light.svg">
+  <img width="880" src="docs/diagrams/architecture-light.svg" alt="Kalchar architecture. A visitor's browser reaches the Vercel edge at kalchar.co.in, which serves the public pages of the Next.js 16 app and proxies /media image requests to Cloudflare R2. Public pages are static and SSG, read from Neon Postgres through lib/data.ts at build time and when content changes, and the custom-order form's lead action saves briefs to Neon. Buying and commissions hand off to WhatsApp through a wa.me link. A maintainer's /admin requests pass proxy.ts, which checks the Auth.js session; Auth.js signs in with Google OAuth and checks the maintainer allowlist in Neon. Admin server actions read and write Neon and store sharp image variants in R2, while the maintainer's browser uploads originals straight to R2 staging with a presigned PUT. Daily GitHub Actions crons run a production health check against the site and delete expired R2 staging uploads.">
+</picture>
+
+The spec behind the picture is [`docs/diagrams/architecture.yaml`](docs/diagrams/architecture.yaml), rendered with [orrery](https://github.com/Sagargupta16/orrery).
+
 ## Local dev
 
 ```sh
@@ -49,7 +57,7 @@ CI uses public fixtures without production credentials and checks migration appl
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
 | [`public/`](public/) | Master artwork JPGs (R2 regenerate source and final fallback), logo, `robots.txt`. |
 | [`scripts/`](scripts/) | Guarded bootstrap, migration and baseline checks, offline backup verification, image helpers, and public catalog/media health checks. |
-| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md), [ADDING-FEATURES](docs/ADDING-FEATURES.md). Index: [docs/README.md](docs/README.md). |
+| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md), [ADDING-FEATURES](docs/ADDING-FEATURES.md), plus [`diagrams/`](docs/diagrams/) (the orrery spec and SVGs for the picture above). Index: [docs/README.md](docs/README.md). |
 | [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers. `health.yml` checks production daily. `deploy.yml` is the manual Pages recovery path. |
 
 ## Deploy

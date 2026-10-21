@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json
+# Rendered with orrery (github.com/Sagargupta16/orrery):
+#   orrery render docs/diagrams/architecture.yaml -o docs/diagrams/architecture -f svg --theme both
+# Reviewed at README width: orrery review docs/diagrams/architecture.yaml --width 880
+title: Kalchar architecture
+subtitle: "One Next.js app on Vercel: pages prebuilt from Neon, images from R2, sales on WhatsApp."
+direction: down
+layout:
+  spacing: compact
+legend:
+  dashed: Daily GitHub Actions cron
+story: [visitor, cdn, pages, neon]
+
+groups:
+  vercel: { type: box, label: Vercel, icon: logos:vercel-icon }
+  app: { type: zone, label: Next.js 16 app, icon: logos:nextjs-icon, in: vercel }
+
+nodes:
+  visitor: { icon: tabler:device-mobile, label: Visitor, note: phone or desktop }
+  maintainer: { icon: tabler:user-shield, label: Maintainer, note: on the allowlist, evidence: "lib/maintainers.ts:21#isMaintainer" }
+  gha: { icon: logos:github-actions, label: GitHub Actions, note: daily crons, evidence: [".github/workflows/health.yml:5#cron", ".github/workflows/staging-cleanup.yml:5#cron"] }
+  whatsapp: { icon: logos:whatsapp-icon, label: WhatsApp, note: chat with the artist, evidence: "lib/whatsapp.ts:35#buildWhatsAppLink" }
+  cdn: { icon: logos:vercel-icon, label: Vercel edge, note: kalchar.co.in, in: vercel, evidence: "next.config.mjs:41#rewrites" }
+  pages: { icon: tabler:browser, label: Public pages, note: static and SSG, in: app, evidence: "app/work/[slug]/page.tsx:84#generateStaticParams" }
+  lead: { icon: tabler:forms, label: Lead action, note: custom-order briefs, in: app, evidence: "app/admin/lead-actions.ts:55#submitLead" }
+  proxy: { icon: tabler:shield-lock, label: proxy.ts, note: gates /admin, in: app, evidence: "proxy.ts:17#auth" }
+  admin: { icon: tabler:layout-dashboard, label: Admin, note: server actions, in: app, evidence: "lib/admin-action.ts:10#runAdminAction" }
+  authjs: { icon: tabler:key, label: Auth.js v5, note: /api/auth, in: app, evidence: "auth.ts:40#signIn" }
+  neon: { icon: logos:neon-icon, label: Neon Postgres, note: "Drizzle, 9 tables", evidence: "lib/db/client.ts:18#neon" }
+  r2: { icon: logos:cloudflare-icon, label: Cloudflare R2, note: images and staging/, evidence: "lib/storage/r2.ts:48#S3Client" }
+  google: { icon: logos:google-icon, label: Google OAuth, evidence: "auth.ts:25#Google" }
+
+edges:
+  - visitor -> cdn
+  - maintainer -> cdn
+  - visitor -> whatsapp: wa.me link
+  - cdn -> pages
+  - cdn -> proxy: /admin
+  - cdn -> r2: /media rewrite
+  - pages -> lead
+  - pages -> neon: at build and on change
+  - lead -> neon
+  - proxy -> admin
+  - proxy -> authjs: session
+  - authjs -> google: OAuth
+  - authjs -> neon: allowlist
+  - admin -> neon
+  - admin -> r2: sharp variants
+  - maintainer -> r2: presigned PUT
+  - gha --> cdn: health check
+  - gha --> r2: staging cleanup

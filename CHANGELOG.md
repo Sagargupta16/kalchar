@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.1 (2026-10-21)
+
+### Documentation
+
+- Add an architecture diagram to the README, made with [orrery](https://github.com/Sagargupta16/orrery): visitor and maintainer through the Vercel edge into the Next.js app, Neon Postgres, Cloudflare R2 with the presigned staging upload and the `/media` rewrite, Auth.js with Google OAuth and the allowlist, the WhatsApp handoff, and the two daily GitHub Actions crons. The spec is [`docs/diagrams/architecture.yaml`](docs/diagrams/architecture.yaml), with an `evidence:` file and line on every component; the README picks the light or dark SVG to match the reader's theme. `docs/diagrams/` is listed in the docs index, the README's "What's on disk" table and `CLAUDE.md`.
+
 ## 1.40.0 (2026-09-26)
 
 ### Changed

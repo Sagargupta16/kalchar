@@ -13,6 +13,7 @@ Engineering documentation for [kalchar.co.in](https://kalchar.co.in/) -- the por
 | [OPERATIONS.md](OPERATIONS.md) | Backups, restores, migration discipline, lead retention, health checks, and incident response. |
 | [ADDING-FEATURES.md](ADDING-FEATURES.md) | Ordered recipes for a new entity, public page, image-bearing feature, or environment variable: the files to touch, the guardrails that fail fast, and the local checks that mirror CI. |
 | [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) | Findings from the September review, implementation mapping, and external verification still required. |
+| [diagrams/](diagrams/) | The README architecture picture: an [orrery](https://github.com/Sagargupta16/orrery) spec (`architecture.yaml`, with file and line evidence per component) and its rendered light and dark SVGs. Re-render after editing the spec; the command is in the spec's header. |
 | [ROADMAP.md](ROADMAP.md) | Prioritized feature roadmap from a multi-agent deep-dive: themes, phased solo-dev sequence, quick wins, big bets, RICE-scored idea pool. A decision aid, not a commitment. |
 
 ## Conventions in these docs
