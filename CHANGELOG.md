@@ -2,7 +2,11 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
-## 1.40.1 (2026-09-30)
+## 1.40.1 (2026-10-24)
+
+### Security
+
+- **Next 16.3.5 to 16.4.3, sharp 0.35.5, Vite 8.3.5, Vitest 5.0.5.** `pnpm audit` reported three critical Next advisories (remote code execution in `next/og`, in Image Optimization with SVG, and in `use cache` functions returning typed arrays), a high (Server Actions denial of service, Image Optimization SSRF), several moderates, the librsvg issue in sharp, launch-editor and `server.fs.allow` issues in Vite, and the mock-registration issue in `@vitest/mocker`. All patched by upgrading; the audit is now clean and none of the advisories need a config change here.
 
 ### Changed
 
