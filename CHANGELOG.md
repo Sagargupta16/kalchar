@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.2 (2026-10-24)
+
+### Documentation
+
+- Redraw the README architecture diagram with orrery 0.12.0, which draws icons at 64 px instead of 48. The spec is unchanged; the figure is now 940x1319 (was 938x1239).
+
 ## 1.40.1 (2026-10-21)
 
 ### Documentation
