@@ -490,20 +490,7 @@ test("keyboard focus shows the global outline with no ring", async ({ page }) =>
 		throw new Error(`Tab never reached ${predicate}`);
 	};
 
-	await reachByTab('a[href^="/work?style="], a[href^="/work/?style="]');
-	const chipStyles = await page.evaluate(() => {
-		const el = document.activeElement as HTMLElement;
-		const cs = getComputedStyle(el);
-		return {
-			outlineStyle: cs.outlineStyle,
-			outlineWidth: cs.outlineWidth,
-			boxShadow: cs.boxShadow,
-		};
-	});
-	expect(chipStyles.outlineStyle).toBe("solid");
-	expect(chipStyles.outlineWidth).toBe("2px");
-	expect(chipStyles.boxShadow).toBe("none");
-
+	// The hero plate comes first in tab order; the style links live in the marquee below it.
 	await reachByTab('a[aria-label^="View "]');
 	const plateStyles = await page.evaluate(() => {
 		const el = document.activeElement as HTMLElement;
@@ -517,4 +504,18 @@ test("keyboard focus shows the global outline with no ring", async ({ page }) =>
 	expect(plateStyles.outlineStyle).toBe("solid");
 	expect(plateStyles.outlineWidth).toBe("2px");
 	expect(plateStyles.boxShadow).toBe("none");
+
+	await reachByTab('a[href^="/work?style="], a[href^="/work/?style="]');
+	const chipStyles = await page.evaluate(() => {
+		const el = document.activeElement as HTMLElement;
+		const cs = getComputedStyle(el);
+		return {
+			outlineStyle: cs.outlineStyle,
+			outlineWidth: cs.outlineWidth,
+			boxShadow: cs.boxShadow,
+		};
+	});
+	expect(chipStyles.outlineStyle).toBe("solid");
+	expect(chipStyles.outlineWidth).toBe("2px");
+	expect(chipStyles.boxShadow).toBe("none");
 });
