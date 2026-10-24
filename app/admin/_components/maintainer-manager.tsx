@@ -23,6 +23,7 @@ import {
 	ICON_SM,
 } from "./controls";
 import { useAdminAction } from "./use-admin-action";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 interface MaintainerView {
@@ -47,6 +48,7 @@ export function MaintainerManager({
 	roster: initial,
 	me,
 }: Readonly<{ roster: MaintainerView[]; me: string }>) {
+	const stagger = useEntranceStagger();
 	const confirm = useConfirm();
 	const router = useRouter();
 	const { pending, pendingVisible, err, run } = useAdminAction();
@@ -239,7 +241,10 @@ export function MaintainerManager({
 					/>
 					<ul
 						aria-labelledby={`${ids}-roster-title`}
-						className="min-w-0 divide-y divide-line overflow-hidden rounded-(--radius-md) border border-line bg-surface"
+						className={cn(
+							"min-w-0 divide-y divide-line overflow-hidden rounded-(--radius-md) border border-line bg-surface shadow-e1",
+							stagger,
+						)}
 					>
 						{roster.map((m) => {
 							const isMe = m.email.trim().toLowerCase() === myEmail;

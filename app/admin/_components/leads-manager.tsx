@@ -1,5 +1,6 @@
 "use client";
 
+import { MailOpen } from "lucide-react";
 import { useEffect, useOptimistic, useRef, useState, useSyncExternalStore } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LEAD_STATUS_LABEL } from "@/lib/lead-triage";
@@ -7,11 +8,13 @@ import type { Lead, LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";
 import { AdminNotice } from "./admin-notice";
-import { adminBtn } from "./controls";
+import { adminBtn, ICON_LG } from "./controls";
+import { FilterTabs } from "./filter-tabs";
 import { LeadPane, LeadSheet } from "./lead-detail";
 import { LeadRow } from "./lead-row";
 import { UndoBar, useUndo } from "./undo-bar";
 import { useAdminAction } from "./use-admin-action";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 type Lens = "all" | LeadStatus;
@@ -112,6 +115,7 @@ export function LeadsManager({
 	siteName = "Kalchar",
 	initialLeadId = null,
 }: Readonly<{ leads: Lead[]; siteName?: string; initialLeadId?: string | null }>) {
+	const stagger = useEntranceStagger();
 	const { pending, err, run } = useAdminAction();
 	const [leads, setLeads] = useServerSyncedList(initial);
 	const [failedId, setFailedId] = useState<string | null>(null);
@@ -241,34 +245,26 @@ export function LeadsManager({
 	return (
 		<section ref={inboxRef} aria-label="Enquiry inbox" tabIndex={-1} className="space-y-group">
 			{leads.length > 0 ? (
-				<fieldset
-					aria-label="Filter enquiries"
-					className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0"
-				>
-					{LENSES.map((key) => (
-						<button
-							key={key}
-							type="button"
-							disabled={pending}
-							aria-pressed={lens === key}
-							// Adjacent text and span concatenate to "New2" in the accessible
-							// name; the label keeps the space ("New 2").
-							aria-label={key === "new" ? `${LENS_LABEL.new} ${counts.new}` : undefined}
-							onClick={() => {
-								setLens(key);
-								if (key !== "all" && selectedLead?.status !== key) select(null);
-							}}
-							className={cn(adminBtn, "rounded-full")}
-						>
-							{LENS_LABEL[key]}
-							{key === "new" ? (
-								<span aria-hidden="true" className="text-muted tabular-nums">
-									{counts.new}
-								</span>
-							) : null}
-						</button>
-					))}
-				</fieldset>
+				<FilterTabs
+					label="Filter enquiries"
+					value={lens}
+					disabled={pending}
+					onChange={(key) => {
+						setLens(key);
+						if (key !== "all" && selectedLead?.status !== key) select(null);
+					}}
+					options={LENSES.map((key) =>
+						// The label keeps the space in the accessible name ("New 2").
+						key === "new"
+							? {
+									key,
+									label: LENS_LABEL[key],
+									count: counts.new,
+									ariaLabel: `${LENS_LABEL.new} ${counts.new}`,
+								}
+							: { key, label: LENS_LABEL[key] },
+					)}
+				/>
 			) : null}
 			{err && failedId !== null && failedId !== selectedId ? (
 				<AdminNotice variant="error">{err}</AdminNotice>
@@ -281,7 +277,7 @@ export function LeadsManager({
 			/>
 			{shown.length > 0 ? (
 				<div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-(--space-page)">
-					<ul className="space-y-tight lg:col-span-5">
+					<ul className={cn("space-y-tight lg:col-span-5", stagger)}>
 						{shown.map((lead) => (
 							<LeadRow
 								key={lead.id}
@@ -302,9 +298,12 @@ export function LeadsManager({
 							/>
 						) : (
 							<EmptyState
-								variant="compact"
+								variant="default"
 								voice="tool"
+								icon={<MailOpen size={ICON_LG} aria-hidden="true" />}
+								title="No enquiry open"
 								body="Select an enquiry to read and reply."
+								className="py-16"
 							/>
 						)}
 					</div>

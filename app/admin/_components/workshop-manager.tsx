@@ -26,6 +26,7 @@ import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useEditorFocus } from "./use-editor-focus";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useReorder } from "./use-reorder";
 import {
 	focusWorkshopField,
@@ -36,6 +37,7 @@ import {
 } from "./workshop-row";
 
 export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Workshop[] }>) {
+	const stagger = useEntranceStagger();
 	const { pending: orderPending, err, run } = useAdminAction();
 	const headingId = useId();
 	const addRef = useRef<HTMLButtonElement>(null);
@@ -161,11 +163,15 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 		});
 	};
 
+	const sideColumn = creating || created !== null;
+
 	return (
 		<div className="space-y-group">
-			{/* Ruling 42 + Tier 2c: the create panel spans 4 of 12 columns beside the 8-column list from lg. */}
+			{/* Ruling 42 + Tier 2c: the create panel spans 4 of 12 columns beside the 8-column list
+			    from lg. The side column renders only while it has content; at rest the list spans
+			    all 12 columns and Add sits in its header. */}
 			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
-				<div className="min-w-0 space-y-group lg:col-span-4">
+				<div className={cn("min-w-0 space-y-group lg:col-span-4", !sideColumn && "hidden")}>
 					{creating ? (
 						<CreateWorkshopForm
 							listPending={orderPending || pendingRows.size > 0}
@@ -173,18 +179,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 							onCancel={closePanel}
 							onCreated={onCreated}
 						/>
-					) : (
-						<button
-							ref={addRef}
-							type="button"
-							disabled={pending}
-							onClick={openPanel}
-							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
-						>
-							<Plus size={ICON_MD} aria-hidden="true" />
-							Add workshop
-						</button>
-					)}
+					) : null}
 					{created ? (
 						<AdminNotice variant="success">
 							<span className="min-w-0">
@@ -206,14 +201,31 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					) : null}
 				</div>
 
-				<section aria-labelledby={headingId} className="min-w-0 lg:col-span-8">
+				<section
+					aria-labelledby={headingId}
+					className={cn("min-w-0", sideColumn ? "lg:col-span-8" : "lg:col-span-12")}
+				>
 					<AdminPanelHeader
 						as="h2"
 						id={headingId}
 						title={`All workshops (${items.length})`}
 						description="This is the order the public page uses."
+						action={
+							creating ? null : (
+								<button
+									ref={addRef}
+									type="button"
+									disabled={pending}
+									onClick={openPanel}
+									className={adminBtn}
+								>
+									<Plus size={ICON_MD} aria-hidden="true" />
+									Add workshop
+								</button>
+							)
+						}
 					/>
-					<ul aria-labelledby={headingId} className="space-y-tight">
+					<ul aria-labelledby={headingId} className={cn("space-y-tight", stagger)}>
 						{items.map((w, i) => (
 							<WorkshopRow
 								key={w.slug}

@@ -28,6 +28,10 @@ export const DUR = {
 	float: 7,
 	/** DEPRECATED alias of drift; unconsumed since the visual pass. Integration deletes. */
 	ambient: 30,
+	/** Public scroll reveals (bold pass 2026-09-26): long enough to read as motion. Equals --duration-unveil. */
+	reveal: 0.7,
+	/** Route enter on client navigation (app/template.tsx). Equals --duration-slow. */
+	page: 0.5,
 } as const;
 
 /** Mirrors --ease-out. */
@@ -83,17 +87,52 @@ export const SHEEN_EVERY_S = 8;
 export const REVEAL_VIEWPORT_MARGIN = "0px 0px -24px 0px";
 /** Mount margin for ambient loops (pigment wash): animate only near the viewport. */
 export const LOOP_MOUNT_MARGIN = "300px 0px";
-/** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. */
+/** Reveal travel in px; mirrors --reveal-travel and --reveal-travel-item. Admin and the lightbox read it. */
 export const REVEAL_DISTANCE = { block: 24, item: 16 } as const;
+/** Public reveal travel (bold pass 2026-09-26): what Reveal uses on the public site so a fade-up reads. */
+export const REVEAL_TRAVEL = { block: 44, item: 28 } as const;
 
-/** Pointer tilt on art plates (TiltPlate). 3deg, not portfolio-react's 4: a painting must not read as warped. */
-export const TILT_MAX_DEG = 3;
+/**
+ * Kinetic type (hero headline, section titles, page titles): every word rides
+ * up out of an overflow mask. Mirrors --duration-kinetic and --kinetic-step in
+ * app/animations.css (test-locked).
+ */
+export const KINETIC = { durationMs: 850, stepMs: 70 } as const;
+
+/** Artwork card unveil stagger within a row (clip wipe + scale settle). */
+export const CARD_STAGGER_MS = 90;
+
+/** Each card waits for the ones to its left in the same row, so a row wipes in left to right. */
+export function cardRevealDelay(index: number, cols: number): number {
+	return (Math.max(index, 0) % Math.max(cols, 1)) * CARD_STAGGER_MS;
+}
+
+/** Pointer tilt on the hero plate stage (fine pointers only). */
+export const TILT_MAX_DEG = 8;
+/** Pointer tilt on grid cards (TiltPlate): livelier than the old 3deg, still reads as a flat painting. */
+export const CARD_TILT_MAX_DEG = 5;
 export const TILT_PERSPECTIVE_PX = 800;
 
-/** Pointer parallax on the hero plate pair (portfolio-react usePointerParallax numbers).
- * Fine pointers only; travel = pointer(-1..1) x depth. */
+/** Pointer parallax on the hero plate pair. Fine pointers only; travel = pointer(-1..1) x depth. */
 export const PARALLAX_SPRING = { type: "spring", stiffness: 40, damping: 20 } as const;
-export const PLATE_PARALLAX_DEPTH = { front: 10, back: 6 } as const;
+export const PLATE_PARALLAX_DEPTH = { front: 18, back: 10 } as const;
+/** Page scroll (px) over which the hero plates travel their full parallax. */
+export const HERO_SCROLL_RANGE_PX = 800;
+/** Scroll-linked hero parallax over HERO_SCROLL_RANGE_PX: px of rise and degrees of turn. */
+export const HERO_SCROLL_PARALLAX = {
+	front: { y: -80, rotate: 4 },
+	back: { y: -40, rotate: -3 },
+} as const;
+
+/** Style marquee: scroll speed (px/s) that adds one loop rate step, the rate ceiling, and the
+ * velocity below which the last direction is kept. */
+export const MARQUEE_VELOCITY = {
+	pxPerSecondPerStep: 700,
+	maxRate: 5,
+	directionDeadbandPx: 30,
+} as const;
+/** Smooths raw scroll velocity before it drives the marquee rate. */
+export const SPRING_VELOCITY = { damping: 50, stiffness: 400 } as const;
 
 /** Drag dismissal thresholds (Vaul CLOSE_THRESHOLD 0.25 and VELOCITY_THRESHOLD 0.4 px/ms; Motion reports px/s). */
 export const DRAG_CLOSE_FRACTION = 0.25;

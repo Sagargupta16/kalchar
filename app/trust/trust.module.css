@@ -6,12 +6,28 @@
 	min-width: 0;
 }
 
-/* Native details owns the open/closed layout. Only the newly visible answer
- * moves, so expanding a long answer does not recalculate layout every frame.
- * The item reveal uses the same travel and tempo as other UI responses. */
+/* Smooth height on the native disclosure: the details-content slot grows
+ * from 0 to its intrinsic size (interpolate-size lets `auto` interpolate),
+ * and content-visibility is held discretely so the answer stays painted
+ * while it closes. Browsers without ::details-content keep the instant
+ * native toggle; the answer still fades up. */
+.item {
+	interpolate-size: allow-keywords;
+}
+
+.item::details-content {
+	block-size: 0;
+	overflow: clip;
+	transition:
+		block-size var(--duration-unveil) var(--ease-emphatic),
+		content-visibility var(--duration-unveil) allow-discrete;
+}
+
+.item[open]::details-content {
+	block-size: auto;
+}
+
 .answer {
-	display: grid;
-	grid-template-rows: 1fr;
 	white-space: pre-line;
 }
 
@@ -28,4 +44,24 @@ details[open] .answer {
 		opacity: 1;
 		transform: translateY(0);
 	}
+}
+
+/* Plus that folds into a minus: the vertical bar turns flat on open. */
+.plusBar {
+	transition: transform var(--duration-base) var(--ease-out);
+}
+
+details[open] .plusBar {
+	transform: rotate(90deg) scaleX(0);
+}
+
+.plus {
+	transition:
+		transform var(--duration-base) var(--ease-out),
+		background-color var(--duration-fast) var(--ease-out),
+		color var(--duration-fast) var(--ease-out);
+}
+
+details[open] .plus {
+	transform: rotate(180deg);
 }

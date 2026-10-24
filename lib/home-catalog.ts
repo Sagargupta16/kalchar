@@ -39,7 +39,7 @@ export function shapeHomeCatalog({ all, available, featured }: HomeCatalogInput)
 		.slice(0, AVAILABLE_PREVIEW_COUNT);
 
 	// Keep at least two pieces in the hero pool so the layered composition never
-	// collapses when only one catalog row is marked featured (MEMORY.md).
+	// collapses when only one catalog row is marked featured.
 	const heroSource = all.filter((art) => art.featured);
 	const heroPool = heroSource.length >= 2 ? heroSource : all;
 	const heroSecondary = heroPool.find((art) => art.slug !== featured?.slug);

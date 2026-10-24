@@ -1,22 +1,18 @@
 "use client";
 
 import { LayoutGrid, Rows3, Search, X } from "lucide-react";
+import { LayoutGroup, motion } from "motion/react";
 import { useId, useRef } from "react";
 import { artworkStatusLabel } from "@/lib/artwork-status";
+import { SPRING_INDICATOR } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import {
 	PIECES_FILTERS,
 	type PiecesFilter as PiecesFilterKey,
 	type PiecesView,
 } from "./artwork-list-state";
-import {
-	adminBtn,
-	adminField,
-	adminHelp,
-	adminIconBtn,
-	adminIconBtnGhost,
-	ICON_MD,
-} from "./controls";
+import { adminField, adminHelp, adminIconBtnGhost, ICON_MD } from "./controls";
+import { FilterTabs } from "./filter-tabs";
 
 const FILTER_LABEL: Record<PiecesFilterKey, string> = {
 	all: "All",
@@ -46,11 +42,60 @@ interface PiecesFilterProps {
 	onView: (view: PiecesView) => void;
 }
 
+const VIEWS = [
+	{ value: "grid", label: "Grid view", icon: LayoutGrid },
+	{ value: "list", label: "List view", icon: Rows3 },
+] as const;
+
 /**
- * Search field, five count chips (the stats, now tappable filters), and the
- * count line with the grid/list view toggle at its right end. The chip row
- * scrolls sideways on phones so it never becomes a second sticky bar. In grid
- * view the count line carries the reorder hint (ordering lives in list view).
+ * Grid / list toggle as a compact segmented track matching FilterTabs: a view
+ * preference, not a value, so aria-pressed buttons rather than the radio
+ * Segmented. The white thumb slides between the two on SPRING_INDICATOR.
+ */
+function ViewToggle({
+	view,
+	onView,
+}: Readonly<{ view: PiecesView; onView: (view: PiecesView) => void }>) {
+	const layoutId = useId();
+	return (
+		<LayoutGroup id={layoutId}>
+			<div className="inline-flex shrink-0 gap-1 rounded-(--radius-md) bg-bg-muted p-1 ring-1 ring-line dark:bg-canvas">
+				{VIEWS.map(({ value, label, icon: Icon }) => {
+					const selected = view === value;
+					return (
+						<button
+							key={value}
+							type="button"
+							aria-pressed={selected}
+							aria-label={label}
+							onClick={() => onView(value)}
+							className={cn(
+								"relative isolate grid size-control place-items-center rounded-(--radius-sm) transition-colors pressable",
+								selected ? "text-ink" : "text-muted hover:bg-surface-hover hover:text-ink",
+							)}
+						>
+							{selected ? (
+								<motion.span
+									layoutId="view-toggle-thumb"
+									aria-hidden="true"
+									className="absolute inset-0 -z-10 rounded-(--radius-sm) bg-surface shadow-e2-edged dark:bg-surface-raised"
+									transition={SPRING_INDICATOR}
+								/>
+							) : null}
+							<Icon size={ICON_MD} aria-hidden="true" />
+						</button>
+					);
+				})}
+			</div>
+		</LayoutGroup>
+	);
+}
+
+/**
+ * Search field, then the segmented lens control (the five filters with their
+ * counts) beside the view toggle, then the count line. The lens track scrolls
+ * sideways on phones so it never wraps into a second row. In grid view the
+ * count line carries the reorder hint (ordering lives in list view).
  */
 export function PiecesFilter({
 	query,
@@ -69,7 +114,7 @@ export function PiecesFilter({
 	const totalLabel = `${total} piece${total === 1 ? "" : "s"}`;
 	const hint = reorderHint(view, reorderLocked);
 	return (
-		<div className="mb-(--space-group) grid gap-(--space-tight)">
+		<div className="mb-(--space-group) grid gap-3">
 			<div className="relative">
 				<Search
 					size={ICON_MD}
@@ -106,51 +151,41 @@ export function PiecesFilter({
 					</button>
 				) : null}
 			</div>
-			<fieldset className="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-				<legend className="sr-only">Show</legend>
-				{PIECES_FILTERS.map((key) => (
-					<button
-						key={key}
-						type="button"
-						aria-pressed={filter === key}
-						onClick={() => onFilter(key)}
-						className={cn(adminBtn, "group shrink-0 rounded-full")}
-					>
-						{FILTER_LABEL[key]}
-						<span className="tabular-nums text-muted group-aria-pressed:text-inherit">
-							{counts[key]}
-						</span>
-					</button>
-				))}
-			</fieldset>
-			<div className="flex items-center justify-between gap-3">
-				<output className={cn(adminHelp, "flex flex-col gap-1")}>
-					<span className="font-medium text-ink">
+			{/* Phones: the tabs get the full width and the view toggle drops beside
+			    the count; from sm the toggle sits at the end of the tab row. */}
+			<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+				<FilterTabs
+					label="Show"
+					value={filter}
+					onChange={onFilter}
+					options={PIECES_FILTERS.map((key) => ({
+						key,
+						label: FILTER_LABEL[key],
+						count: counts[key],
+					}))}
+					className="col-span-2 min-w-0 sm:col-span-1"
+				/>
+				<div className="col-start-2 row-start-2 sm:row-start-1">
+					<ViewToggle view={view} onView={onView} />
+				</div>
+				<output
+					className={cn(
+						adminHelp,
+						"col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-2",
+					)}
+				>
+					<span className="font-medium text-ink tabular-nums">
 						{shown === total ? totalLabel : `Showing ${shown} of ${totalLabel}`}
 					</span>
-					{hint ? <span>{hint}</span> : null}
+					{hint ? (
+						<>
+							<span aria-hidden="true" className="text-line-strong">
+								/
+							</span>
+							<span>{hint}</span>
+						</>
+					) : null}
 				</output>
-				{/* A view preference, not a value: aria-pressed buttons, not the radio Segmented. */}
-				<div className="flex shrink-0 items-center gap-2">
-					<button
-						type="button"
-						aria-pressed={view === "grid"}
-						aria-label="Grid view"
-						onClick={() => onView("grid")}
-						className={adminIconBtn}
-					>
-						<LayoutGrid size={ICON_MD} aria-hidden="true" />
-					</button>
-					<button
-						type="button"
-						aria-pressed={view === "list"}
-						aria-label="List view"
-						onClick={() => onView("list")}
-						className={adminIconBtn}
-					>
-						<Rows3 size={ICON_MD} aria-hidden="true" />
-					</button>
-				</div>
 			</div>
 		</div>
 	);

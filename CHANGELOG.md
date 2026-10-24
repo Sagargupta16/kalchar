@@ -2,6 +2,62 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.2 (2026-10-24)
+
+### Security
+
+- **Next 16.3.5 to 16.4.3, sharp 0.35.5, Vite 8.3.5, Vitest 5.0.5.** `pnpm audit` reported three critical Next advisories (remote code execution in `next/og`, in Image Optimization with SVG, and in `use cache` functions returning typed arrays), a high (Server Actions denial of service, Image Optimization SSRF), several moderates, the librsvg issue in sharp, launch-editor and `server.fs.allow` issues in Vite, and the mock-registration issue in `@vitest/mocker`. All patched by upgrading; the audit is now clean and none of the advisories need a config change here.
+
+### Changed
+
+- **Three major dependency upgrades, no behaviour change.** Motion 12 to 13 (its one breaking change, the dropped Emotion prop filter, does not apply here), Vitest 4 to 5 (Vite is now an explicit dev dependency as Vitest 5 requires; `clearMocks` defaults to true, which the suite already assumed) and TypeScript 6 to 7, the native compiler. Next 16.3 type-checks through the project-local `tsc` CLI, so `next build` runs on the new compiler too: the type step dropped to under a second. Verified: all three typecheck scopes, 491 unit tests, Biome, the Playwright admin suite (333 passed; one load-timing flake per full run, the same rate `dev` shows on Motion 12, and none when a spec runs alone), a fixture production build and a dev-server smoke of every route.
+## 1.40.1 (2026-10-21)
+
+### Documentation
+
+- Add an architecture diagram to the README, made with [orrery](https://github.com/Sagargupta16/orrery): visitor and maintainer through the Vercel edge into the Next.js app, Neon Postgres, Cloudflare R2 with the presigned staging upload and the `/media` rewrite, Auth.js with Google OAuth and the allowlist, the WhatsApp handoff, and the two daily GitHub Actions crons. The spec is [`docs/diagrams/architecture.yaml`](docs/diagrams/architecture.yaml), with an `evidence:` file and line on every component; the README picks the light or dark SVG to match the reader's theme. `docs/diagrams/` is listed in the docs index, the README's "What's on disk" table and `CLAUDE.md`.
+
+## 1.40.0 (2026-09-26)
+
+### Changed
+
+- Brighter paper, deeper ink, more vivid terracotta and section pigments, white card surfaces and stronger layered shadows. Type follows the portfolio-react scale: hero 37 to 72px, section titles 28 to 36px, page titles 32 to 48px, marquee 28 to 48px.
+- Animate the home hero headline word by word from masks, with the last word in accent italic, and give the hero plates scroll parallax and an 8 degree pointer tilt.
+- Add a large art-style marquee after the hero that speeds up with scrolling, reverses on scroll-up and pauses on hover or focus.
+- Reveal section titles word by word, wipe artwork images up into their mats with a staggered settle, and lift cards with an image zoom and a sliding arrow chip on hover.
+- Set the home Workshops and Custom Orders sections on deep pigment bands with cream type.
+- Fade and rise public pages on client navigation, follow the hovered header link with a sliding pill, and stagger the mobile drawer links.
+- Rebuild the admin as a neutral dashboard: full-height sidebar with the brand mark and a sliding active pill, a Group / Page crumb, stat tiles with count-up on Pieces, segmented filters and view toggles, status chips, staggered tiles and rows, one button hierarchy, and matching skeletons on every admin page.
+- Show a new-enquiry badge on the admin Enquiries navigation.
+- Show every painting edge to edge at its own aspect ratio, never cropped, in masonry walls (2 columns on phones, up to 4 on desktop) on /work, the home strips, the custom-orders inspiration strip and event photo mosaics.
+- Rework /work with a pigment masthead, count-up stats and a sticky glass filter rail; /work/[slug] as a full-bleed wall tinted by the painting's own palette with a sticky details column, palette discs, previewed prev/next tiles and a "More" strip.
+- Rework /events as a scroll-filled timeline with natural-ratio photo mosaics, and /about as chaptered story pages with a kinetic pull quote, tradition tiles and a monogram medallion when no portrait is set.
+- Open workshops, custom orders, contact, FAQ and 404 on deep pigment heroes; turn the custom-order form into five numbered steps with a sticky progress rail and a live summary; add a smooth-height FAQ accordion, scan-line QR cards and a poster 404.
+- Replace the mobile drawer with a full-screen curtain of numbered links, give the footer a night band with a rising wordmark (links and credits kept), and add spring hover and press to buttons.
+- Split the event create form out of the events manager to stay under the 500-line ceiling.
+- Drop the fixed visual and motion rules and the design-choice restriction from CLAUDE.md; design direction is now open.
+- Remove the UI token guard (`scripts/check-ui-tokens.mjs`, `pnpm lint:ui`, its CI step and test) and the type-size lock in `lib/motion.test.ts`.
+
+## 1.39.3 (2026-09-26)
+
+### Fixed
+
+- Show a single floating control on phones: back-to-top steps aside while the WhatsApp disc is mounted, so two stacked discs no longer cover body copy.
+- Give the home Custom Orders steps the same ledger as Workshops (roman numerals, display titles, hairline rows) instead of a second numbering style.
+- Raise the home Workshops and Custom Orders descriptions from 14px to the 16px body size.
+- Render the hero's style links as the same pills as the Artwork filters.
+- Stretch paired action buttons to full width on phones (hero and Custom Orders), so the two buttons no longer sit at mismatched widths.
+- Align CLAUDE.md, DEVELOPMENT.md and MEMORY.md with the motion policy shipped in 1.39.0.
+
+## 1.39.2 (2026-09-26)
+
+### Fixed
+
+- Send nosniff, frame-blocking, referrer and permissions headers on every page, not only on proxied images.
+- Check event photo references by prefix instead of building a pattern from the event id, clearing a CodeQL regex-injection alert.
+- Decode `&amp;` last in the health check's sitemap parser, so escaped entities are not unescaped twice.
+- Exclude the vendor-generated `skills-lock.json` from Biome, so a local skill install no longer fails `pnpm lint`.
+
 ## 1.39.1 (2026-10-11)
 
 ### Security

@@ -64,9 +64,7 @@ export function AboutTeaser({
 						/>
 					</Reveal>
 					<div>
-						<Reveal>
-							<SectionHeader eyebrow={eyebrow} title={title} lead={intro} />
-						</Reveal>
+						<SectionHeader eyebrow={eyebrow} title={title} lead={intro} />
 						<Reveal delayMs={staggerDelay(1)}>
 							<p className="mt-4 text-sm text-muted">Working from {location}</p>
 						</Reveal>
@@ -93,9 +91,7 @@ export function AboutTeaser({
 			size="narrow"
 			containerClassName="text-center"
 		>
-			<Reveal>
-				<SectionHeader centered eyebrow={eyebrow} title={title} lead={lead} />
-			</Reveal>
+			<SectionHeader centered eyebrow={eyebrow} title={title} lead={lead} />
 			<Reveal delayMs={staggerDelay(1)}>
 				<p className="mt-4 text-sm text-muted">Working from {location}</p>
 			</Reveal>

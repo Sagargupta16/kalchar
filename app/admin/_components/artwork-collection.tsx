@@ -3,13 +3,14 @@
 import { AnimatePresence, motion } from "motion/react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { artworkStatusLabel } from "@/lib/artwork-status";
-import { DUR, EASE_OUT, SPRING_LAYOUT } from "@/lib/motion";
+import { DUR, EASE_IN, EASE_OUT, SPRING_LAYOUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useAddSheet } from "./add-sheet";
 import type { ArtworkListItem, PiecesFilter, PiecesView } from "./artwork-list-state";
 import { ArtworkRow, type ArtworkRowProps } from "./artwork-row";
 import { ArtworkTile } from "./artwork-tile";
-import { adminBtn, adminBtnPrimary } from "./controls";
+import { adminBtn, adminBtnPrimary, adminStaggerDelay } from "./controls";
+import { useEntranceStagger } from "./use-entrance-stagger";
 
 /** Crossfade on a view switch: opacity only, fast (Tier 1a motion). */
 const VIEW_FADE = "starting:opacity-0 transition-opacity duration-(--duration-fast)";
@@ -61,6 +62,7 @@ export function ArtworkCollection({
 	onResetFilter,
 	getRowProps,
 }: Readonly<ArtworkCollectionProps>) {
+	const stagger = useEntranceStagger();
 	if (total === 0) {
 		return (
 			<EmptyState
@@ -92,18 +94,24 @@ export function ArtworkCollection({
 				key="grid"
 				className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4", VIEW_FADE)}
 			>
-				<AnimatePresence initial={false} mode="popLayout">
-					{visible.map(({ item, index }) => (
+				{/* Tiles arrive on the admin stagger (40ms steps, capped) on mount and after a
+				    lens change; exits are fast tweens and never wait for the cascade. */}
+				<AnimatePresence mode="popLayout">
+					{visible.map(({ item, index }, position) => (
 						<motion.li
 							key={item.art.slug}
 							id={`piece-${item.art.slug}`}
 							layout="position"
 							initial={{ opacity: 0, y: 12 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, scale: 0.96 }}
+							exit={{ opacity: 0, scale: 0.96, transition: { duration: DUR.fast, ease: EASE_IN } }}
 							transition={{
 								layout: SPRING_LAYOUT,
-								default: { duration: DUR.fast, ease: EASE_OUT },
+								default: {
+									duration: DUR.base,
+									ease: EASE_OUT,
+									delay: adminStaggerDelay(position) / 1000,
+								},
 							}}
 						>
 							<ArtworkTile
@@ -121,7 +129,10 @@ export function ArtworkCollection({
 		);
 	}
 	return (
-		<ul key="list" className={cn("space-y-tight", VIEW_FADE, dragging !== null && "select-none")}>
+		<ul
+			key="list"
+			className={cn("space-y-tight", VIEW_FADE, stagger, dragging !== null && "select-none")}
+		>
 			{visible.map(({ item, index }) => (
 				<ArtworkRow key={item.art.slug} {...getRowProps(item, index)} />
 			))}

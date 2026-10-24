@@ -1,0 +1,62 @@
+/* Pigment band: <Section background="pigment">. A full-bleed deep version of
+   the section accent (vermillion for custom orders, pichwai for workshops)
+   with cream type, so the home page alternates paper and pigment.
+
+   The deep ground mixes the accent toward the scrim ink, which is fixed in both
+   themes, so the band is always dark. The cream is the light paper in light
+   mode and the light ink in dark mode (both are the warm cream of the brand).
+   Declared at :root so the band never references a token it also remaps.
+
+   Inside the band every semantic token the home components read is remapped
+   on the band's direct children: ink and muted go cream, lines go to cream
+   hairlines, canvas and surface become faint cream tints, the accent flips to
+   cream (a primary button becomes a cream fill with deep pigment text) and
+   --section-accent becomes the pale gold so numerals, ticks and meta lines
+   stay legible. Focus outlines read --color-accent, so they turn cream too. */
+
+:root {
+  --band-paper: var(--color-bg);
+  --band-mix: 64%;
+}
+
+:root.dark {
+  --band-paper: var(--color-ink);
+  --band-mix: 54%;
+}
+
+.band-pigment {
+  /* oklab, not oklch: a polar mix would rotate the pigment's hue toward the
+     warm ink (pichwai green drifting to olive); a straight mix only deepens it. */
+  --band-deep: color-mix(in oklab, var(--section-accent) var(--band-mix), var(--color-scrim));
+  --band-glow: color-mix(in oklch, var(--section-accent) 55%, transparent);
+  position: relative;
+  color: var(--band-paper);
+  background-color: var(--band-deep);
+  /* Static light pooling from the top corner: depth without a texture. */
+  background-image:
+    radial-gradient(120% 80% at 100% 0%, var(--band-glow), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, color-mix(in oklch, var(--color-scrim) 35%, transparent), transparent 70%);
+}
+
+.band-pigment > * {
+  --section-accent: var(--color-gold-3);
+  --color-bg: var(--band-deep);
+  --color-ink: var(--band-paper);
+  --color-ink-soft: color-mix(in oklch, var(--band-paper) 92%, var(--band-deep));
+  --color-muted: color-mix(in oklch, var(--band-paper) 82%, var(--band-deep));
+  --color-line: color-mix(in oklch, var(--band-paper) 26%, var(--band-deep));
+  --color-line-soft: color-mix(in oklch, var(--band-paper) 16%, var(--band-deep));
+  --color-line-strong: color-mix(in oklch, var(--band-paper) 55%, var(--band-deep));
+  --color-canvas: color-mix(in oklch, var(--band-paper) 9%, var(--band-deep));
+  --color-surface: color-mix(in oklch, var(--band-paper) 12%, var(--band-deep));
+  --color-surface-hover: color-mix(in oklch, var(--band-paper) 16%, var(--band-deep));
+  --color-accent: var(--band-paper);
+  --color-accent-hover: var(--color-gold-3);
+  --color-accent-text: var(--color-gold-3);
+  --color-gold-hairline: color-mix(in oklch, var(--color-gold-3) 50%, transparent);
+}
+
+.band-pigment ::selection {
+  background: var(--band-paper);
+  color: var(--band-deep);
+}

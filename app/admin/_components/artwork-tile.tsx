@@ -9,7 +9,7 @@ import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 import { tileLabel } from "./artwork-list-state";
 import { DOT } from "./artwork-quick-state";
-import { adminStatusDot, adminTileBadge } from "./controls";
+import { adminStatusChip, adminStatusDot, adminTileBadge, ICON_SM } from "./controls";
 
 /** A painting and its inventory label stay together as one keyboard target. */
 export function ArtworkTile({
@@ -37,7 +37,7 @@ export function ArtworkTile({
 			aria-label={tileLabel(art, index)}
 			aria-describedby={descriptionId}
 			className={cn(
-				"group flex h-full w-full flex-col overflow-hidden rounded-md border border-line bg-surface text-left shadow-e1 transition-colors hover:border-accent disabled:pointer-events-none disabled:opacity-50",
+				"group flex h-full w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-surface text-left shadow-e1 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-e3 disabled:pointer-events-none disabled:opacity-50",
 				highlighted && "outline-2 outline-offset-2 outline-accent",
 			)}
 			whileHover={{ y: -4 }}
@@ -48,13 +48,14 @@ export function ArtworkTile({
 				{art.style}
 				{art.priceInr != null && art.priceInr > 0 ? `, ${formatInr(art.priceInr)}` : ""}
 			</span>
-			<span className="relative block aspect-square w-full overflow-hidden bg-canvas">
+			{/* The frame clips; only the thumbnail inside it zooms on hover (admin tiles, not public plates). */}
+			<span className="relative block aspect-square w-full overflow-hidden border-b border-line bg-canvas">
 				{/* biome-ignore lint/performance/noImgElement: admin thumbnail from the image seam */}
 				<img
 					src={thumb}
 					alt=""
 					loading={index < 6 ? "eager" : "lazy"}
-					className="size-full object-contain p-2"
+					className="size-full object-contain p-2 transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-104"
 				/>
 				<span aria-hidden="true" className={cn(adminTileBadge, "absolute top-2 left-2")}>
 					{index + 1}
@@ -71,20 +72,24 @@ export function ArtworkTile({
 			</span>
 			<span aria-hidden="true" className="flex w-full flex-1 flex-col gap-1 p-(--card-pad-compact)">
 				<span className="flex items-start justify-between gap-2">
-					<span className="line-clamp-2 text-sm font-semibold leading-snug">{art.title}</span>
+					<span className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
+						{art.title}
+					</span>
 					<ArrowUpRight
-						size={14}
-						className="mt-1 shrink-0 text-muted transition-ui group-hover:text-accent-text"
+						size={ICON_SM}
+						className="mt-1 shrink-0 text-muted transition-ui group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink"
 					/>
 				</span>
 				<span className="text-label text-muted">{art.style}</span>
-				<span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3 text-label">
-					<span className="inline-flex items-center gap-1.5">
-						<span className={cn(adminStatusDot, "size-2", DOT[status])} />
+				<span className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-3">
+					<span className={adminStatusChip}>
+						<span className={cn(adminStatusDot, "size-1.5", DOT[status])} />
 						{artworkStatusLabel(status)}
 					</span>
 					{art.priceInr != null && art.priceInr > 0 ? (
-						<span className="font-medium tabular-nums">{formatInr(art.priceInr)}</span>
+						<span className="text-label font-medium text-ink tabular-nums">
+							{formatInr(art.priceInr)}
+						</span>
 					) : null}
 				</span>
 			</span>

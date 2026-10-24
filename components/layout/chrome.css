@@ -1,0 +1,195 @@
+/* Site chrome and the public page hero (pages rework 2026-09-26): the page
+   hero glyph, the footer wordmark, and the floating WhatsApp disc's label and
+   ping. Imported once from components/layout/site-footer.tsx, which renders
+   on every public route, so these classes are global. Everything here moves
+   on transform, opacity or clip-path only, and runs regardless of the OS
+   motion preference. */
+
+/* ─── PAGE HERO GLYPH ─── */
+/* One oversized Devanagari word per page hero, set in a faint cream fill and
+   drifting on a slow transform loop behind the copy. Decorative only. */
+.page-hero-glyph {
+  position: absolute;
+  right: -0.08em;
+  bottom: -0.28em;
+  z-index: 0;
+  font-family: var(--font-devanagari);
+  font-size: clamp(9rem, 44vw, 26rem);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--band-paper, var(--color-ink)) 7%, transparent);
+  pointer-events: none;
+  user-select: none;
+  animation:
+    hero-glyph-in 1400ms var(--ease-emphatic) both,
+    hero-glyph-drift 16s var(--ease-in-out) 1400ms infinite alternate;
+}
+
+@keyframes hero-glyph-in {
+  from {
+    opacity: 0;
+    transform: translateY(18%) rotate(-4deg);
+  }
+}
+
+@keyframes hero-glyph-drift {
+  to {
+    transform: translate(-3%, -4%) rotate(-2deg);
+  }
+}
+
+/* ─── FOOTER WORDMARK ─── */
+/* The closing wordmark spans the footer. Each half rides up out of its own
+   mask when the footer scrolls in (useViewReveal host above it). */
+.footer-wordmark {
+  font-size: clamp(5.25rem, 28vw, 17rem);
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  --devanagari-shift: -0.02em;
+}
+
+.footer-wordmark .wm-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding: 0.16em 0.04em 0.08em;
+  margin: -0.16em -0.04em -0.08em;
+}
+
+.footer-wordmark .wm-glyph {
+  display: inline-block;
+  transform-origin: 0% 100%;
+}
+
+[data-reveal="armed"] .footer-wordmark .wm-glyph {
+  transform: translateY(110%) rotate(6deg);
+}
+
+[data-reveal="in"] .footer-wordmark .wm-glyph {
+  animation: wordmark-rise 1100ms var(--ease-emphatic) both;
+  animation-delay: calc(var(--g, 0) * 120ms);
+}
+
+@keyframes wordmark-rise {
+  from {
+    transform: translateY(110%) rotate(6deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* The hairline under the footer columns draws from the left as it reveals. */
+[data-reveal="armed"] .footer-rule {
+  transform: scaleX(0);
+}
+[data-reveal="in"] .footer-rule {
+  animation: footer-rule-draw 1200ms var(--ease-out) both;
+}
+.footer-rule {
+  transform-origin: left;
+}
+
+@keyframes footer-rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ─── FLOATING WHATSAPP DISC ─── */
+/* A soft ring pings out from the disc every few seconds while it is shown,
+   so the one action on the page reads as alive. */
+.fab-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--color-accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: fab-ping 3.2s var(--ease-out) 1.2s infinite;
+  animation-play-state: var(--float-state, running);
+}
+
+@keyframes fab-ping {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  45%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* ─── CONTACT QR SCAN LINE ─── */
+/* A pigment scan line sweeps the QR code once when the page loads and loops
+   while the card is hovered or pressed. */
+.qr-scan {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 18%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklch, var(--section-accent) 28%, transparent) 70%,
+    var(--section-accent) 96%,
+    transparent
+  );
+  opacity: 0;
+  transform: translateY(-100%);
+  animation: qr-scan 1600ms var(--ease-in-out) 900ms 1;
+}
+
+.group:is(:hover, :active, :focus-visible) .qr-scan {
+  animation: qr-scan 1600ms var(--ease-in-out) infinite;
+}
+
+@keyframes qr-scan {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(560%);
+  }
+}
+
+/* ─── MOBILE MENU CURTAIN ─── */
+/* The curtain paints the deep band ground (bg-bg resolves to --band-deep
+   inside the dialog's band wrapper) plus the band's light pooling, and a
+   giant Devanagari mark rests at its foot. */
+.drawer-curtain {
+  background-image:
+    radial-gradient(120% 60% at 100% 0%, var(--band-glow), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--color-scrim) 40%, transparent), transparent 70%);
+}
+
+.drawer-glyph {
+  position: absolute;
+  right: -0.06em;
+  bottom: 0.3em;
+  font-family: var(--font-devanagari);
+  font-size: clamp(12rem, 70vw, 22rem);
+  line-height: 1;
+  color: color-mix(in oklch, var(--band-paper) 6%, transparent);
+  pointer-events: none;
+  user-select: none;
+  animation: hero-glyph-in 1200ms var(--ease-emphatic) 150ms both;
+}
+
+/* ─── 404 AND ERROR NUMERAL ─── */
+/* The oversized status numeral on the not-found and error pages. */
+.status-numeral {
+  font-size: clamp(6.5rem, 34vw, 15rem);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+}

@@ -1,13 +1,14 @@
-import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 import { AdminPageSkeleton } from "../_components/admin-page";
+import { AdminListHeaderSkeleton, AdminRowsSkeleton } from "../_components/admin-skeletons";
 
+/** Full-width list with Add in its header; rows lead with the round duration disc. */
 export default function AdminWorkshopsLoading() {
 	return (
 		<AdminPageSkeleton>
-			<div className="space-y-group">
-				<Skeleton className="h-control w-full rounded-(--radius-sm) sm:w-40" />
-				<SkeletonRows count={5} />
-			</div>
+			<section>
+				<AdminListHeaderSkeleton />
+				<AdminRowsSkeleton count={5} thumb="size-12 rounded-full" controls={3} />
+			</section>
 		</AdminPageSkeleton>
 	);
 }

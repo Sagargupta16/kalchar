@@ -55,8 +55,8 @@ export function segmentedHelperText(
 
 /**
  * Segmented status control (visual-direction-admin 1.8): a radiogroup whose
- * three 44px segments apply on selection (D37, no confirm), drawn as an ink
- * pill sliding with SPRING_INDICATOR. Arrow keys move selection per the APG
+ * three 44px segments apply on selection (D37, no confirm), drawn as a white
+ * thumb sliding with SPRING_INDICATOR. Arrow keys move selection per the APG
  * radio pattern (selection follows focus and applies at once); each segment
  * carries a leading status dot, never colour-only (the label names the state).
  */
@@ -104,7 +104,7 @@ export function Segmented<V extends string = string>({
 				tabIndex={-1}
 				aria-label={label}
 				onKeyDown={onKeyDown}
-				className="flex w-full gap-1 rounded-full border border-line bg-canvas p-1"
+				className="flex w-full gap-1 rounded-(--radius-md) bg-bg-muted p-1 ring-1 ring-line dark:bg-canvas"
 			>
 				<LayoutGroup id={`${name}-${layoutId}`}>
 					{options.map((option) => {
@@ -120,16 +120,19 @@ export function Segmented<V extends string = string>({
 								disabled={disabled || option.disabled}
 								onClick={() => select(option)}
 								className={cn(
-									"relative isolate inline-flex min-h-control flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-sm font-medium disabled:pointer-events-none disabled:opacity-50",
-									selected ? "text-bg" : "text-muted transition-ui pressable hover:text-ink",
+									"relative isolate inline-flex min-h-control flex-1 items-center justify-center gap-1.5 rounded-(--radius-sm) px-2 text-sm font-medium disabled:pointer-events-none disabled:opacity-50",
+									selected
+										? "text-ink"
+										: "text-muted transition-ui pressable hover:bg-surface-hover hover:text-ink",
 								)}
 							>
 								{selected ? (
 									<motion.span
 										layoutId="segmented-pill"
 										aria-hidden="true"
-										// shadow-e2: the iOS segmented thumb casts on its track (steering 2026-09-14).
-										className="absolute inset-0 -z-10 rounded-full bg-ink shadow-e2"
+										// The white thumb casts on its track (iOS / FilterTabs parity); the status
+										// dot beside the label carries the colour, the thumb stays neutral.
+										className="absolute inset-0 -z-10 rounded-(--radius-sm) bg-surface shadow-e2-edged dark:bg-surface-raised"
 										transition={SPRING_INDICATOR}
 									/>
 								) : null}

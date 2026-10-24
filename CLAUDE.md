@@ -14,7 +14,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 Portfolio site for **Megha Seth**, traditional folk artist (family member of Sagar). Live at <https://kalchar.co.in/>.
 
-The full project knowledge (goal, confirmed decisions, vision, architecture) lives in [MEMORY.md](MEMORY.md); the full system picture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (entry point to the [docs suite](docs/README.md): DATABASE, AUTH, IMAGES, DEPLOYMENT, DEVELOPMENT). Read both at session start.
+The full system picture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (entry point to the [docs suite](docs/README.md): DATABASE, AUTH, IMAGES, DEPLOYMENT, DEVELOPMENT). Read it at session start.
 
 ## Stack
 
@@ -60,12 +60,7 @@ Fresh databases use committed migrations. `db:seed` is a locked, one-time bootst
 
 ### Visual / motion
 
-- **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
-- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, and image-safe hero plate transitions. Essential hero copy renders in full immediately. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). This is a deliberate repo exception to the global "no reduced-motion" rule (public a11y-sensitive art site; confirmed by Sagar 2026-07-07). **MEMORY.md "Motion exclusions" + "Reduced motion" rows are the source of truth for this policy; if files disagree, MEMORY.md wins.**
-- **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
-- **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
-- **No raw hex / rgb in components.** All browser-rendered color uses CSS custom properties. Exceptions: `data/artworks.json` palette arrays, SVG data URIs, and pre-CSS/server image outputs that import the named constants in `lib/server-brand-colors.ts`.
-- **No magic timings.** Use named tokens (`--duration-fast/base/slow/enter`, `--ease-out/in-out/spring`).
+No fixed visual or motion rules (removed 2026-09-26). Design direction is open: bold, modern and expressive is welcome. The only standing requirement is Sagar's global one, mobile friendly, since most visitors arrive on phones from WhatsApp and Instagram.
 
 ### Architecture
 
@@ -144,6 +139,7 @@ docs/                     engineering docs (index in docs/README.md):
   IMAGES.md               R2 + sharp variant pipeline + serving
   DEPLOYMENT.md           Vercel, branches, CI, DNS, env matrix
   DEVELOPMENT.md          local setup, scripts, conventions
+  diagrams/               orrery spec + light/dark SVGs for the README architecture picture
 ```
 
 ## Skills
@@ -158,10 +154,6 @@ Project skills live in `.claude/skills/<name>/SKILL.md` and trigger automaticall
 | `frontend-quality` | pre-ship a11y + performance + SEO gate, mobile-first |
 | `kalchar-content` | adding/editing catalog content (artwork/workshop/category/preset) through the data seam + R2 pipeline |
 | `folder-structure-blueprint-generator` | documenting/auditing the repo's folder organization |
-
-## Operating mode
-
-The user drives discovery and decisions. Don't propose stacks, scopes, or design choices unprompted. When they signal "go" or "do it", execute against their stated intent without re-litigating earlier decisions.
 
 ## Knowledge Graph (graphify)
 

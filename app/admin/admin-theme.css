@@ -1,0 +1,152 @@
+/*
+ * Admin theme: a neutral product-dashboard register for /admin only.
+ * =====================================================================
+ * The public site is warm cream paper; the admin is a tool, so it gets a
+ * crisp near-white canvas with white panels (light) and a neutral near-black
+ * canvas with lifted graphite panels (dark). Terracotta stays the one accent:
+ * primary actions, the active nav item and focus, never a large fill.
+ *
+ * Keyed on the admin shell root ([data-admin-shell], rendered by
+ * app/admin/layout.tsx) through html:has(), on purpose:
+ *   1. every surface-role token in app/globals.css is declared on :root and
+ *      several are var() references (--color-canvas -> --color-bg-soft,
+ *      --color-ruby-line -> --color-bg, --radius-sm -> --radius-md, the
+ *      --elev-* lists -> --shadow-ink). Overriding the primitives on the SAME
+ *      element makes every derived token recompute, with no second copy here;
+ *   2. dialogs, sheets and the html background (the overscroll area) sit
+ *      outside the shell subtree but still under html, so they match too.
+ * Specificity: html:has([x]) is (0,1,1), which beats the (0,1,0) :root
+ * defaults; the dark rule is (0,2,1), which beats :root.dark (0,2,0).
+ *
+ * Only token VALUES live here (raw oklch is the sanctioned exception for token
+ * definitions); components keep reading the shared names (bg-canvas,
+ * bg-surface, border-line, text-muted, shadow-e1 ...) and follow this file.
+ * Travel contract unchanged: nothing here runs longer than --duration-base.
+ */
+
+/* ─── LIGHT ─── */
+html:has([data-admin-shell]) {
+  /* Surfaces: canvas ~#f8f8f7, panels and sidebar ~#fdfdfc, raised = white. */
+  --color-bg: oklch(0.995 0.002 80);
+  --color-bg-soft: oklch(0.975 0.003 80);
+  --color-bg-muted: oklch(0.945 0.004 80);
+  --color-canvas: oklch(0.975 0.003 80);
+  --color-surface: oklch(0.995 0.002 80);
+  --color-surface-raised: oklch(1 0 0);
+  --color-surface-hover: oklch(0.962 0.003 80);
+
+  /* Ink ladder: near-black neutral, mid-gray muted at >= 4.5:1 on canvas. */
+  --color-ink: oklch(0.2 0.004 80);
+  --color-ink-soft: oklch(0.36 0.005 80);
+  --color-muted: oklch(0.5 0.006 80);
+
+  /* Hairlines: crisp and neutral; line-strong keeps 3:1 for field borders. */
+  --color-line: oklch(0.91 0.004 80);
+  --color-line-soft: oklch(0.94 0.003 80);
+  --color-line-strong: oklch(0.62 0.006 80);
+
+  /* Neutral shadow tint (was the warm ink triplet): depth reads as a clean
+     drop, not sepia. The --elev-* lists recompute from it. */
+  --shadow-ink: 0.2 0 0;
+
+  /* Crisper corners than the public 16px curve: 12px panels, 10px controls. */
+  --radius-md: 0.75rem;
+  --radius-sm: 0.625rem;
+  --radius-lg: 0.875rem;
+
+  /* Admin type: the public display rungs grow for the poster pages; the tool
+     keeps a compact product scale regardless of those values. */
+  --text-display: 2rem;
+  --text-display--line-height: 1.1;
+  --text-display-sm: 1.75rem;
+  --text-display-sm--line-height: 1.15;
+  --text-h1: clamp(1.75rem, 1.63rem + 0.45vw, 2rem); /* 28 -> 32px page title */
+  --text-h1--line-height: 1.15;
+  --text-h2: clamp(1.375rem, 1.32rem + 0.2vw, 1.5rem); /* 22 -> 24px */
+  --text-h2--line-height: 1.2;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.3;
+
+  /* Stagger rung for admin lists (cards, rows, stat tiles). */
+  --admin-stagger-step: 40ms;
+  --admin-rise: 12px;
+
+  /* Admin elevation: short, neutral, low-alpha. Resting cards read by their
+     hairline; shadows only confirm a lift. */
+  --elev-hairline: 0 0 0 1px oklch(var(--shadow-ink) / 0.06);
+  --elev-e1: 0 1px 2px oklch(var(--shadow-ink) / 0.05);
+  --elev-e2: 0 1px 2px oklch(var(--shadow-ink) / 0.04), 0 6px 16px -4px oklch(var(--shadow-ink) / 0.1);
+  --elev-e3: 0 2px 4px oklch(var(--shadow-ink) / 0.04), 0 12px 28px -8px oklch(var(--shadow-ink) / 0.14);
+  --elev-e4: 0 2px 6px oklch(var(--shadow-ink) / 0.05), 0 20px 44px -12px oklch(var(--shadow-ink) / 0.18);
+  --elev-e5: 0 4px 10px oklch(var(--shadow-ink) / 0.06), 0 32px 72px -16px oklch(var(--shadow-ink) / 0.24);
+
+  background-color: var(--color-canvas);
+}
+
+/* ─── DARK ─── */
+html.dark:has([data-admin-shell]) {
+  /* Canvas ~#0a0a0a, panels ~#141414, raised ~#1c1c1c. */
+  --color-bg: oklch(0.145 0.002 80);
+  --color-bg-soft: oklch(0.19 0.002 80);
+  --color-bg-muted: oklch(0.25 0.003 80);
+  --color-canvas: oklch(0.145 0.002 80);
+  --color-surface: oklch(0.19 0.002 80);
+  --color-surface-raised: oklch(0.225 0.003 80);
+  --color-surface-hover: oklch(0.23 0.003 80);
+
+  --color-ink: oklch(0.965 0.002 80);
+  --color-ink-soft: oklch(0.86 0.003 80);
+  --color-muted: oklch(0.72 0.005 80);
+
+  /* White hairlines at 8% read as crisp edges on every dark surface. */
+  --color-line: oklch(1 0 0 / 0.08);
+  --color-line-soft: oklch(1 0 0 / 0.05);
+  --color-line-strong: oklch(0.5 0.004 80);
+
+  --elev-hairline: 0 0 0 1px oklch(1 0 0 / 0.08);
+  --elev-e1: inset 0 1px 0 oklch(1 0 0 / 0.03), 0 1px 2px oklch(0 0 0 / 0.5);
+  --elev-e2: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 20px -6px oklch(0 0 0 / 0.6);
+  --elev-e3: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 2px 4px oklch(0 0 0 / 0.45), 0 14px 32px -8px oklch(0 0 0 / 0.65);
+  --elev-e4: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 20px 44px -12px oklch(0 0 0 / 0.7);
+  --elev-e5: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 32px 72px -16px oklch(0 0 0 / 0.75);
+}
+
+/* Skeleton blocks sit on white panels in admin, so the resting block needs
+   one step more than the canvas to read. */
+[data-admin-shell] .skeleton,
+html:has([data-admin-shell]) dialog .skeleton {
+  background: var(--color-bg-muted);
+}
+
+/* ─── ADMIN MOTION ─── */
+
+/* Staggered entrance for lists (stat tiles, rows): each direct child fades in
+   on a 12px rise, 40ms apart, capped at the 11th child so a long list never
+   waits more than 400ms to finish arriving. The rise runs on the individual
+   `translate` property, so it never fights a `scale` utility (drag rows) or
+   Motion's transform, and fill-mode backwards leaves nothing applied after
+   the run (a row never becomes the containing block for a position: fixed
+   descendant). Reorderable lists apply the class only for the first moments
+   after mount (useEntranceStagger), because a DOM move restarts a CSS
+   animation. JS mirror: ADMIN_STAGGER in _components/controls.ts. */
+.admin-stagger > * {
+  animation: admin-rise var(--duration-base) var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 10) * var(--admin-stagger-step));
+}
+.admin-stagger > :nth-child(2) { --i: 1; }
+.admin-stagger > :nth-child(3) { --i: 2; }
+.admin-stagger > :nth-child(4) { --i: 3; }
+.admin-stagger > :nth-child(5) { --i: 4; }
+.admin-stagger > :nth-child(6) { --i: 5; }
+.admin-stagger > :nth-child(7) { --i: 6; }
+.admin-stagger > :nth-child(8) { --i: 7; }
+.admin-stagger > :nth-child(9) { --i: 8; }
+.admin-stagger > :nth-child(10) { --i: 9; }
+.admin-stagger > :nth-child(n + 11) { --i: 10; }
+
+@keyframes admin-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--admin-rise);
+  }
+}

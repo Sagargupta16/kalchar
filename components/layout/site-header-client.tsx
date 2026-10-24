@@ -5,7 +5,14 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+	type CSSProperties,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { useMobileMenu } from "@/components/layout/use-mobile-menu";
 import { Container } from "@/components/ui/container";
@@ -28,13 +35,28 @@ const NAV: NavItem[] = [
 
 const CONTACT: NavItem = { label: "Contact", href: "/contact" };
 
+/** Band tokens without the band's own paint: the brand terracotta, mixed deep. */
+const BAND_TOKENS_ONLY = {
+	"--section-accent": "var(--color-accent)",
+	"--band-mix": "62%",
+	background: "none",
+} as CSSProperties;
+
 interface Props {
 	latinPrefix: string;
 	devanagariCore: string;
 	whatsappHref: string;
+	instagram?: { href: string; handle: string };
+	tagline: string;
 }
 
-export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: Readonly<Props>) {
+export function SiteHeaderClient({
+	latinPrefix,
+	devanagariCore,
+	whatsappHref,
+	instagram,
+	tagline,
+}: Readonly<Props>) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [menuPresent, setMenuPresent] = useState(false);
@@ -89,7 +111,7 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				ref={headerRef}
 				className={cn(
 					// iOS-restrained glass (steering 2026-09-14): the blur + saturate pair is
-					// STATIC (never animated; scripts/check-ui-tokens.mjs) and always on, so
+					// STATIC (never animated) and always on, so
 					// the material stays consistent with the mobile drawer.
 					// The glass only becomes visible after scroll: the fill eases bg -> bg/85
 					// as the subtle edge and e1 shadow arrive, so content sliding under the
@@ -122,25 +144,33 @@ export function SiteHeaderClient({ latinPrefix, devanagariCore, whatsappHref }: 
 				}}
 				className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-visible border-0 bg-transparent p-0 text-ink backdrop:bg-transparent"
 			>
-				<HeaderBar
-					mobileOnly
-					latinPrefix={latinPrefix}
-					devanagariCore={devanagariCore}
-					scrolled={scrolled}
-					open={open}
-					isActive={isActive}
-					onToggle={toggleMenu}
-				/>
-				<MobileDrawer
-					open={open}
-					items={[...NAV, CONTACT]}
-					isActive={isActive}
-					whatsappHref={whatsappHref}
-					onClose={closeMenu}
-					onExitComplete={() => {
-						if (!open) setMenuPresent(false);
-					}}
-				/>
+				{/* The menu lives on the pigment band tokens (pigment-band.css remaps
+				    every semantic colour on the band's direct children), so the bar
+				    above the curtain turns cream with it. The wrapper paints nothing
+				    itself: the curtain inside owns the ground and its wipe. */}
+				<div className="band-pigment h-full" style={BAND_TOKENS_ONLY}>
+					<HeaderBar
+						mobileOnly
+						latinPrefix={latinPrefix}
+						devanagariCore={devanagariCore}
+						scrolled={scrolled}
+						open={open}
+						isActive={isActive}
+						onToggle={toggleMenu}
+					/>
+					<MobileDrawer
+						open={open}
+						items={[...NAV, CONTACT]}
+						isActive={isActive}
+						whatsappHref={whatsappHref}
+						instagram={instagram}
+						tagline={tagline}
+						onClose={closeMenu}
+						onExitComplete={() => {
+							if (!open) setMenuPresent(false);
+						}}
+					/>
+				</div>
 			</dialog>
 		</>
 	);
@@ -170,6 +200,11 @@ function HeaderBar({
 	className,
 	mobileOnly = false,
 }: Readonly<HeaderBarProps>) {
+	// The pill follows the hovered or focused link and slides home to the
+	// active one when the pointer leaves the nav (layoutId + SPRING_INDICATOR).
+	const [hovered, setHovered] = useState<string | null>(null);
+	const activeHref = NAV.find((item) => isActive(item.href))?.href ?? null;
+	const pillHref = hovered ?? activeHref;
 	return (
 		<Container
 			className={cn("relative z-10 flex items-center justify-between gap-4 py-2", className)}
@@ -203,7 +238,7 @@ function HeaderBar({
 			{/* Desktop nav */}
 			{mobileOnly ? null : (
 				<div className="hidden items-center gap-(--space-group) lg:flex">
-					<nav aria-label="Primary">
+					<nav aria-label="Primary" onPointerLeave={() => setHovered(null)}>
 						<ul className="flex items-center gap-1">
 							{NAV.map((item) => {
 								const active = isActive(item.href);
@@ -212,17 +247,28 @@ function HeaderBar({
 										<Link
 											href={item.href}
 											aria-current={active ? "page" : undefined}
+											onPointerEnter={() => setHovered(item.href)}
+											onFocus={() => setHovered(item.href)}
+											onBlur={() => setHovered(null)}
 											className={cn(
-												"relative isolate inline-flex min-h-control items-center rounded-(--radius-sm) px-3 text-sm font-medium transition-ui hover:bg-canvas",
+												"relative isolate inline-flex min-h-control items-center rounded-full px-4 text-sm font-medium transition-colors",
 												active ? "text-accent-text" : "text-muted hover:text-ink",
 											)}
 										>
 											{item.label}
-											{active ? (
+											{pillHref === item.href ? (
 												<motion.span
 													aria-hidden="true"
 													layoutId="nav-indicator"
-													className="pointer-events-none absolute inset-0 -z-10 rounded-(--radius-sm) bg-canvas"
+													className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-canvas shadow-hairline"
+													transition={SPRING_INDICATOR}
+												/>
+											) : null}
+											{active ? (
+												<motion.span
+													aria-hidden="true"
+													layoutId="nav-underline"
+													className="pointer-events-none absolute inset-x-4 bottom-1.5 h-0.5 rounded-full bg-accent"
 													transition={SPRING_INDICATOR}
 												/>
 											) : null}

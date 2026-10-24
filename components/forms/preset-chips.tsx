@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
+import { ChipHighlight } from "@/components/forms/brief-progress";
 import { SPRING_ZOOM } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +12,9 @@ import { cn } from "@/lib/utils";
  * chip an explicit neutral with the empty value (matching the old select's
  * default), never a pre-checked priced chip. Pills at the 44px floor with a
  * 14px/500 label (the 16px floor is for text inputs, which trigger iOS zoom;
- * radios do not). Checked = section-accent border + accent/10 fill + ink text
- * + a 14px check entering on SPRING_ZOOM; focus lifts the global 2px outline
+ * radios do not). Checked = a section-accent outlined highlight that springs
+ * between the chips of the group (shared layoutId) + ink text + a 14px check
+ * entering on SPRING_ZOOM; focus lifts the global 2px outline
  * onto the pill via has-focus-visible (the radio itself is sr-only).
  *
  * Each group is a full-width row: wrapping needs the whole measure, so chip
@@ -106,12 +108,14 @@ function Chip({
 	return (
 		<label
 			className={cn(
-				"inline-flex min-h-control max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-ink transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
+				"relative isolate inline-flex min-h-control max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-ink transition-ui pressable has-focus-visible:outline-2 has-focus-visible:outline-accent has-focus-visible:outline-offset-2",
 				checked
-					? "border-(--section-accent) bg-(--section-accent)/10"
-					: "border-line-strong bg-canvas hover:border-(--section-accent)/50",
+					? "border-transparent"
+					: "border-line-strong bg-canvas hover:-translate-y-0.5 hover:border-(--section-accent)/60",
 			)}
 		>
+			{/* The selection highlight springs from the old chip to the new one. */}
+			{checked ? <ChipHighlight group={name} /> : null}
 			<input
 				type="radio"
 				name={name}

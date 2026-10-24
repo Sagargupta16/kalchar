@@ -241,9 +241,11 @@ test("events carry anchors and the first two articles are server-visible", async
 		})
 		.toBe(true);
 
+	// Both records, their titles and dates are in the server HTML (no JS wait).
 	await page.goto("/events/", { waitUntil: "commit" });
 	await expect(page.locator("main article")).toHaveCount(2);
-	await expect(page.locator("main article.reveal-up")).toHaveCount(2);
+	await expect(page.locator("main article h2")).toHaveText(["Studio gathering", "Community mural day"]);
+	await expect(page.locator("main article time")).toHaveCount(2);
 });
 
 test("event viewer escapes a transformed clipped card and keeps keyboard focus inside", async ({
@@ -252,9 +254,10 @@ test("event viewer escapes a transformed clipped card and keeps keyboard focus i
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await page.goto("/events/");
 	const article = page.locator("main article").first();
-	// A populated catalog fixture is required for this regression.
+	// A populated catalog fixture is required for this regression. The trigger
+	// sits inside a clipped plate frame inside the animated record.
 	const trigger = article.getByRole("button", { name: /^View photo 1 from / });
-	await expect(article).not.toHaveCSS("transform", "none");
+	await expect(trigger.locator("div.overflow-hidden").first()).toHaveCSS("overflow", "hidden");
 	await trigger.click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();

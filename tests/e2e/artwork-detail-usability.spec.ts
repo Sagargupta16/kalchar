@@ -33,6 +33,10 @@ async function openPiece(page: Page, slug: string) {
 }
 
 const bar = (page: Page) => page.locator("main > div.fixed");
+const storyInView = (page: Page) =>
+	page
+		.getByRole("navigation", { name: "Browse other works" })
+		.evaluate((el) => el.scrollIntoView({ block: "center" }));
 const reservedHeight = (page: Page) =>
 	page.evaluate(() => document.documentElement.style.getPropertyValue("--fixed-bar-h"));
 
@@ -85,10 +89,13 @@ for (const width of [320, 768]) {
 test("enquiry bar reserves its current height across desktop/mobile resizing", async ({ page }) => {
 	await page.setViewportSize({ width: 1100, height: 400 });
 	await openPiece(page, "ganesha-pichwai");
+	// Scroll past the wall (and its enquiry panel) into the story below.
+	await storyInView(page);
 	await expect(bar(page)).toHaveAttribute("aria-hidden", "false");
 	await expect.poll(() => reservedHeight(page)).toBe("");
 
 	await page.setViewportSize({ width: 390, height: 400 });
+	await storyInView(page);
 	await expect(bar(page)).toBeVisible();
 	await expect
 		.poll(async () => {
@@ -97,6 +104,7 @@ test("enquiry bar reserves its current height across desktop/mobile resizing", a
 		})
 		.toBe(true);
 	await page.setViewportSize({ width: 320, height: 400 });
+	await storyInView(page);
 	await expect
 		.poll(async () => {
 			const height = await bar(page).evaluate((el: HTMLElement) => el.offsetHeight);

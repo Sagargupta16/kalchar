@@ -56,6 +56,10 @@ export function badgeName(label: string, count: number): string | undefined {
 	return count > 0 ? `${label}, ${count} new` : undefined;
 }
 
+/** Sidebar and More-sheet section label: small uppercase tracked micro text. */
+export const NAV_SECTION_LABEL =
+	"px-3 pb-2 text-micro font-semibold uppercase tracking-meta text-muted";
+
 const PILL =
 	"grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-micro font-semibold tabular-nums text-bg";
 

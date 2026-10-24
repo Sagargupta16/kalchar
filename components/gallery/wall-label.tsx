@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BinduMark } from "@/components/decor/bindu-mark";
+import { KineticText } from "@/components/motion/kinetic-text";
 import { Reveal } from "@/components/motion/reveal";
 import { staggerDelay } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,17 @@ interface WallLabelProps {
 	titleId?: string;
 	/** Extra classes on line 2 (the detail page adds md:text-h1). */
 	titleClassName?: string;
+	/** Split line 2 into kinetic word masks that ride up on paint (the detail h1). */
+	titleKinetic?: boolean;
+	/** Extra classes on the price line (the detail page sets a larger numeral). */
+	priceClassName?: string;
 	className?: string;
+}
+
+function titleContent(title: string, titleId: string | undefined, kinetic: boolean): ReactNode {
+	if (titleId) return <span id={titleId}>{title}</span>;
+	if (kinetic) return <KineticText text={title} startIndex={1} />;
+	return title;
 }
 
 function formatCounter(index?: number, total?: number): string | null {
@@ -84,6 +95,8 @@ export function WallLabel({
 	headingLevel = "none",
 	titleId,
 	titleClassName,
+	titleKinetic = false,
+	priceClassName,
 	className,
 }: Readonly<WallLabelProps>) {
 	const full = variant === "full";
@@ -119,11 +132,12 @@ export function WallLabel({
 			"t-display",
 			full ? "text-title" : "text-h3",
 			scrim && "text-bg dark:text-ink",
+			titleKinetic && "kinetic-eager",
 			titleClassName,
 		),
 		// The id rides on an inner span so the stagger path (Reveal owns the line
 		// element) can still be referenced by aria-labelledby.
-		content: titleId ? <span id={titleId}>{title}</span> : title,
+		content: titleContent(title, titleId, titleKinetic),
 	});
 	if (metaLine) {
 		lines.push({ key: "meta", tag: "p", className: cn("t-meta", mutedClass), content: metaLine });
@@ -138,6 +152,7 @@ export function WallLabel({
 				"t-numeral",
 				full ? "text-title" : "text-base",
 				scrim ? "text-bg dark:text-ink" : "text-(--section-accent)",
+				priceClassName,
 			),
 			content: price,
 		});
@@ -146,7 +161,8 @@ export function WallLabel({
 	return (
 		<Tag className={cn("grid gap-1", className)}>
 			{lines.map((line, position) => {
-				if (stagger) {
+				// A kinetic title animates its own words; it skips the line rise.
+				if (stagger && !(titleKinetic && line.key === "title")) {
 					return (
 						<Reveal
 							key={line.key}

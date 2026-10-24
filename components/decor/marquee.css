@@ -1,19 +1,25 @@
-/* Marquee -- horizontal scrolling band. Two tracks side-by-side with
-   identical content; one shifts left while the other fills the gap, so
-   the seam at -100% is invisible. */
+/* Marquee -- the home style band (components/home/style-marquee.tsx). Two
+   identical tracks side by side; each shifts left by its own width, so the
+   seam at -100% is invisible. The loop is a plain CSS animation on the
+   compositor; StyleMarquee only nudges its playbackRate from scroll velocity
+   (faster while scrolling, reversed while scrolling up) and keeps the
+   playhead many loops past zero so reversed playback never runs out of
+   timeline. Hover or keyboard focus pauses it. */
 
 .marquee {
+	--marquee-duration: 42s;
+	--marquee-gap: clamp(1.5rem, 1rem + 2vw, 3rem);
 	display: flex;
-	gap: 3rem;
+	gap: var(--marquee-gap);
+	overflow: hidden;
 	user-select: none;
-	/* The mask uses the gradient's alpha channel only; the color value
-	   is irrelevant beyond being opaque. We still source it from the
-	   theme token to keep "no raw hex in components" consistent. */
+	/* The mask uses the gradient's alpha channel only; the colour is sourced
+	   from a token to keep "no raw hex in components" consistent. */
 	mask-image: linear-gradient(
 		90deg,
 		transparent,
-		var(--color-ink) 8%,
-		var(--color-ink) 92%,
+		var(--color-ink) 6%,
+		var(--color-ink) 94%,
 		transparent
 	);
 }
@@ -21,13 +27,22 @@
 .marquee__track {
 	display: flex;
 	flex-shrink: 0;
-	gap: 3rem;
-	animation: marquee-scroll 38s linear infinite;
-	will-change: transform;
+	align-items: center;
+	gap: var(--marquee-gap);
+	animation: marquee-scroll var(--marquee-duration) linear infinite;
+	animation-play-state: var(--marquee-state, running);
 }
 
-.marquee:hover .marquee__track {
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track {
 	animation-play-state: paused;
+}
+
+.marquee__item {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: var(--marquee-gap);
 }
 
 @keyframes marquee-scroll {
@@ -35,6 +50,6 @@
 		transform: translateX(0);
 	}
 	to {
-		transform: translateX(-100%);
+		transform: translateX(calc(-100% - var(--marquee-gap)));
 	}
 }

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { REVEAL_DISTANCE, staggerDelay } from "@/lib/motion";
+import { REVEAL_TRAVEL, staggerDelay } from "@/lib/motion";
 import { Reveal } from "./reveal";
 
 describe("Reveal", () => {
@@ -12,7 +12,7 @@ describe("Reveal", () => {
 		);
 		expect(html).toContain("reveal-up");
 		expect(html).toContain("animation-delay:100ms");
-		expect(html).toContain(`--reveal-offset-y:${REVEAL_DISTANCE.block}px`);
+		expect(html).toContain(`--reveal-offset-y:${REVEAL_TRAVEL.block}px`);
 		expect(html).not.toContain("reveal-plate");
 	});
 
@@ -55,7 +55,7 @@ describe("Reveal", () => {
 			</Reveal>,
 		);
 		expect(html).toContain("opacity:0");
-		expect(html).toContain(`translateY(${REVEAL_DISTANCE.block}px)`);
+		expect(html).toContain(`translateY(${REVEAL_TRAVEL.block}px)`);
 		expect(html).not.toContain("clip-path");
 	});
 
@@ -75,8 +75,8 @@ describe("Reveal", () => {
 				Item
 			</Reveal>,
 		);
-		expect(html).toContain(`translateY(${REVEAL_DISTANCE.item}px)`);
-		expect(eager).toContain(`--reveal-offset-y:${REVEAL_DISTANCE.item}px`);
+		expect(html).toContain(`translateY(${REVEAL_TRAVEL.item}px)`);
+		expect(eager).toContain(`--reveal-offset-y:${REVEAL_TRAVEL.item}px`);
 	});
 
 	it("eager and viewport reveals enter from the requested side", () => {

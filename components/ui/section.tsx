@@ -3,8 +3,10 @@ import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Container, type ContainerSize } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
 
+export { SectionHeader } from "./section-header";
+
 type SectionAccent = "accent" | "marigold" | "pichwai" | "vermillion" | "peacock" | "ruby";
-type SectionBackground = "default" | "canvas" | "muted" | "soft" | "wash";
+type SectionBackground = "default" | "canvas" | "muted" | "soft" | "wash" | "pigment";
 
 const ACCENT_MAP: Record<SectionAccent, string> = {
 	accent: "var(--color-accent)",
@@ -16,13 +18,16 @@ const ACCENT_MAP: Record<SectionAccent, string> = {
 };
 
 /** `soft` is a deprecated alias of `canvas`; integration deletes it. `wash` is
- * the flat pigment band (--section-wash) for page headers and closing CTAs. */
+ * the flat pigment band (--section-wash) for page headers and closing CTAs.
+ * `pigment` is the bold full-bleed band: a deep version of the section accent
+ * with cream type, every semantic token remapped inside (pigment-band.css). */
 const BG_MAP: Record<SectionBackground, string> = {
 	default: "bg-bg",
 	canvas: "bg-canvas",
 	soft: "bg-canvas",
 	muted: "bg-bg-muted",
 	wash: "bg-(--section-wash)",
+	pigment: "band-pigment",
 };
 
 interface SectionProps {
@@ -85,48 +90,5 @@ export function Section({
 				children
 			)}
 		</section>
-	);
-}
-
-interface SectionHeaderProps {
-	eyebrow: string;
-	title: string;
-	lead?: string;
-	/** h2 on the home page, h1 is PageHeader's job. */
-	as?: "h2" | "h3";
-	centered?: boolean;
-	/** Right-aligned slot (e.g. "View all" link) on sm+; stacks under the lead on phones. */
-	action?: ReactNode;
-	className?: string;
-}
-
-/**
- * Section heading with the same simple eyebrow and text rhythm as PageHeader.
- * The caller owns its reveal so a section can enter as one composition.
- */
-export function SectionHeader({
-	eyebrow,
-	title,
-	lead,
-	as: Heading = "h2",
-	centered = false,
-	action,
-	className,
-}: Readonly<SectionHeaderProps>) {
-	return (
-		<header
-			className={cn(
-				"flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
-				centered && "text-center sm:flex-col sm:items-center",
-				className,
-			)}
-		>
-			<div className={cn("max-w-(--header-max)", centered && "mx-auto")}>
-				<p className="t-eyebrow">{eyebrow}</p>
-				<Heading className="t-headline mt-3 text-h2">{title}</Heading>
-				{lead ? <p className="t-lead mt-4">{lead}</p> : null}
-			</div>
-			{action ? <div className="shrink-0">{action}</div> : null}
-		</header>
 	);
 }

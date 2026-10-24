@@ -1,6 +1,9 @@
-import type { ReactNode } from "react";
+"use client";
+
+import type { CSSProperties, ReactNode } from "react";
 import { PigmentWash } from "@/components/decor/pigment-wash";
-import { cardVariants } from "@/components/ui/card";
+import { KineticText } from "@/components/motion/kinetic-text";
+import { useViewReveal } from "@/components/motion/use-view-reveal";
 import { cn } from "@/lib/utils";
 
 interface ClosingCtaProps {
@@ -18,14 +21,14 @@ interface ClosingCtaProps {
 }
 
 /**
- * The one closing beat every public page ends on (visual-direction 2.9):
- * eyebrow, the title in the roman headline voice, one muted line, one action,
- * over a static pigment wash in the page's section accent (drift off; the
- * title tops out at the h2 rung so a card CTA never restates the page h1
- * (steering 2026-09-14; it measured 72px on the display-sm rung before); the
- * host is [contain:paint] so the -z-10 ellipses paint above the card ground).
- * Owns its offset from the block above (--space-block) so pages never wrap it
- * in mt-*. Consumers: /events, /workshops, /contact, and /work/[slug].
+ * The one closing beat every public page ends on: a deep pigment slab in the
+ * page's section accent (the home page's band language, pigment-band.css)
+ * with cream type. It plays as one choreography when it scrolls in: the
+ * eyebrow slides, every title word rides up out of its mask, then the body
+ * and the action rise. A static pigment wash sits behind the copy, so
+ * nothing loops once the entrance lands. Owns its offset from the block above
+ * (--space-block) so pages never wrap it in mt-*. Consumers: /events,
+ * /workshops, /contact.
  */
 export function ClosingCta({
 	eyebrow,
@@ -35,25 +38,47 @@ export function ClosingCta({
 	headingAs: Heading = "h2",
 	className,
 }: Readonly<ClosingCtaProps>) {
+	const [ref, state] = useViewReveal<HTMLDivElement>();
+	const words = title.trim().split(/\s+/).length;
+	const after = { "--after-step": Math.min(words, 6) } as CSSProperties;
 	return (
 		<div
+			ref={ref}
 			data-slot="closing-cta"
+			data-motion-reveal
+			data-reveal={state}
 			className={cn(
-				cardVariants({ padding: "lg" }),
-				"relative mt-(--space-block) flex flex-col items-start gap-4 overflow-hidden [contain:paint] md:grid md:grid-cols-12 md:items-center",
+				"band-pigment relative mt-(--space-block) dark:[--band-mix:42%] overflow-hidden rounded-(--radius-sheet) [contain:paint]",
 				className,
 			)}
 		>
 			<PigmentWash drift={false} />
-			<div className="min-w-0 md:col-span-7">
-				{eyebrow ? <p className="t-eyebrow">{eyebrow}</p> : null}
-				<Heading className={cn("t-headline text-title md:text-h2", eyebrow && "mt-2")}>
-					{title}
-				</Heading>
-				{body ? <p className="mt-1 text-sm text-muted">{body}</p> : null}
-			</div>
-			<div className="w-full shrink-0 sm:w-auto md:col-span-5 md:w-full md:text-right">
-				{action}
+			<div className="relative grid gap-6 p-(--card-pad-lg) sm:p-10 md:grid-cols-12 md:items-end md:gap-8 lg:p-14">
+				<div className="min-w-0 md:col-span-8">
+					{eyebrow ? (
+						<p className="t-eyebrow reveal-eyebrow flex items-center gap-3">
+							<span aria-hidden="true" className="h-px w-8 bg-(--section-accent)" />
+							{eyebrow}
+						</p>
+					) : null}
+					<Heading className={cn("t-headline type-section", eyebrow && "mt-3")}>
+						<KineticText text={title} />
+					</Heading>
+					{body ? (
+						<p
+							className="reveal-after mt-4 max-w-xl text-base leading-relaxed text-muted"
+							style={after}
+						>
+							{body}
+						</p>
+					) : null}
+				</div>
+				<div
+					className="reveal-after w-full min-w-0 sm:w-auto md:col-span-4 md:justify-self-end"
+					style={after}
+				>
+					{action}
+				</div>
 			</div>
 		</div>
 	);

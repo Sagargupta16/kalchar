@@ -1,0 +1,162 @@
+/* Public entrance language (bold pass 2026-09-26): kinetic type, view
+   reveals and the artwork card unveil. Imported once from
+   components/motion/motion-provider.tsx (root layout), so it is global.
+   Motion stays on regardless of the OS preference. */
+
+/* ─── BOLD PASS (2026-09-26): KINETIC TYPE, VIEW REVEALS, CARD UNVEIL ─── */
+/* Named knobs for the public entrance language. JS mirrors in lib/motion.ts
+   (KINETIC, test-locked). Type sizes live here, not in the @theme scale: they
+   are the confident display rungs for the public chrome only. */
+:root {
+  --duration-kinetic: 850ms;
+  --kinetic-step: 70ms;
+  /* Portfolio-react hero scale: 37px at 390 -> 72px from ~1020. */
+  --type-hero: clamp(2.25rem, 1rem + 5.5vw, 4.5rem);
+  /* Portfolio-react section scale: 28px at 390 -> 36px from 1200. */
+  --type-section: clamp(1.75rem, 3vw, 2.25rem);
+  /* Inner page h1: 32px at 390 -> 48px from ~940. */
+  --type-page: clamp(2rem, 1.25rem + 3vw, 3rem);
+  /* Style marquee band: 28px at 390 -> 48px from ~1070. */
+  --type-marquee: clamp(1.75rem, 1rem + 3vw, 3rem);
+  --tracking-hero: -0.035em;
+  --tracking-section: -0.03em;
+}
+
+/* Unlayered on purpose: this file is imported from a component, outside the
+   Tailwind entry, so it must not declare a cascade layer (a first mention here
+   could reorder Tailwind's theme/base/components/utilities stack). Unlayered
+   rules beat the layered .t-headline tracking, which is the intent. */
+.type-hero {
+  font-size: var(--type-hero);
+  line-height: 0.98;
+  letter-spacing: var(--tracking-hero);
+}
+.type-section {
+  font-size: var(--type-section);
+  line-height: 1.02;
+  letter-spacing: var(--tracking-section);
+}
+.type-page {
+  font-size: var(--type-page);
+  line-height: 1;
+  letter-spacing: var(--tracking-hero);
+}
+.type-marquee {
+  font-size: var(--type-marquee);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-section);
+}
+
+/* Word masks: each word rides up out of its own overflow window, so natural
+   wrapping still works. The padding/negative-margin pair keeps descenders and
+   the italic overhang inside the window without moving the layout. */
+.kinetic-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.08em 0.1em 0.16em 0;
+  margin: -0.08em -0.1em -0.16em 0;
+}
+
+.kinetic-word {
+  display: inline-block;
+  transform-origin: 0% 100%;
+}
+
+/* The accent word ("life.") in the display italic, pigment coloured. */
+.kinetic-accent {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-accent-text);
+}
+
+/* Eager (hero, page headers): plays on first paint, CSS only, SSR text intact. */
+.kinetic-eager .kinetic-word,
+[data-reveal="in"] .kinetic-word {
+  animation: kinetic-rise var(--duration-kinetic) var(--ease-out) both;
+  animation-delay: calc(var(--kinetic-delay, 0ms) + var(--w, 0) * var(--kinetic-step));
+}
+
+@keyframes kinetic-rise {
+  from {
+    transform: translateY(110%) rotate(5deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* View reveals driven by useViewReveal (components/motion/use-view-reveal.ts):
+   the host carries data-reveal="idle" (static, it was on screen at mount),
+   "armed" (below the fold, hidden in the from-state) or "in" (playing). Only
+   transform and opacity move. */
+[data-reveal="armed"] .kinetic-word {
+  transform: translateY(110%) rotate(5deg);
+}
+
+[data-reveal="armed"] .reveal-eyebrow {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+[data-reveal="in"] .reveal-eyebrow,
+.eyebrow-eager {
+  animation: eyebrow-in var(--duration-unveil) var(--ease-out) both;
+}
+
+@keyframes eyebrow-in {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+/* Lead and trailing actions: 44px fade-up after the title has mostly landed. */
+[data-reveal="armed"] .reveal-after {
+  opacity: 0;
+  transform: translateY(44px);
+}
+[data-reveal="in"] .reveal-after {
+  animation: after-in var(--duration-unveil) var(--ease-out) both;
+  animation-delay: calc(var(--after-step, 3) * var(--kinetic-step) + 200ms);
+}
+
+@keyframes after-in {
+  from {
+    opacity: 0;
+    transform: translateY(44px);
+  }
+}
+
+/* Artwork card unveil: the image window wipes up from the bottom edge while
+   the painting settles from 1.08 to rest inside its mat. Eager cards (first
+   screen of /work) play on paint; the rest play when their row scrolls in. */
+.card-unveil-eager .card-wipe,
+[data-reveal="in"] .card-wipe {
+  animation: card-wipe var(--duration-unveil) var(--ease-emphatic) both;
+  animation-delay: var(--card-delay, 0ms);
+}
+[data-reveal="armed"] .card-wipe {
+  clip-path: inset(100% 0 0 0);
+  transform: scale(1.08);
+}
+
+@keyframes card-wipe {
+  from {
+    clip-path: inset(100% 0 0 0);
+    transform: scale(1.08);
+  }
+  to {
+    clip-path: inset(0);
+    transform: none;
+  }
+}
+
+.card-unveil-eager .card-caption,
+[data-reveal="in"] .card-caption {
+  animation: after-in var(--duration-unveil) var(--ease-out) both;
+  animation-delay: calc(var(--card-delay, 0ms) + 120ms);
+}
+[data-reveal="armed"] .card-caption {
+  opacity: 0;
+  transform: translateY(28px);
+}

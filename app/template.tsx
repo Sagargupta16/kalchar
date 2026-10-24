@@ -6,7 +6,11 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 /**
  * Per-navigation wrapper. Next.js mounts a FRESH `template.tsx` instance on
  * every route change (unlike `layout.tsx`, which persists), so it's the hook
- * for a soft page-enter animation.
+ * for the page-enter animation: the new page fades in and rises 16px over
+ * DUR.page (500ms, CSS .page-enter in app/animations.css). The keyframes use
+ * backwards fill, so once the rise lands the wrapper carries no transform and
+ * fixed descendants, scroll restoration and the lightbox (a layout sibling,
+ * outside this wrapper) behave exactly as before.
  *
  * LCP-safe + hydration-safe: the render is ALWAYS un-animated, so the server
  * HTML and the first client render agree (no hydration mismatch) and the

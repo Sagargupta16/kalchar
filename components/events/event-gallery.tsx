@@ -8,19 +8,23 @@ import { PlateFrame } from "@/components/gallery/plate-frame";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
 import { useViewerDrag } from "@/components/gallery/use-viewer-drag";
 import { LightboxIconButton, ViewerDialog } from "@/components/gallery/viewer-dialog";
-import { Reveal } from "@/components/motion/reveal";
+import { useViewReveal } from "@/components/motion/use-view-reveal";
 import { IMAGE_ORIGIN, VARIANT_WIDTHS } from "@/lib/image-base";
-import { DUR, EASE_IN, gridStaggerDelay, SPRING_PANEL } from "@/lib/motion";
+import { DUR, EASE_IN, SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { EVENT_LIGHTBOX_IMAGE_SIZES, EventLightboxPhoto } from "./event-lightbox-photo";
+import "@/components/editorial/editorial.css";
 
 /**
- * Inline photo grid for one event, with an image-only lightbox.
+ * Inline photo mosaic for one event, with an image-only lightbox.
  *
- * The grid is the photo recap of a dated exhibition record (visual-direction
- * 2.6): uncropped square tiles on PlateFrame (no gold at rest), the plate
- * unveil clipped INSIDE the frame so the hover lift and shadow are never
- * cropped, up to MAX_INLINE tiles inline and a "+N more" overlay on the last.
+ * The mosaic is the photo recap of a dated record: a masonry of up to five
+ * photos (two columns on phones, three from sm), each frame at the photo's
+ * own ratio so shots of every shape sit edge to edge and whole, the last
+ * carrying a "+N" overlay when there are more. When the
+ * mosaic scrolls in, each tile wipes up from its bottom edge while the photo
+ * settles from 1.12, rippling across the set; the page's lead mosaic plays on
+ * first paint and its cover (the LCP) skips the clip.
  *
  * The lightbox mirrors the gallery's v2 room (2.4): the deep-ink scrim, the
  * Motion drag that pages with the finger and dismisses downward while the
@@ -29,7 +33,7 @@ import { EVENT_LIGHTBOX_IMAGE_SIZES, EventLightboxPhoto } from "./event-lightbox
  * no buy bar (this is documentation, not commerce). Paging loops only with
  * 3 or more photos; a single photo hides arrows and paging entirely.
  */
-const MAX_INLINE = 6;
+const MAX_INLINE = 5;
 /** Paging wraps around only from this many photos (2.4). */
 const LOOP_MIN = 3;
 const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
@@ -44,15 +48,33 @@ interface EventGalleryProps {
 	title: string;
 	/**
 	 * True on the page's first gallery only: its first tile is the route's
-	 * LCP candidate, so it fetches at high priority and skips the clip unveil
-	 * (performance guard 3), and its siblings unveil eagerly on first paint.
+	 * LCP candidate, so it fetches at high priority and skips the clip unveil,
+	 * and its siblings unveil on first paint.
 	 */
 	lead?: boolean;
 }
 
+/** Masonry columns and image sizes for a given photo count. */
+function mosaicLayout(count: number): { columns: string; sizes: string } {
+	if (count === 1) {
+		return { columns: "max-w-3xl", sizes: "(min-width: 1152px) 768px, 100vw" };
+	}
+	if (count === 2) {
+		return { columns: "columns-2", sizes: "(min-width: 1152px) 420px, 50vw" };
+	}
+	return {
+		columns: "columns-2 sm:columns-3",
+		sizes: "(min-width: 1152px) 280px, (min-width: 640px) 30vw, 50vw",
+	};
+}
+
+/** Frame ratio before a photo decodes (the common phone landscape shot). */
+const PLACEHOLDER_RATIO = 4 / 3;
+
 export function EventGallery({ images, title, lead = false }: Readonly<EventGalleryProps>) {
 	const [lightboxAt, setLightboxAt] = useState<number | null>(null);
 	const [origin, setOrigin] = useState<string | undefined>(undefined);
+	const [revealRef, revealState] = useViewReveal<HTMLUListElement>();
 
 	if (images.length === 0) return null;
 
@@ -60,15 +82,9 @@ export function EventGallery({ images, title, lead = false }: Readonly<EventGall
 	// The overflow tile sits on the last inline slot and covers its own photo, so
 	// that photo counts toward "+N" too: N = total - the (MAX_INLINE - 1) tiles
 	// that stay individually viewable. Only overflow once we actually exceed the
-	// grid, so an exact-fit set (length === MAX_INLINE) shows every tile clean.
+	// mosaic, so an exact-fit set (length === MAX_INLINE) shows every tile clean.
 	const overflow = images.length > MAX_INLINE ? images.length - (MAX_INLINE - 1) : 0;
-	// A single photo gets a roomier slot; multiples tile as a uniform square grid.
-	const gridClass = images.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3";
-	const tileAspect = images.length === 1 ? "aspect-4/3" : "aspect-square";
-	const tileSizes =
-		images.length === 1
-			? "(min-width: 1152px) 1030px, calc(100vw - 96px)"
-			: "(min-width: 1152px) 335px, (min-width: 640px) 30vw, calc((100vw - 90px) / 2)";
+	const layout = mosaicLayout(inline.length);
 
 	const open = (index: number, tile: HTMLElement) => {
 		// The tile's centre as viewport percentages: the panel scales from here.
@@ -85,17 +101,20 @@ export function EventGallery({ images, title, lead = false }: Readonly<EventGall
 				<Expand size={14} aria-hidden="true" />
 				{images.length === 1 ? "1 photo" : `${images.length} photos`}. Select a photo to enlarge.
 			</p>
-			<ul className={cn("grid gap-2 sm:gap-3", gridClass)}>
+			<ul
+				ref={revealRef}
+				data-mosaic={lead ? undefined : revealState}
+				className={cn("gap-2 sm:gap-3", layout.columns)}
+			>
 				{inline.map((keyBase, i) => {
 					const showOverflow = overflow > 0 && i === MAX_INLINE - 1;
 					return (
-						<li key={keyBase}>
+						<li key={keyBase} className="mb-2 break-inside-avoid sm:mb-3">
 							<PhotoTile
 								keyBase={keyBase}
 								title={title}
 								index={i}
-								aspect={tileAspect}
-								sizes={tileSizes}
+								sizes={layout.sizes}
 								priority={lead && i === 0}
 								eager={lead}
 								overflow={showOverflow ? overflow : undefined}
@@ -128,11 +147,10 @@ interface PhotoTileProps {
 	keyBase: string;
 	title: string;
 	index: number;
-	aspect: string;
 	sizes: string;
 	/** LCP tile: high-priority fetch, rendered without the clip unveil. */
 	priority?: boolean;
-	/** Unveil on first paint (the lead gallery); later galleries unveil in view. */
+	/** Unveil on first paint (the lead mosaic); later mosaics unveil in view. */
 	eager?: boolean;
 	/** When set, render a "+N" overlay (the overflow entry). */
 	overflow?: number;
@@ -145,7 +163,6 @@ function PhotoTile({
 	keyBase,
 	title,
 	index,
-	aspect,
 	sizes,
 	priority = false,
 	eager = false,
@@ -153,34 +170,40 @@ function PhotoTile({
 	totalForLabel,
 	onOpen,
 }: Readonly<PhotoTileProps>) {
-	const image = (
-		<ResponsiveImage
-			keyBase={keyBase}
-			alt={`${title}, photo ${index + 1}`}
-			sizes={sizes}
-			priority={priority}
-			className="absolute inset-0 h-full w-full object-contain"
-		/>
+	// The frame takes the photo's own ratio once it decodes (placeholder until
+	// then), so every shot sits edge to edge and whole: nothing is cropped.
+	const [ratio, setRatio] = useState(PLACEHOLDER_RATIO);
+	/* Three layers, one transform each: the frame lifts on hover (PlateFrame
+	   elevate + gold inset), the wipe clips inside the frame so the lift's
+	   shadow is never cropped, and the photo settles then zooms on hover. */
+	const photo = (
+		<div className="tile-settle absolute inset-0">
+			<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
+				<ResponsiveImage
+					keyBase={keyBase}
+					alt={`${title}, photo ${index + 1}`}
+					sizes={sizes}
+					priority={priority}
+					onNaturalSize={(w, h) => setRatio(w / h)}
+					className="absolute inset-0 h-full w-full object-contain"
+				/>
+			</div>
+		</div>
 	);
-	/* The frame lifts on hover (PlateFrame elevate + gold inset); the photo
-	   itself never scales, and the unveil clips inside the frame so the lift's
-	   shadow is never cropped by a lingering clip-path. */
 	const plate = (
-		<PlateFrame className={aspect}>
+		<PlateFrame className="absolute inset-0">
 			{priority ? (
-				image
+				photo
 			) : (
-				<Reveal
-					variant="plate"
-					eager={eager}
-					delayMs={gridStaggerDelay(index, MAX_INLINE, 3)}
-					className="absolute inset-0"
+				<div
+					className={cn("tile-wipe absolute inset-0", eager && "tile-wipe-eager")}
+					style={{ "--i": index } as CSSProperties}
 				>
-					{image}
-				</Reveal>
+					{photo}
+				</div>
 			)}
 			{overflow === undefined ? null : (
-				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg backdrop-blur-[1px] transition-colors group-hover:bg-scrim/70 dark:text-ink">
+				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg transition-colors group-hover:bg-scrim/70 dark:text-ink">
 					<span className="text-center">
 						<span className="t-display block text-title">+{overflow}</span>
 						<span className="text-sm">View photos</span>
@@ -199,15 +222,17 @@ function PhotoTile({
 					? `View all ${totalForLabel} photos from ${title}`
 					: `View photo ${index + 1} from ${title}`
 			}
+			style={{ aspectRatio: ratio }}
 			className="group pressable relative block w-full rounded-(--radius-md)"
 		>
-			{/* Only the page's lead plate idles on the float breath (steering
-			    2026-09-14): one plate per page, never the whole grid. Travel is
-			    trimmed to 4px for the tile scale; the wrapper sits between the
-			    pressable button and the hover-lifting frame so no transform
-			    fights another. */}
+			{/* Only the page's lead cover idles on the float breath: one plate per
+			    page, never the whole mosaic. The wrapper sits between the pressable
+			    button and the hover-lifting frame so no transform fights another. */}
 			{priority ? (
-				<div className="plate-float" style={{ "--float-travel": "4px" } as CSSProperties}>
+				<div
+					className="plate-float absolute inset-0"
+					style={{ "--float-travel": "4px" } as CSSProperties}
+				>
 					{plate}
 				</div>
 			) : (

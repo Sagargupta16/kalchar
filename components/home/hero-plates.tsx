@@ -10,9 +10,10 @@ import { PlateFrame } from "@/components/gallery/plate-frame";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { DUR, EASE_OUT, HERO_SHUFFLE_DELAY_MS } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
+import { ParallaxLayer, usePlateDepth } from "./plate-depth";
 
-/** Shared with hero.tsx: the front plate caps at 22rem on desktop. */
-const FEATURED_SIZES = "(min-width: 768px) 22rem, 85vw";
+/** Shared with hero.tsx (preload): the front plate caps at 24rem from sm. */
+export const HERO_FEATURED_SIZES = "(min-width: 640px) 24rem, 85vw";
 const DEFAULT_FRONT_TILT = -5;
 const DEFAULT_BACK_TILT = 4;
 const MIN_SHUFFLE_TILT = 3;
@@ -149,6 +150,7 @@ export function HeroPlates({
 	// still breathes for no-JS visitors; the observer only pauses it offscreen.
 	const stageRef = useRef<HTMLDivElement>(null);
 	const [inView, setInView] = useState(true);
+	const depth = usePlateDepth(inView);
 
 	useEffect(() => {
 		const node = stageRef.current;
@@ -214,11 +216,13 @@ export function HeroPlates({
 						className="hero-plate absolute inset-0"
 						style={{ transform: `translate(6%, 4%) rotate(${backTilt}deg)` }}
 					>
-						<div className="plate-float h-full" style={FLOAT_BACK}>
-							<PlateFrame className="h-full">
-								<HeroPlateImage artwork={back} decorative />
-							</PlateFrame>
-						</div>
+						<ParallaxLayer layer={depth.back}>
+							<div className="plate-float h-full" style={FLOAT_BACK}>
+								<PlateFrame className="h-full">
+									<HeroPlateImage artwork={back} decorative />
+								</PlateFrame>
+							</div>
+						</ParallaxLayer>
 					</div>
 				) : null}
 
@@ -227,18 +231,20 @@ export function HeroPlates({
 					className="hero-plate absolute inset-0"
 					style={{ transform: `rotate(${frontTilt}deg)` }}
 				>
-					<div className="plate-float h-full" style={FLOAT_FRONT}>
-						<Link
-							href={`/work/${front.slug}`}
-							onClick={handleClick}
-							className="pressable absolute inset-0 block rounded-(--radius-md)"
-							aria-label={`View ${front.title}`}
-						>
-							<PlateFrame className="h-full bg-surface-raised shadow-e4">
-								<HeroPlateImage artwork={front} priority={!shuffled} />
-							</PlateFrame>
-						</Link>
-					</div>
+					<ParallaxLayer layer={depth.front}>
+						<div className="plate-float h-full" style={FLOAT_FRONT}>
+							<Link
+								href={`/work/${front.slug}`}
+								onClick={handleClick}
+								className="pressable absolute inset-0 block rounded-(--radius-md)"
+								aria-label={`View ${front.title}`}
+							>
+								<PlateFrame className="h-full bg-surface-raised shadow-e4">
+									<HeroPlateImage artwork={front} priority={!shuffled} />
+								</PlateFrame>
+							</Link>
+						</div>
+					</ParallaxLayer>
 				</div>
 			</div>
 
@@ -276,7 +282,7 @@ function HeroPlateImage({
 				<ArtImage
 					src={`/artworks/${artwork.image}`}
 					alt={decorative ? "" : (artwork.description ?? artwork.title)}
-					sizes={FEATURED_SIZES}
+					sizes={HERO_FEATURED_SIZES}
 					maxWidth={800}
 					priority={priority}
 					className="absolute inset-0 h-full w-full object-contain p-3"

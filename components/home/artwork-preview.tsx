@@ -1,9 +1,10 @@
 import { ArtworkCard } from "@/components/gallery/artwork-card";
+import { ArtworkWall } from "@/components/gallery/artwork-wall";
 import { GALLERY_CARD_SIZES } from "@/components/gallery/gallery-grid";
 import { SectionCta } from "@/components/home/section-cta";
 import { Reveal } from "@/components/motion/reveal";
 import { Section, SectionHeader } from "@/components/ui/section";
-import { gridStaggerDelay } from "@/lib/motion";
+import { cardRevealDelay, staggerDelay } from "@/lib/motion";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -55,37 +56,48 @@ export function ArtworkPreview({
 	return (
 		<Section id={id} padded rhythm="grand">
 			<div className={cn(single && "grid items-center gap-8 md:grid-cols-2 md:gap-12")}>
-				<Reveal>
+				<div>
 					<SectionHeader
 						eyebrow={eyebrow}
 						title={title}
 						lead={lead}
 						action={single ? undefined : action}
 					/>
-					{single ? <div className="mt-6">{action}</div> : null}
-				</Reveal>
-				<ul
-					className={cn(
-						"grid items-stretch gap-4 sm:gap-6",
-						single ? "mx-auto w-full max-w-sm grid-cols-1" : "mt-8 grid-cols-2",
-						columns === 2 && "mx-auto w-full max-w-3xl",
-						columns === 3 && "lg:grid-cols-3",
-						columns === 4 && "lg:grid-cols-4",
-					)}
-				>
-					{artworks.map((art, index) => (
-						<Reveal key={art.slug} as="li" variant="item" delayMs={gridStaggerDelay(index)}>
+					{single ? (
+						<Reveal delayMs={staggerDelay(2)}>
+							<div className="mt-6">{action}</div>
+						</Reveal>
+					) : null}
+				</div>
+				{/* Every painting at its own ratio, edge to edge, on the same
+				    shortest-column masonry as /work so short strips stay balanced. */}
+				{single ? (
+					<ul className="mx-auto w-full max-w-sm">
+						<li>
 							<ArtworkCard
-								artwork={art}
+								variant="wall"
+								artwork={artworks[0] as Artwork}
 								siblings={siblings}
-								priority={index < priorityCount}
+								priority={priorityCount > 0}
 								sizes={imageSizes}
-								index={(catalogIndex[art.slug] ?? 0) + 1}
+								index={(catalogIndex[(artworks[0] as Artwork).slug] ?? 0) + 1}
 								total={totalCount}
 							/>
-						</Reveal>
-					))}
-				</ul>
+						</li>
+					</ul>
+				) : (
+					<ArtworkWall
+						artworks={artworks}
+						siblings={siblings}
+						sizes={imageSizes}
+						priorityCount={priorityCount}
+						catalogIndex={catalogIndex}
+						totalCount={totalCount}
+						maxColumns={columns}
+						revealDelays={artworks.map((_, index) => cardRevealDelay(index, columns))}
+						className={cn(columns === 2 && "mx-auto w-full max-w-3xl")}
+					/>
+				)}
 			</div>
 		</Section>
 	);

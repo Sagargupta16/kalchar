@@ -60,11 +60,11 @@ export function parseCsv(text) {
 /** @param {string} value */
 function decodeXml(value) {
 	return value
-		.replaceAll("&amp;", "&")
 		.replaceAll("&lt;", "<")
 		.replaceAll("&gt;", ">")
 		.replaceAll("&quot;", '"')
-		.replaceAll("&apos;", "'");
+		.replaceAll("&apos;", "'")
+		.replaceAll("&amp;", "&");
 }
 
 /** Reject HTML error pages disguised as successful image responses.

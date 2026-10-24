@@ -32,6 +32,8 @@ interface ResponsiveImageProps {
 	sizes: string;
 	/** Cap the largest variant offered (px width). Omit for full range. */
 	maxWidth?: 400 | 800 | 1200 | 1600;
+	/** Reports the decoded image's intrinsic size (photos with no stored ratio). */
+	onNaturalSize?: (width: number, height: number) => void;
 }
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
@@ -53,6 +55,7 @@ export function ResponsiveImage({
 	priority = false,
 	sizes,
 	maxWidth,
+	onNaturalSize,
 }: Readonly<ResponsiveImageProps>) {
 	const [imageSource, setImageSource] = useState<ImageSource>("remote");
 	const [loaded, setLoaded] = useState(false);
@@ -72,10 +75,14 @@ export function ResponsiveImage({
 		setLoaded(false);
 		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
 	};
+	const markLoaded = (el: HTMLImageElement) => {
+		setLoaded(true);
+		if (el.naturalWidth > 0) onNaturalSize?.(el.naturalWidth, el.naturalHeight);
+	};
 	const settle = (el: HTMLImageElement | null) => {
 		if (!el) return;
 		if (el.complete && el.naturalWidth > 0) {
-			setLoaded(true);
+			markLoaded(el);
 			return;
 		}
 
@@ -83,7 +90,7 @@ export function ResponsiveImage({
 		// Recheck next frame to catch only failures that predate hydration.
 		globalThis.requestAnimationFrame(() => {
 			if (!el.isConnected || !el.complete) return;
-			if (el.naturalWidth > 0) setLoaded(true);
+			if (el.naturalWidth > 0) markLoaded(el);
 			else handleError();
 		});
 	};
@@ -129,7 +136,7 @@ export function ResponsiveImage({
 			loading={priority ? "eager" : "lazy"}
 			decoding={priority ? "sync" : "async"}
 			fetchPriority={priority ? "high" : "auto"}
-			onLoad={() => setLoaded(true)}
+			onLoad={(loadEvent) => markLoaded(loadEvent.currentTarget)}
 			onError={handleError}
 			style={settleStyle}
 			className={cn(

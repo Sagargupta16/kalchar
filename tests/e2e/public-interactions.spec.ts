@@ -402,6 +402,11 @@ test("@mobile enquiry bar follows the panel", async ({ page }) => {
 	const path = await page.locator('main a[aria-label$=", sold"]').first().getAttribute("href");
 	await page.goto(path as string);
 	const bar = enquiryBar(page);
+	// The panel sits on the first screen of the painted wall; once the reader
+	// scrolls past it into the story, the bar takes over.
+	await page
+		.getByRole("navigation", { name: "Browse other works" })
+		.evaluate((el) => el.scrollIntoView({ block: "center" }));
 	await expect(bar).toHaveAttribute("aria-hidden", "false");
 	await expect(bar).not.toHaveAttribute("inert", /.*/);
 	const barLink = bar.getByRole("link", { name: "Ask about a similar piece" });

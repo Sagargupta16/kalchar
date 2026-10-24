@@ -30,6 +30,7 @@ import { TestimonialRow } from "./testimonial-row";
 import { UndoBar, useUndo } from "./undo-bar";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useEditorFocus } from "./use-editor-focus";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useServerSyncedList } from "./use-server-synced-list";
 
 function testimonialHref(testimonial: Testimonial | null): string | null {
@@ -47,6 +48,7 @@ export function TestimonialsManager({
 	testimonials: initial,
 	artworks,
 }: Readonly<{ testimonials: Testimonial[]; artworks: readonly ArtworkTitle[] }>) {
+	const stagger = useEntranceStagger();
 	const { run: undoRun } = useAdminAction();
 	const { undo, undoPending, undoError, offerUndo, dismissUndo, undoNow } = useUndo(undoRun);
 	const headingId = useId();
@@ -109,28 +111,22 @@ export function TestimonialsManager({
 
 	const createdHref = testimonialHref(created);
 
+	const sideColumn = creating || created !== null;
+
 	return (
 		<div className="space-y-group">
-			{/* Ruling 42 + Tier 2d: the create panel spans 4 of 12 columns beside the 8-column list from lg. */}
+			{/* Ruling 42 + Tier 2d: the create panel spans 4 of 12 columns beside the 8-column list
+			    from lg. The side column renders only while it has content; at rest the list spans
+			    all 12 columns and Add sits in its header. */}
 			<div className="grid gap-(--space-group) lg:grid-cols-12 lg:items-start">
-				<div className="min-w-0 space-y-group lg:col-span-4">
+				<div className={cn("min-w-0 space-y-group lg:col-span-4", !sideColumn && "hidden")}>
 					{creating ? (
 						<CreateTestimonialForm
 							artworks={artworks}
 							onCancel={closePanel}
 							onCreate={handleCreated}
 						/>
-					) : (
-						<button
-							ref={addRef}
-							type="button"
-							onClick={openPanel}
-							className={cn(adminBtnPrimary, "w-full sm:w-auto")}
-						>
-							<Plus size={ICON_MD} aria-hidden="true" />
-							Add testimonial
-						</button>
-					)}
+					) : null}
 					{created ? (
 						<AdminNotice variant="success">
 							<span className="min-w-0">
@@ -156,14 +152,25 @@ export function TestimonialsManager({
 					) : null}
 				</div>
 
-				<section aria-labelledby={headingId} className="min-w-0 lg:col-span-8">
+				<section
+					aria-labelledby={headingId}
+					className={cn("min-w-0", sideColumn ? "lg:col-span-8" : "lg:col-span-12")}
+				>
 					<AdminPanelHeader
 						as="h2"
 						id={headingId}
 						title={`All testimonials (${items.length})`}
 						description="A testimonial shows in public only when it is featured or linked to a piece."
+						action={
+							creating ? null : (
+								<button ref={addRef} type="button" onClick={openPanel} className={adminBtn}>
+									<Plus size={ICON_MD} aria-hidden="true" />
+									Add testimonial
+								</button>
+							)
+						}
 					/>
-					<ul aria-labelledby={headingId} className="space-y-tight">
+					<ul aria-labelledby={headingId} className={cn("space-y-tight", stagger)}>
 						{items.map((t) => (
 							<TestimonialRow
 								key={t.id}

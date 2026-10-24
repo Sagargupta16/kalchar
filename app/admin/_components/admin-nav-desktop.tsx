@@ -11,13 +11,19 @@ import {
 	badgeCount,
 	badgeName,
 	CountPill,
+	NAV_SECTION_LABEL,
 	type NavCounts,
 	useAddContext,
 	useIsActive,
 } from "./admin-nav-shared";
 import { adminBtn, adminBtnPrimary, ICON_MD } from "./controls";
 
-/** Add stays visible while the grouped destinations scroll on shorter screens. */
+/**
+ * Sidebar body: Add stays pinned while the grouped destinations scroll on
+ * shorter screens. The active item wears a muted pill that slides between
+ * items on SPRING_INDICATOR (one layoutId per nav); only its icon takes the
+ * terracotta accent.
+ */
 export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {}) {
 	const isActive = useIsActive();
 	const addContext = useAddContext();
@@ -26,12 +32,8 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 	const addLabels = { piece: "Add piece", event: "Add event", choice: "Add" };
 
 	return (
-		<nav
-			id="admin-desktop-navigation"
-			aria-label="Admin"
-			className="flex min-h-0 flex-col gap-(--space-group)"
-		>
-			<div className="flex shrink-0 gap-2 px-1 pt-1">
+		<nav id="admin-desktop-navigation" aria-label="Admin" className="flex min-h-0 flex-1 flex-col">
+			<div className="flex shrink-0 gap-2 p-3">
 				<button
 					type="button"
 					onClick={addActions[addContext]}
@@ -54,11 +56,11 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 					</button>
 				) : null}
 			</div>
-			<div className="min-h-0 space-y-group overflow-y-auto overscroll-contain px-1 pb-1">
+			<div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 pt-2 pb-3">
 				<LayoutGroup id="admin-nav-desktop">
 					{ADMIN_NAV_GROUPS.map((group) => (
 						<div key={group.label}>
-							<p className="mb-1 px-3 text-label font-medium text-muted">{group.label}</p>
+							<p className={NAV_SECTION_LABEL}>{group.label}</p>
 							<ul aria-label={group.label} className="space-y-1">
 								{group.items.map((item) => {
 									const active = isActive(item.href);
@@ -70,21 +72,28 @@ export function AdminNavDesktop({ counts }: Readonly<{ counts?: NavCounts }> = {
 												aria-current={active ? "page" : undefined}
 												aria-label={badgeName(item.label, count)}
 												className={cn(
-													"relative isolate flex min-h-control items-center gap-3 rounded-(--radius-sm) px-3 py-2 text-sm transition-ui pressable",
+													"group relative isolate flex min-h-control items-center gap-3 rounded-(--radius-sm) px-3 text-sm transition-ui pressable",
 													active
-														? "font-semibold text-accent-text"
-														: "font-medium text-muted hover:bg-bg-muted hover:text-ink",
+														? "font-semibold text-ink"
+														: "font-medium text-muted hover:bg-surface-hover hover:text-ink",
 												)}
 											>
 												{active ? (
 													<motion.span
 														layoutId="admin-nav-active"
 														aria-hidden="true"
-														className="absolute inset-0 -z-10 rounded-(--radius-sm) bg-surface"
+														className="absolute inset-0 -z-10 rounded-(--radius-sm) bg-bg-muted shadow-hairline"
 														transition={SPRING_INDICATOR}
 													/>
 												) : null}
-												<item.icon size={ICON_MD} aria-hidden="true" className="shrink-0" />
+												<item.icon
+													size={ICON_MD}
+													aria-hidden="true"
+													className={cn(
+														"shrink-0 transition-colors",
+														active ? "text-accent-text" : "group-hover:text-ink",
+													)}
+												/>
 												<span className="min-w-0 flex-1">{item.label}</span>
 												{count > 0 ? <CountPill count={count} className="shrink-0" /> : null}
 											</Link>

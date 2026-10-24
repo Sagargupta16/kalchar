@@ -24,6 +24,7 @@ import {
 import { ReorderBar } from "./reorder-bar";
 import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
+import { useEntranceStagger } from "./use-entrance-stagger";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -45,6 +46,7 @@ export function CategoryManager({
 	categories: initial,
 	usage,
 }: Readonly<{ categories: Category[]; usage: UsageMap }>) {
+	const stagger = useEntranceStagger();
 	const confirm = useConfirm();
 	const router = useRouter();
 	const { pending, pendingVisible, err, run } = useAdminAction();
@@ -237,7 +239,7 @@ export function CategoryManager({
 					) : null}
 				</form>
 
-				<ul className="min-w-0 space-y-tight">
+				<ul className={cn("min-w-0 space-y-tight", stagger)}>
 					{items.map((c, i) => (
 						<li
 							key={c.id}

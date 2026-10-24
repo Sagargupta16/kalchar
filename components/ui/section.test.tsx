@@ -32,6 +32,17 @@ describe("Section", () => {
 		expect(html).toContain("--section-accent:var(--color-ruby)");
 	});
 
+	it("background pigment renders the deep band class from the section accent", () => {
+		const html = renderToStaticMarkup(
+			<Section background="pigment" accent="vermillion">
+				<p>body</p>
+			</Section>,
+		);
+		expect(html).toContain("band-pigment");
+		expect(html).toContain("--section-accent:var(--color-vermillion)");
+		expect(html).not.toContain("bg-bg");
+	});
+
 	it("wash renders a PigmentWash first child and contains the paint", () => {
 		const html = renderToStaticMarkup(
 			<Section wash padded>
@@ -61,9 +72,17 @@ describe("SectionHeader", () => {
 		<SectionHeader eyebrow="Selected work" title="Original pieces" lead="A living archive." />,
 	);
 
-	it("uses the shared section heading size and headline voice", () => {
+	it("uses the bold section rung, the headline voice and word masks", () => {
 		expect(html).toContain("t-headline");
-		expect(html).toContain("text-h2");
+		expect(html).toContain("type-section");
+		expect(html).toContain('class="kinetic-mask"');
+		expect(html).toContain("--w:1");
+	});
+
+	it("renders static on the server so the copy never waits for JS", () => {
+		expect(html).toContain('data-reveal="idle"');
+		expect(html).toContain("data-motion-reveal");
+		expect(html).not.toContain("opacity:0");
 	});
 
 	it("keeps the heading clear of decorative rules", () => {
