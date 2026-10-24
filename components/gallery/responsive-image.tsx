@@ -84,8 +84,15 @@ export function ResponsiveImage({
 	// and the same-origin fallback skip it.
 	const isFallback = activeSource === "fallback";
 	const animate = !isFallback && !priority;
-	const handleError = () => {
-		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
+	// Advance one step from the source that actually failed. The error event and
+	// the pre-hydration recheck below can both report the same remote failure; a
+	// report about a source already replaced is stale and must not push a working
+	// fallback on to "failed".
+	const failFrom = (source: ImageSource) => {
+		setImageSource((current) => {
+			if (current !== source) return current;
+			return current === "remote" && fallbackSrc ? "fallback" : "failed";
+		});
 	};
 	const markLoaded = (el: HTMLImageElement) => {
 		setSettleState((current) => (current === "waiting" ? "settling" : current));
@@ -105,10 +112,11 @@ export function ResponsiveImage({
 
 		// Picture source selection can still be pending when the ref attaches.
 		// Recheck next frame to catch loads and failures that predate hydration.
+		const source = activeSource;
 		globalThis.requestAnimationFrame(() => {
 			if (!el.isConnected || !el.complete) return;
 			if (el.naturalWidth > 0) markLoaded(el);
-			else handleError();
+			else failFrom(source);
 		});
 	};
 	if (activeSource === "failed") {
@@ -149,7 +157,7 @@ export function ResponsiveImage({
 			decoding={priority ? "sync" : "async"}
 			fetchPriority={priority ? "high" : "auto"}
 			onLoad={(loadEvent) => markLoaded(loadEvent.currentTarget)}
-			onError={handleError}
+			onError={() => failFrom(activeSource)}
 			style={settleStyle}
 			className={cn(imgClass, animate && settleState === "settling" && SETTLE_TRANSITION_CLASS)}
 		/>
