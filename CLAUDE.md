@@ -26,7 +26,7 @@ Dynamic Next app on **Vercel**: public pages static/SSG, `/admin` + `/api` serve
 
 Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) and Renovate PRs (`baseBranchPatterns` in `renovate.json`) target `dev`. `main` -> Vercel production -> kalchar.co.in; `dev` -> Vercel preview. Only `main` + `dev` deploy (Ignored Build Step on the Vercel project). Push + PR only when Sagar says so. `main` is branch-protected (PR + passing CI required).
 
-DNS at GoDaddy: `@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`.
+DNS: nameservers are Cloudflare (`margot`/`renan.ns.cloudflare.com`, measured 2026-10-24) and the domain is proxied through Cloudflare in front of Vercel; the earlier GoDaddy records (`@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`) are in docs/DEPLOYMENT.md.
 
 ## Local dev
 

@@ -69,31 +69,45 @@ describe.each([false, true])("media boundary (fixtures: %s)", (fixtures) => {
 });
 
 describe("media edge caching", () => {
-	async function cdnCacheFor(path: string): Promise<string | null> {
+	const YEAR = "max-age=31536000";
+	const DAY = "max-age=86400";
+
+	async function edgeCacheFor(
+		path: string,
+	): Promise<{ vercel: string | null; cdn: string | null }> {
 		const nextConfig = await configForFixtures(false);
 		const response = await unstable_getResponseFromNextConfig({
 			url: `https://kalchar.example${path}`,
 			nextConfig,
 		});
-		return response.headers.get("vercel-cdn-cache-control");
+		return {
+			vercel: response.headers.get("vercel-cdn-cache-control"),
+			cdn: response.headers.get("cdn-cache-control"),
+		};
 	}
 
-	it.each(versionedPaths)("lets the CDN keep the versioned variant %s for a year", async (path) => {
-		expect(await cdnCacheFor(path)).toBe("max-age=31536000");
-	});
+	it.each(versionedPaths)(
+		"lets both edges keep the versioned variant %s for a year",
+		async (path) => {
+			expect(await edgeCacheFor(path)).toEqual({ vercel: YEAR, cdn: YEAR });
+		},
+	);
 
-	it.each(seedPaths)("adds no edge override for the regenerable key %s", async (path) => {
-		expect(await cdnCacheFor(path)).toBeNull();
+	it.each(seedPaths)("caps the regenerable key %s at a day on both edges", async (path) => {
+		expect(await edgeCacheFor(path)).toEqual({ vercel: DAY, cdn: DAY });
 	});
 
 	it.each(publishedPaths)("agrees with the writer's immutable rule for %s", async (path) => {
 		const immutableAtUpload = isVersionedImageKey(path.slice("/media/".length));
-		expect((await cdnCacheFor(path)) !== null).toBe(immutableAtUpload);
+		expect((await edgeCacheFor(path)).vercel).toBe(immutableAtUpload ? YEAR : DAY);
 	});
 
 	it("never caches a path the rewrite rejects", async () => {
-		expect(await cdnCacheFor(`/media/staging/${UUID}`)).toBeNull();
-		expect(await cdnCacheFor(`/media/artworks/nested/piece-${UUID}.jpg`)).toBeNull();
+		expect(await edgeCacheFor(`/media/staging/${UUID}`)).toEqual({ vercel: null, cdn: null });
+		expect(await edgeCacheFor(`/media/artworks/nested/piece-${UUID}.jpg`)).toEqual({
+			vercel: null,
+			cdn: null,
+		});
 	});
 });
 
