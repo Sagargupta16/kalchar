@@ -52,7 +52,7 @@ describe("hidden pieces in the data seam", () => {
 		const admin = await getAdminArtworks();
 		const hidden = admin.find((art) => art.slug === FIXTURE_HIDDEN_SLUG);
 		expect(hidden).toMatchObject({ status: "hidden", priceInr: 1500 });
-		expect(admin.length).toBe((await getAllArtworks()).length + 1);
+		expect(admin).toHaveLength((await getAllArtworks()).length + 1);
 		expect((await getArtworkTitles()).map((art) => art.slug)).toContain(FIXTURE_HIDDEN_SLUG);
 		expect(fakes.authorize).toHaveBeenCalled();
 	});

@@ -191,7 +191,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 									rel="noopener noreferrer"
 									className="underline underline-offset-2 hover:text-accent-text"
 								>
-									View on site
+									{"View on site"}
 									<span className="sr-only"> (opens in a new tab)</span>
 									<ExternalLink
 										size={ICON_SM}

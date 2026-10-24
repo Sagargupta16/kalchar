@@ -245,14 +245,7 @@ export function WorkFilterView({ styles, items, searchParams }: Readonly<WorkFil
 		urlSynced.current = false;
 		if (!urlPiece) return;
 		openedFromUrl.current = null;
-		if (pushedRef.current) {
-			pushedRef.current = false;
-			window.history.back();
-			return;
-		}
-		params.delete("piece");
-		const qs = params.toString();
-		window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+		dropPieceParam(params, pathname, pushedRef);
 	}, [isOpen, activeArtwork, searchParams, pathname, closeLightbox]);
 
 	const styleFilters = [ALL, ...styles];
@@ -366,4 +359,24 @@ function getStatusMessage({
 	}
 	if (active === ALL) return `Showing all ${count} pieces`;
 	return `Showing ${count} ${active} ${pieceWord}`;
+}
+
+/**
+ * The viewer closed while the URL still names a piece: pop the history entry
+ * the viewer pushed, or, when the visitor arrived on ?piece= directly and there
+ * is nothing of ours to pop, replace the URL without it.
+ */
+function dropPieceParam(
+	params: URLSearchParams,
+	pathname: string,
+	pushedRef: { current: boolean },
+): void {
+	if (pushedRef.current) {
+		pushedRef.current = false;
+		window.history.back();
+		return;
+	}
+	params.delete("piece");
+	const qs = params.toString();
+	window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
 }

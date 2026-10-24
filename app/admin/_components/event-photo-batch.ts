@@ -214,7 +214,9 @@ export async function addEventPhotos(
 	if (files.length === 0) return { ok: false, message: "Choose one or more photos." };
 	const problem = validateEventPhotos(files);
 	if (problem) return { ok: false, message: problem };
-	const upload = await uploadPhotos(files, handlers, async () => ({ ok: true, id: eventId }));
+	const upload = await uploadPhotos(files, handlers, () =>
+		Promise.resolve<ActionResult<{ id: string }>>({ ok: true, id: eventId }),
+	);
 	if (isFailure(upload)) return upload;
 
 	const attached = await attachEventPhotos(eventId, upload.keyBases);

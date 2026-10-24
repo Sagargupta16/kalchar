@@ -95,8 +95,9 @@ export function describeFailedPhotos(
 		.join(" ");
 	const them = one ? "it" : "them";
 	const photos = one ? "that photo" : `those ${failures.length} photos`;
+	const subject = one ? "It is" : "They are";
 	const next = kept
-		? `${one ? "It is" : "They are"} still selected below. Choose Upload photos to send ${them} again.`
+		? `${subject} still selected below. Choose Upload photos to send ${them} again.`
 		: `Select ${photos} and add ${them} again.`;
 	return `Saved ${saved} of ${files.length} photos. ${reasons} ${next}`;
 }
