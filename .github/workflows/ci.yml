@@ -35,7 +35,9 @@ jobs:
     # protection" ruleset -- rename both together or merges to main block.
     name: lint, typecheck and build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The browser suite (1044 tests on 2 workers) alone takes about 16 minutes
+    # and starts roughly 8 minutes in; 20 was cancelling healthy runs.
+    timeout-minutes: 35
     permissions:
       contents: read
     env:
