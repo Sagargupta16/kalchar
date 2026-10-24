@@ -22,6 +22,7 @@ From a whole-project review (visitor, admin and developer), fixed in one pass.
 - **Hindi and accented titles.** A piece titled in Devanagari or with accents got image keys the `/media` rewrite rejects, so every image 404d. Image keys now use an ASCII segment of the slug (`lib/storage/image-key.ts`); the web address keeps the original slug.
 - **`/work` in the HTML.** The gallery shipped only a skeleton until JavaScript loaded; the server HTML now carries the full wall (21 links in fixtures, was 0).
 - **Content hidden before hydration.** Scroll reveals and image fades no longer render `opacity:0` in the server HTML; entrances run on CSS from first paint and replay on scroll after hydration. Motion is unchanged. Masonry walls are visible without JavaScript.
+- **Fallback images stay up.** When R2 fails, an image's error could be reported twice (the error event and the pre-hydration recheck), and the second report pushed a working local fallback to "Image unavailable". A failure now only advances from the source that actually failed (the hero test went from 36/40 to 40/40 on repeat).
 - **Duplicate titles.** A repeated title gets a numbered address (`fish-2`) instead of an error. `updateArtwork` rejects Not for sale with a price, which used to read back as Available.
 - **`/about` refresh.** Category changes now revalidate `/about`, which lists the traditions.
 - **Image caching.** New versioned images upload as `immutable` for a year and carry `Vercel-CDN-Cache-Control`, so the Vercel edge caches them (both production probes were `MISS`).
