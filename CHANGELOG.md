@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.2 (2026-10-24)
+
+### Security
+
+- **Next 16.3.5 to 16.4.3, sharp 0.35.5, Vite 8.3.5, Vitest 5.0.5.** `pnpm audit` reported three critical Next advisories (remote code execution in `next/og`, in Image Optimization with SVG, and in `use cache` functions returning typed arrays), a high (Server Actions denial of service, Image Optimization SSRF), several moderates, the librsvg issue in sharp, launch-editor and `server.fs.allow` issues in Vite, and the mock-registration issue in `@vitest/mocker`. All patched by upgrading; the audit is now clean and none of the advisories need a config change here.
+
+### Changed
+
+- **Three major dependency upgrades, no behaviour change.** Motion 12 to 13 (its one breaking change, the dropped Emotion prop filter, does not apply here), Vitest 4 to 5 (Vite is now an explicit dev dependency as Vitest 5 requires; `clearMocks` defaults to true, which the suite already assumed) and TypeScript 6 to 7, the native compiler. Next 16.3 type-checks through the project-local `tsc` CLI, so `next build` runs on the new compiler too: the type step dropped to under a second. Verified: all three typecheck scopes, 491 unit tests, Biome, the Playwright admin suite (333 passed; one load-timing flake per full run, the same rate `dev` shows on Motion 12, and none when a spec runs alone), a fixture production build and a dev-server smoke of every route.
 ## 1.40.1 (2026-10-21)
 
 ### Documentation
