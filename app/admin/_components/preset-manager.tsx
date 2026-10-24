@@ -276,7 +276,7 @@ function PresetGroup({
 					}
 					setFieldError(null);
 					setErrSlot("create");
-					run(
+					void run(
 						() => createOrderPreset(kind, label),
 						() => {
 							setNewLabel("");

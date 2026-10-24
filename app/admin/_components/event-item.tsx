@@ -105,7 +105,7 @@ export function EventItem({
 			cancelLabel: "Keep event",
 		});
 		if (ok)
-			run(
+			void run(
 				() => deleteEvent(event.id),
 				() => onDeleted(event.id),
 			);

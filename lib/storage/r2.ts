@@ -107,7 +107,7 @@ const UPLOAD_URL_TTL_SECONDS = 15 * 60;
  * `contentType` and `contentLength` are signed, so R2 itself rejects a body
  * that does not match what the ticket was issued for.
  */
-export async function presignUpload(
+export function presignUpload(
 	key: string,
 	contentType: string,
 	contentLength: number,
@@ -187,9 +187,7 @@ export const DELETE_BATCH_MAX = 1000;
 const OBJECT_LIST_PAGE_MAX = 1000;
 
 /** List only the upload staging namespace, using the existing object credentials. */
-export async function listStagedObjects(
-	continuationToken?: string,
-): Promise<ListObjectsV2CommandOutput> {
+export function listStagedObjects(continuationToken?: string): Promise<ListObjectsV2CommandOutput> {
 	return client().send(
 		new ListObjectsV2Command({
 			Bucket: bucket(),

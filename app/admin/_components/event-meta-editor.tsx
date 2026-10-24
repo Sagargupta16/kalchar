@@ -98,7 +98,7 @@ export function EventMetaEditor({
 			dateRef.current?.focus();
 			return;
 		}
-		run(
+		void run(
 			() =>
 				updateEventMeta(event.id, {
 					title: title.trim(),

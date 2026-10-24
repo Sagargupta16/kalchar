@@ -16,7 +16,7 @@
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"format": "biome format --write",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "next typegen && tsc --noEmit",
 		"typecheck:scripts": "tsc --project tsconfig.scripts.json",
 		"typecheck:tests": "tsc --project tests/admin/tsconfig.json",
 		"test": "vitest run",

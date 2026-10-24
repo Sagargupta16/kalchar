@@ -74,7 +74,7 @@ export function ProfilePhotoPanel({ imageKey }: Readonly<{ imageKey?: string }>)
 		const uploadingLabel = `Uploading ${formatBytes(file.size)}`;
 		setPhotoSaved(null);
 		setPhotoOperation("upload");
-		photo.run(
+		void photo.run(
 			async () => {
 				try {
 					setProgress({ label: uploadingLabel, fraction: 0 });
@@ -111,7 +111,7 @@ export function ProfilePhotoPanel({ imageKey }: Readonly<{ imageKey?: string }>)
 		if (!ok) return;
 		setPhotoSaved(null);
 		setPhotoOperation("remove");
-		photo.run(
+		void photo.run(
 			() => clearProfileImage(),
 			() => {
 				setPhotoSaved("removed");

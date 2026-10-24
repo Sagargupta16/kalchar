@@ -114,7 +114,7 @@ export function EventImageManager({
 	const handleRemove = (keyBase: string) => {
 		if (blocked || orderChanged) return;
 		setErrSlot("general");
-		run(
+		void run(
 			() => removeEventImage(event.id, keyBase),
 			() => {
 				const next = images.filter((key) => key !== keyBase);
@@ -149,7 +149,7 @@ export function EventImageManager({
 		setBatch({ staging: 0, done: new Set(), total: files.length });
 		let addedImages: string[] = [];
 		let partialUpload = false;
-		run(
+		void run(
 			// Masters go straight to R2, then the server processes one photo per
 			// call, so a large batch never overruns the function budget.
 			() =>
