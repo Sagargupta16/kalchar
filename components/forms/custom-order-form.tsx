@@ -157,7 +157,7 @@ export function CustomOrderForm({
 			data-slot="commission-card"
 			className="rounded-(--radius-sheet) border border-line bg-surface p-(--card-pad-lg) shadow-e1 sm:p-8 lg:p-10"
 		>
-			<p className="t-eyebrow">Commission brief</p>
+			<p className="t-eyebrow">Custom order brief</p>
 			<p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
 				Only your idea is required. Leave any other details open and we can work them out together.
 			</p>

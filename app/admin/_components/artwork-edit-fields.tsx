@@ -8,7 +8,11 @@ import { AdminSwitch } from "./admin-switch";
 import { ArtworkCategoryField } from "./artwork-category-field";
 import { ArtworkEditPhoto } from "./artwork-edit-photo";
 import type { ArtworkEditorFields, FieldErrors } from "./artwork-edit-state";
-import { artworkStatusHelper, useArtworkStatusOptions } from "./artwork-quick-state";
+import {
+	artworkStatusHelper,
+	STATUS_TRACK_TWO_BY_TWO,
+	useArtworkStatusOptions,
+} from "./artwork-quick-state";
 import {
 	adminBtn,
 	adminBtnDestructive,
@@ -92,9 +96,11 @@ export function ArtworkEditFields({
 						options={statusOptions}
 						disabled={pending}
 						helper={artworkStatusHelper(fields.status)}
+						// Hidden keeps its price for when the piece comes back; only Not for sale clears it.
 						onChange={(status) =>
 							onChange(status === "archive" ? { status, price: "" } : { status })
 						}
+						className={cn(STATUS_TRACK_TWO_BY_TWO, "lg:[&>[role=radiogroup]]:flex")}
 					/>
 					<div className="flex min-h-control items-center justify-between gap-3">
 						<label htmlFor={`${id}-featured`} className="min-w-0">

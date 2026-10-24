@@ -99,7 +99,7 @@ erDiagram
 
 | Entity | Contract |
 | --- | --- |
-| `artworks` | `slug` identifies the page; `image` identifies the independently versioned stored image. Preserve the latter when generating URLs. Price is INR. The shared buy rule is a positive finite price and a status other than sold. |
+| `artworks` | `slug` identifies the page; `image` identifies the independently versioned stored image. Preserve the latter when generating URLs. Price is INR. `status` is `archive`, `available`, `sold`, or `hidden` (`artworks_status_valid`, relaxed for `hidden` in `drizzle/0004_hidden_artwork_status.sql`). The shared buy rule (`isForSale` in `lib/catalog.ts`) is a positive finite price and status `available`, so a hidden piece is never for sale even with a price. A repeated title gets the next numbered slug (`fish`, `fish-2`, `fish-3`) instead of being rejected, and `updateArtwork` rejects `archive` together with a price. |
 | `categories` | `id` identifies the editable category; unique `name` is referenced by `artworks.style`. The foreign key cascades a rename and restricts deletion while pieces reference it. It closes races that application-only usage checks cannot prevent. |
 | `workshops` | Sessions offered, ordered by `order` with a stable identity tie-breaker. These are distinct from events that already happened. |
 | `events` | `images` is an ordered JSON array of R2 key-bases. The first is the cover. Updates must detect conflicts rather than overwrite a concurrently edited array. |
@@ -119,7 +119,8 @@ Catalog getters map nullable database fields to the UI types. Shared sale rules 
 
 | Read group | Consumers |
 | --- | --- |
-| Artwork collection, available/featured pieces, slug lookup | Home, gallery, detail pages, metadata, feed, sitemap |
+| Artwork collection, available/featured pieces, slug lookup (`getAllArtworks`, hidden pieces dropped) | Home, gallery, detail pages, metadata, feed, sitemap; a hidden piece's `/work/<slug>/` is a 404 |
+| Every artwork including hidden (`getAdminArtworks`, maintainer-checked at the read) | `/admin` and `/admin/categories` |
 | Categories and style samples | Gallery filters, custom-order examples, admin options |
 | Workshops and order presets | Public offerings, inquiry form, admin editors |
 | Events and profile settings | Home, event/about pages, corresponding admin editors |

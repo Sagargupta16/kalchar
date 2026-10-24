@@ -5,21 +5,24 @@
  *
  * `submitLead` is PUBLIC (the custom-order form calls it before handing off to
  * WhatsApp), so it's hardened against abuse: a honeypot field, a coarse
- * per-instance rate limit, and length caps. It returns persistence status so
- * the form can report it accurately while keeping WhatsApp available.
+ * per-instance rate limit, a site-wide hourly and daily cap counted from the
+ * leads table (lib/lead-intake-cap.ts), and length caps. It returns
+ * persistence status so the form can report it accurately while keeping
+ * WhatsApp available.
  *
  * The status/delete actions are maintainer-gated like every other admin
  * mutation. Split into its own module (mirroring event-actions.ts) to keep each
  * action file under the 500-line ceiling.
  */
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { count, eq, gt, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
 import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { leads } from "@/lib/db/schema";
 import { createFixedWindowRateLimiter } from "@/lib/fixed-window-rate-limit";
+import { leadIntakeFull, type RecentLeadCounts } from "@/lib/lead-intake-cap";
 import { revalidateEntity } from "@/lib/revalidate";
 import type { LeadStatus } from "@/lib/types";
 import { formString } from "./_helpers";
@@ -47,6 +50,21 @@ async function clientKey(): Promise<string> {
 	return `unknown:${(requestHeaders.get("user-agent") ?? "client").slice(0, MAX_SHORT)}`;
 }
 
+/** Leads saved in the last hour and day: one range scan on leads_created_at_id_idx. */
+async function recentLeadCounts(): Promise<RecentLeadCounts> {
+	const [counts] = await db
+		.select({
+			lastHour:
+				sql<number>`count(*) filter (where ${leads.createdAt} > now() - interval '1 hour')`.mapWith(
+					Number,
+				),
+			lastDay: count(),
+		})
+		.from(leads)
+		.where(gt(leads.createdAt, sql`now() - interval '1 day'`));
+	return counts ?? { lastHour: 0, lastDay: 0 };
+}
+
 /**
  * Persist a custom-order brief. Returns `{ ok }` without blocking the form's
  * separate WhatsApp link on failure. `website` is a
@@ -59,6 +77,10 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 
 		const brief = formString(formData, "brief").trim().slice(0, MAX_BRIEF);
 		if (!brief) return { ok: false };
+		if (leadIntakeFull(await recentLeadCounts())) {
+			console.warn("submitLead refused: the hourly or daily enquiry cap is reached.");
+			return { ok: false };
+		}
 
 		const short = (key: string) => {
 			const v = formString(formData, key).trim().slice(0, MAX_SHORT);

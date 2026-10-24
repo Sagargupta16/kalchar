@@ -4,6 +4,7 @@ import {
 	unstable_getResponseFromNextConfig,
 } from "next/experimental/testing/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isVersionedImageKey } from "./image-key";
 
 async function configForFixtures(enabled: boolean): Promise<NextConfig> {
 	vi.resetModules();
@@ -16,12 +17,21 @@ async function configForFixtures(enabled: boolean): Promise<NextConfig> {
 
 afterEach(() => vi.unstubAllEnvs());
 
-const publishedPaths = [
+const UUID = "3f8a1c2e-9b4d-4f7a-8e21-5c6d7b8a9f01";
+const seedPaths = [
 	"/media/artworks/radha-krishna-400.avif",
 	"/media/artworks/radha-krishna.jpg",
 	"/media/events/fixture-event/fixture-image-400.webp",
 	"/media/profile/fixture-portrait-400.jpg",
 ];
+const versionedPaths = [
+	`/media/artworks/lotus-woman-${UUID}-400.avif`,
+	`/media/artworks/piece-${UUID}.jpg`,
+	`/media/events/${UUID}/photo-${UUID}-1600.webp`,
+	`/media/events/${UUID}/${UUID}-800.jpg`,
+	`/media/profile/artist-${UUID}-400.jpg`,
+];
+const publishedPaths = [...seedPaths, ...versionedPaths];
 const rejectedPaths = [
 	"/media/staging/58dcd794-84dc-4b50-b27b-675b101e11ef",
 	"/media/archive/original.jpg",
@@ -55,6 +65,35 @@ describe.each([false, true])("media boundary (fixtures: %s)", (fixtures) => {
 			nextConfig,
 		});
 		expect(getRewrittenUrl(response)).toBeNull();
+	});
+});
+
+describe("media edge caching", () => {
+	async function cdnCacheFor(path: string): Promise<string | null> {
+		const nextConfig = await configForFixtures(false);
+		const response = await unstable_getResponseFromNextConfig({
+			url: `https://kalchar.example${path}`,
+			nextConfig,
+		});
+		return response.headers.get("vercel-cdn-cache-control");
+	}
+
+	it.each(versionedPaths)("lets the CDN keep the versioned variant %s for a year", async (path) => {
+		expect(await cdnCacheFor(path)).toBe("max-age=31536000");
+	});
+
+	it.each(seedPaths)("adds no edge override for the regenerable key %s", async (path) => {
+		expect(await cdnCacheFor(path)).toBeNull();
+	});
+
+	it.each(publishedPaths)("agrees with the writer's immutable rule for %s", async (path) => {
+		const immutableAtUpload = isVersionedImageKey(path.slice("/media/".length));
+		expect((await cdnCacheFor(path)) !== null).toBe(immutableAtUpload);
+	});
+
+	it("never caches a path the rewrite rejects", async () => {
+		expect(await cdnCacheFor(`/media/staging/${UUID}`)).toBeNull();
+		expect(await cdnCacheFor(`/media/artworks/nested/piece-${UUID}.jpg`)).toBeNull();
 	});
 });
 

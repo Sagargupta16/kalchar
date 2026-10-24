@@ -9,7 +9,7 @@ import { SPRING_INDICATOR } from "@/lib/motion";
 import type { Event } from "@/lib/types";
 import { cn, formatEventDateShort } from "@/lib/utils";
 import { deleteEvent, setEventFeatured } from "../event-actions";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminHelp,
@@ -221,11 +221,7 @@ export function EventItem({
 					onChanged={onChanged}
 				/>
 			) : null}
-			{err ? (
-				<AdminNotice variant="error" className="mt-3">
-					{err}
-				</AdminNotice>
-			) : null}
+			{err ? <AdminErrorNotice className="mt-3">{err}</AdminErrorNotice> : null}
 		</li>
 	);
 }

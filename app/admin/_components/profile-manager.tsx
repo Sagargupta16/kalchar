@@ -4,7 +4,7 @@ import { useOptimistic } from "react";
 import { cn } from "@/lib/utils";
 import { setShowHomeIntro } from "../event-actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminPanel } from "./admin-panel";
 import { AdminSwitch } from "./admin-switch";
 import { adminHelp } from "./controls";
@@ -79,7 +79,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 					<output aria-atomic="true" className={cn(adminHelp, "block")}>
 						{introStatus}
 					</output>
-					{intro.err ? <AdminNotice variant="error">{intro.err}</AdminNotice> : null}
+					{intro.err ? <AdminErrorNotice>{intro.err}</AdminErrorNotice> : null}
 				</AdminPanel>
 			</div>
 			{undo ? (

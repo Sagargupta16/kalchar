@@ -1,5 +1,5 @@
 import { requireAdminPage } from "@/lib/admin-auth";
-import { getAllArtworks, getCategoryNames } from "@/lib/data";
+import { getAdminArtworks, getCategoryNames } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { AdminPage } from "./_components/admin-page";
 import { ArtworkGrid } from "./_components/artwork-grid";
@@ -32,7 +32,8 @@ export default async function AdminDashboard({
 	await requireAdminPage();
 	const [{ show }, artworks, categoryNames, newEnquiries] = await Promise.all([
 		searchParams,
-		getAllArtworks(),
+		// Admin read: includes hidden pieces (the public getAllArtworks drops them).
+		getAdminArtworks(),
 		getCategoryNames(),
 		getNewEnquiryCount(),
 	]);
@@ -53,6 +54,7 @@ export default async function AdminDashboard({
 				available={counts.available}
 				sold={counts.sold}
 				featured={counts.featured}
+				hidden={counts.hidden > 0 ? counts.hidden : undefined}
 				newEnquiries={newEnquiries}
 			/>
 			{/* Toolbar and tiles sit straight on the canvas: white cards read as the

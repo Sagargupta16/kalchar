@@ -85,34 +85,3 @@ export async function processInParallel(
 	});
 	return { total, keyBases, failures };
 }
-
-function withStop(message: string): string {
-	return (message || GENERIC_FAILURE).replace(/\.?$/, ".");
-}
-
-/** The reason to show when nothing could be saved: the first failure's message. */
-export function firstFailureMessage(outcome: ParallelOutcome): string {
-	return outcome.failures[0]?.message ?? GENERIC_FAILURE;
-}
-
-/**
- * Sentence for a batch where some photos failed, or null when every photo
- * landed. The saved photos stay saved, so it names exactly which to re-select.
- */
-export function describeParallelBatch(outcome: ParallelOutcome): string | null {
-	if (outcome.failures.length === 0) return null;
-	const reasons = outcome.failures
-		.map((failure) => `Photo ${failure.position} failed: ${withStop(failure.message)}`)
-		.join(" ");
-	const rest =
-		outcome.failures.length === 1 ? "that photo" : `those ${outcome.failures.length} photos`;
-	return `Saved ${outcome.keyBases.length} of ${outcome.total} photos. ${reasons} Select ${rest} and add them again.`;
-}
-
-/** Button label while photos are being processed. */
-export function progressLabel(progress: BatchProgress): string {
-	if (progress.done === 0) {
-		return `Processing ${progress.total} photo${progress.total === 1 ? "" : "s"}`;
-	}
-	return `${progress.done} of ${progress.total} photos processed`;
-}

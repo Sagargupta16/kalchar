@@ -21,7 +21,7 @@ import { cache } from "react";
 import artworkJson from "@/data/artworks.json";
 import siteJson from "@/data/site.json";
 import { requireMaintainer } from "./admin-auth";
-import { deriveStatus, isForSale } from "./catalog";
+import { deriveStatus, isForSale, isPubliclyVisible } from "./catalog";
 import { createCatalogFixture } from "./catalog-fixture";
 import { db } from "./db/client";
 import {
@@ -91,8 +91,8 @@ function toWorkshop(row: WorkshopRow): Workshop {
 	};
 }
 
-/** All artworks, sorted by `order` ascending. */
-export const getAllArtworks = cache(async (): Promise<readonly Artwork[]> => {
+/** Every artwork row in gallery order, hidden pieces included. Pick a public or admin view below. */
+const readArtworks = cache(async (): Promise<readonly Artwork[]> => {
 	const rows =
 		fixture?.artworks ??
 		(await db.select().from(artworks).orderBy(asc(artworks.order), asc(artworks.slug)));
@@ -100,7 +100,26 @@ export const getAllArtworks = cache(async (): Promise<readonly Artwork[]> => {
 });
 
 /**
- * Currently for-sale artworks: priced (positive) and not sold. Uses the shared
+ * Every artwork visitors may see, sorted by `order` ascending. Hidden pieces
+ * are dropped here, so every public getter below (gallery, home strips, detail
+ * pages and their static params, related pieces, sitemap, catalog feed, counts)
+ * inherits the rule from one place.
+ */
+export const getAllArtworks = cache(
+	async (): Promise<readonly Artwork[]> => (await readArtworks()).filter(isPubliclyVisible),
+);
+
+/**
+ * Every artwork including hidden ones, for the admin list, its counts and the
+ * complete reorder set. Private: checks the maintainer session at the read.
+ */
+export const getAdminArtworks = cache(async (): Promise<readonly Artwork[]> => {
+	await requireMaintainer();
+	return readArtworks();
+});
+
+/**
+ * Currently for-sale artworks: priced (positive) and Available (not sold or hidden). Uses the shared
  * `isForSale` guard rather than a bare `status === "available"` check, so a
  * piece whose status drifted to "available" without a real price can never leak
  * into the buy filter or its count.
@@ -115,7 +134,7 @@ export async function getFeaturedArtwork(): Promise<Artwork | undefined> {
 	return all.find((a) => a.featured) ?? all[0];
 }
 
-/** Look up a single artwork by slug. */
+/** Look up a single public artwork by slug; a hidden piece resolves to undefined (a 404). */
 export async function getArtworkBySlug(slug: string): Promise<Artwork | undefined> {
 	return (await getAllArtworks()).find((a) => a.slug === slug);
 }
@@ -142,7 +161,7 @@ export async function getStyleSamples(): Promise<Record<string, { slug: string; 
 	return map;
 }
 
-/** Slugs of every artwork -- used by `generateStaticParams` for `/work/[slug]`. */
+/** Slugs of every public artwork, for `generateStaticParams` on `/work/[slug]` and the sitemap. */
 export async function getAllArtworkSlugs(): Promise<readonly string[]> {
 	return (await getAllArtworks()).map((a) => a.slug);
 }
@@ -155,9 +174,9 @@ export interface ArtworkTitle {
 	image: string;
 }
 
-/** Every artwork's slug, title and image filename in gallery order (testimonials picker and row). */
+/** Every artwork's slug, title and image filename in gallery order (testimonials picker and row). Admin only. */
 export async function getArtworkTitles(): Promise<readonly ArtworkTitle[]> {
-	return (await getAllArtworks()).map(({ slug, title, image }) => ({ slug, title, image }));
+	return (await getAdminArtworks()).map(({ slug, title, image }) => ({ slug, title, image }));
 }
 
 /** Catalog-derived defaults and suggestions for the add-piece form (D30). Medium stays required; the datalist only speeds typing. */
@@ -171,7 +190,7 @@ export interface ArtworkFieldSuggestions {
 }
 
 export async function getArtworkFieldSuggestions(): Promise<ArtworkFieldSuggestions> {
-	const all = await getAllArtworks();
+	const all = await getAdminArtworks();
 	const rank = (values: readonly (string | undefined)[]) => {
 		const counts = new Map<string, number>();
 		for (const raw of values) {

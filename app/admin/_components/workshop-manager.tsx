@@ -187,9 +187,12 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 								it to move it.{" "}
 								<Link
 									href="/workshops"
+									target="_blank"
+									rel="noopener noreferrer"
 									className="underline underline-offset-2 hover:text-accent-text"
 								>
 									View on site
+									<span className="sr-only"> (opens in a new tab)</span>
 									<ExternalLink
 										size={ICON_SM}
 										aria-hidden="true"
@@ -205,26 +208,27 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					aria-labelledby={headingId}
 					className={cn("min-w-0", sideColumn ? "lg:col-span-8" : "lg:col-span-12")}
 				>
-					<AdminPanelHeader
-						as="h2"
-						id={headingId}
-						title={`All workshops (${items.length})`}
-						description="This is the order the public page uses."
-						action={
-							creating ? null : (
-								<button
-									ref={addRef}
-									type="button"
-									disabled={pending}
-									onClick={openPanel}
-									className={adminBtn}
-								>
-									<Plus size={ICON_MD} aria-hidden="true" />
-									Add workshop
-								</button>
-							)
-						}
-					/>
+					{/* Add sits beside the heading from sm and spans the width under it on phones. */}
+					<div className="grid gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+						<AdminPanelHeader
+							as="h2"
+							id={headingId}
+							title={`All workshops (${items.length})`}
+							description="This is the order the public page uses."
+						/>
+						{creating ? null : (
+							<button
+								ref={addRef}
+								type="button"
+								disabled={pending}
+								onClick={openPanel}
+								className={cn(adminBtnPrimary, "mb-(--form-gap) w-full sm:w-auto")}
+							>
+								<Plus size={ICON_MD} aria-hidden="true" />
+								Add workshop
+							</button>
+						)}
+					</div>
 					<ul aria-labelledby={headingId} className={cn("space-y-tight", stagger)}>
 						{items.map((w, i) => (
 							<WorkshopRow
@@ -268,7 +272,7 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 											type="button"
 											disabled={pending}
 											onClick={openPanel}
-											className={adminBtn}
+											className={cn(adminBtnPrimary, "w-full sm:w-auto")}
 										>
 											Add workshop
 										</button>

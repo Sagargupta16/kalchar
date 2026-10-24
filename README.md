@@ -6,7 +6,7 @@ Portfolio site for Megha Seth, traditional folk artist working in Madhubani, Pic
 
 ## Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 12 + Lenis for animation. pnpm 10, Node 22.
+Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 14 + Lenis for animation. Vitest 5 + Playwright 1 for tests. pnpm 10, Node 24.
 
 Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/admin` panel + auth are server-rendered. Catalog data lives in **Neon Postgres** (read through one seam, `lib/data.ts`); artwork images live in **Cloudflare R2**; admin login is **Auth.js + Google**, gated to a maintainer allowlist in the DB. Full picture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -18,20 +18,40 @@ Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/adm
 
 The spec behind the picture is [`docs/diagrams/architecture.yaml`](docs/diagrams/architecture.yaml), rendered with [orrery](https://github.com/Sagargupta16/orrery).
 
-## Local dev
+## Quick start (no secrets)
 
 ```sh
+corepack enable
 pnpm install
-pnpm dev          # http://localhost:3000  (needs .env.local -- see .env.example)
-pnpm dev --port 3001  # alternate port; Google OAuth must allow the matching callback
+pnpm dev:preview  # http://localhost:3010  fixture catalog, /admin without sign-in, nothing saves
+```
+
+`dev:preview` serves every public and `/admin` page over the checked-in fixture catalog as a synthetic maintainer. The database and R2 clients refuse writes in this mode, so it is safe for UI work, screenshots, and phone-width checks. Details: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#local-dev-notes).
+
+## Local dev with real services
+
+Needs `.env.local` (copy [`.env.example`](.env.example)) pointing at an isolated Neon database, R2 bucket, and Google OAuth client; see [first-time setup](docs/DEVELOPMENT.md#first-time-setup).
+
+```sh
+pnpm dev          # http://localhost:3000
+pnpm dev --port 3002  # alternate port (3001 is the browser-test port); Google OAuth and R2 CORS must allow the origin
 pnpm build        # next build
 pnpm typecheck
-pnpm exec tsc -p tsconfig.scripts.json
+pnpm typecheck:scripts
 pnpm lint
 pnpm test         # unit tests
-pnpm test:e2e     # production browser + accessibility checks on port 3001
 pnpm format
 ```
+
+## Browser tests
+
+```sh
+pnpm exec playwright install chromium  # once per Playwright version
+pnpm test:e2e:fixtures  # fixture build, then desktop + mobile Playwright and axe checks on port 3001
+pnpm test:preview       # @preview admin geometry suites; needs pnpm dev:preview running
+```
+
+`test:e2e:fixtures` needs no secrets and matches CI. The public specs assert fixture rows, so plain `pnpm test:e2e` only passes against a build made with `KALCHAR_TEST_FIXTURES=1`, and a real-data build fails them.
 
 Database + image helpers:
 
@@ -57,8 +77,8 @@ CI uses public fixtures without production credentials and checks migration appl
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
 | [`public/`](public/) | Master artwork JPGs (R2 regenerate source and final fallback), logo, `robots.txt`. |
 | [`scripts/`](scripts/) | Guarded bootstrap, migration and baseline checks, offline backup verification, image helpers, and public catalog/media health checks. |
-| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md), [ADDING-FEATURES](docs/ADDING-FEATURES.md), plus [`diagrams/`](docs/diagrams/) (the orrery spec and SVGs for the picture above). Index: [docs/README.md](docs/README.md). |
-| [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers. `health.yml` checks production daily. `deploy.yml` is the manual Pages recovery path. |
+| [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md), [ADDING-FEATURES](docs/ADDING-FEATURES.md), plus [`diagrams/`](docs/diagrams/) (the orrery spec and SVGs for the picture above) and [`archive/`](docs/archive/) (historical snapshots). Index: [docs/README.md](docs/README.md). |
+| [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers (four Playwright shards). `health.yml` checks production daily. `staging-cleanup.yml` deletes expired R2 staging uploads daily. `deploy.yml` is the manual Pages recovery path. |
 
 ## Deploy
 

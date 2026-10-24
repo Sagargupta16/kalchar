@@ -30,14 +30,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build:
-    # Display name is pinned to the required status check in the "main
-    # protection" ruleset -- rename both together or merges to main block.
-    name: lint, typecheck and build
+  verify:
+    name: lint, typecheck and unit tests
     runs-on: ubuntu-latest
-    # The browser suite (1044 tests on 2 workers) alone takes about 16 minutes
-    # and starts roughly 8 minutes in; 20 was cancelling healthy runs.
-    timeout-minutes: 35
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
@@ -50,7 +46,7 @@ jobs:
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -93,16 +89,91 @@ jobs:
       - name: Test operational safeguards
         run: pnpm test:operations
 
+  browser:
+    # The browser suite (about 1044 tests, desktop plus a mobile project that
+    # re-runs the admin fixture specs) took 13 minutes on one runner with 2
+    # workers. Four shards split it by test. Each shard rebuilds on fixtures
+    # (about 14 seconds) instead of passing .next around as an artifact.
+    name: browser tests (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      # Let every shard finish so one failure does not hide the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      KALCHAR_TEST_FIXTURES: "1"
+      NEXT_PUBLIC_IMAGE_BASE_URL: https://fixtures.invalid
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create temporary authentication secret
+        run: node -e 'require("node:fs").appendFileSync(process.env.GITHUB_ENV, "AUTH_SECRET=" + require("node:crypto").randomBytes(32).toString("hex") + "\n")'
+
       - name: Build
         run: pnpm build
 
+      - name: Read Playwright version
+        id: playwright
+        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
+      # The cache holds the browser binary only; its system libraries are not cached.
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
       - name: Browser and accessibility tests
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/4
         env:
           PLAYWRIGHT_PORT: 3001
+
+  build:
+    # Display name is pinned to the required status check in the "main
+    # protection" and "dev protection" rulesets -- rename both together or
+    # merges block. It aggregates the verify job and every browser shard: a
+    # skipped required job counts as passing, so this runs unless the run was
+    # cancelled and fails on any result other than success.
+    name: lint, typecheck and build
+    needs: [verify, browser]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require the verify job and every browser shard
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "verify and browser results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A required job finished as '$result'."
+              exit 1
+            fi
+          done
 
   migrations:
     name: database migrations
@@ -128,7 +199,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm

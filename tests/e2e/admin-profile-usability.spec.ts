@@ -44,9 +44,7 @@ test("profile: an oversized photo cannot be submitted", async ({ page }) => {
 	expect(await page.evaluate(() => window.adminTest.stageCalls)).toEqual([]);
 });
 
-test("profile: replacing or clearing a failed selection clears its old error", async ({
-	page,
-}) => {
+test("profile: replacing or clearing a failed selection clears its old error", async ({ page }) => {
 	await mountAdmin(page, "profile");
 	const picker = page.getByLabel("Change photo", { exact: true });
 	await picker.setInputFiles(portrait);

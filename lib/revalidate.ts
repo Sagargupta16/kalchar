@@ -20,7 +20,7 @@
  *   /custom-orders  artworks, categories, orderPresets
  *   /events         events
  *   /workshops      workshops
- *   /about          profile, artworks, workshops
+ *   /about          profile, artworks, workshops, categories
  *   /catalog.csv    artworks (category names arrive on the artwork rows)
  *   /sitemap.xml    artworks (slugs only, so a category rename does not touch it)
  *   /admin/...      the matching admin manager
@@ -52,6 +52,8 @@ export const REVALIDATION = {
 		["/work/[slug]", "page"],
 		"/catalog.csv",
 		"/custom-orders",
+		// "The traditions" tiles list every category name.
+		"/about",
 		"/admin",
 		"/admin/categories",
 	],

@@ -31,7 +31,7 @@ const WHATSAPP_GREETING = "Hi, I found you on kalchar.co.in.";
 export const metadata = createPageMetadata({
 	title: "Madhubani, Pichwai & Lippan Folk Art",
 	description:
-		"Original Madhubani, Pichwai, Lippan and Gond folk paintings by Megha Seth, plus hands-on workshops rooted in Indian folk traditions. Browse the archive or commission a custom piece.",
+		"Original Madhubani, Pichwai, Lippan and Gond folk paintings by Megha Seth, plus hands-on workshops rooted in Indian folk traditions. Browse the archive or order a custom piece.",
 	path: "/",
 });
 

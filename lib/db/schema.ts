@@ -51,7 +51,7 @@ export const artworks = pgTable(
 		image: text("image").notNull(),
 		/** Sampled palette of 3-5 hex values. */
 		palette: jsonb("palette").$type<string[]>(),
-		/** "archive" | "available" | "sold". */
+		/** "archive" | "available" | "sold" | "hidden" (admin-only, never on the public site). */
 		status: text("status").notNull().default("archive"),
 		/** INR. When set, the piece is considered for-sale. */
 		priceInr: integer("price_inr"),
@@ -65,7 +65,10 @@ export const artworks = pgTable(
 		check("artworks_order_positive", sql`${table.order} > 0`),
 		check("artworks_year_positive", sql`${table.year} is null or ${table.year} > 0`),
 		check("artworks_price_positive", sql`${table.priceInr} is null or ${table.priceInr} > 0`),
-		check("artworks_status_valid", sql`${table.status} in ('archive', 'available', 'sold')`),
+		check(
+			"artworks_status_valid",
+			sql`${table.status} in ('archive', 'available', 'sold', 'hidden')`,
+		),
 	],
 );
 

@@ -32,10 +32,10 @@
 	"contact": {
 		"instagram": {
 			"label": "Instagram (Art)",
-			"display": "@kalchar_by_meghaseth",
-			"url": "https://www.instagram.com/kalchar_by_meghaseth/",
+			"display": "@kalchar.art",
+			"url": "https://www.instagram.com/kalchar.art/",
 			"note": "Art & Process",
-			"qr": "kalchar_by_meghaseth_qr.png"
+			"qr": "kalchar_art_qr.png"
 		},
 		"instagramCommunity": {
 			"label": "Instagram (Workshops)",
@@ -101,7 +101,7 @@
 			],
 			"pullQuote": "Folk art is a language. I am one of many speakers, trying to keep the conversation going.",
 			"asideHeading": "Open to",
-			"asideBody": "Original commissions, workshops, and collaborative cultural programming."
+			"asideBody": "Custom paintings, workshops, and collaborative cultural programming."
 		},
 		"workshops": {
 			"eyebrow": "Workshops",
@@ -115,7 +115,7 @@
 		},
 		"contact": {
 			"eyebrow": "Contact",
-			"title": "Commissions, workshops, and conversations",
+			"title": "Custom orders, workshops, and conversations",
 			"lead": "The fastest reply is on Instagram or WhatsApp. Email is best for longer briefs."
 		},
 		"customOrders": {

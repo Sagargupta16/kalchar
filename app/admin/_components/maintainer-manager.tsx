@@ -8,6 +8,7 @@ import { unwrap } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 import { inviteMaintainer, revokeMaintainer } from "../actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
@@ -222,9 +223,7 @@ export function MaintainerManager({
 						</button>
 					</fieldset>
 					{err && !fieldError ? (
-						<AdminNotice variant="error" className="mt-3 wrap-anywhere">
-							{err}
-						</AdminNotice>
+						<AdminErrorNotice className="mt-3 wrap-anywhere">{err}</AdminErrorNotice>
 					) : null}
 					{added ? (
 						<AdminNotice variant="success" className="mt-3 wrap-anywhere">

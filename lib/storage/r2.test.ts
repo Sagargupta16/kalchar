@@ -1,4 +1,9 @@
-import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
+import {
+	DeleteObjectsCommand,
+	ListObjectsV2Command,
+	PutObjectCommand,
+	S3Client,
+} from "@aws-sdk/client-s3";
 import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 vi.mock("@/lib/env", () => ({
@@ -11,7 +16,14 @@ vi.mock("@/lib/env", () => ({
 	},
 }));
 
-import { deleteObjects, getObjectBuffer, listStagedObjects, objectSize, presignUpload } from "./r2";
+import {
+	deleteObjects,
+	getObjectBuffer,
+	listStagedObjects,
+	objectSize,
+	presignUpload,
+	uploadObject,
+} from "./r2";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -36,6 +48,35 @@ describe("presigned upload contract", () => {
 		expect(url.searchParams.has("x-amz-checksum-crc32")).toBe(false);
 		expect(send).not.toHaveBeenCalled();
 	});
+});
+
+describe("upload cache headers", () => {
+	const uuid = "3f8a1c2e-9b4d-4f7a-8e21-5c6d7b8a9f01";
+
+	it.each([
+		`artworks/lotus-woman-${uuid}-400.avif`,
+		`artworks/piece-${uuid}.jpg`,
+		`events/${uuid}/photo-${uuid}-800.webp`,
+		`profile/artist-${uuid}-1600.jpg`,
+	])("marks the versioned key %s immutable for a year", async (key) => {
+		const send = mockSend().mockResolvedValueOnce({});
+		await expect(uploadObject(key, Buffer.from("image"), "image/avif")).resolves.toBe(
+			`https://images.example.invalid/${key}`,
+		);
+		const command = send.mock.calls[0]?.[0] as PutObjectCommand;
+		expect(command).toBeInstanceOf(PutObjectCommand);
+		expect(command.input.CacheControl).toBe("public, max-age=31536000, immutable");
+	});
+
+	it.each(["artworks/radha-krishna-400.avif", "artworks/radha-krishna.jpg"])(
+		"keeps the revalidating day-long header on the seed key %s",
+		async (key) => {
+			const send = mockSend().mockResolvedValueOnce({});
+			await uploadObject(key, Buffer.from("image"), "image/jpeg");
+			const command = send.mock.calls[0]?.[0] as PutObjectCommand;
+			expect(command.input.CacheControl).toBe("public, max-age=86400, must-revalidate");
+		},
+	);
 });
 
 describe("storage reads", () => {

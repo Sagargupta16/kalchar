@@ -8,11 +8,14 @@ export function GallerySearch({
 	onQuery,
 	inputRef,
 	resultsId,
+	disabled = false,
 }: Readonly<{
 	query: string;
 	onQuery: (value: string) => void;
 	inputRef: RefObject<HTMLInputElement | null>;
 	resultsId: string;
+	/** The static fallback renders the field before it can search. */
+	disabled?: boolean;
 }>) {
 	const id = useId();
 	return (
@@ -33,6 +36,7 @@ export function GallerySearch({
 					aria-describedby={resultsId}
 					placeholder="Title, art style or medium"
 					autoComplete="off"
+					disabled={disabled}
 					value={query}
 					onChange={(event) => onQuery(event.target.value)}
 					className="min-h-control w-full rounded-md border border-line-strong bg-canvas py-2 pr-12 pl-10 text-base text-ink transition-ui placeholder:text-muted [&::-webkit-search-cancel-button]:appearance-none"

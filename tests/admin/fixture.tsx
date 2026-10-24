@@ -21,10 +21,7 @@ import { InlineReorderControls, ReorderBar } from "../../app/admin/_components/r
 import { TestimonialsManager } from "../../app/admin/_components/testimonials-manager";
 import { UndoBar, useUndo } from "../../app/admin/_components/undo-bar";
 import { UploadForm } from "../../app/admin/_components/upload-form";
-import {
-	useAdminAction,
-	useOptimisticAction,
-} from "../../app/admin/_components/use-admin-action";
+import { useAdminAction, useOptimisticAction } from "../../app/admin/_components/use-admin-action";
 import { WorkshopManager } from "../../app/admin/_components/workshop-manager";
 import type { Artwork, Event } from "../../lib/types";
 import { leadViews } from "./fixtures/leads";
@@ -373,11 +370,7 @@ const views = {
 	artworks: withAddSheet(<ArtworkGrid items={artworkItems} categories={["Gond"]} />),
 	artworksEmpty: withAddSheet(<ArtworkGrid items={[]} categories={["Gond"]} />),
 	artworksFiltered: withAddSheet(
-		<ArtworkGrid
-			items={artworkItems}
-			categories={["Gond"]}
-			initialFilter="sold"
-		/>,
+		<ArtworkGrid items={artworkItems} categories={["Gond"]} initialFilter="sold" />,
 	),
 	categories: (
 		<CategoryManager

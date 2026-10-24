@@ -139,7 +139,7 @@ export default async function AboutPage() {
 				<div className="grid gap-10 md:grid-cols-12 md:items-end md:gap-10">
 					<div className="md:col-span-7">
 						<SectionHeader
-							eyebrow="Commission"
+							eyebrow="Custom orders"
 							title="Have a piece in mind?"
 							lead="Tell us about the subject, size, or occasion."
 						/>
@@ -151,7 +151,7 @@ export default async function AboutPage() {
 									"group mt-8 w-full sm:w-auto",
 								)}
 							>
-								Commission a piece
+								Order a custom piece
 								<ArrowRight
 									size={16}
 									aria-hidden="true"

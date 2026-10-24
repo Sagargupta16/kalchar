@@ -1,0 +1,2 @@
+ALTER TABLE "artworks" DROP CONSTRAINT "artworks_status_valid";--> statement-breakpoint
+ALTER TABLE "artworks" ADD CONSTRAINT "artworks_status_valid" CHECK ("artworks"."status" in ('archive', 'available', 'sold', 'hidden'));

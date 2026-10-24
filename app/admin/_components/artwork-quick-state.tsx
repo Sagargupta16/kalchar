@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import { motion } from "motion/react";
 import {
 	ARTWORK_STATUS_OPTIONS,
+	artworkStatusHelp,
 	artworkStatusLabel,
 	quickStateBlockedReason,
 } from "@/lib/artwork-status";
@@ -16,15 +17,28 @@ import type { SegmentedOption } from "./segmented";
 // D-A12): the inline Segmented control on rows and in the edit sheet replaces
 // both, one less tap and no dialog.
 
-/** Status dot colour per stored state, on the 1.15 status tokens (terracotta is never a status). */
+/**
+ * Status dot colour per stored state, on the 1.15 status tokens (terracotta is
+ * never a status). Hidden is the one hollow dot: an outline in the NFS grey, so
+ * it reads apart from Not for sale by shape, not only by colour.
+ */
 export const DOT: Record<ArtworkStatus, string> = {
 	available: "bg-status-available",
 	sold: "bg-status-sold",
 	archive: "bg-status-nfs",
+	hidden: "border border-status-nfs bg-transparent",
 };
 
 /**
- * The three Segmented options for a piece's status (1.8). The archive option's
+ * Four segments do not fit one line on a phone row, so the track becomes a 2 x 2
+ * grid until the given width variant restores the single line. Targets the
+ * Segmented radiogroup, its direct child.
+ */
+export const STATUS_TRACK_TWO_BY_TWO =
+	"[&>[role=radiogroup]]:grid [&>[role=radiogroup]]:grid-cols-2";
+
+/**
+ * The four Segmented options for a piece's status (1.8). The archive option's
  * price guard maps to a disabled segment whose reason renders as the helper
  * line under the control; the "available without a price" reason stays
  * advisory and never disables.
@@ -44,9 +58,9 @@ export function useArtworkStatusOptions(
 	});
 }
 
-/** Helper line under the segmented track: NFS names its public effect (D31). */
+/** Helper line under the segmented track: NFS and Hidden name their public effect (D31). */
 export function artworkStatusHelper(status: ArtworkStatus): string | undefined {
-	return status === "archive" ? "Shown in the gallery without a price" : undefined;
+	return status === "archive" || status === "hidden" ? artworkStatusHelp(status) : undefined;
 }
 
 interface FeaturedToggleProps {

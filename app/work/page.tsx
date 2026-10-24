@@ -2,9 +2,8 @@ import { ArrowRight, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Masthead } from "@/components/editorial/masthead";
-import { GallerySkeleton } from "@/components/gallery/gallery-grid";
 import { PlateFan } from "@/components/gallery/plate-fan";
-import { WorkFilter } from "@/components/gallery/work-filter";
+import { WorkFilter, WorkFilterView } from "@/components/gallery/work-filter";
 import { buttonVariants } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { isForSale } from "@/lib/catalog";
@@ -60,7 +59,7 @@ export default async function WorkPage() {
 								"group max-sm:hidden",
 							)}
 						>
-							Commission a piece
+							Order a custom piece
 							<ArrowRight
 								size={16}
 								aria-hidden="true"
@@ -73,8 +72,10 @@ export default async function WorkPage() {
 
 			<Section accent="accent" padded containerClassName="pt-8 sm:pt-10">
 				{/* Suspense boundary: WorkFilter reads useSearchParams (the ?style=
-				    / ?view= lens), which Next requires be wrapped on a static route. */}
-				<Suspense fallback={<GallerySkeleton />}>
+				    / ?view= lens), which Next requires be wrapped on a static route.
+				    The fallback is the same gallery without the lens, so the static
+				    HTML carries the real unfiltered wall instead of a skeleton. */}
+				<Suspense fallback={<WorkFilterView styles={styles} items={all} />}>
 					<WorkFilter styles={styles} items={all} />
 				</Suspense>
 			</Section>

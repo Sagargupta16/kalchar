@@ -6,6 +6,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 let database: PGlite;
 let migrations: string[];
 
+async function readJournalTags(): Promise<string[]> {
+	const journal = JSON.parse(
+		await readFile(join(process.cwd(), "drizzle", "meta/_journal.json"), "utf8"),
+	) as { entries: { tag: string }[] };
+	return journal.entries.map(({ tag }) => tag);
+}
+
 async function seedArtwork(target: PGlite) {
 	await target.query("INSERT INTO categories (id, name, \"order\") VALUES ('folk', 'Folk', 1)");
 	await target.query(
@@ -16,11 +23,8 @@ async function seedArtwork(target: PGlite) {
 
 beforeAll(async () => {
 	const directory = join(process.cwd(), "drizzle");
-	const journal = JSON.parse(await readFile(join(directory, "meta/_journal.json"), "utf8")) as {
-		entries: { tag: string }[];
-	};
 	migrations = await Promise.all(
-		journal.entries.map(({ tag }) => readFile(join(directory, `${tag}.sql`), "utf8")),
+		(await readJournalTags()).map((tag) => readFile(join(directory, `${tag}.sql`), "utf8")),
 	);
 	database = await PGlite.create();
 	for (const migration of migrations) await database.exec(migration);
@@ -79,6 +83,42 @@ describe("catalog database migrations", () => {
 			]),
 		).rejects.toMatchObject({ code: "23514" });
 	});
+
+	it("accepts the hidden status and still rejects unknown ones", async () => {
+		await seedArtwork(database);
+		await database.query("UPDATE artworks SET status = 'hidden', price_inr = 1500");
+		const { rows } = await database.query<{ status: string }>("SELECT status FROM artworks");
+		expect(rows[0]?.status).toBe("hidden");
+		await expect(database.query("UPDATE artworks SET status = 'draft'")).rejects.toMatchObject({
+			code: "23514",
+		});
+	});
+
+	it("relaxes the status check without touching existing pieces", async () => {
+		const tags = await readJournalTags();
+		const index = tags.indexOf("0004_hidden_artwork_status");
+		expect(index).toBeGreaterThan(0);
+		const previous = await PGlite.create();
+		try {
+			for (const migration of migrations.slice(0, index)) await previous.exec(migration);
+			await seedArtwork(previous);
+			await previous.query("UPDATE artworks SET status = 'sold', price_inr = 900");
+			await expect(previous.query("UPDATE artworks SET status = 'hidden'")).rejects.toMatchObject({
+				code: "23514",
+			});
+			await previous.exec(migrations[index] ?? "");
+			const before = await previous.query<{ status: string; price_inr: number }>(
+				"SELECT status, price_inr FROM artworks",
+			);
+			expect(before.rows).toEqual([{ status: "sold", price_inr: 900 }]);
+			await previous.query("UPDATE artworks SET status = 'hidden'");
+			await expect(previous.query("UPDATE artworks SET status = 'draft'")).rejects.toMatchObject({
+				code: "23514",
+			});
+		} finally {
+			await previous.close();
+		}
+	}, 30_000);
 
 	it("preserves existing catalog and lead rows when upgrading the previous schema", async () => {
 		const previous = await PGlite.create();

@@ -24,7 +24,7 @@ Steps 7 and 8 above, plus one that is easy to forget: register the page as a con
 
 Read [IMAGES.md](IMAGES.md#upload-transport) first. The rules that matter:
 
-- **Bytes never enter a server action.** Vercel rejects any function body over about 4.5 MB at the edge, below one phone photo. The browser stages the master with `stageImage` or `stageFormImages` ([app/admin/_components/stage-image.ts](../app/admin/_components/stage-image.ts)) and submits only the `staging/<uuid>` key; the action reads it back with `readStagedImage` ([lib/storage/staged-upload.ts](../lib/storage/staged-upload.ts)). Do not add a `File` field to an action.
+- **Bytes never enter a server action.** Vercel rejects any function body over about 4.5 MB at the edge, below one phone photo. The browser stages each photo on its own with `stageImage` ([app/admin/_components/stage-image.ts](../app/admin/_components/stage-image.ts)), which downscales oversized photos first, and submits only the `staging/<uuid>` key; the action reads it back with `readStagedImage` ([lib/storage/staged-upload.ts](../lib/storage/staged-upload.ts)). Do not add a `File` field to an action.
 - **One pipeline.** `processImageVariants(keyBase, buffer)` in [lib/storage/process-artwork-image.ts](../lib/storage/process-artwork-image.ts) writes the 13-object variant set. Do not duplicate the sharp loop.
 - **A new key prefix must be allowlisted twice.** The `/media` proxy in [next.config.mjs](../next.config.mjs) only forwards known path shapes; add the new prefix to `mediaPaths` and to [lib/media-rewrite.test.ts](../lib/media-rewrite.test.ts), which fails if the two drift. Anything not listed returns 404 in production while every build stays green.
 - **Budget the function.** Each image costs 13 encodes plus 13 uploads; the admin pages that process images export `maxDuration = 60`. A multi-image batch processes one image per action call, several calls in parallel, and commits the finished key-bases in one write (see `lib/event-photo-batch.ts`).
@@ -35,7 +35,7 @@ Read [IMAGES.md](IMAGES.md#upload-transport) first. The rules that matter:
 1. Add a lazy getter to [lib/env.ts](../lib/env.ts). Never read `process.env` at module scope in library code: a missing value would then fail at import time, before any error handling exists, and surface as an opaque 500 (the history behind the lazy `client()` in [lib/storage/r2.ts](../lib/storage/r2.ts)).
 2. Document it in `.env.example` with where the value comes from.
 3. Set it on Vercel for both `production` and `preview`, and as a GitHub Actions secret only if a workflow needs it.
-4. If the fixture build needs a value, give it one in `.github/workflows/ci.yml` (see `NEXT_PUBLIC_IMAGE_BASE_URL: https://fixtures.invalid`).
+4. If the fixture build needs a value, give it one in the `verify` and `browser` jobs of `.github/workflows/ci.yml` and in [scripts/e2e-fixtures.mjs](../scripts/e2e-fixtures.mjs), which mirrors CI locally (see `NEXT_PUBLIC_IMAGE_BASE_URL: https://fixtures.invalid`).
 5. Add it to the environment matrix in [DEPLOYMENT.md](DEPLOYMENT.md#environments).
 
 ## Guardrails that fail fast
@@ -48,7 +48,6 @@ Read [IMAGES.md](IMAGES.md#upload-transport) first. The rules that matter:
 | Image prefix the proxy does not serve | `lib/media-rewrite.test.ts` |
 | Action error reaching the UI as a sanitised digest | `runAdminAction` and `lib/action-result.ts` |
 | Env or native module read at import time | Lazy getters in `lib/env.ts`, `client()` in `r2.ts`, `loadSharp` |
-| Raw Tailwind shadow or ring utility | CI elevation-token guard |
 | Committed secret | gitleaks job in CI, GitGuardian on the PR |
 | Vulnerable production dependency | `pnpm audit --prod` in CI, Renovate security PRs |
 | File over 500 lines, `--` glyph in copy, raw hex in components | Review, per [CLAUDE.md](../CLAUDE.md) |
@@ -63,8 +62,8 @@ pnpm typecheck:tests
 pnpm test
 pnpm test:operations
 pnpm db:validate
-pnpm build                       # against your .env.local (Neon + R2)
-pnpm test:e2e
+pnpm test:e2e:fixtures           # fixture build + the full Playwright suite, no secrets
+pnpm build                       # optional: against your .env.local (Neon + R2)
 ```
 
-CI builds with `KALCHAR_TEST_FIXTURES=1 NEXT_PUBLIC_IMAGE_BASE_URL=https://fixtures.invalid` and no production credentials. Run that form once too before opening a PR that touches `lib/data.ts` or `lib/db/client.ts`, since a green real-credential build does not prove the fixture path.
+CI builds with `KALCHAR_TEST_FIXTURES=1 NEXT_PUBLIC_IMAGE_BASE_URL=https://fixtures.invalid` and no production credentials, then splits Playwright across four shards. `pnpm test:e2e:fixtures` reproduces that build and runs the whole suite in one process; the public specs assert fixture rows, so `pnpm test:e2e` after a real-data build fails them. First run `pnpm exec playwright install chromium` once. A real-data `pnpm build` is still worth running before a PR that touches `lib/data.ts` or `lib/db/client.ts`, since the fixture build does not prove the Neon path. Admin layout changes also have `pnpm test:preview` against a running `pnpm dev:preview`; see [DEVELOPMENT.md](DEVELOPMENT.md#browser-tests).

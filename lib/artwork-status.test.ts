@@ -9,19 +9,31 @@ import type { ArtworkStatus } from "./types";
 
 describe("artwork status copy", () => {
 	it("labels every status in plain words", () => {
-		expect(ARTWORK_STATUS_OPTIONS).toEqual(["available", "sold", "archive"]);
+		expect(ARTWORK_STATUS_OPTIONS).toEqual(["available", "sold", "archive", "hidden"]);
 		expect(ARTWORK_STATUS_OPTIONS.map(artworkStatusLabel)).toEqual([
 			"Available",
 			"Sold",
 			"Not for sale",
+			"Hidden",
 		]);
-		for (const status of ARTWORK_STATUS_OPTIONS) {
+		for (const status of ["available", "sold", "archive"] as const) {
 			expect(artworkStatusHelp(status)).toMatch(/^Shown in the gallery/);
 		}
 	});
 
+	it("says a hidden piece stays off the site", () => {
+		expect(artworkStatusHelp("hidden")).toBe(
+			"Only you can see it in the admin; not shown on the site",
+		);
+	});
+
 	it("covers the whole ArtworkStatus union", () => {
-		const every: Record<ArtworkStatus, true> = { available: true, sold: true, archive: true };
+		const every: Record<ArtworkStatus, true> = {
+			available: true,
+			sold: true,
+			archive: true,
+			hidden: true,
+		};
 		expect(Object.keys(every).sort()).toEqual([...ARTWORK_STATUS_OPTIONS].sort());
 	});
 });
@@ -37,5 +49,10 @@ describe("quickStateBlockedReason", () => {
 		expect(quickStateBlockedReason("available", undefined)).toMatch(/No price yet/);
 		expect(quickStateBlockedReason("available", 500)).toBeNull();
 		expect(quickStateBlockedReason("sold", null)).toBeNull();
+	});
+
+	it("never blocks Hidden, priced or not", () => {
+		expect(quickStateBlockedReason("hidden", 12000)).toBeNull();
+		expect(quickStateBlockedReason("hidden", null)).toBeNull();
 	});
 });

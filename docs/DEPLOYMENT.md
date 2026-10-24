@@ -12,7 +12,7 @@ Kalchar is one hybrid Next.js 16 application on Vercel. Public pages are statica
 | Database | production Neon | preview Neon |
 | Images | production R2 | configured preview R2 |
 
-The Vercel ignored-build rule skips arbitrary feature branches. Feature work normally targets `dev`, then `dev` is promoted to `main`. `main` is protected and deploys production only after required checks pass.
+The Vercel ignored-build rule skips arbitrary feature branches. Feature work normally targets `dev`, then `dev` is promoted to `main`. Renovate follows the same path: `baseBranchPatterns: ["dev"]` in `renovate.json` opens dependency PRs against `dev`, so bot commits never land on `main` ahead of it. `main` is protected and deploys production only after required checks pass.
 
 The application is not directly compatible with static hosting. The manual GitHub Pages workflow and `public/CNAME` remain as a break-glass artifact, but using them requires restoring a static export configuration and accepting that Auth.js, admin routes, server actions, and on-demand revalidation will be unavailable. Normal recovery uses Vercel rollback and provider backups.
 
@@ -52,20 +52,34 @@ Keep the variable contract consistent while isolating actual credentials/resourc
 - runs Gitleaks from an immutable action commit;
 - fails when a credential pattern is found in the repository history.
 
-### Verify and browser test
+### Verify
+
+`lint, typecheck and unit tests`:
 
 1. Install the pinned pnpm and Node 24, matching the Vercel runtime.
-2. Install dependencies from the frozen lockfile.
+2. Install dependencies from the frozen lockfile and run the production dependency audit.
 3. Run Biome.
-4. Validate migration SQL, snapshots, and journal, and reject a schema change without a migration.
-5. Run the elevation-token drift guard.
-6. Run application and operational-script TypeScript checks and the production dependency audit.
-7. Run Vitest, offline operational checks, and migration integration checks.
-8. Build with `KALCHAR_TEST_FIXTURES=1`, using fixture catalog rows and local media without production service credentials.
-9. Install Chromium.
-10. Run desktop and mobile Playwright tests, including axe WCAG scans.
+4. Reject a pull request that changes `lib/db/schema.ts` without a committed `drizzle/*.sql` migration.
+5. Run the application, operational-script, and browser-fixture TypeScript checks.
+6. Run Vitest and the offline operational checks.
 
-Migration checks apply the journal to disposable PostgreSQL separately from the fixture build. `scripts/check-migrations-db.ts` accepts only a local `MIGRATION_TEST_DATABASE_URL` naming `kalchar_migration_test`; it refuses existing tables and also checks seed/concurrency/category behavior. In-memory PostgreSQL regression cases cover fresh and upgrade paths.
+### Browser tests
+
+`browser tests (1/4)` through `(4/4)` run in parallel. Each shard:
+
+1. Installs dependencies and builds with `KALCHAR_TEST_FIXTURES=1`, using fixture catalog rows and local media without production service credentials. Rebuilding per shard (about 14 seconds) is cheaper than passing `.next` between jobs.
+2. Restores Chromium from a cache keyed on the Playwright version, installing it on a miss, and installs its system libraries.
+3. Runs its quarter of the desktop and mobile Playwright tests (`--shard=N/4`), including axe WCAG scans.
+
+`pnpm test:e2e:fixtures` reproduces the same build and suite locally in one process; see [DEVELOPMENT.md](DEVELOPMENT.md#browser-tests).
+
+### Required check
+
+`lint, typecheck and build` is the required status check in the `main protection` and `dev protection` rulesets. It is an aggregate job: it waits for the verify job and every browser shard, and fails unless all of them succeeded. Renaming it means updating both rulesets in the same change, or merges block. The `dev` ruleset also requires `database migrations` and `secret scan`.
+
+### Database migrations job
+
+`database migrations` validates migration SQL, snapshots, and journal offline (`pnpm db:validate`), then applies the journal to disposable PostgreSQL separately from the fixture build (`pnpm db:check`). `scripts/check-migrations-db.ts` accepts only a local `MIGRATION_TEST_DATABASE_URL` naming `kalchar_migration_test`; it refuses existing tables and also checks seed/concurrency/category behavior. In-memory PostgreSQL regression cases cover fresh and upgrade paths.
 
 Fixture mode does not authenticate users, bypass allowlist checks, or permit writes. It rejects `VERCEL=1`, so a fixture flag cannot silently replace the live catalog on Vercel. This also lets public fork pull requests run build/browser checks without receiving production secrets.
 

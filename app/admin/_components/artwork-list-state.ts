@@ -1,8 +1,8 @@
 import { artworkStatusLabel } from "@/lib/artwork-status";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 
-/** The five lenses over the Pieces list; `all` is the only one that allows reorder. */
-export type PiecesFilter = "all" | "available" | "sold" | "archive" | "featured";
+/** The six lenses over the Pieces list; `all` is the only one that allows reorder. */
+export type PiecesFilter = "all" | "available" | "sold" | "archive" | "hidden" | "featured";
 
 /** Grid (paintings-first, the phone default, D-A13) or list (the reorder and caption surface). */
 export type PiecesView = "grid" | "list";
@@ -25,6 +25,7 @@ export const PIECES_FILTERS: readonly PiecesFilter[] = [
 	"available",
 	"sold",
 	"archive",
+	"hidden",
 	"featured",
 ];
 
@@ -51,7 +52,7 @@ export interface ArtworkListItem {
 
 /** Count the current rows, including optimistic changes that can still roll back. */
 export function countPieces(items: readonly ArtworkListItem[]): Record<PiecesFilter, number> {
-	const counts = { all: items.length, available: 0, sold: 0, archive: 0, featured: 0 };
+	const counts = { all: items.length, available: 0, sold: 0, archive: 0, hidden: 0, featured: 0 };
 	for (const { art } of items) {
 		counts[art.status ?? "archive"] += 1;
 		if (art.featured) counts.featured += 1;
@@ -69,6 +70,7 @@ export const STATUS_MESSAGE: Record<ArtworkStatus, string> = {
 	sold: "marked as sold",
 	available: "marked as available",
 	archive: "marked not for sale",
+	hidden: "hidden from the site",
 };
 
 /** Fresh rows in the staged order; rows unknown to the staged list append in server order, removed rows drop. */

@@ -23,7 +23,7 @@ interface HeroProps {
 	/** slug -> catalog position, for the hero caption. */
 	catalogIndex: Record<string, number>;
 	totalCount: number;
-	/** Category names for the chip rail (DB-backed, falls back to site.json). */
+	/** Category names for the style marquee (DB-backed, falls back to site.json). */
 	styles: readonly string[];
 }
 
@@ -70,7 +70,7 @@ export function Hero({
 						</h1>
 					</div>
 
-					{/* Body: lead + chips + CTAs */}
+					{/* Body: lead + CTAs (the style marquee below carries the style links) */}
 					<div className="lg:col-span-6 lg:col-start-1 lg:row-start-2 lg:self-start">
 						<p className="t-lead max-w-xl">{site.brand.description}</p>
 
@@ -87,24 +87,6 @@ export function Hero({
 									Order a custom piece
 								</Link>
 							</div>
-						</Reveal>
-						<Reveal eager delayMs={staggerDelay(5)}>
-							<nav aria-label="Browse by style" className="mt-5">
-								{/* One row from xl: the column is narrower than the six pills, but the
-								    plate sits far enough right that they can run past it. */}
-								<ul className="flex flex-wrap gap-2 xl:w-max xl:flex-nowrap">
-									{styles.map((style) => (
-										<li key={style}>
-											<Link
-												href={`/work?style=${encodeURIComponent(style)}`}
-												className="inline-flex min-h-control items-center rounded-full border border-line px-4 text-sm font-medium text-muted transition-ui pressable hover:border-accent hover:text-accent-text"
-											>
-												{style}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</nav>
 						</Reveal>
 					</div>
 

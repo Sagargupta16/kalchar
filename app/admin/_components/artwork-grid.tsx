@@ -16,6 +16,7 @@ import {
 	setArtworkFeatured,
 	setArtworkStatus,
 } from "../artwork-actions";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { ArtworkCollection } from "./artwork-collection";
 import { ArtworkEditModal, type ArtworkPatch, DELETE_PIECE_BODY } from "./artwork-edit-modal";
@@ -305,9 +306,7 @@ export function ArtworkGrid({
 				/>
 			) : null}
 			{hiddenRowError ? (
-				<AdminNotice variant="error" className="mb-3">
-					{hiddenRowError}
-				</AdminNotice>
+				<AdminErrorNotice className="mb-3">{hiddenRowError}</AdminErrorNotice>
 			) : null}
 			{notice ? (
 				<AdminNotice variant="success" className="mb-3">

@@ -104,7 +104,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 					dangerouslySetInnerHTML={{ __html: PRE_PAINT_THEME }}
 				/>
 				<noscript>
-					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}`}</style>
+					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}[style*="visibility:hidden"]{visibility:visible!important;}`}</style>
 				</noscript>
 			</head>
 			<body>

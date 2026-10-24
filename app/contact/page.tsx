@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 export const metadata = createPageMetadata({
 	title: "Contact",
 	description:
-		"Get in touch about folk-art commissions, workshops, and prints by Megha Seth. WhatsApp, Instagram, YouTube, or email.",
+		"Get in touch about custom folk-art pieces, workshops, and prints by Megha Seth. WhatsApp, Instagram, YouTube, or email.",
 	path: "/contact/",
 });
 
@@ -181,7 +181,7 @@ export default function ContactPage() {
 
 				{/* Custom orders CTA */}
 				<ClosingCta
-					eyebrow="Ready to commission?"
+					eyebrow="Have a piece in mind?"
 					title="Order a custom piece"
 					body="Send a short brief and we will reply on WhatsApp with ideas, a price and a timeline."
 					action={

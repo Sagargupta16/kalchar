@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { auth } from "@/auth";
+import { NOT_AUTHORIZED_MESSAGE } from "./admin-session";
 import { serverEnv } from "./env";
 import { isMaintainer } from "./maintainers";
 
@@ -18,7 +19,7 @@ export const getAdminAccess = cache(async () => {
 /** Check authorization at the private read or mutation, including direct calls. */
 export async function requireMaintainer(): Promise<string> {
 	const { email, allowed } = await getAdminAccess();
-	if (!email || !allowed) throw new Error("Not authorized.");
+	if (!email || !allowed) throw new Error(NOT_AUTHORIZED_MESSAGE);
 	return email;
 }
 

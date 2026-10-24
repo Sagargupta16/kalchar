@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { regeneratePalette } from "../artwork-actions";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { ArtworkEditFields } from "./artwork-edit-fields";
 import { ConfirmPanel } from "./confirm-dialog";
@@ -18,7 +19,7 @@ export type { ArtworkPatch } from "./use-artwork-editor";
 
 /** One sentence for both delete entry points (row and editor): honest about photos, offers the alternative. */
 export const DELETE_PIECE_BODY =
-	"The piece leaves the site and the admin list. Its photos stay in storage for recovery. To keep it in the gallery but off sale, set its status to Not for sale instead.";
+	"The piece leaves the site and the admin list. Its photos stay in storage for recovery. To keep it in the gallery but off sale, set its status to Not for sale instead, or choose Hidden to take it off the site and keep it here.";
 
 interface ArtworkEditModalProps extends ArtworkEditorProps {
 	thumb: string;
@@ -170,7 +171,7 @@ export function ArtworkEditModal({
 
 function ArtworkEditorFeedback({ editor }: Readonly<{ editor: ArtworkEditorState }>) {
 	if (editor.footerError) {
-		return <AdminNotice variant="error">{editor.footerError}</AdminNotice>;
+		return <AdminErrorNotice>{editor.footerError}</AdminErrorNotice>;
 	}
 	if (editor.success) {
 		return <AdminNotice variant="success">{editor.success}</AdminNotice>;

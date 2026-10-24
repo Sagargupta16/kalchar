@@ -1,6 +1,6 @@
 {
 	"name": "kalchar-by-megha",
-	"version": "1.40.3",
+	"version": "1.41.0",
 	"private": true,
 	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
@@ -22,6 +22,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:e2e": "playwright test",
+		"test:e2e:fixtures": "node scripts/e2e-fixtures.mjs",
+		"test:preview": "node scripts/e2e-fixtures.mjs --preview",
 		"test:operations": "node --test scripts/operational.test.mjs",
 		"test:all": "pnpm test && pnpm test:e2e",
 		"health": "node scripts/health-check.mjs",
@@ -31,8 +33,8 @@
 		"db:validate": "node scripts/check-migrations.mjs",
 		"db:check": "tsx scripts/check-migrations-db.ts",
 		"db:seed": "tsx --env-file-if-exists=.env.local scripts/migrate-json-to-db.ts",
-		"db:images": "tsx --env-file=.env.local scripts/migrate-images-to-r2.ts",
-		"r2:cors": "tsx --env-file=.env.local scripts/set-r2-cors.ts",
+		"db:images": "tsx --env-file-if-exists=.env.local scripts/migrate-images-to-r2.ts",
+		"r2:cors": "tsx --env-file-if-exists=.env.local scripts/set-r2-cors.ts",
 		"r2:cleanup": "tsx --env-file-if-exists=.env.local scripts/cleanup-staging.ts"
 	},
 	"dependencies": {

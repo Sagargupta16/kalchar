@@ -1,11 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ActionResult } from "./action-result";
-import {
-	describeParallelBatch,
-	firstFailureMessage,
-	processInParallel,
-	progressLabel,
-} from "./event-photo-batch";
+import { processInParallel } from "./event-photo-batch";
 
 type Step = ActionResult<{ keyBase: string }>;
 const ok = (keyBase: string): Step => ({ ok: true, keyBase });
@@ -73,50 +68,5 @@ describe("processInParallel", () => {
 		const step = vi.fn(async (key: string) => ok(key));
 		expect(await processInParallel([], step)).toEqual({ total: 0, keyBases: [], failures: [] });
 		expect(step).not.toHaveBeenCalled();
-	});
-});
-
-describe("describeParallelBatch and firstFailureMessage", () => {
-	it("is silent when every photo landed", () => {
-		expect(describeParallelBatch({ total: 3, keyBases: ["a", "b", "c"], failures: [] })).toBeNull();
-	});
-
-	it("names each failed photo and how many to re-select", () => {
-		const notice = describeParallelBatch({
-			total: 8,
-			keyBases: ["1", "2", "4", "5", "6", "8"],
-			failures: [
-				{ position: 3, message: "The upload expired before it could be processed." },
-				{ position: 7, message: "Network dropped" },
-			],
-		});
-		expect(notice).toBe(
-			"Saved 6 of 8 photos. Photo 3 failed: The upload expired before it could be processed. Photo 7 failed: Network dropped. Select those 2 photos and add them again.",
-		);
-	});
-
-	it("uses the singular for one failure", () => {
-		expect(
-			describeParallelBatch({
-				total: 2,
-				keyBases: ["a"],
-				failures: [{ position: 2, message: "Rejected." }],
-			}),
-		).toBe("Saved 1 of 2 photos. Photo 2 failed: Rejected. Select that photo and add them again.");
-	});
-
-	it("surfaces the first failure when nothing was saved", () => {
-		expect(
-			firstFailureMessage({ total: 2, keyBases: [], failures: [{ position: 1, message: "Bad." }] }),
-		).toBe("Bad.");
-		expect(firstFailureMessage({ total: 0, keyBases: [], failures: [] })).toContain("went wrong");
-	});
-});
-
-describe("progressLabel", () => {
-	it("announces the batch, then counts finished photos", () => {
-		expect(progressLabel({ done: 0, total: 1 })).toBe("Processing 1 photo");
-		expect(progressLabel({ done: 0, total: 8 })).toBe("Processing 8 photos");
-		expect(progressLabel({ done: 3, total: 8 })).toBe("3 of 8 photos processed");
 	});
 });

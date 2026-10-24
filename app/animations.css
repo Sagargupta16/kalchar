@@ -163,6 +163,51 @@
   }
 }
 
+/* In-view reveals (Reveal without eager). The from-state lives only in the
+   keyframes, never in the base rule or an inline style, so the server HTML
+   plays the entrance on first paint before hydration and ends fully visible
+   even if JavaScript never runs. Once hydrated, useViewReveal re-arms a host
+   that is still off screen (data-motion-reveal="armed": no animation, held in
+   the from-state); when it scrolls in the attribute flips to "in" and the
+   entrance replays. Same 700ms --ease-out as the Motion reveal it replaced.
+   The fade fills backwards only, so no transform is left on the host once it
+   lands (no containing block for fixed descendants); the plate fills both and
+   rests on inset(0). */
+.reveal-view {
+  animation: reveal-view-in var(--duration-unveil) var(--ease-out) backwards;
+}
+
+.reveal-view[data-motion-reveal="armed"] {
+  animation: none;
+  opacity: 0;
+  transform: translate(var(--reveal-offset-x, 0px), var(--reveal-offset-y, var(--reveal-travel)));
+}
+
+@keyframes reveal-view-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--reveal-offset-x, 0px), var(--reveal-offset-y, var(--reveal-travel)));
+  }
+}
+
+.reveal-view-plate {
+  animation: reveal-view-plate-in var(--duration-unveil) var(--ease-out) both;
+}
+
+.reveal-view-plate[data-motion-reveal="armed"] {
+  animation: none;
+  clip-path: inset(0 0 100% 0);
+}
+
+@keyframes reveal-view-plate-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
 /* Theme toggle icon-in: the new glyph rotates into place. First consumer of
    --ease-in-out (the toggle re-keys the icon on every mode change). */
 .theme-icon-in {

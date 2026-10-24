@@ -9,6 +9,7 @@ import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createCategory, deleteCategory, renameCategory, reorderCategories } from "../actions";
 import { CategoryItem, useCategoryDraftWarning } from "../categories/category-item";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { useConfirm } from "./confirm-dialog";
@@ -227,11 +228,7 @@ export function CategoryManager({
 							{fieldError}
 						</p>
 					) : null}
-					{createError ? (
-						<AdminNotice variant="error" className="mt-3">
-							{createError}
-						</AdminNotice>
-					) : null}
+					{createError ? <AdminErrorNotice className="mt-3">{createError}</AdminErrorNotice> : null}
 					{added ? (
 						<AdminNotice variant="success" className="mt-3">
 							Added "{added}" at the end of the list.

@@ -40,7 +40,9 @@ test("resizing an open mobile menu restores the desktop page @mobile", async ({ 
 	await expect(page.locator("#main")).not.toHaveAttribute("inert", "");
 	await expect(page.locator("body")).not.toHaveCSS("position", "fixed");
 	await expect(
-		page.getByRole("navigation", { name: "Primary", exact: true }).getByRole("link", { name: "Artwork" }),
+		page
+			.getByRole("navigation", { name: "Primary", exact: true })
+			.getByRole("link", { name: "Artwork" }),
 	).toBeFocused();
 });
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, LoaderCircle } from "lucide-react";
+import { Check, LoaderCircle, RotateCcw } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { updateEventMeta } from "../event-actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
 import { AdminNotice } from "./admin-notice";
-import { adminBtnPrimary, adminField, adminLabel, ICON_MD } from "./controls";
+import { adminBtn, adminBtnPrimary, adminField, adminLabel, ICON_MD } from "./controls";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 
 function eventDraft(event: Event) {
@@ -44,6 +44,8 @@ export function EventMetaEditor({
 	const [description, setDescription] = useState(event.description ?? "");
 	const [saved, setSaved] = useState(false);
 	const [localErr, setLocalErr] = useState<string | null>(null);
+	// Reset hides a failed save's message along with the draft it was about.
+	const [showActionError, setShowActionError] = useState(true);
 	const [invalidField, setInvalidField] = useState<"title" | "date" | null>(null);
 	const [baseline, setBaseline] = useState(() => eventDraft(event));
 	const incoming = eventDraft(event);
@@ -83,9 +85,22 @@ export function EventMetaEditor({
 		setInvalidField(null);
 	};
 
+	const onReset = () => {
+		if (blocked) return;
+		setTitle(baseline.title);
+		setDate(baseline.date);
+		setCategory(baseline.category);
+		setDescription(baseline.description);
+		clearFeedback();
+		setShowActionError(false);
+		// The button disables itself once nothing differs; keep focus in the form.
+		titleRef.current?.focus();
+	};
+
 	const onSave = () => {
 		if (blocked) return;
 		clearFeedback();
+		setShowActionError(true);
 		if (!title.trim()) {
 			setLocalErr("Enter a title.");
 			setInvalidField("title");
@@ -127,7 +142,7 @@ export function EventMetaEditor({
 		);
 	};
 
-	const error = localErr ?? err;
+	const error = localErr ?? (showActionError ? err : null);
 
 	return (
 		<form
@@ -213,6 +228,10 @@ export function EventMetaEditor({
 				</div>
 			</div>
 			<div className="mt-(--space-tight) flex flex-wrap items-center gap-2">
+				<button type="button" disabled={blocked || !dirty} onClick={onReset} className={adminBtn}>
+					<RotateCcw size={ICON_MD} aria-hidden="true" />
+					Reset details
+				</button>
 				<button type="submit" disabled={blocked} aria-busy={pending} className={adminBtnPrimary}>
 					{pendingVisible ? (
 						<LoaderCircle size={ICON_MD} aria-hidden="true" className="animate-spin" />
