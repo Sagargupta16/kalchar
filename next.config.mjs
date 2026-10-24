@@ -30,13 +30,19 @@ const mediaPaths = [
 	{ source: `profile/${imageFile}`, destination: "profile/:image" },
 ];
 
-// Versioned variants end their key-base in a UUID minted per upload and are
-// never overwritten, so Vercel's CDN may keep them for its one-year maximum.
-// Seed keys (`artworks/<slug>-<w>.<ext>`) can be regenerated in place by
-// `pnpm db:images`, so they get no edge override. This is the route form of
-// isVersionedImageKey in lib/storage/image-key.ts; media-routes.test.ts keeps
-// the two in agreement. Vercel-CDN-Cache-Control is consumed by Vercel and
-// never reaches the browser, which still follows the object's Cache-Control.
+// Edge lifetimes for published media. kalchar.co.in sits behind Cloudflare's
+// proxy in front of Vercel, so two edges cache these: Vercel reads
+// Vercel-CDN-Cache-Control (and never forwards it), Cloudflare reads the
+// forwarded CDN-Cache-Control. The browser keeps following the object's own
+// Cache-Control from R2.
+// - Every published image gets a day. Seed keys (`artworks/<slug>-<w>.<ext>`)
+//   can be regenerated in place by `pnpm db:images`, so a day bounds how long
+//   an edge can serve an old seed, matching the day-long browser max-age.
+// - Versioned variants end their key-base in a UUID minted per upload and are
+//   never overwritten, so they get the one-year maximum. Their rule comes
+//   later in headers(), and a later rule setting the same key wins.
+// The versioned pattern is the route form of isVersionedImageKey in
+// lib/storage/image-key.ts; media-routes.test.ts keeps the two in agreement.
 const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const versionedImageFile = String.raw`:image((?:[A-Za-z0-9_-]*-)?${uuid}(?:-\d+)?\.(?:avif|webp|jpg))`;
 const versionedMediaSources = [
@@ -44,7 +50,12 @@ const versionedMediaSources = [
 	`/media/events/:eventId([A-Za-z0-9_-]+)/${versionedImageFile}`,
 	`/media/profile/${versionedImageFile}`,
 ];
-const VERSIONED_CDN_CACHE = { key: "Vercel-CDN-Cache-Control", value: "max-age=31536000" };
+const edgeCache = (seconds) => [
+	{ key: "Vercel-CDN-Cache-Control", value: `max-age=${seconds}` },
+	{ key: "CDN-Cache-Control", value: `max-age=${seconds}` },
+];
+const PUBLISHED_EDGE_CACHE = edgeCache(86400);
+const VERSIONED_EDGE_CACHE = edgeCache(31536000);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -98,7 +109,11 @@ const nextConfig = {
 					{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" },
 				],
 			},
-			...versionedMediaSources.map((source) => ({ source, headers: [VERSIONED_CDN_CACHE] })),
+			...mediaPaths.map(({ source }) => ({
+				source: `/media/${source}`,
+				headers: PUBLISHED_EDGE_CACHE,
+			})),
+			...versionedMediaSources.map((source) => ({ source, headers: VERSIONED_EDGE_CACHE })),
 		];
 	},
 	// No serverActions.bodySizeLimit override: admin uploads PUT the master

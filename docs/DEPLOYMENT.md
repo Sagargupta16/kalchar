@@ -105,7 +105,9 @@ Use the same migration path for a fresh database. Existing databases created wit
 
 ## DNS
 
-DNS is managed at GoDaddy:
+As measured on 2026-10-24, the domain's nameservers are Cloudflare (`margot.ns.cloudflare.com`, `renan.ns.cloudflare.com`) and `kalchar.co.in` and `www` resolve to Cloudflare proxy addresses, so Cloudflare sits in front of Vercel. Responses carry `cf-cache-status`: HTML is `DYNAMIC` (not cached by Cloudflare), `/media` images are cached by both edges (see [IMAGES.md](IMAGES.md)). Because Cloudflare replays the headers of the response it stored, `x-vercel-cache` on a Cloudflare `HIT` shows the original fetch, not Vercel's current state; probe `kalchar.vercel.app` to read Vercel's own cache.
+
+The original GoDaddy records (before the nameserver move) pointed straight at Vercel:
 
 | Host | Type | Value |
 | --- | --- | --- |

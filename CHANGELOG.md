@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.41.1 (2026-10-24)
+
+### Fixed
+
+- **Edge caching for every published image.** `kalchar.co.in` turned out to sit behind Cloudflare's proxy (nameservers moved to Cloudflare), so the production probe's `x-vercel-cache: MISS` was Cloudflare replaying its first fetch. Vercel's own cache already kept versioned images (`kalchar.vercel.app`: MISS, HIT, HIT). The 21 seed images were cached by neither edge: Cloudflare showed `REVALIDATED` and Vercel `MISS` on every request. Every published `/media` path now gets a day on both edges (`Vercel-CDN-Cache-Control` for Vercel, the forwarded `CDN-Cache-Control` for Cloudflare), and versioned paths a year.
+
+### Documentation
+
+- DNS section corrected: Cloudflare nameservers and proxy in front of Vercel, with how to read Vercel's cache behind it. IMAGES.md describes both edge lifetimes.
+
 ## 1.41.0 (2026-10-24)
 
 From a whole-project review (visitor, admin and developer), fixed in one pass.

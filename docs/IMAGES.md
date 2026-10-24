@@ -81,7 +81,7 @@ UUID-versioned keys:   Cache-Control: public, max-age=31536000, immutable
 unversioned seed keys: Cache-Control: public, max-age=86400, must-revalidate
 ```
 
-A versioned key-base ends in a UUID minted per upload (`isVersionedImageKey` in `lib/storage/image-key.ts`) and is never overwritten. Seed keys can be regenerated in place by `pnpm db:images`, so they keep the day-long revalidating policy. `next.config.mjs` also adds `Vercel-CDN-Cache-Control: max-age=31536000` on the versioned `/media` paths (artworks, events, profile) so the Vercel edge keeps them too; that header is consumed by Vercel and never reaches the browser. `lib/storage/media-routes.test.ts` keeps the route pattern and the writer's rule in agreement.
+A versioned key-base ends in a UUID minted per upload (`isVersionedImageKey` in `lib/storage/image-key.ts`) and is never overwritten. Seed keys can be regenerated in place by `pnpm db:images`, so they keep the day-long revalidating policy. Two edges cache `/media`, because `kalchar.co.in` is proxied through Cloudflare in front of Vercel. `next.config.mjs` sets `Vercel-CDN-Cache-Control` (read by Vercel, never forwarded) and `CDN-Cache-Control` (forwarded, read by Cloudflare) on every published `/media` path: a day (`max-age=86400`) for all of them, so a regenerated seed is never served stale for longer, and a year (`max-age=31536000`) for the versioned paths, whose later rule overrides the day. The browser still follows the object's own `Cache-Control`. `lib/storage/media-routes.test.ts` keeps the route pattern and the writer's rule in agreement.
 
 ## Replacement
 
