@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
-## 1.40.1 (2026-10-24)
+## 1.40.2 (2026-10-24)
 
 ### Security
 
@@ -11,6 +11,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Changed
 
 - **Three major dependency upgrades, no behaviour change.** Motion 12 to 13 (its one breaking change, the dropped Emotion prop filter, does not apply here), Vitest 4 to 5 (Vite is now an explicit dev dependency as Vitest 5 requires; `clearMocks` defaults to true, which the suite already assumed) and TypeScript 6 to 7, the native compiler. Next 16.3 type-checks through the project-local `tsc` CLI, so `next build` runs on the new compiler too: the type step dropped to under a second. Verified: all three typecheck scopes, 491 unit tests, Biome, the Playwright admin suite (333 passed; one load-timing flake per full run, the same rate `dev` shows on Motion 12, and none when a spec runs alone), a fixture production build and a dev-server smoke of every route.
+## 1.40.1 (2026-10-21)
+
+### Documentation
+
+- Add an architecture diagram to the README, made with [orrery](https://github.com/Sagargupta16/orrery): visitor and maintainer through the Vercel edge into the Next.js app, Neon Postgres, Cloudflare R2 with the presigned staging upload and the `/media` rewrite, Auth.js with Google OAuth and the allowlist, the WhatsApp handoff, and the two daily GitHub Actions crons. The spec is [`docs/diagrams/architecture.yaml`](docs/diagrams/architecture.yaml), with an `evidence:` file and line on every component; the README picks the light or dark SVG to match the reader's theme. `docs/diagrams/` is listed in the docs index, the README's "What's on disk" table and `CLAUDE.md`.
 
 ## 1.40.0 (2026-09-26)
 
@@ -33,7 +38,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Drop the fixed visual and motion rules and the design-choice restriction from CLAUDE.md; design direction is now open.
 - Remove the UI token guard (`scripts/check-ui-tokens.mjs`, `pnpm lint:ui`, its CI step and test) and the type-size lock in `lib/motion.test.ts`.
 
-## 1.39.2 (2026-09-26)
+## 1.39.3 (2026-09-26)
 
 ### Fixed
 
@@ -44,7 +49,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Stretch paired action buttons to full width on phones (hero and Custom Orders), so the two buttons no longer sit at mismatched widths.
 - Align CLAUDE.md, DEVELOPMENT.md and MEMORY.md with the motion policy shipped in 1.39.0.
 
-## 1.39.1 (2026-09-26)
+## 1.39.2 (2026-09-26)
 
 ### Fixed
 
@@ -52,6 +57,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Check event photo references by prefix instead of building a pattern from the event id, clearing a CodeQL regex-injection alert.
 - Decode `&amp;` last in the health check's sitemap parser, so escaped entities are not unescaped twice.
 - Exclude the vendor-generated `skills-lock.json` from Biome, so a local skill install no longer fails `pnpm lint`.
+
+## 1.39.1 (2026-10-11)
+
+### Security
+
+- Update `sharp` to 0.35.5 for the high-severity librsvg advisory GHSA-wq5f-xc86-pv6w (CVE-2026-96889), which affects every `sharp` below 0.35.5. CI's production audit failed on it, which blocked every pull request. Only `sharp` and its platform binaries change in the lockfile.
 
 ## 1.39.0 (2026-09-15)
 

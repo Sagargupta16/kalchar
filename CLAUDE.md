@@ -139,6 +139,7 @@ docs/                     engineering docs (index in docs/README.md):
   IMAGES.md               R2 + sharp variant pipeline + serving
   DEPLOYMENT.md           Vercel, branches, CI, DNS, env matrix
   DEVELOPMENT.md          local setup, scripts, conventions
+  diagrams/               orrery spec + light/dark SVGs for the README architecture picture
 ```
 
 ## Skills
