@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function galleryCards(page: Page) {
-	return page.locator('main a[aria-label][href^="/work/"]');
+	return page.locator('main a[data-artwork-card]');
 }
 
 async function definition(page: Page, label: string) {
@@ -110,7 +110,7 @@ test("sold artwork uses the same commission intent on its page and in the viewer
 	page,
 }) => {
 	await page.goto("/work/");
-	const soldCard = page.locator('main a[aria-label$=", sold"]').first();
+	const soldCard = page.locator('main a[data-artwork-card][data-status="sold"]').first();
 	const path = await soldCard.getAttribute("href");
 	expect(path).not.toBeNull();
 	await soldCard.click();
@@ -269,7 +269,7 @@ test("detail plate and lightbox figure show the whole painting", async ({ page }
 
 test("buy bar is on the first screen of the viewer", async ({ page }) => {
 	await page.goto("/work/");
-	await page.locator('main a[aria-label$=", sold"]').first().click();
+	await page.locator('main a[data-artwork-card][data-status="sold"]').first().click();
 	const dialog = page.getByRole("dialog");
 	const enquiry = dialog.getByRole("link", { name: "Ask about a similar piece" });
 	await expect(enquiry).toBeInViewport();
@@ -361,7 +361,7 @@ async function pillPlacement(pill: Locator) {
 
 test("status pill is one shape in all three views", async ({ page }) => {
 	await page.goto("/work/");
-	const soldCard = page.locator('main a[aria-label$=", sold"]').first();
+	const soldCard = page.locator('main a[data-artwork-card][data-status="sold"]').first();
 	const path = await soldCard.getAttribute("href");
 	// Cards pin the pill to the bottom-left; viewers and details use the top-left.
 	const card = await pillPlacement(soldCard.getByText("Sold", { exact: true }).first());
@@ -399,7 +399,7 @@ function enquiryBar(page: Page) {
 
 test("@mobile enquiry bar follows the panel", async ({ page }) => {
 	await page.goto("/work/");
-	const path = await page.locator('main a[aria-label$=", sold"]').first().getAttribute("href");
+	const path = await page.locator('main a[data-artwork-card][data-status="sold"]').first().getAttribute("href");
 	await page.goto(path as string);
 	const bar = enquiryBar(page);
 	// The panel sits on the first screen of the painted wall; once the reader
@@ -493,7 +493,7 @@ test("detail orders price before the full-width enquiry, one price on the page",
 
 test("sold detail offers the available artwork collection", async ({ page }) => {
 	await page.goto("/work/");
-	const path = await page.locator('main a[aria-label$=", sold"]').first().getAttribute("href");
+	const path = await page.locator('main a[data-artwork-card][data-status="sold"]').first().getAttribute("href");
 	await page.goto(path as string);
 	// No price renders; the wall label carries the status instead.
 	await expect(page.locator("main").getByText(/^INR [\d,]+$/)).toHaveCount(0);

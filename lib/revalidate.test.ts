@@ -49,12 +49,13 @@ function pathsOf(entity: Entity): string[] {
 }
 
 describe("revalidateEntity", () => {
-	it.each(
-		Object.keys(expected) as Entity[],
-	)("refreshes exactly the routes that render %s, in order", (entity) => {
-		revalidateEntity(entity);
-		expect(fakes.revalidate.mock.calls).toEqual(expected[entity]);
-	});
+	it.each(Object.keys(expected) as Entity[])(
+		"refreshes exactly the routes that render %s, in order",
+		(entity) => {
+			revalidateEntity(entity);
+			expect(fakes.revalidate.mock.calls).toEqual(expected[entity]);
+		},
+	);
 
 	it("has an expected sequence for every registered entity and nothing else", () => {
 		expect(Object.keys(REVALIDATION).sort()).toEqual(Object.keys(expected).sort());

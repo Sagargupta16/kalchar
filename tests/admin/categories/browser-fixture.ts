@@ -40,7 +40,7 @@ export async function mountCategories(page: Page) {
 	await page.evaluate(() => window.mountCategories());
 }
 
-export async function hasUnsavedWarning(page: Page) {
+export function hasUnsavedWarning(page: Page) {
 	return page.evaluate(() => {
 		const event = new Event("beforeunload", { cancelable: true });
 		window.dispatchEvent(event);

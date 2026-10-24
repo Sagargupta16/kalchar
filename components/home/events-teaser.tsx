@@ -69,16 +69,17 @@ export function EventsTeaser({
 								<Link
 									href={`/events#${event.id}`}
 									className="group pressable block rounded-(--radius-md)"
-									aria-label={`${event.title}, ${event.images.length} photo${event.images.length === 1 ? "" : "s"}`}
 								>
 									<PlateFrame className={coverAspect}>
 										{event.images[0] ? (
-											<ResponsiveImage
-												keyBase={event.images[0]}
-												alt={`${event.title} cover`}
-												sizes={coverSizes}
-												className="absolute inset-0 h-full w-full object-contain"
-											/>
+											<span aria-hidden="true">
+												<ResponsiveImage
+													keyBase={event.images[0]}
+													alt={`${event.title} cover`}
+													sizes={coverSizes}
+													className="absolute inset-0 h-full w-full object-contain"
+												/>
+											</span>
 										) : (
 											<span className="absolute inset-0 grid place-items-center text-muted">
 												<CalendarDays size={28} aria-hidden="true" />

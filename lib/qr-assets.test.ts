@@ -25,31 +25,30 @@ beforeAll(async () => {
 	});
 });
 
-it.each(
-	QR_ASSETS,
-)("$filename stays within its transfer budget while retaining enough pixels for a phone", async ({
-	filename,
-}) => {
-	const image = await readFile(new URL(`../public/${filename}`, import.meta.url));
-	const metadata = await sharp(image).metadata();
-	expect(image.byteLength).toBeLessThan(100_000);
-	expect(metadata.format).toBe("png");
-	expect(metadata.width).toBeGreaterThanOrEqual(288);
-	expect(metadata.height).toBeGreaterThanOrEqual(336);
-	expect(metadata.height).toBeLessThanOrEqual(512);
-	expect((metadata.width ?? 0) / (metadata.height ?? 1)).toBeCloseTo(2350 / 2700, 2);
-});
+it.each(QR_ASSETS)(
+	"$filename stays within its transfer budget while retaining enough pixels for a phone",
+	async ({ filename }) => {
+		const image = await readFile(new URL(`../public/${filename}`, import.meta.url));
+		const metadata = await sharp(image).metadata();
+		expect(image.byteLength).toBeLessThan(100_000);
+		expect(metadata.format).toBe("png");
+		expect(metadata.width).toBeGreaterThanOrEqual(288);
+		expect(metadata.height).toBeGreaterThanOrEqual(336);
+		expect(metadata.height).toBeLessThanOrEqual(512);
+		expect((metadata.width ?? 0) / (metadata.height ?? 1)).toBeCloseTo(2350 / 2700, 2);
+	},
+);
 
-it.each(QR_ASSETS)("$filename preserves its decoded destination", async ({
-	filename,
-	destination,
-}) => {
-	const image = await readFile(new URL(`../public/${filename}`, import.meta.url));
-	const decoded = await readBarcodes(image, { formats: ["QRCode"], tryHarder: true });
-	expect(decoded).toHaveLength(1);
-	expect(decoded[0]).toMatchObject({
-		isValid: true,
-		format: "QRCode",
-		text: destination,
-	});
-});
+it.each(QR_ASSETS)(
+	"$filename preserves its decoded destination",
+	async ({ filename, destination }) => {
+		const image = await readFile(new URL(`../public/${filename}`, import.meta.url));
+		const decoded = await readBarcodes(image, { formats: ["QRCode"], tryHarder: true });
+		expect(decoded).toHaveLength(1);
+		expect(decoded[0]).toMatchObject({
+			isValid: true,
+			format: "QRCode",
+			text: destination,
+		});
+	},
+);

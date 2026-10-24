@@ -17,17 +17,14 @@ describe("image cleanup after a database write", () => {
 		expect(deleteImages).toHaveBeenCalledWith(["events/example/new"]);
 	});
 
-	it.each([
-		"23505",
-		"23503",
-		"23514",
-		"40001",
-		"40P01",
-	])("cleans a version after a confirmed Postgres rejection (%s)", async (code) => {
-		const cause = Object.assign(new Error("Database rejected the write"), { code });
-		await cleanupFailedImageWrite(["artworks/new"], new Error("Query failed", { cause }));
-		expect(deleteImages).toHaveBeenCalledWith(["artworks/new"]);
-	});
+	it.each(["23505", "23503", "23514", "40001", "40P01"])(
+		"cleans a version after a confirmed Postgres rejection (%s)",
+		async (code) => {
+			const cause = Object.assign(new Error("Database rejected the write"), { code });
+			await cleanupFailedImageWrite(["artworks/new"], new Error("Query failed", { cause }));
+			expect(deleteImages).toHaveBeenCalledWith(["artworks/new"]);
+		},
+	);
 
 	it("retains images when the write response is lost after a possible commit", async () => {
 		await cleanupFailedImageWrite(["artworks/new"], new Error("Connection reset"));

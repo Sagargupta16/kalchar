@@ -58,21 +58,22 @@ describe("processImageVariants", () => {
 		]);
 	});
 
-	it.each([
-		1, 2, 3, 4, 5, 6, 7, 8,
-	])("stores the emitted geometry for EXIF orientation %s and strips private metadata", async (orientation) => {
-		const result = await processImageVariants("artworks/test", await syntheticImage(orientation));
-		const expectedRatio = orientation >= 5 ? 0.5 : 2;
-		expect(result.aspectRatio).toBe(expectedRatio);
-		for (const [, output] of r2.uploadObject.mock.calls) {
-			const metadata = await sharp(output as Buffer).metadata();
-			expect(metadata.width / metadata.height).toBe(expectedRatio);
-			expect(metadata.orientation).toBeUndefined();
-			expect(metadata.exif).toBeUndefined();
-			expect(metadata.xmp).toBeUndefined();
-			expect(metadata.iptc).toBeUndefined();
-		}
-	});
+	it.each([1, 2, 3, 4, 5, 6, 7, 8])(
+		"stores the emitted geometry for EXIF orientation %s and strips private metadata",
+		async (orientation) => {
+			const result = await processImageVariants("artworks/test", await syntheticImage(orientation));
+			const expectedRatio = orientation >= 5 ? 0.5 : 2;
+			expect(result.aspectRatio).toBe(expectedRatio);
+			for (const [, output] of r2.uploadObject.mock.calls) {
+				const metadata = await sharp(output as Buffer).metadata();
+				expect(metadata.width / metadata.height).toBe(expectedRatio);
+				expect(metadata.orientation).toBeUndefined();
+				expect(metadata.exif).toBeUndefined();
+				expect(metadata.xmp).toBeUndefined();
+				expect(metadata.iptc).toBeUndefined();
+			}
+		},
+	);
 
 	it("gives concurrent creations of the same slug independent image keys", async () => {
 		const source = await syntheticImage();

@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function galleryCards(page: Page) {
-	return page.locator('main a[aria-label][href^="/work/"]');
+	return page.locator('main a[data-artwork-card]');
 }
 
 async function figureCentre(page: Page) {

@@ -86,7 +86,7 @@ Every script from [package.json](../package.json), what it runs, and when you re
 | `pnpm lint` | `biome check` | Lint + format-check (no writes). What CI runs; run it before pushing. |
 | `pnpm lint:fix` | `biome check --write` | Apply Biome's safe lint fixes and formatting in place. |
 | `pnpm format` | `biome format --write` | Format only (no lint rules), in place. |
-| `pnpm typecheck` | `tsc --noEmit` | Strict TypeScript check, no emit. Run before a PR alongside lint. |
+| `pnpm typecheck` | `next typegen && tsc --noEmit` | Generates `next-env.d.ts` and the route types, then runs the strict TypeScript check with no emit. Run before a PR alongside lint. `next-env.d.ts` is generated, gitignored and never edited by hand. |
 | `pnpm exec tsc -p tsconfig.scripts.json` | TypeScript including TS/MJS scripts | Check operational scripts, including JavaScript via `checkJs`. |
 | `pnpm test` | `vitest run` | Unit tests for domain helpers, validation, rate limiting, and storage compensation. |
 | `pnpm test:e2e` | `playwright test` | Desktop and mobile Chromium checks, including axe accessibility scans. Uses port 3001 by default. |
