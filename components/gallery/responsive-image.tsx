@@ -38,8 +38,16 @@ interface ResponsiveImageProps {
 
 /** Pre-decode "settle" state the plate animates out of as it loads. */
 const SETTLE_HIDDEN_STYLE = { opacity: 0, transform: "scale(1.02)" } as const;
+const SETTLE_TRANSITION_CLASS =
+	"transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out)";
 const FALLBACK_CLASS_NAME = "absolute inset-0 grid place-content-center gap-2 bg-canvas text-muted";
 type ImageSource = "remote" | "fallback" | "failed";
+/**
+ * shown = rendered as is (the server HTML, or pixels were already on screen
+ * when the client attached); waiting = the client saw no pixels yet and holds
+ * the settle from-state; settling = it loaded after waiting and eases in.
+ */
+type SettleState = "shown" | "waiting" | "settling";
 
 function buildSrcset(keyBase: string, ext: "avif" | "webp" | "jpg", maxWidth?: number): string {
 	return VARIANT_WIDTHS.filter((w) => !maxWidth || w <= maxWidth)
@@ -58,7 +66,7 @@ export function ResponsiveImage({
 	onNaturalSize,
 }: Readonly<ResponsiveImageProps>) {
 	const [imageSource, setImageSource] = useState<ImageSource>("remote");
-	const [loaded, setLoaded] = useState(false);
+	const [settleState, setSettleState] = useState<SettleState>("shown");
 
 	// Reset per image: when the same mounted instance is pointed at a new
 	// keyBase (lightbox arrows, hero shuffle), a previous photo's failure or
@@ -68,30 +76,47 @@ export function ResponsiveImage({
 	if (seenKeyBase !== keyBase) {
 		setSeenKeyBase(keyBase);
 		setImageSource("remote");
-		setLoaded(false);
+		setSettleState("shown");
 	}
 	const activeSource = seenKeyBase === keyBase ? imageSource : "remote";
-	const handleError = () => {
-		setLoaded(false);
-		setImageSource((current) => (current === "remote" && fallbackSrc ? "fallback" : "failed"));
+	// Gallery-register settle: the image fades in and settles from 1.02 as it
+	// decodes (opacity + transform only, compositor-safe). Priority (LCP) images
+	// and the same-origin fallback skip it.
+	const isFallback = activeSource === "fallback";
+	const animate = !isFallback && !priority;
+	// Advance one step from the source that actually failed. The error event and
+	// the pre-hydration recheck below can both report the same remote failure; a
+	// report about a source already replaced is stale and must not push a working
+	// fallback on to "failed".
+	const failFrom = (source: ImageSource) => {
+		setImageSource((current) => {
+			if (current !== source) return current;
+			return current === "remote" && fallbackSrc ? "fallback" : "failed";
+		});
 	};
 	const markLoaded = (el: HTMLImageElement) => {
-		setLoaded(true);
+		setSettleState((current) => (current === "waiting" ? "settling" : current));
 		if (el.naturalWidth > 0) onNaturalSize?.(el.naturalWidth, el.naturalHeight);
 	};
+	// Fails open: the server HTML never carries the hidden state, so a slow or
+	// failed hydration still shows every image the moment it loads. The client
+	// only hides an image it can see has no pixels yet (naturalWidth 0), and by
+	// then the onLoad handler is attached, so the settle always completes.
 	const settle = (el: HTMLImageElement | null) => {
 		if (!el) return;
 		if (el.complete && el.naturalWidth > 0) {
 			markLoaded(el);
 			return;
 		}
+		if (animate && el.naturalWidth === 0) setSettleState("waiting");
 
 		// Picture source selection can still be pending when the ref attaches.
-		// Recheck next frame to catch only failures that predate hydration.
+		// Recheck next frame to catch loads and failures that predate hydration.
+		const source = activeSource;
 		globalThis.requestAnimationFrame(() => {
 			if (!el.isConnected || !el.complete) return;
 			if (el.naturalWidth > 0) markLoaded(el);
-			else handleError();
+			else failFrom(source);
 		});
 	};
 	if (activeSource === "failed") {
@@ -117,15 +142,10 @@ export function ResponsiveImage({
 		);
 	}
 
-	// Gallery-register settle: the image fades in and settles from 1.02 as it
-	// decodes (opacity + transform only, compositor-safe). Priority (LCP) images
-	// skip it. The hidden
-	// state is an INLINE opacity:0 so the no-JS <noscript> net in layout.tsx
-	// unhides it for crawlers -- the same contract Reveal relies on.
-	const isFallback = activeSource === "fallback";
-	const animate = !isFallback && !priority;
 	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
-	const settleStyle = animate && !loaded ? SETTLE_HIDDEN_STYLE : undefined;
+	// The transition is only on while settling, so arming "waiting" over an
+	// already painted (empty) box never fades anything out.
+	const settleStyle = animate && settleState === "waiting" ? SETTLE_HIDDEN_STYLE : undefined;
 	const image = (
 		// biome-ignore lint/performance/noImgElement: native picture sources provide the R2 format and width selection
 		<img
@@ -137,12 +157,9 @@ export function ResponsiveImage({
 			decoding={priority ? "sync" : "async"}
 			fetchPriority={priority ? "high" : "auto"}
 			onLoad={(loadEvent) => markLoaded(loadEvent.currentTarget)}
-			onError={handleError}
+			onError={() => failFrom(activeSource)}
 			style={settleStyle}
-			className={cn(
-				imgClass,
-				animate && "transition-[opacity,transform] duration-(--duration-enter) ease-(--ease-out)",
-			)}
+			className={cn(imgClass, animate && settleState === "settling" && SETTLE_TRANSITION_CLASS)}
 		/>
 	);
 

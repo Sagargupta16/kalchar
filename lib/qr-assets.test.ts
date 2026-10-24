@@ -4,11 +4,11 @@ import sharp from "sharp";
 import { beforeAll, expect, it } from "vitest";
 import { prepareZXingModule, readBarcodes } from "zxing-wasm/reader";
 
-// These destinations were decoded from the original PNGs before resizing.
+// Each PNG must decode to the profile URL Instagram's own QR export encodes.
 const QR_ASSETS = [
 	{
-		filename: "kalchar_by_meghaseth_qr.png",
-		destination: "https://www.instagram.com/kalchar_by_meghaseth?utm_source=qr",
+		filename: "kalchar_art_qr.png",
+		destination: "https://www.instagram.com/kalchar.art?utm_source=qr",
 	},
 	{
 		filename: "instagram-qr.png",

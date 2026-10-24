@@ -63,13 +63,13 @@ flowchart TB
 | --- | --- | --- |
 | Framework | Next.js 16 App Router, React 19 | Hybrid: SSG public, dynamic admin |
 | Language | TypeScript (strict) | |
-| Styling | Tailwind 4, shadcn-style (cva + Radix) | tokens in `app/globals.css` |
-| Animation | Motion 12 + Lenis (lazy) | all reduced-motion safe |
+| Styling | Tailwind 4, shadcn-style (cva variants, no Radix) | tokens in `app/globals.css` |
+| Animation | Motion 14 + Lenis (lazy) | always on: `MotionConfig reducedMotion="never"` in `components/motion/motion-provider.tsx` |
 | Hosting | Vercel (`sagar-2` account) | `main` -> prod, `dev` -> preview |
 | Database | Neon Postgres + Drizzle ORM | serverless, region in `DATABASE_URL` |
 | Image storage | Cloudflare R2 (S3 API) | free egress, public bucket URL |
 | Auth | Auth.js v5 + Google OAuth | allowlist in `maintainers` table |
-| Tooling | Biome 2, Vitest 4, Playwright 1, pnpm 10, Node 22 | |
+| Tooling | Biome 2, Vitest 5, Playwright 1, pnpm 10, Node 24 | Node 24 in CI, on Vercel and in `.nvmrc`; `engines` allows `>=22` |
 
 ## Application layers
 
@@ -132,7 +132,8 @@ flowchart LR
         marquee["components/decor/marquee"]
     end
     subgraph seamfns["lib/data.ts"]
-        getAll["getAllArtworks()"]
+        getAll["getAllArtworks()<br/>(hidden dropped)"]
+        getAdmin["getAdminArtworks()<br/>(maintainer-checked, hidden kept)"]
         getOne["getArtworkBySlug()"]
         getAvail["getAvailableArtworks()"]
         getFeat["getFeaturedArtwork()"]
@@ -141,12 +142,15 @@ flowchart LR
         getSet["getSetting(key)<br/>(validated setting types)"]
         getSite["getSite()  (sync)"]
     end
+    adminPg["app/admin + /admin/categories"]
     callers --> getAll & getOne & getAvail & getFeat & getShop & getEvents & getSet & getSite
-    getAll & getOne & getAvail & getFeat & getShop & getEvents & getSet -->|await Drizzle| neon[("Neon")]
+    adminPg --> getAdmin
+    getAll & getAdmin & getOne & getAvail & getFeat & getShop & getEvents & getSet -->|await Drizzle| neon[("Neon")]
     getSite -->|import| sj["data/site.json"]
 ```
 
 - Catalog getters are **async** and query Neon via Drizzle. Rows are mapped to the UI `Artwork`/`Workshop` types (nullable DB columns -> optional fields; `palette` jsonb -> `string[]`).
+- **Hidden pieces are filtered once.** `getAllArtworks()` is the public read and drops `status: "hidden"` rows, so every public getter built on it (slug lookup, buy filter, featured, sitemap, feed) inherits the rule and a hidden piece's `/work/<slug>/` returns 404. `getAdminArtworks()` checks the maintainer session at the read and returns every row; `/admin` and `/admin/categories` use it.
 - `getSite()` stays **synchronous** -- site brand/nav/contact/section copy is static chrome, read from `data/site.json`, and `app/layout.tsx` consumes it at module top-level where `await` can't reach.
 - Public UI reads stay behind this seam. Authorized mutation, allowlist, bootstrap, and migration modules have their own explicit server-side database responsibilities.
 - CI's `KALCHAR_TEST_FIXTURES=1` mode supplies public fixture rows at the seam. It rejects `VERCEL=1`, never grants admin access, and throws on database-object use. Real builds use the configured Neon catalog.

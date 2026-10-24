@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.41.0 (2026-10-24)
+
+From a whole-project review (visitor, admin and developer), fixed in one pass.
+
+### Added
+
+- **Hidden pieces.** Artworks get a fourth status, Hidden: kept in the admin, never shown on the site (gallery, home, detail page returns 404, sitemap, catalog feed, counts), even with a price. Needs migration `0004_hidden_artwork_status` (a check-constraint relaxation, safe before the deploy). The admin shows it in the status control, chip, filter tab and stats, and reads through the new `getAdminArtworks()`; the public `getAllArtworks()` drops hidden pieces in one place.
+- **Edit testimonials.** Testimonials can be edited in place (Save, Cancel, draft guard) instead of delete and re-add, through a validated `updateTestimonial` action.
+- **Lightbox to detail page.** The artwork viewer has a "View full details" link, so phone visitors who tap a card can reach the story, palette and related pieces.
+- **Reply by call or email.** Enquiries show every reply link the contact allows (WhatsApp, Call, Email, Copy email); each marks a new enquiry Contacted. An enquiry with no contact says so.
+- **Signed-out notice.** An expired admin session shows "You have been signed out. Sign in again to save." with a link back to the same page, instead of a bare "Not authorized." Server action posts are no longer redirected by `proxy.ts`, so the action's own answer reaches the page.
+- **Photo uploads on mobile data.** Photos with a long edge over 2400px are downscaled in the browser before upload. Event photos stage one by one: a failed photo is named and can be retried, the rest still upload, and a second pick adds to the selection instead of replacing it.
+- **Scripts.** `pnpm test:e2e:fixtures` (fixture build plus browser suite, any OS) and `pnpm test:preview` (the `@preview` admin geometry suites).
+
+### Fixed
+
+- **Primary Instagram link.** `@kalchar_by_meghaseth` no longer exists; the site, footer and contact QR now point at `@kalchar.art` (new QR card).
+- **Hindi and accented titles.** A piece titled in Devanagari or with accents got image keys the `/media` rewrite rejects, so every image 404d. Image keys now use an ASCII segment of the slug (`lib/storage/image-key.ts`); the web address keeps the original slug.
+- **`/work` in the HTML.** The gallery shipped only a skeleton until JavaScript loaded; the server HTML now carries the full wall (21 links in fixtures, was 0).
+- **Content hidden before hydration.** Scroll reveals and image fades no longer render `opacity:0` in the server HTML; entrances run on CSS from first paint and replay on scroll after hydration. Motion is unchanged. Masonry walls are visible without JavaScript.
+- **Fallback images stay up.** When R2 fails, an image's error could be reported twice (the error event and the pre-hydration recheck), and the second report pushed a working local fallback to "Image unavailable". A failure now only advances from the source that actually failed (the hero test went from 36/40 to 40/40 on repeat).
+- **Duplicate titles.** A repeated title gets a numbered address (`fish-2`) instead of an error. `updateArtwork` rejects Not for sale with a price, which used to read back as Available.
+- **`/about` refresh.** Category changes now revalidate `/about`, which lists the traditions.
+- **Image caching.** New versioned images upload as `immutable` for a year and carry `Vercel-CDN-Cache-Control`, so the Vercel edge caches them (both production probes were `MISS`).
+- **Enquiry spam cap.** Besides the honeypot and per-instance limiter, enquiries are capped at 30 an hour and 200 a day across all instances; WhatsApp handoff still works when saving is refused.
+- **Admin consistency.** Add buttons are primary and full width on phones; event details gained Reset; "View on site" opens a new tab; the raised Add button no longer sticks 8px below a 375x812 screen; the Add sheet's picker no longer offers HEIC.
+
+### Changed
+
+- **Copy.** "Commission" wording became custom order across the site and the prefilled WhatsApp messages. The footer drops the repeated hero headline and blurb (bottom strip unchanged). The hero drops its style chip row, which repeated the marquee right below it.
+- **CI.** The browser suite runs in 4 shards with a Playwright browser cache; the required check name is unchanged.
+- **Docs.** README opens with a no-secrets quick start (`pnpm dev:preview`). Versions corrected (Motion 14, Vitest 5, Node 24, `.nvmrc` 24), scripts table completed, four historical planning docs moved to `docs/archive/`. Renovate targets `dev`. Biome now lints `tests/**`.
+
 ## 1.40.3 (2026-10-24)
 
 ### Fixed
@@ -377,7 +410,7 @@ UI-consistency Phase 0: the elevation token foundation. A multi-agent UI researc
 
 - **Elevation + shadow tokens** ([app/globals.css](app/globals.css)) -- a layered `--shadow-e0..e5` scale plus `--shadow-hairline`, tinted with a warm `--shadow-ink` triplet (not black) so depth reads as sunlit-paper on the cream ground. Dark mode remaps them to an inset top-highlight + deeper ambient shadow (drop-shadows are invisible on the dark ground). Role map documented inline: hairline = resting frame edge, e1 = card, e2 = hover, e3 = dropdown, e4 = FAB/lightbox chrome, e5 = modal.
 - **Spacing + motion tokens** -- filled scale holes (`--space-5/14/20`), a fluid `--space-block` / `--grid-gap` / `--header-max` for rhythm, and a `--duration-micro/instant` interaction rung.
-- **UI consistency plan** ([docs/UI-CONSISTENCY-PLAN.md](docs/UI-CONSISTENCY-PLAN.md)) -- the full research: token foundation, phased migration, and 48 verified per-page findings, for the follow-up PRs.
+- **UI consistency plan** ([docs/UI-CONSISTENCY-PLAN.md](docs/archive/UI-CONSISTENCY-PLAN.md)) -- the full research: token foundation, phased migration, and 48 verified per-page findings, for the follow-up PRs.
 
 ### Changed
 
@@ -511,7 +544,7 @@ Roadmap Phase 1 (part 1): the testing safety net + catalog correctness. First au
 
 ### Added
 
-- **Feature roadmap** ([docs/ROADMAP.md](docs/ROADMAP.md)) -- a prioritized product roadmap synthesized from a multi-agent deep-dive (196 agents, 148 ideas across 20 domains, RICE-scored, top 22 adversarially verified). Themes, a phased solo-dev sequence, quick wins, big bets, and the full ranked idea pool with per-idea detail. A decision aid; nothing committed. Docs-only, no runtime change.
+- **Feature roadmap** ([docs/ROADMAP.md](docs/archive/ROADMAP.md)) -- a prioritized product roadmap synthesized from a multi-agent deep-dive (196 agents, 148 ideas across 20 domains, RICE-scored, top 22 adversarially verified). Themes, a phased solo-dev sequence, quick wins, big bets, and the full ranked idea pool with per-idea detail. A decision aid; nothing committed. Docs-only, no runtime change.
 
 ## 1.24.2 (2026-07-02)
 

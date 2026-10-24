@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useRef, useState } from "react";
 import { SPRING_PANEL } from "@/lib/motion";
 import { cn, formatBytes } from "@/lib/utils";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { adminBtn, adminBtnPrimary, adminHelp, ICON_MD } from "./controls";
 import { useObjectUrl } from "./photo-preview";
 import { UploadProgress } from "./upload-progress";
@@ -90,11 +90,7 @@ export function UploadPhotoStep({ composer }: Readonly<{ composer: UploadCompose
 					<UploadPhotoStatus composer={composer} />
 				</div>
 			) : null}
-			{dropError ? (
-				<AdminNotice variant="error" className="mt-3">
-					{dropError}
-				</AdminNotice>
-			) : null}
+			{dropError ? <AdminErrorNotice className="mt-3">{dropError}</AdminErrorNotice> : null}
 		</section>
 	);
 }
@@ -159,7 +155,7 @@ function UploadPhotoStatus({ composer }: Readonly<{ composer: UploadComposerStat
 	if (stageError) {
 		return (
 			<div className="grid gap-2">
-				<AdminNotice variant="error">{stageError}</AdminNotice>
+				<AdminErrorNotice>{stageError}</AdminErrorNotice>
 				<button type="button" onClick={retry} className={cn(adminBtnPrimary, "justify-self-start")}>
 					<RotateCcw size={ICON_MD} aria-hidden="true" /> Retry upload
 				</button>

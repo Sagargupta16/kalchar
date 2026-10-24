@@ -5,10 +5,11 @@ import type { ReactNode } from "react";
 import { isForSale } from "@/lib/catalog";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import {
 	artworkStatusHelper,
 	FeaturedToggle,
+	STATUS_TRACK_TWO_BY_TWO,
 	useArtworkStatusOptions,
 } from "./artwork-quick-state";
 import {
@@ -46,9 +47,11 @@ export interface ArtworkRowProps {
 /**
  * The list-view row (1.11): one grid recipe, grip + Edit body + fixed action
  * cluster (star, hairline divider, Delete) on line 1, the Segmented status
- * control full width on line 2. At @xl/row everything joins one line with the
- * segmented control between the body and the star. Delete always sits at the
- * far end behind the divider with 16px of clear space (1.10).
+ * control full width on line 2 (a 2 x 2 track on phones, one line from
+ * @lg/row). At @4xl/row everything joins one line with the segmented control
+ * between the body and the star; the four segments need ~29rem to show their
+ * labels whole. Delete always sits at the far end behind the divider with 16px
+ * of clear space (1.10).
  */
 export function ArtworkRow({
 	art,
@@ -69,7 +72,7 @@ export function ArtworkRow({
 	const statusOptions = useArtworkStatusOptions(art.priceInr);
 	const status = art.status ?? "archive";
 	// Rendered as the grid's own second row, not inside the Segmented cell, so
-	// the track stays on the one-line row's centre line at @xl/row (Tier 1b).
+	// the track stays on the one-line row's centre line at @4xl/row (Tier 1b).
 	const statusLine = segmentedHelperText(artworkStatusHelper(status), statusOptions);
 	return (
 		<li
@@ -83,7 +86,7 @@ export function ArtworkRow({
 				highlighted && "border-accent",
 			)}
 		>
-			<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 @xl/row:grid-cols-[auto_minmax(0,1fr)_minmax(0,20rem)_auto]">
+			<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 @4xl/row:grid-cols-[auto_minmax(0,1fr)_minmax(0,29rem)_auto]">
 				{reorderHandle}
 				<button
 					type="button"
@@ -116,7 +119,7 @@ export function ArtworkRow({
 					</span>
 					<Pencil size={ICON_MD} aria-hidden="true" className="shrink-0 text-muted" />
 				</button>
-				{/* Line 2 on phones; joins line 1 between the body and the star at @xl/row. */}
+				{/* Line 2 below @4xl/row; joins line 1 between the body and the star there. */}
 				<Segmented
 					name={art.slug}
 					label={`Status of ${art.title}`}
@@ -125,9 +128,12 @@ export function ArtworkRow({
 					disabled={pending}
 					showHelper={false}
 					onChange={onSetStatus}
-					className="col-span-3 mt-3 @xl/row:col-span-1 @xl/row:col-start-3 @xl/row:row-start-1 @xl/row:mt-0"
+					className={cn(
+						STATUS_TRACK_TWO_BY_TWO,
+						"col-span-3 mt-3 @lg/row:[&>[role=radiogroup]]:flex @4xl/row:col-span-1 @4xl/row:col-start-3 @4xl/row:row-start-1 @4xl/row:mt-0",
+					)}
 				/>
-				<div className="col-start-3 row-start-1 flex items-center self-center justify-self-end @xl/row:col-start-4">
+				<div className="col-start-3 row-start-1 flex items-center self-center justify-self-end @4xl/row:col-start-4">
 					<FeaturedToggle
 						title={art.title}
 						featured={art.featured}
@@ -150,18 +156,14 @@ export function ArtworkRow({
 					<p
 						className={cn(
 							adminHelp,
-							"col-span-3 -mt-2 @xl/row:col-span-1 @xl/row:col-start-3 @xl/row:row-start-2",
+							"col-span-3 -mt-2 @4xl/row:col-span-1 @4xl/row:col-start-3 @4xl/row:row-start-2",
 						)}
 					>
 						{statusLine}
 					</p>
 				) : null}
 			</div>
-			{error ? (
-				<AdminNotice variant="error" className="mt-3">
-					{error}
-				</AdminNotice>
-			) : null}
+			{error ? <AdminErrorNotice className="mt-3">{error}</AdminErrorNotice> : null}
 		</li>
 	);
 }

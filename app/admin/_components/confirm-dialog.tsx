@@ -11,7 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { adminBtn, adminBtnDangerSolid, adminBtnPrimary, ICON_MD } from "./controls";
 import { Modal, ModalBody, useModalExit } from "./modal";
 import { usePendingVisible } from "./use-admin-action";
@@ -212,7 +212,7 @@ export function ConfirmPanel({
 					) : null}
 				</div>
 			</div>
-			{error ? <AdminNotice variant="error">{error}</AdminNotice> : null}
+			{error ? <AdminErrorNotice>{error}</AdminErrorNotice> : null}
 			<div className="flex flex-wrap justify-end gap-3">
 				<button
 					ref={cancelRef}

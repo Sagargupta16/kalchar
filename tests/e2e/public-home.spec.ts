@@ -36,7 +36,9 @@ async function fontSizeForToken(page: Page, token: string) {
 	}, token);
 }
 
-test("hero actions are visible before scrolling on phones", { tag: "@mobile" }, async ({ page }) => {
+test("hero actions are visible before scrolling on phones", { tag: "@mobile" }, async ({
+	page,
+}) => {
 	await page.goto("/");
 	await settleAnimations(page);
 
@@ -90,7 +92,9 @@ test("hero title and lead render immediately; the stagger covers secondary eleme
 
 test("style links have 44px targets and select their destination style", async ({ page }) => {
 	await page.goto("/");
-	const chips = page.locator('main nav[aria-label="Browse by style"] a');
+	// The marquee is the one style list on the home page; its second track is an
+	// inert visual duplicate.
+	const chips = page.locator('main nav[aria-label="Art styles"] ul:not([aria-hidden]) a');
 	const count = await chips.count();
 	expect(count).toBeGreaterThan(0);
 
@@ -104,11 +108,14 @@ test("style links have 44px targets and select their destination style", async (
 		await expect(chip).toHaveCSS("backdrop-filter", "none");
 	}
 
+	// The track never stops moving, so follow the link's own href instead of clicking it.
 	const first = chips.first();
 	const styleName = (await first.innerText()).trim();
-	await first.click();
+	await page.goto((await first.getAttribute("href")) ?? "/work/");
 	await expect(page).toHaveURL(/\/work\/?\?style=/);
-	await expect(page.getByRole("button", { pressed: true }).filter({ hasText: styleName })).toHaveCount(1);
+	await expect(
+		page.getByRole("button", { pressed: true }).filter({ hasText: styleName }),
+	).toHaveCount(1);
 });
 
 test("Available preview is bounded, deduped and lands on the buy lens", async ({ page }) => {
@@ -174,7 +181,15 @@ for (const theme of ["light", "dark"] as const) {
 		for (let i = 1; i < sectionCount; i += 1) {
 			expect(await sections.nth(i).locator("h2").count()).toBeGreaterThanOrEqual(1);
 		}
-		for (const id of ["work", "available", "about", "workshops", "events", "custom-orders", "contact"]) {
+		for (const id of [
+			"work",
+			"available",
+			"about",
+			"workshops",
+			"events",
+			"custom-orders",
+			"contact",
+		]) {
 			await expect(page.locator(`main section[id="${id}"]`)).toHaveCount(1);
 		}
 		await expect(page.getByRole("heading", { level: 2, name: "In their words" })).toBeVisible();
@@ -199,7 +214,11 @@ test("the hero h1 carries the roman headline voice on the poster rung", async ({
 	await page.goto("/");
 	const probe = await page.locator("main h1").evaluate((el) => {
 		const cs = getComputedStyle(el);
-		return { fontSize: Number.parseFloat(cs.fontSize), fontWeight: cs.fontWeight, fontStyle: cs.fontStyle };
+		return {
+			fontSize: Number.parseFloat(cs.fontSize),
+			fontWeight: cs.fontWeight,
+			fontStyle: cs.fontStyle,
+		};
 	});
 	const expected = await fontSizeForToken(page, "--type-hero");
 	expect(Math.abs(probe.fontSize - expected)).toBeLessThanOrEqual(1);
@@ -207,7 +226,9 @@ test("the hero h1 carries the roman headline voice on the poster rung", async ({
 	expect(probe.fontStyle).toBe("normal");
 });
 
-test("home sections use spacing and a single heading accent instead of patterned dividers", async ({ page }) => {
+test("home sections use spacing and a single heading accent instead of patterned dividers", async ({
+	page,
+}) => {
 	await page.goto("/");
 	const sections = page.locator("main > section");
 	const count = await sections.count();
@@ -306,9 +327,14 @@ test("the pigment wash sits behind the hero with no blur filter", async ({ page 
 	}
 });
 
-test("home artwork previews fit their item count and keep the single piece beside its introduction", async ({ page }) => {
+test("home artwork previews fit their item count and keep the single piece beside its introduction", async ({
+	page,
+}) => {
 	await page.goto("/");
-	for (const [id, desktopColumns] of [["work", 3], ["available", 4]] as const) {
+	for (const [id, desktopColumns] of [
+		["work", 3],
+		["available", 4],
+	] as const) {
 		const grid = page.locator(`#${id} ul`).first();
 		await grid.scrollIntoViewIfNeeded();
 		await settleAnimations(page);
@@ -373,7 +399,9 @@ test("custom-order actions are reachable before the process steps", async ({ pag
 	}
 });
 
-test("the hero caption identifies the featured artwork and retains its accessible position", async ({ page }) => {
+test("the hero caption identifies the featured artwork and retains its accessible position", async ({
+	page,
+}) => {
 	await page.goto("/");
 	const stage = page.locator("[data-shuffle-status]");
 	await expect(stage).toHaveAttribute("data-shuffle-status", "applied");
@@ -429,7 +457,10 @@ test("the events photo chip flips with the theme", async ({ page }) => {
 		localStorage.setItem("theme", "dark");
 	});
 	await page.goto("/");
-	const chip = page.locator("#events").getByText(/photos$/).first();
+	const chip = page
+		.locator("#events")
+		.getByText(/photos$/)
+		.first();
 	await chip.scrollIntoViewIfNeeded();
 	const { chipColor, inkColor } = await chip.evaluate((el) => {
 		const probe = document.createElement("span");
@@ -459,23 +490,32 @@ test("keyboard focus shows the global outline with no ring", async ({ page }) =>
 		throw new Error(`Tab never reached ${predicate}`);
 	};
 
-	await reachByTab('a[href^="/work?style="], a[href^="/work/?style="]');
-	const chipStyles = await page.evaluate(() => {
-		const el = document.activeElement as HTMLElement;
-		const cs = getComputedStyle(el);
-		return { outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, boxShadow: cs.boxShadow };
-	});
-	expect(chipStyles.outlineStyle).toBe("solid");
-	expect(chipStyles.outlineWidth).toBe("2px");
-	expect(chipStyles.boxShadow).toBe("none");
-
+	// The hero plate comes first in tab order; the style links live in the marquee below it.
 	await reachByTab('a[aria-label^="View "]');
 	const plateStyles = await page.evaluate(() => {
 		const el = document.activeElement as HTMLElement;
 		const cs = getComputedStyle(el);
-		return { outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, boxShadow: cs.boxShadow };
+		return {
+			outlineStyle: cs.outlineStyle,
+			outlineWidth: cs.outlineWidth,
+			boxShadow: cs.boxShadow,
+		};
 	});
 	expect(plateStyles.outlineStyle).toBe("solid");
 	expect(plateStyles.outlineWidth).toBe("2px");
 	expect(plateStyles.boxShadow).toBe("none");
+
+	await reachByTab('a[href^="/work?style="], a[href^="/work/?style="]');
+	const chipStyles = await page.evaluate(() => {
+		const el = document.activeElement as HTMLElement;
+		const cs = getComputedStyle(el);
+		return {
+			outlineStyle: cs.outlineStyle,
+			outlineWidth: cs.outlineWidth,
+			boxShadow: cs.boxShadow,
+		};
+	});
+	expect(chipStyles.outlineStyle).toBe("solid");
+	expect(chipStyles.outlineWidth).toBe("2px");
+	expect(chipStyles.boxShadow).toBe("none");
 });

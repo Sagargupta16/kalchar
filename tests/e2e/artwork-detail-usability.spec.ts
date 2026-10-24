@@ -13,13 +13,13 @@ const pieces = [
 		slug: "ganesha-pichwai",
 		status: "sold",
 		label: "Ask about a similar piece",
-		message: "I'd like to commission a similar piece",
+		message: "I'd like to order a similar custom piece",
 	},
 	{
 		slug: "shrinathji",
 		status: "archive",
 		label: "Ask about this piece",
-		message: "Could we discuss a similar piece or a commission?",
+		message: "Could we discuss a similar piece or a custom order?",
 	},
 ] as const;
 

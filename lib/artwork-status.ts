@@ -1,17 +1,23 @@
 /**
- * Plain-language copy for the three stored artwork statuses, shared by the admin
+ * Plain-language copy for the four stored artwork statuses, shared by the admin
  * row chip, the quick-state sheet, the editor's Status select and (later) the
  * public status badge. Pure so it can be unit-tested and imported anywhere.
  */
 import { isPositivePrice } from "./catalog";
 import type { ArtworkStatus } from "./types";
 
-export const ARTWORK_STATUS_OPTIONS: readonly ArtworkStatus[] = ["available", "sold", "archive"];
+export const ARTWORK_STATUS_OPTIONS: readonly ArtworkStatus[] = [
+	"available",
+	"sold",
+	"archive",
+	"hidden",
+];
 
 const LABEL: Record<ArtworkStatus, string> = {
 	available: "Available",
 	sold: "Sold",
 	archive: "Not for sale",
+	hidden: "Hidden",
 };
 
 /** One-line effect on the public site, shown under each option in the quick-state sheet. */
@@ -19,6 +25,7 @@ const HELP: Record<ArtworkStatus, string> = {
 	available: "Shown in the gallery with its price and a buy button",
 	sold: "Shown in the gallery with a Sold badge, no buy button",
 	archive: "Shown in the gallery without a price",
+	hidden: "Only you can see it in the admin; not shown on the site",
 };
 
 export function artworkStatusLabel(status: ArtworkStatus): string {

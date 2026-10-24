@@ -244,7 +244,9 @@ test("Add choice sheet lists the four creates and routes the workshop row", asyn
 	await expect(sheet).toHaveCount(0);
 });
 
-test("Add choice dismissal finishes its exit before unmounting and restores focus", async ({ page }) => {
+test("Add choice dismissal finishes its exit before unmounting and restores focus", async ({
+	page,
+}) => {
 	await mountAdmin(page, "nav");
 	await navigateTo(page, "/admin/profile");
 	const add = page.getByRole("button", { name: "Add", exact: true });

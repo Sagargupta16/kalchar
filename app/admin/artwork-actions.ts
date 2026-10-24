@@ -11,9 +11,10 @@
  * inside a server action with a sanitized digest in production
  * (see lib/action-result.ts).
  */
-import { and, eq, isNull, lte, or } from "drizzle-orm";
+import { and, eq, isNull, like, lte, or } from "drizzle-orm";
 import { type ActionResult, failure } from "@/lib/action-result";
 import { quickStateBlockedReason } from "@/lib/artwork-status";
+import { uniqueArtworkSlug } from "@/lib/catalog";
 import { db } from "@/lib/db/client";
 import { artworks } from "@/lib/db/schema";
 import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
@@ -25,8 +26,10 @@ import type { ArtworkStatus } from "@/lib/types";
 import { formString, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 import { saveCompleteOrder } from "./_reorder";
 
-const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold"]);
+const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold", "hidden"]);
 const MIN_YEAR = 1900;
+/** Insert attempts for a new piece's slug; each conflict moves to the next free suffix. */
+const SLUG_ATTEMPTS = 5;
 
 /** Latest year a piece can carry: next year, so a piece dated for an upcoming show passes. */
 function maxYear(): number {
@@ -97,6 +100,13 @@ async function updateArtworkUnsafe(
 	}
 	if (!ARTWORK_STATUSES.has(fields.status)) {
 		throw new Error("Choose a valid status.");
+	}
+	// deriveStatus reads a priced "archive" back as Available, so saving the pair
+	// would silently put the piece on sale. Hidden may keep its price: it is never listed.
+	if (fields.status === "archive" && fields.priceInr !== null) {
+		throw new Error(
+			"A piece that is not for sale cannot have a price. Clear the price or choose Available.",
+		);
 	}
 	if (typeof fields.featured !== "boolean") {
 		throw new TypeError("Featured must be true or false.");
@@ -198,6 +208,11 @@ function optionalPositiveInteger(formData: FormData, field: string, label: strin
 	return value;
 }
 
+/** Escape LIKE wildcards so a slug prefix matches literally. */
+function escapeLike(value: string): string {
+	return value.replaceAll(/[\\%_]/g, String.raw`\$&`);
+}
+
 /** Optional year from the add form, bounded to a plausible range (a stray digit made 20260 pass). */
 function optionalYear(formData: FormData): number | null {
 	const raw = formData.get("year");
@@ -218,16 +233,20 @@ async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ s
 	if (!title || !style || !medium) throw new Error("Title, category, and medium are required.");
 	if (!stagedKey) throw new Error("An image file is required.");
 
-	const slug = slugify(title);
-	if (!slug) throw new Error("Title must contain letters or numbers.");
+	const base = slugify(title);
+	if (!base) throw new Error("Title must contain letters or numbers.");
 
-	const existing = await db
-		.select({ slug: artworks.slug })
-		.from(artworks)
-		.where(eq(artworks.slug, slug));
-	if (existing.length > 0) {
-		throw new Error(`A piece called "${title}" already exists. Choose a different title.`);
-	}
+	// One prefix read finds the title's slug and its numbered repeats; a repeated
+	// title keeps its words and gets the next address (fish, fish-2, fish-3).
+	const taken = new Set(
+		(
+			await db
+				.select({ slug: artworks.slug })
+				.from(artworks)
+				.where(or(eq(artworks.slug, base), like(artworks.slug, `${escapeLike(base)}-%`)))
+		).map((row) => row.slug),
+	);
+	let slug = uniqueArtworkSlug(base, taken);
 
 	const priceInr = optionalPositiveInteger(formData, "priceInr", "Price");
 	const year = optionalYear(formData);
@@ -238,32 +257,39 @@ async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ s
 		console.error("Staged upload cleanup failed after create.", error);
 	});
 
+	const row = {
+		title,
+		style,
+		medium,
+		image,
+		aspectRatio,
+		featured: false,
+		description: formString(formData, "description").trim() || null,
+		dimensions: formString(formData, "dimensions").trim() || null,
+		year,
+		palette: palette.length > 0 ? palette : null,
+		priceInr,
+		status: priceInr ? "available" : "archive",
+	} satisfies Omit<typeof artworks.$inferInsert, "slug" | "order">;
 	try {
-		const inserted = await db
-			.insert(artworks)
-			.values({
-				slug,
-				title,
-				style,
-				medium,
-				image,
-				aspectRatio,
+		// The slug is the primary key, so a concurrent create of the same title
+		// loses the conflict and moves to the next suffix; the image key already
+		// carries its own unique version and stays valid under any slug.
+		for (let attempt = 1; ; attempt++) {
+			const inserted = await db
+				.insert(artworks)
 				// Read queries include a stable secondary key for concurrent ties.
-				order: nextOrderSql(artworks),
-				featured: false,
-				description: formString(formData, "description").trim() || null,
-				dimensions: formString(formData, "dimensions").trim() || null,
-				year,
-				palette: palette.length > 0 ? palette : null,
-				priceInr,
-				status: priceInr ? "available" : "archive",
-			})
-			.onConflictDoNothing({ target: artworks.slug })
-			.returning({ slug: artworks.slug });
-		if (inserted.length === 0) {
-			throw new ImageConflictError(
-				`A piece called "${title}" already exists. Choose a different title.`,
-			);
+				.values({ ...row, slug, order: nextOrderSql(artworks) })
+				.onConflictDoNothing({ target: artworks.slug })
+				.returning({ slug: artworks.slug });
+			if (inserted.length > 0) break;
+			if (attempt >= SLUG_ATTEMPTS) {
+				throw new ImageConflictError(
+					"Another piece with this title was saved at the same moment. Try again.",
+				);
+			}
+			taken.add(slug);
+			slug = uniqueArtworkSlug(base, taken);
 		}
 	} catch (error) {
 		await cleanupFailedImageWrite([`artworks/${artworkImageKey(image)}`], error);
@@ -373,7 +399,8 @@ async function setArtworkFeaturedUnsafe(slug: string, featured: boolean): Promis
  * Change availability from the row. "archive" on a priced piece is rejected in
  * the WHERE clause (deriveStatus would read it back as Available), so the common
  * path stays one statement and only the rejected path pays a second read to
- * tell "missing" from "priced" apart.
+ * tell "missing" from "priced" apart. "hidden" applies whatever the price: a
+ * hidden piece keeps its price but is never listed.
  */
 export async function setArtworkStatus(slug: string, status: ArtworkStatus): Promise<ActionResult> {
 	try {

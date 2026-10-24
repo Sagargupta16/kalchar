@@ -4,7 +4,7 @@ import { LoaderCircle, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UNDO_HOLD_MS } from "@/lib/motion";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { adminBtn, adminIconBtnGhost, ICON_MD } from "./controls";
 import { MODAL_EXIT_MS } from "./modal";
 import { BottomBar } from "./reorder-bar";
@@ -123,9 +123,7 @@ export function UndoBar({
 				}}
 			>
 				{error ? (
-					<AdminNotice variant="error" className="min-w-0 flex-1">
-						{error}
-					</AdminNotice>
+					<AdminErrorNotice className="min-w-0 flex-1">{error}</AdminErrorNotice>
 				) : (
 					<p className="min-w-0 flex-1 truncate text-sm text-ink">{message}</p>
 				)}

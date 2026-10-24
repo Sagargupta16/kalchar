@@ -4,7 +4,9 @@ import {
 	getCtaCopy,
 	isForSale,
 	isPositivePrice,
+	isPubliclyVisible,
 	mostSaturatedSwatch,
+	uniqueArtworkSlug,
 } from "./catalog";
 
 describe("isPositivePrice", () => {
@@ -39,6 +41,23 @@ describe("deriveStatus", () => {
 	it("does NOT upgrade an archive row with a non-positive price (integrity guard)", () => {
 		expect(deriveStatus({ status: "archive", priceInr: -1 })).toBe("archive");
 	});
+	it("keeps a hidden row hidden, priced or not", () => {
+		expect(deriveStatus({ status: "hidden" })).toBe("hidden");
+		expect(deriveStatus({ status: "hidden", priceInr: 500 })).toBe("hidden");
+	});
+	it("treats an unknown stored status like a missing one", () => {
+		expect(deriveStatus({ status: "draft", priceInr: 500 })).toBe("available");
+		expect(deriveStatus({ status: "draft" })).toBe("archive");
+	});
+});
+
+describe("isPubliclyVisible", () => {
+	it("drops only hidden pieces", () => {
+		expect(isPubliclyVisible({ status: "hidden", priceInr: 500 })).toBe(false);
+		for (const status of ["available", "sold", "archive", undefined] as const) {
+			expect(isPubliclyVisible({ status, priceInr: 500 })).toBe(true);
+		}
+	});
 });
 
 describe("isForSale (the store filter)", () => {
@@ -56,6 +75,9 @@ describe("isForSale (the store filter)", () => {
 	it("excludes an unpriced archive piece", () => {
 		expect(isForSale({ status: "archive" })).toBe(false);
 	});
+	it("never lists a hidden piece, even with a price", () => {
+		expect(isForSale({ status: "hidden", priceInr: 500 })).toBe(false);
+	});
 });
 
 describe("getCtaCopy", () => {
@@ -68,6 +90,14 @@ describe("getCtaCopy", () => {
 	it("archive (not available, not sold) asks about the piece", () => {
 		expect(getCtaCopy(false, false).label).toBe("Ask about this piece");
 	});
+	it("points sold and archive pieces at a custom order", () => {
+		expect(getCtaCopy(true, true).note).toBe(
+			"This piece has found a home. Reach out to order a custom piece in the same style.",
+		);
+		expect(getCtaCopy(false, false).note).toBe(
+			"Listed in the archive. Reach out if you'd like a similar custom piece.",
+		);
+	});
 	it("never emits a literal double dash in user-facing copy (house rule)", () => {
 		for (const [avail, sold] of [
 			[true, true],
@@ -78,6 +108,26 @@ describe("getCtaCopy", () => {
 			expect(label).not.toContain(" -- ");
 			expect(note).not.toContain(" -- ");
 		}
+	});
+});
+
+describe("uniqueArtworkSlug", () => {
+	it("keeps the title's own slug while it is free", () => {
+		expect(uniqueArtworkSlug("fish", [])).toBe("fish");
+		expect(uniqueArtworkSlug("fish", ["fish-2", "fish-family"])).toBe("fish");
+	});
+	it("numbers repeats from 2 upward", () => {
+		expect(uniqueArtworkSlug("fish", ["fish"])).toBe("fish-2");
+		expect(uniqueArtworkSlug("fish", ["fish", "fish-2"])).toBe("fish-3");
+	});
+	it("goes past the highest suffix instead of reusing a deleted one", () => {
+		expect(uniqueArtworkSlug("fish", ["fish", "fish-3"])).toBe("fish-4");
+	});
+	it("ignores slugs that only share the prefix", () => {
+		expect(uniqueArtworkSlug("fish", ["fish", "fish-family", "fish-2b", "fish-02"])).toBe("fish-2");
+	});
+	it("suffixes a slug that already ends in a number", () => {
+		expect(uniqueArtworkSlug("fish-2", ["fish-2"])).toBe("fish-2-2");
 	});
 });
 

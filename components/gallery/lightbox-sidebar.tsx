@@ -1,6 +1,8 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { isPositivePrice } from "@/lib/catalog";
@@ -19,7 +21,9 @@ interface LightboxSidebarProps {
 }
 
 /** A compact bottom card on phones becomes a reading column on desktop.
- * Only the information scrolls: the primary action and Share stay in view. */
+ * Only the information scrolls: the actions (full details, enquiry, Share)
+ * stay in view. Card taps open this viewer instead of the detail page, so the
+ * details link is the touch path to the story, palette and related pieces. */
 export function LightboxSidebar({
 	artwork,
 	whatsappLink,
@@ -27,10 +31,12 @@ export function LightboxSidebar({
 	isSold,
 	chromeHidden = false,
 }: Readonly<LightboxSidebarProps>) {
-	const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
-	const expanded = expandedSlug === artwork.slug;
 	const isAvailable = isPositivePrice(artwork.priceInr);
 	const hasPrice = isAvailable && !isSold && typeof artwork.priceInr === "number";
+	const pathname = usePathname();
+	const detailHref = `/work/${artwork.slug}/`;
+	// Opened from this piece's own page: closing the viewer already shows it.
+	const onDetailPage = `${pathname.replace(/\/$/, "")}/` === detailHref;
 
 	return (
 		<aside
@@ -65,56 +71,43 @@ export function LightboxSidebar({
 					{artwork.dimensions ? <MetaRow label="Dimensions" value={artwork.dimensions} /> : null}
 				</dl>
 				{artwork.description ? (
-					<div className="mt-2 md:mt-6">
-						<button
-							type="button"
-							aria-expanded={expanded}
-							aria-controls="lightbox-description"
-							onClick={() => setExpandedSlug(expanded ? null : artwork.slug)}
-							className="flex min-h-control w-full items-center justify-between gap-3 text-left text-sm font-medium md:hidden"
-						>
-							{expanded ? "Less about this piece" : "About this piece"}
-							<ChevronDown
-								size={16}
-								aria-hidden="true"
-								className={cn("transition-ui", expanded && "rotate-180")}
-							/>
-						</button>
-						<p
-							id="lightbox-description"
-							className={cn(
-								"text-sm leading-relaxed text-ink-soft md:block",
-								!expanded && "hidden",
-							)}
-						>
-							{artwork.description}
-						</p>
-					</div>
+					<LightboxDescription slug={artwork.slug} text={artwork.description} />
 				) : null}
 			</div>
-			<div className="flex shrink-0 items-center gap-2 rounded-md bg-surface-raised p-3 pt-0 md:p-4 md:pt-0">
-				{hasPrice ? (
-					<p className="t-numeral shrink-0 whitespace-nowrap text-sm tabular-nums md:text-base">
-						{formatInr(artwork.priceInr as number)}
-					</p>
-				) : null}
-				<a
-					href={whatsappLink}
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-label={ctaLabel}
-					className={cn(
-						buttonVariants({ variant: "primary", size: "lg" }),
-						"min-w-0 flex-1 whitespace-normal px-3 text-center",
-					)}
-				>
-					{hasPrice ? "Enquire" : ctaLabel}
-				</a>
-				<ShareButton
-					iconOnly
-					title={`${artwork.title} by Megha Seth`}
-					url={`${siteConfig.url}/work/${artwork.slug}/`}
-				/>
+			<div className="flex shrink-0 flex-col gap-2 rounded-md bg-surface-raised p-3 pt-0 md:p-4 md:pt-0">
+				{onDetailPage ? null : (
+					<Link
+						href={detailHref}
+						className={cn(buttonVariants({ variant: "secondary", size: "md" }), "w-full")}
+					>
+						View full details
+						<ArrowRight size={16} aria-hidden="true" />
+					</Link>
+				)}
+				<div className="flex items-center gap-2">
+					{hasPrice ? (
+						<p className="t-numeral shrink-0 whitespace-nowrap text-sm tabular-nums md:text-base">
+							{formatInr(artwork.priceInr as number)}
+						</p>
+					) : null}
+					<a
+						href={whatsappLink}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={ctaLabel}
+						className={cn(
+							buttonVariants({ variant: "primary", size: "lg" }),
+							"min-w-0 flex-1 whitespace-normal px-3 text-center",
+						)}
+					>
+						{hasPrice ? "Enquire" : ctaLabel}
+					</a>
+					<ShareButton
+						iconOnly
+						title={`${artwork.title} by Megha Seth`}
+						url={`${siteConfig.url}${detailHref}`}
+					/>
+				</div>
 			</div>
 		</aside>
 	);
@@ -125,6 +118,37 @@ function MetaRow({ label, value }: Readonly<{ label: string; value: string }>) {
 		<div className="min-w-0 md:flex md:justify-between md:gap-4">
 			<dt className="text-xs text-muted">{label}</dt>
 			<dd className="mt-1 text-sm font-medium text-pretty md:mt-0 md:text-right">{value}</dd>
+		</div>
+	);
+}
+
+/** "About this piece": collapsed on phones (one tap to read), always open from md.
+ * Paging to another piece starts collapsed again, because the open state is keyed by slug. */
+function LightboxDescription({ slug, text }: Readonly<{ slug: string; text: string }>) {
+	const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+	const expanded = expandedSlug === slug;
+	return (
+		<div className="mt-2 md:mt-6">
+			<button
+				type="button"
+				aria-expanded={expanded}
+				aria-controls="lightbox-description"
+				onClick={() => setExpandedSlug(expanded ? null : slug)}
+				className="flex min-h-control w-full items-center justify-between gap-3 text-left text-sm font-medium md:hidden"
+			>
+				{expanded ? "Less about this piece" : "About this piece"}
+				<ChevronDown
+					size={16}
+					aria-hidden="true"
+					className={cn("transition-ui", expanded && "rotate-180")}
+				/>
+			</button>
+			<p
+				id="lightbox-description"
+				className={cn("text-sm leading-relaxed text-ink-soft md:block", !expanded && "hidden")}
+			>
+				{text}
+			</p>
 		</div>
 	);
 }

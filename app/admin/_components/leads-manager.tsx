@@ -7,7 +7,7 @@ import { LEAD_STATUS_LABEL } from "@/lib/lead-triage";
 import type { Lead, LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteLead, setLeadStatus } from "../lead-actions";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { adminBtn, ICON_LG } from "./controls";
 import { FilterTabs } from "./filter-tabs";
 import { LeadPane, LeadSheet } from "./lead-detail";
@@ -267,7 +267,7 @@ export function LeadsManager({
 				/>
 			) : null}
 			{err && failedId !== null && failedId !== selectedId ? (
-				<AdminNotice variant="error">{err}</AdminNotice>
+				<AdminErrorNotice>{err}</AdminErrorNotice>
 			) : null}
 			<LeadEmptyState
 				leadCount={leads.length}

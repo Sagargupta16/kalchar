@@ -32,6 +32,7 @@ const expected: Record<Entity, unknown[][]> = {
 		["/work/[slug]", "page"],
 		["/catalog.csv"],
 		["/custom-orders"],
+		["/about"],
 		["/admin"],
 		["/admin/categories"],
 	],
@@ -96,7 +97,7 @@ describe("revalidateEntity", () => {
 	});
 
 	it("refreshes every public route that lists categories when they change", () => {
-		for (const route of ["/", "/work", "/custom-orders"]) {
+		for (const route of ["/", "/work", "/custom-orders", "/about"]) {
 			expect(pathsOf("categories"), route).toContain(route);
 		}
 	});

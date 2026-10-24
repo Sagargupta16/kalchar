@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useMotionValue } from "motion/react";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
 import { artworkPreloadSrcset } from "@/lib/image-base";
@@ -127,6 +128,16 @@ function LightboxContent({ artwork }: Readonly<{ artwork: Artwork }>) {
 		dismissedRef.current = true;
 		closeLightbox();
 	}, [closeLightbox]);
+
+	// The viewer belongs to the page that opened it. "View full details" is a
+	// plain route change: the viewer closes once the new route has landed, so
+	// the gallery's ?piece= history entry is never popped mid-navigation (Back
+	// from the detail page returns to the open piece).
+	const pathname = usePathname();
+	const [openedOn] = useState(pathname);
+	useEffect(() => {
+		if (pathname !== openedOn) closeLightbox();
+	}, [pathname, openedOn, closeLightbox]);
 	const navigation = hasSiblings
 		? { onNext: goNext, onPrevious: goPrevious, onFirst: goFirst, onLast: goLast }
 		: {};

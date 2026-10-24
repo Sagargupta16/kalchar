@@ -14,6 +14,7 @@
 
 import { randomUUID } from "node:crypto";
 import { VARIANT_WIDTHS as WIDTHS } from "../image-base";
+import { asciiKeySegment } from "./image-key";
 import { MAX_IMAGE_PIXELS, validateImageBuffer } from "./image-upload";
 import { deleteObjects, uploadObject } from "./r2";
 import { loadSharp } from "./sharp-loader";
@@ -217,14 +218,23 @@ export async function processArtworkImage(slug: string, master: Buffer): Promise
 	return { keys, aspectRatio, palette };
 }
 
-/** Process a new catalog version, returning the filename stored on the artwork. */
+/**
+ * Process a new catalog version (create or replace), returning the filename
+ * stored on the artwork. The key uses an ASCII form of the slug, since the
+ * `/media` rewrite only proxies `[A-Za-z0-9_-]` filenames and a Devanagari or
+ * accented slug would 404 every variant. Consumers read the stored `image`,
+ * never the slug, so the two may differ.
+ */
 export async function processNewArtworkImage(
 	slug: string,
 	master: Buffer,
 ): Promise<ProcessedImage & { image: string }> {
 	await validateImageBuffer(master);
 	const palette = await extractPalette(master);
-	const { keyBase, keys, aspectRatio } = await processNewImageVariants(`artworks/${slug}`, master);
+	const { keyBase, keys, aspectRatio } = await processNewImageVariants(
+		`artworks/${asciiKeySegment(slug)}`,
+		master,
+	);
 	return { keys, aspectRatio, palette, image: `${keyBase.slice("artworks/".length)}.jpg` };
 }
 

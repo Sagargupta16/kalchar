@@ -16,8 +16,13 @@ import { serverEnv } from "@/lib/env";
 
 export default auth((req) => {
 	const isAdmin = req.nextUrl.pathname.startsWith("/admin");
+	// A server action POST from an expired session is not redirected: the action
+	// re-checks the session itself (runAdminAction) and returns "Not authorized."
+	// as data, which the admin shows as a sign-in-again notice. A redirect here
+	// would surface as Next's generic "unexpected response" error instead.
+	const isServerAction = req.method === "POST" && req.headers.has("next-action");
 	// Fixture-mode preview renders the admin as a synthetic maintainer (lib/admin-auth.ts).
-	if (isAdmin && !req.auth && !serverEnv.adminPreview) {
+	if (isAdmin && !req.auth && !serverEnv.adminPreview && !isServerAction) {
 		const loginUrl = new URL("/login", req.nextUrl.origin);
 		loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
 		return NextResponse.redirect(loginUrl);

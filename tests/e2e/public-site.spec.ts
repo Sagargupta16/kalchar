@@ -118,8 +118,7 @@ test("hero stays complete when R2 artwork requests fail", async ({ page }) => {
 		.poll(() =>
 			plateImages.evaluateAll((images) =>
 				images.every(
-					(image) =>
-						image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+					(image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
 				),
 			),
 		)
@@ -167,114 +166,110 @@ test("hero shuffle keeps both tilted plates decoded", async ({ page }) => {
 	}
 });
 
-test(
-	"mobile navigation and header controls meet touch target minimums",
-	{ tag: "@mobile" },
-	async ({ page }) => {
-		await page.goto("/");
+test("mobile navigation and header controls meet touch target minimums", {
+	tag: "@mobile",
+}, async ({ page }) => {
+	await page.goto("/");
 
-		const menu = page.getByRole("button", { name: "Open menu" });
-		await expect(menu).toBeVisible();
-		await expectTouchTarget(menu);
+	const menu = page.getByRole("button", { name: "Open menu" });
+	await expect(menu).toBeVisible();
+	await expectTouchTarget(menu);
 
-		const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
-		await expect(themeToggle).toBeVisible();
-		await expectTouchTarget(themeToggle);
+	const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
+	await expect(themeToggle).toBeVisible();
+	await expectTouchTarget(themeToggle);
 
-		// The drawer floats over the page: #main must not move when it opens (chrome-4).
-		const mainTop = await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
-		await menu.click();
-		const drawer = page.getByRole("navigation", { name: "Primary mobile" });
-		await expect(drawer).toBeVisible();
-		expect(await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top)).toBe(
-			mainTop,
-		);
+	// The drawer floats over the page: #main must not move when it opens (chrome-4).
+	const mainTop = await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
+	await menu.click();
+	const drawer = page.getByRole("navigation", { name: "Primary mobile" });
+	await expect(drawer).toBeVisible();
+	expect(await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top)).toBe(
+		mainTop,
+	);
 
-		// Full-height index panel (visual-direction 2.12): the sheet covers the
-		// small-viewport height and opening it never moves #main.
-		const panel = page.locator("#mobile-menu");
-		const panelBox = await panel.boundingBox();
-		const viewport = page.viewportSize();
-		expect(panelBox?.height).toBeGreaterThanOrEqual((viewport?.height ?? 0) - 1);
+	// Full-height index panel (visual-direction 2.12): the sheet covers the
+	// small-viewport height and opening it never moves #main.
+	const panel = page.locator("#mobile-menu");
+	const panelBox = await panel.boundingBox();
+	const viewport = page.viewportSize();
+	expect(panelBox?.height).toBeGreaterThanOrEqual((viewport?.height ?? 0) - 1);
 
-		// Pages rework 2026-09-26: the panel is an opaque pigment curtain (the
-		// band tokens) that wipes in on clip-path, never a blurred material.
-		const curtain = await panel.evaluate((el) => {
-			const cs = getComputedStyle(el);
-			return { fill: cs.backgroundColor, filter: cs.backdropFilter };
-		});
-		expect(curtain.fill).not.toBe("rgba(0, 0, 0, 0)");
-		expect(curtain.filter).toBe("none");
+	// Pages rework 2026-09-26: the panel is an opaque pigment curtain (the
+	// band tokens) that wipes in on clip-path, never a blurred material.
+	const curtain = await panel.evaluate((el) => {
+		const cs = getComputedStyle(el);
+		return { fill: cs.backgroundColor, filter: cs.backdropFilter };
+	});
+	expect(curtain.fill).not.toBe("rgba(0, 0, 0, 0)");
+	expect(curtain.filter).toBe("none");
 
-		// Six numbered destinations, each row at least 56px tall with a tabular index.
-		const rows = drawer.getByRole("link");
-		await expect(rows).toHaveCount(6);
-		await expect(rows.first()).toHaveText(/Artwork/);
-		await expect(drawer.getByText("01", { exact: true })).toBeVisible();
-		await expect(drawer.getByText("06", { exact: true })).toBeVisible();
-		for (const row of await rows.all()) {
-			const box = await row.boundingBox();
-			expect(box?.height).toBeGreaterThanOrEqual(56 - 0.01);
-		}
+	// Six numbered destinations, each row at least 56px tall with a tabular index.
+	const rows = drawer.getByRole("link");
+	await expect(rows).toHaveCount(6);
+	await expect(rows.first()).toHaveText(/Artwork/);
+	await expect(drawer.getByText("01", { exact: true })).toBeVisible();
+	await expect(drawer.getByText("06", { exact: true })).toBeVisible();
+	for (const row of await rows.all()) {
+		const box = await row.boundingBox();
+		expect(box?.height).toBeGreaterThanOrEqual(56 - 0.01);
+	}
 
-		// Pages rework 2026-09-26: row labels are large editorial links on the
-		// section rung (28 -> 36px); touch targets stay at least 56px.
-		const labelSize = await rows
-			.first()
-			.locator(".t-headline")
-			.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
-		expect(labelSize).toBeGreaterThanOrEqual(28);
-		expect(labelSize).toBeLessThanOrEqual(36);
+	// Pages rework 2026-09-26: row labels are large editorial links on the
+	// section rung (28 -> 36px); touch targets stay at least 56px.
+	const labelSize = await rows
+		.first()
+		.locator(".t-headline")
+		.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
+	expect(labelSize).toBeGreaterThanOrEqual(28);
+	expect(labelSize).toBeLessThanOrEqual(36);
 
-		// The WhatsApp action keeps its content but moves to a pinned full-width
-		// primary at the panel bottom, at least 48px tall.
-		const whatsappRow = panel.getByRole("link", { name: /Message on WhatsApp/ });
-		await expect(whatsappRow).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
-		const whatsappBox = await whatsappRow.boundingBox();
-		expect(whatsappBox?.height).toBeGreaterThanOrEqual(48 - 0.01);
-		if (!panelBox || !whatsappBox) throw new Error("drawer boxes missing");
-		expect(whatsappBox.y).toBeGreaterThan(panelBox.y + panelBox.height / 2);
-		await page.keyboard.press("Escape");
-		await expect(drawer).toBeHidden();
+	// The WhatsApp action keeps its content but moves to a pinned full-width
+	// primary at the panel bottom, at least 48px tall.
+	const whatsappRow = panel.getByRole("link", { name: /Message on WhatsApp/ });
+	await expect(whatsappRow).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
+	const whatsappBox = await whatsappRow.boundingBox();
+	expect(whatsappBox?.height).toBeGreaterThanOrEqual(48 - 0.01);
+	if (!panelBox || !whatsappBox) throw new Error("drawer boxes missing");
+	expect(whatsappBox.y).toBeGreaterThan(panelBox.y + panelBox.height / 2);
+	await page.keyboard.press("Escape");
+	await expect(drawer).toBeHidden();
 
-		await page.goto("/work/");
-		await expect(page.getByRole("searchbox", { name: "Find a piece you love" })).toBeVisible();
-		const filters = page.getByRole("group", { name: "Filter artwork" }).getByRole("button");
-		for (const filter of await filters.all()) {
-			await expectTouchTarget(filter);
-		}
+	await page.goto("/work/");
+	await expect(page.getByRole("searchbox", { name: "Find a piece you love" })).toBeVisible();
+	const filters = page.getByRole("group", { name: "Filter artwork" }).getByRole("button");
+	for (const filter of await filters.all()) {
+		await expectTouchTarget(filter);
+	}
 
-		const footer = page.getByRole("contentinfo");
-		await expectTouchTarget(footer.getByRole("link", { name: "Home" }));
-		await expectTouchTarget(footer.getByRole("link", { name: "FAQ" }));
+	const footer = page.getByRole("contentinfo");
+	await expectTouchTarget(footer.getByRole("link", { name: "Home" }));
+	await expectTouchTarget(footer.getByRole("link", { name: "FAQ" }));
 
-		await page.goto("/trust/");
-		for (const summary of await page.locator("summary").all()) {
-			await expectTouchTarget(summary);
-		}
-	},
-);
+	await page.goto("/trust/");
+	for (const summary of await page.locator("summary").all()) {
+		await expectTouchTarget(summary);
+	}
+});
 
-test(
-	"tablet header keeps compact controls visible",
-	{ tag: "@mobile" },
-	async ({ page }) => {
-		await page.setViewportSize({ width: 768, height: 1024 });
-		await page.goto("/");
+test("tablet header keeps compact controls visible", { tag: "@mobile" }, async ({ page }) => {
+	await page.setViewportSize({ width: 768, height: 1024 });
+	await page.goto("/");
 
-		await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
-		await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
-		const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
-		await expect(themeToggle).toBeVisible();
-		await expectTouchTarget(themeToggle);
-		const overflow = await page.evaluate(
-			() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-		);
-		expect(overflow).toBeLessThanOrEqual(1);
-	},
-);
+	await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
+	await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+	const themeToggle = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
+	await expect(themeToggle).toBeVisible();
+	await expectTouchTarget(themeToggle);
+	const overflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+	);
+	expect(overflow).toBeLessThanOrEqual(1);
+});
 
-test("header keeps one 61px control row before and after scrolling", { tag: "@mobile" }, async ({ page }) => {
+test("header keeps one 61px control row before and after scrolling", { tag: "@mobile" }, async ({
+	page,
+}) => {
 	await page.goto("/");
 	const header = page.locator("header").first();
 	// One padding in both states (motion addendum C5): the bar never animates layout.
@@ -366,10 +361,7 @@ test("floating WhatsApp disc follows the route policy", async ({ page }) => {
 	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
 	// Detail pages hand the action to the enquiry bar (2.14): never mounted.
 	await page.goto("/work/");
-	const detailPath = await page
-		.locator('main a[data-artwork-card]')
-		.first()
-		.getAttribute("href");
+	const detailPath = await page.locator("main a[data-artwork-card]").first().getAttribute("href");
 	expect(detailPath).not.toBeNull();
 	await page.goto(detailPath as string);
 	await expect(page.locator("[data-enquire-fab]")).toHaveCount(0);
@@ -384,19 +376,17 @@ test("gallery filter state is reflected in the URL", async ({ page }) => {
 	await expect(style).toHaveAttribute("aria-pressed", "true");
 });
 
-test(
-	"touch layouts hide the hover-only zoom hint",
-	{ tag: "@mobile" },
-	async ({ page }) => {
-		await page.goto("/work/");
-		await page.locator("main a[data-artwork-card]").first().click();
-		await expect(page.getByRole("dialog")).toBeVisible();
-		await expect(page.getByText("Hover to zoom")).toBeHidden();
-	},
-);
+test("touch layouts hide the hover-only zoom hint", { tag: "@mobile" }, async ({ page }) => {
+	await page.goto("/work/");
+	await page.locator("main a[data-artwork-card]").first().click();
+	await expect(page.getByRole("dialog")).toBeVisible();
+	await expect(page.getByText("Hover to zoom")).toBeHidden();
+});
 
 test.describe("always-on motion", () => {
-	test("shuffles hero plates and keeps the description visible under either OS preference", async ({ page }) => {
+	test("shuffles hero plates and keeps the description visible under either OS preference", async ({
+		page,
+	}) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");
 		expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(

@@ -58,13 +58,11 @@ async function leadResponse(route: Route, ok: boolean) {
 
 /* ------------------------- custom orders (2.8) ------------------------- */
 
-test("commission sheet opens with a clear eyebrow and layered shadow", async ({
-	page,
-}) => {
+test("commission sheet opens with a clear eyebrow and layered shadow", async ({ page }) => {
 	await page.goto("/custom-orders/");
 	const card = page.locator('[data-slot="commission-card"]');
 	await expect(card).toBeVisible();
-	await expect(card.getByText("Commission brief", { exact: true })).toBeVisible();
+	await expect(card.getByText("Custom order brief", { exact: true })).toBeVisible();
 	// The shared e1 shadow retains layered depth on the standard surface.
 	const shadow = await card.evaluate((el) => getComputedStyle(el).boxShadow);
 	expect(shadow.split("px,").length).toBeGreaterThan(1);
@@ -161,7 +159,9 @@ test("the example strip follows the shared compact section spacing", async ({ pa
 	const gridBox = await page.locator("#how-it-works").boundingBox();
 	const stripBox = await strip.boundingBox();
 	const gap = (stripBox?.y ?? 0) - ((gridBox?.y ?? 0) + (gridBox?.height ?? 0));
-	const margin = await strip.evaluate((element) => Number.parseFloat(getComputedStyle(element).marginTop));
+	const margin = await strip.evaluate((element) =>
+		Number.parseFloat(getComputedStyle(element).marginTop),
+	);
 	expect(gap).toBeCloseTo(margin, 0);
 	expect(gap).toBeGreaterThanOrEqual(48);
 	expect(gap).toBeLessThanOrEqual(81);
@@ -266,7 +266,9 @@ test("FAQ answers animate even when the OS requests reduced motion", async ({ pa
 /* ------------------------- login + denied (2.11) ----------------------- */
 
 for (const route of ["/login/", "/access-denied/"] as const) {
-	test(`${route} keeps its actions in one compact card without decorative rules`, async ({ page }) => {
+	test(`${route} keeps its actions in one compact card without decorative rules`, async ({
+		page,
+	}) => {
 		await page.goto(route);
 		await expect(page.locator('main [data-slot="auth-card"]')).toHaveCount(1);
 		await expect(page.locator('main span[class*="gold-hairline"]')).toHaveCount(0);

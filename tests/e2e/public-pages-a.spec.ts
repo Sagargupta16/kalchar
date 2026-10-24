@@ -176,9 +176,7 @@ test("wall dates set the day in the headline voice", async ({ page }, testInfo) 
 	await expect(page.locator("#fixture-event time")).toContainText("2026");
 });
 
-test("the gold timeline spans the chronology and one year watermark renders", async ({
-	page,
-}) => {
+test("the gold timeline spans the chronology and one year watermark renders", async ({ page }) => {
 	await page.goto("/events/");
 	// Both ornaments are hidden below lg; the event-record and wall-date tests cover narrow screens.
 	test.skip(

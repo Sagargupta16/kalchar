@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { photoFileKey } from "@/lib/event-photo-selection";
 import { cn, formatBytes } from "@/lib/utils";
 import { adminBtn, adminHelp } from "./controls";
 import { ReorderHandle } from "./reorder-handle";
@@ -105,10 +106,7 @@ export function EventPhotoStrip({
 			) : null}
 			<ul className="flex flex-wrap gap-2">
 				{files.map((file, i) => (
-					<li
-						key={`${file.name}-${file.size}-${file.lastModified}`}
-						className="grid w-24 min-w-0 content-start gap-2"
-					>
+					<li key={photoFileKey(file)} className="grid w-24 min-w-0 content-start gap-2">
 						<div className="relative size-24 overflow-hidden rounded-(--radius-sm) bg-canvas shadow-hairline">
 							{urls[i] ? (
 								// biome-ignore lint/performance/noImgElement: local object URL preview, not a remote asset

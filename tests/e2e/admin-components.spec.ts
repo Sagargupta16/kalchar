@@ -131,11 +131,19 @@ for (const failure of ["failure", "throw"] as const) {
 			});
 			await page.getByRole("button", { name: upload.button, exact: true }).click();
 			await expect(page.getByRole("alert")).toHaveText(message);
-			expect(
-				await page
-					.locator(upload.picker)
-					.evaluate((input: HTMLInputElement) => input.files?.length),
-			).toBe(1);
+			if (upload.view === "eventImages") {
+				// Picks merge into the selection and the input is cleared after each pick,
+				// so the kept upload shows as a selected photo rather than in input.files.
+				await expect(page.getByRole("button", { name: /^Remove selected photo 1:/ })).toHaveCount(
+					1,
+				);
+			} else {
+				expect(
+					await page
+						.locator(upload.picker)
+						.evaluate((input: HTMLInputElement) => input.files?.length),
+				).toBe(1);
+			}
 		});
 	}
 }

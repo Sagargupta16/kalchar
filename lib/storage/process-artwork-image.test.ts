@@ -1,5 +1,11 @@
+import type { NextConfig } from "next";
+import {
+	getRewrittenUrl,
+	unstable_getResponseFromNextConfig,
+} from "next/experimental/testing/server";
 import sharp from "sharp";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { slugify } from "../admin-helpers";
 
 const r2 = vi.hoisted(() => ({
 	uploadObject: vi.fn(),
@@ -15,6 +21,8 @@ import {
 	processNewArtworkImage,
 	processNewImageVariants,
 } from "./process-artwork-image";
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 async function syntheticImage(orientation = 1): Promise<Buffer> {
 	return sharp({
@@ -85,6 +93,21 @@ describe("processImageVariants", () => {
 		expect(first.keys.some((key) => second.keys.includes(key))).toBe(false);
 	});
 
+	it.each([
+		["सूर्यास्त", "piece"],
+		["Café Mural", "cafe-mural"],
+		["Radha Krishna", "radha-krishna"],
+	])(
+		"mints an ASCII key for the %j artwork while the slug keeps its script",
+		async (title, segment) => {
+			const slug = slugify(title);
+			const { image, keys } = await processNewArtworkImage(slug, await syntheticImage());
+			expect(image).toMatch(new RegExp(`^${segment}-${UUID}\\.jpg$`));
+			expect(keys).toHaveLength(4);
+			for (const key of keys) expect(key.startsWith(`artworks/${segment}-`), key).toBe(true);
+		},
+	);
+
 	it("rejects invalid artwork bytes with a controlled validation error", async () => {
 		const invalidImage = Buffer.from("not an image");
 
@@ -94,4 +117,36 @@ describe("processImageVariants", () => {
 		expect(r2.uploadObject).not.toHaveBeenCalled();
 		expect(r2.deleteObjects).not.toHaveBeenCalled();
 	});
+});
+
+describe("minted artwork keys and the /media rewrite", () => {
+	beforeEach(() => {
+		r2.uploadObject.mockReset();
+		r2.deleteObjects.mockReset();
+	});
+	afterEach(() => vi.unstubAllEnvs());
+
+	async function productionConfig(): Promise<NextConfig> {
+		vi.resetModules();
+		vi.stubEnv("KALCHAR_TEST_FIXTURES", "");
+		vi.stubEnv("NEXT_PUBLIC_IMAGE_BASE_URL", "https://images.example.invalid");
+		const configPath = "../../next.config.mjs";
+		const { default: config } = await import(configPath);
+		return config;
+	}
+
+	it.each(["सूर्यास्त", "Café Mural", "Radha Krishna"])(
+		"proxies every variant written for the %j artwork",
+		async (title) => {
+			const { keys } = await processNewArtworkImage(slugify(title), await syntheticImage());
+			const nextConfig = await productionConfig();
+			for (const key of keys) {
+				const response = await unstable_getResponseFromNextConfig({
+					url: `https://kalchar.example/media/${key}`,
+					nextConfig,
+				});
+				expect(getRewrittenUrl(response), key).toBe(`https://images.example.invalid/${key}`);
+			}
+		},
+	);
 });

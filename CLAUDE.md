@@ -18,29 +18,30 @@ The full system picture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (entr
 
 ## Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Motion 12 + Lenis (lazy-loaded) for animation. shadcn-style components (cva + Radix-friendly). pnpm 10, Node 22.
+Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Motion 14 + Lenis (lazy-loaded) for animation. shadcn-style components (cva variants, no Radix). Vitest 5 + Playwright 1. pnpm 10, Node 24 (CI, Vercel and `.nvmrc`; `engines` allows `>=22`).
 
 Dynamic Next app on **Vercel**: public pages static/SSG, `/admin` + `/api` server-rendered. **Neon Postgres** (Drizzle) for catalog, **Cloudflare R2** for images, **Auth.js v5 + Google** for admin login (allowlist in the `maintainers` table). The earlier static-export-to-GitHub-Pages setup is retired (the deploy.yml Pages workflow is manual-only break-glass).
 
 ## Branch + deploy
 
-Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) PR into `dev`. `main` -> Vercel production -> kalchar.co.in; `dev` -> Vercel preview. Only `main` + `dev` deploy (Ignored Build Step on the Vercel project). Push + PR only when Sagar says so. `main` is branch-protected (PR + passing CI required).
+Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) and Renovate PRs (`baseBranchPatterns` in `renovate.json`) target `dev`. `main` -> Vercel production -> kalchar.co.in; `dev` -> Vercel preview. Only `main` + `dev` deploy (Ignored Build Step on the Vercel project). Push + PR only when Sagar says so. `main` is branch-protected (PR + passing CI required).
 
 DNS at GoDaddy: `@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`.
 
 ## Local dev
 
 ```sh
+pnpm dev:preview  # http://localhost:3010  no secrets: fixtures, admin without sign-in, nothing saves
 pnpm dev          # http://localhost:3000  (needs .env.local for DB/R2/auth)
-pnpm dev --port 3001  # alternate port; Google OAuth must allow its exact callback
-pnpm dev:preview  # http://localhost:3010  admin over fixtures, no sign-in, nothing saves (design review)
+pnpm dev --port 3002  # alternate port (3001 is the e2e port); Google OAuth + R2 CORS must allow it
 pnpm build        # next build
 pnpm typecheck
-pnpm exec tsc -p tsconfig.scripts.json
+pnpm typecheck:scripts
 pnpm lint
 pnpm format
 pnpm test         # vitest unit suite (pure functions, no Neon/R2)
-pnpm test:e2e     # production-browser and accessibility checks
+pnpm test:e2e:fixtures  # fixture build + Playwright/axe suite, as CI runs it (no secrets)
+pnpm test:preview       # @preview admin geometry suites against a running dev:preview
 # DB/images: pnpm db:migrate | db:seed | db:images
 ```
 
@@ -65,7 +66,7 @@ No fixed visual or motion rules (removed 2026-09-26). Design direction is open: 
 ### Architecture
 
 - **Data seam at `lib/data.ts`.** Everything reads the catalog through it -- async Drizzle queries against Neon. `getSite()` stays sync (reads `data/site.json`, the static chrome). Don't query the DB or import `data/*.json` directly outside this file. Events read via `getAllEvents`/`getRecentEvents`; singleton site settings (artist photo, home-intro toggle) via `getSetting<T>(key)`.
-- **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (priced + `status !== "sold"`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter.
+- **Store is a filter, not a table.** The shop is the "Available to buy" lens over `artworks` (positive price + `status === "available"`, `isForSale` in `lib/catalog.ts`) on the `/work` ("Artwork") page -- no products table. Sold pieces keep a badge in the gallery and drop out of the buy filter. `hidden` pieces never appear publicly: `getAllArtworks()` drops them (their detail page 404s) and only the maintainer-checked `getAdminArtworks()` returns them, for `/admin` and `/admin/categories`.
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop. Multi-photo uploads process each photo in its own action call (`processEventPhoto`, several in parallel from the browser) and commit the finished key-bases in one ordered write (`createEvent` / `attachEventPhotos`), which accept only key-bases under the event's own prefix.
 - **Images via `lib/image-base.ts`.** Browser surfaces use same-origin `ARTWORK_IMAGE_BASE` / `IMAGE_ORIGIN` paths that `next.config.mjs` rewrites to R2. External metadata and server operations use the absolute `R2_*` exports. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it with a checked-in master fallback. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
 - **Image bytes never travel through a server action.** Vercel 413s any function body over ~4.5 MB at the edge, which is smaller than one phone photo, so the browser gets a presigned ticket (`app/admin/upload-actions.ts`), PUTs the master straight to R2, and submits only the `staging/<uuid>` key; the action reads it back via `lib/storage/staged-upload.ts`. Browser PUTs need bucket CORS: `pnpm r2:cors`. Don't reintroduce a `File` field on an upload action.
@@ -124,14 +125,25 @@ public/
   logo.jpg, logo-180.png, robots.txt
 drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
-  migrate-json-to-db.ts   guarded one-time JSON bootstrap
+  admin-preview.mjs       pnpm dev:preview -- dev server on fixtures + synthetic maintainer
+  e2e-fixtures.mjs        pnpm test:e2e:fixtures / test:preview -- CI-style browser runs
+  migrate-json-to-db.ts   guarded one-time JSON bootstrap (pnpm db:seed)
   migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
-  check-migrations.mjs    migration journal / SQL / snapshot validation
-  check-migrations-db.ts  disposable PostgreSQL migration + seed checks
+  check-migrations.mjs    migration journal / SQL / snapshot validation (pnpm db:validate)
+  check-migrations-db.ts  disposable PostgreSQL migration + seed checks (pnpm db:check)
   prepare-migration-baseline.mjs  offline baseline SQL preparation
   verify-backup.mjs       local backup inventory + checksum verification
-.github/workflows/        ci.yml (full verify) + health.yml (scheduled checks);
-                          deploy.yml = retired Pages fallback (manual-only)
+  export-image-references.sql  image key-bases to pair with a pg_dump backup
+  health-check.mjs        pnpm health -- public endpoints, catalog links, media bytes
+  set-r2-cors.ts          pnpm r2:cors -- bucket CORS for browser uploads
+  cleanup-staging.ts      pnpm r2:cleanup -- expired staging/ objects (dry run by default)
+  cli-runner.mjs, operational-paths.mjs  shared CLI wrapper + approved-path guards
+  operational.test.mjs    pnpm test:operations -- offline regression checks for the above
+.github/workflows/        ci.yml (verify + 4 Playwright shards + migrations + secret scan;
+                          "lint, typecheck and build" aggregates them) + health.yml
+                          (daily prod check) + staging-cleanup.yml (daily R2 staging
+                          cleanup, main only); deploy.yml = retired Pages fallback
+                          (manual-only)
 docs/                     engineering docs (index in docs/README.md):
   ARCHITECTURE.md         full system diagram + flows (entry point)
   DATABASE.md             Neon/Drizzle schema, seam, migrations
@@ -139,7 +151,10 @@ docs/                     engineering docs (index in docs/README.md):
   IMAGES.md               R2 + sharp variant pipeline + serving
   DEPLOYMENT.md           Vercel, branches, CI, DNS, env matrix
   DEVELOPMENT.md          local setup, scripts, conventions
+  OPERATIONS.md           backups, restores, health checks, incidents
+  ADDING-FEATURES.md      recipes for new entities, pages, image features, env vars
   diagrams/               orrery spec + light/dark SVGs for the README architecture picture
+  archive/                historical snapshots (roadmap, UI plan/review, Sept remediation)
 ```
 
 ## Skills

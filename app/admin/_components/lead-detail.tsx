@@ -10,6 +10,7 @@ import {
 } from "@/lib/lead-triage";
 import type { Lead, LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { ConfirmPanel } from "./confirm-dialog";
 import {
@@ -17,6 +18,7 @@ import {
 	adminBtnDestructive,
 	adminBtnPrimary,
 	adminField,
+	adminHelp,
 	adminLabel,
 	adminPanel,
 	adminSectionTitle,
@@ -110,7 +112,7 @@ function LeadDetailContent({
 				disabled={pending}
 				onChange={(status) => void onStatus(status)}
 			/>
-			{error ? <AdminNotice variant="error">{error}</AdminNotice> : null}
+			{error ? <AdminErrorNotice>{error}</AdminErrorNotice> : null}
 			{chips.length > 0 ? (
 				<div className="flex flex-wrap gap-2">
 					{chips.map(([field, chip]) => (
@@ -189,10 +191,12 @@ function ManualEmailCopy({ email }: Readonly<{ email: string }>) {
 }
 
 /**
- * Reply on WhatsApp (primary, prefilled greeting; only when the contact parses
- * as a phone) and Copy email (only when it parses as an email; the label swaps
- * to "Email copied" for two seconds). Tapping Reply also marks a new enquiry
- * Contacted, because that is what happened (D-A8); Undo rides the toast.
+ * Every reply the contact allows, the first as the primary: Reply on WhatsApp
+ * (prefilled greeting) and Call when it parses as a phone, Email (prefilled
+ * subject and greeting) when it parses as an email, plus Copy email (the
+ * label swaps to "Email copied" for two seconds). Tapping a reply also marks
+ * a new enquiry Contacted, because that is what happened (D-A8); Undo rides
+ * the toast. With nothing to reply to, one plain line says so.
  */
 function LeadReplyActions({
 	lead,
@@ -209,9 +213,15 @@ function LeadReplyActions({
 		};
 	}, []);
 
-	const whatsapp = leadReplyLinks(lead, siteName).find((link) => link.kind === "whatsapp");
+	const links = leadReplyLinks(lead, siteName);
 	const { email } = parseLeadContact(lead.contact);
-	if (!whatsapp && !email) return null;
+	if (links.length === 0) {
+		return (
+			<p className={adminHelp}>
+				There is no phone number or email to reply to. They may have messaged you on WhatsApp.
+			</p>
+		);
+	}
 
 	const copyEmail = async () => {
 		if (!email) return;
@@ -227,38 +237,38 @@ function LeadReplyActions({
 	};
 
 	return (
-		<div className="flex w-full flex-wrap items-center gap-3">
-			{whatsapp ? (
-				<a
-					href={whatsapp.href}
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-disabled={pending || undefined}
-					tabIndex={pending ? -1 : undefined}
-					onClick={(event) => {
-						if (pending) {
-							event.preventDefault();
-							return;
-						}
-						if (lead.status === "new") void onStatus("contacted");
-					}}
-					className={cn(
-						adminBtnPrimary,
-						"flex-1 aria-disabled:pointer-events-none aria-disabled:opacity-50",
-					)}
-				>
-					Reply on WhatsApp
-				</a>
-			) : null}
-			{email ? (
-				<button
-					type="button"
-					onClick={() => void copyEmail()}
-					className={cn(adminBtn, !whatsapp && "flex-1")}
-				>
-					{copied ? "Email copied" : "Copy email"}
-				</button>
-			) : null}
+		<div className="grid w-full min-w-0 gap-3">
+			<div className="flex w-full flex-wrap items-center gap-3">
+				{links.map((link, index) => (
+					<a
+						key={link.kind}
+						href={link.href}
+						target={link.external ? "_blank" : undefined}
+						rel={link.external ? "noopener noreferrer" : undefined}
+						aria-disabled={pending || undefined}
+						tabIndex={pending ? -1 : undefined}
+						onClick={(event) => {
+							if (pending) {
+								event.preventDefault();
+								return;
+							}
+							if (lead.status === "new") void onStatus("contacted");
+						}}
+						className={cn(
+							index === 0 ? adminBtnPrimary : adminBtn,
+							index === 0 && "basis-full",
+							"flex-1 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+						)}
+					>
+						{link.label}
+					</a>
+				))}
+				{email ? (
+					<button type="button" onClick={() => void copyEmail()} className={cn(adminBtn, "flex-1")}>
+						{copied ? "Email copied" : "Copy email"}
+					</button>
+				) : null}
+			</div>
 			<output className="sr-only">{copied ? "Email copied" : ""}</output>
 			{copyFailed && email ? <ManualEmailCopy email={email} /> : null}
 		</div>
