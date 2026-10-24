@@ -11,9 +11,11 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { mergePhotoFiles } from "@/lib/event-photo-selection";
 import { cn } from "@/lib/utils";
 import { useAdminNavigate, useBeforeUnloadGuard } from "./admin-draft-guard";
 import { adminBtn, ICON_MD } from "./controls";
+import { EVENT_PHOTO_ACCEPT } from "./event-photo-batch";
 import { Modal, ModalBody, useModalExit } from "./modal";
 import { UploadComposer } from "./upload-form";
 import { type ArtworkFieldSuggestions, useUploadComposer } from "./use-upload-composer";
@@ -50,15 +52,6 @@ export function useGlobalEventFiles() {
 	return useContext(AddSheetContext)?.eventFiles ?? null;
 }
 
-function mergeEventFiles(current: readonly File[], incoming: readonly File[]): File[] {
-	const files = new Map(
-		[...current, ...incoming].map(
-			(file) => [`${file.name}-${file.size}-${file.lastModified}`, file] as const,
-		),
-	);
-	return [...files.values()];
-}
-
 /** Defer incoming photos during submission so its reset cannot erase a newer selection. */
 export function useEventPhotoDraft(pending: boolean) {
 	const { eventFiles, takeEventFiles } = useContext(AddSheetContext) ?? {};
@@ -66,7 +59,7 @@ export function useEventPhotoDraft(pending: boolean) {
 	useEffect(() => {
 		if (pending || !eventFiles) return;
 		const incoming = takeEventFiles?.();
-		if (incoming) setFiles((current) => mergeEventFiles(current, incoming));
+		if (incoming) setFiles((current) => mergePhotoFiles(current, incoming));
 	}, [eventFiles, pending, takeEventFiles]);
 	return [files, setFiles] as const;
 }
@@ -199,7 +192,7 @@ export function AddSheetProvider({
 			<input
 				ref={eventInputRef}
 				type="file"
-				accept="image/*"
+				accept={EVENT_PHOTO_ACCEPT}
 				multiple
 				tabIndex={-1}
 				aria-hidden="true"
@@ -208,7 +201,7 @@ export function AddSheetProvider({
 					const files = Array.from(event.currentTarget.files ?? []);
 					event.currentTarget.value = "";
 					if (files.length === 0) return;
-					const next = mergeEventFiles(eventFilesRef.current ?? [], files);
+					const next = mergePhotoFiles(eventFilesRef.current ?? [], files);
 					eventFilesRef.current = next;
 					setEventFiles(next);
 					void goTo("/admin/events");

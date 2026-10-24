@@ -32,6 +32,7 @@ const ALLOWED_ORIGINS = [
 	"https://*.vercel.app",
 	"http://localhost:3000",
 	"http://localhost:3001",
+	"http://localhost:3002",
 ];
 
 const r2 = new S3Client({

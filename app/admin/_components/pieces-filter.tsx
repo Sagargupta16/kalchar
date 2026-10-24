@@ -19,6 +19,7 @@ const FILTER_LABEL: Record<PiecesFilterKey, string> = {
 	available: artworkStatusLabel("available"),
 	sold: artworkStatusLabel("sold"),
 	archive: artworkStatusLabel("archive"),
+	hidden: artworkStatusLabel("hidden"),
 	featured: "Featured",
 };
 
@@ -92,7 +93,7 @@ function ViewToggle({
 }
 
 /**
- * Search field, then the segmented lens control (the five filters with their
+ * Search field, then the segmented lens control (the six filters with their
  * counts) beside the view toggle, then the count line. The lens track scrolls
  * sideways on phones so it never wraps into a second row. In grid view the
  * count line carries the reorder hint (ordering lives in list view).

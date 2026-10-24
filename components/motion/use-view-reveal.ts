@@ -17,8 +17,15 @@ const VIEW_MARGIN = "0px 0px -12% 0px";
  * host's children animate on the compositor (transform, opacity, clip-path)
  * and a static accessibility audit can finish them via getAnimations().
  * Motion stays on regardless of the OS reduced-motion preference.
+ *
+ * Fails open: the server render and the first client render are "idle", so
+ * the host is visible before hydration and stays visible if JavaScript or
+ * IntersectionObserver is missing. Only a hydrated host that is off screen is
+ * armed, so nothing the visitor can see is ever hidden.
  */
-export function useViewReveal<T extends Element>(): [RefObject<T | null>, ViewRevealState] {
+export function useViewReveal<T extends Element>(
+	rootMargin = VIEW_MARGIN,
+): [RefObject<T | null>, ViewRevealState] {
 	const ref = useRef<T>(null);
 	const [state, setState] = useState<ViewRevealState>("idle");
 
@@ -34,11 +41,11 @@ export function useViewReveal<T extends Element>(): [RefObject<T | null>, ViewRe
 				setState("in");
 				observer.disconnect();
 			},
-			{ rootMargin: VIEW_MARGIN },
+			{ rootMargin },
 		);
 		observer.observe(node);
 		return () => observer.disconnect();
-	}, []);
+	}, [rootMargin]);
 
 	return [ref, state];
 }

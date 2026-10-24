@@ -106,7 +106,11 @@ function MobileNavLink({
  * disc dips e3 -> e2 while pressed (shadow only; Motion keeps the transform).
  * Focus draws the standard 2px accent ring around the round disc at 3px
  * offset (1.3 focus note), not around the rectangular cell; outline-hidden
- * keeps the forced-colors fallback that outline-none would drop.
+ * keeps the forced-colors fallback that outline-none would drop. The 68px
+ * collar plus pb-1 is taller than the 64px tab row, which grew the row and
+ * pushed the label 8px off a 375x812 screen; -mt-2 keeps the cell inside the
+ * row (the nav's pb-safe-bottom clears the home indicator), and the collar
+ * still rises out of the bar through its translate.
  */
 function RaisedAddCell() {
 	const addContext = useAddContext();
@@ -125,7 +129,7 @@ function RaisedAddCell() {
 		>
 			<span
 				aria-hidden="true"
-				className="grid size-[4.25rem] -translate-y-4 place-items-center rounded-full material-glass"
+				className="-mt-2 grid size-[4.25rem] -translate-y-4 place-items-center rounded-full material-glass"
 			>
 				<span className="grid size-fab place-items-center rounded-full bg-accent text-bg shadow-e3 transition-shadow group-active:shadow-e2 group-focus-visible:outline-2 group-focus-visible:outline-accent group-focus-visible:outline-offset-3">
 					<motion.span

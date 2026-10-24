@@ -144,9 +144,9 @@ test("profile: choosing a file shows a preview and a labelled upload button", as
 	await expect(progress).not.toHaveAttribute("value");
 	await outcome(page, "failure");
 	await page.evaluate(() => window.adminTest.release?.());
-	await expect(
-		page.getByRole("region", { name: "Profile photo" }).getByRole("alert"),
-	).toHaveText("Change was rejected.");
+	await expect(page.getByRole("region", { name: "Profile photo" }).getByRole("alert")).toHaveText(
+		"Change was rejected.",
+	);
 	await expect(page.getByText("fixture.jpg")).toBeVisible();
 });
 

@@ -60,10 +60,10 @@ describe("buyArtworkMessage", () => {
 	it("omits the price line when unpriced", () => {
 		expect(buyArtworkMessage(artwork())).not.toContain("Listed price");
 	});
-	it("asks for a similar commission when the piece is sold, even with an old price", () => {
+	it("asks for a similar custom piece when the piece is sold, even with an old price", () => {
 		const message = buyArtworkMessage(artwork({ status: "sold", priceInr: 12500 }));
 		expect(message).toContain('I saw "Radha Krishna" (Madhubani) has found a home');
-		expect(message).toContain("commission a similar piece");
+		expect(message).toContain("order a similar custom piece");
 		expect(message).not.toContain("Listed price");
 		expect(message).not.toContain("Is this still available?");
 	});
@@ -71,7 +71,7 @@ describe("buyArtworkMessage", () => {
 		"does not offer to buy an unpriced archive piece (%s)",
 		(priceInr) => {
 			const message = buyArtworkMessage(artwork({ status: "archive", priceInr }));
-			expect(message).toContain("similar piece or a commission");
+			expect(message).toContain("similar piece or a custom order");
 			expect(message).not.toContain("I'd like to buy");
 			expect(message).not.toContain("Listed price");
 		},

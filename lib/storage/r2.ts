@@ -24,6 +24,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
+import { isVersionedImageKey } from "./image-key";
 import { STAGING_PREFIX } from "./image-upload";
 
 /**
@@ -63,13 +64,18 @@ function client(): S3Client {
 const bucket = () => serverEnv.r2Bucket;
 
 /**
- * Cache-Control for uploaded objects. A meaningful max-age lets repeat
- * WhatsApp/IG visitors and page-to-page navigation reuse variants instead of
- * re-validating every AVIF. It is deliberately not `immutable` because the
- * bulk seed path can regenerate stable artwork keys. Versioned admin
- * replacements still avoid mixed old and new variants at the edge.
+ * Cache-Control for uploaded objects. Versioned keys (a UUID minted per
+ * upload, see isVersionedImageKey) are written once and never overwritten, so
+ * browsers may keep them for a year without revalidating. Stable seed keys
+ * can be regenerated in place by the bulk seed path, so they keep a day-long
+ * max-age that still lets repeat WhatsApp/IG visitors reuse variants.
  */
-const UPLOAD_CACHE_CONTROL = "public, max-age=86400, must-revalidate";
+const VERSIONED_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const STABLE_CACHE_CONTROL = "public, max-age=86400, must-revalidate";
+
+function uploadCacheControl(key: string): string {
+	return isVersionedImageKey(key) ? VERSIONED_CACHE_CONTROL : STABLE_CACHE_CONTROL;
+}
 
 /** Upload one object and return its public URL. */
 export async function uploadObject(
@@ -83,7 +89,7 @@ export async function uploadObject(
 			Key: key,
 			Body: body,
 			ContentType: contentType,
-			CacheControl: UPLOAD_CACHE_CONTROL,
+			CacheControl: uploadCacheControl(key),
 		}),
 	);
 	return `${serverEnv.r2PublicBaseUrl}/${key}`;

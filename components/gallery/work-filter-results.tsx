@@ -2,6 +2,7 @@
 
 import { Palette } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { useMemo, useRef } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -76,6 +77,43 @@ function getEmptyStateCopy({
 	};
 }
 
+/** When nothing on the wall can be bought, a custom order is the way forward. */
+function CustomOrderLink({ variant }: Readonly<{ variant: "secondary" | "ghost" }>) {
+	return (
+		<Link href="/custom-orders/" className={buttonVariants({ variant })}>
+			Order a custom piece
+		</Link>
+	);
+}
+
+function getEmptyStateAction({
+	items,
+	hasQuery,
+	availableOnly,
+	onClearSearch,
+	onClearFilters,
+}: Pick<WorkFilterResultsProps, "items" | "availableOnly" | "onClearSearch" | "onClearFilters"> & {
+	hasQuery: boolean;
+}) {
+	if (items.length === 0) return <CustomOrderLink variant="secondary" />;
+	const reset = (
+		<button
+			type="button"
+			onClick={hasQuery ? onClearSearch : onClearFilters}
+			className={buttonVariants({ variant: "secondary" })}
+		>
+			{hasQuery ? "Clear search" : "Show all pieces"}
+		</button>
+	);
+	if (hasQuery || !availableOnly) return reset;
+	return (
+		<div className="flex flex-wrap justify-center gap-3">
+			{reset}
+			<CustomOrderLink variant="ghost" />
+		</div>
+	);
+}
+
 export function WorkFilterResults({
 	items,
 	visible,
@@ -101,17 +139,13 @@ export function WorkFilterResults({
 				className="mt-(--space-block)"
 				icon={<Palette size={24} aria-hidden="true" />}
 				{...copy}
-				action={
-					items.length > 0 ? (
-						<button
-							type="button"
-							onClick={hasQuery ? onClearSearch : onClearFilters}
-							className={buttonVariants({ variant: "secondary" })}
-						>
-							{hasQuery ? "Clear search" : "Show all pieces"}
-						</button>
-					) : undefined
-				}
+				action={getEmptyStateAction({
+					items,
+					hasQuery,
+					availableOnly,
+					onClearSearch,
+					onClearFilters,
+				})}
 			/>
 		);
 	}

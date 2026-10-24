@@ -3,9 +3,11 @@
 import { ImagePlus, LoaderCircle, Plus } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { formString } from "@/lib/admin-helpers";
+import { mergePhotoFiles } from "@/lib/event-photo-selection";
 import { cn } from "@/lib/utils";
 import { useEventPhotoDraft } from "./add-sheet";
 import { useAdminDraftGuard } from "./admin-draft-guard";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import {
@@ -145,8 +147,10 @@ export function CreateEventForm({
 									: "new-event-photos-hint"
 							}
 							onChange={(e) => {
-								const next = Array.from(e.currentTarget.files ?? []);
-								if (next.length > 0) setFiles(next);
+								// A second pick adds to the first; Remove on a tile takes one out.
+								const picked = Array.from(e.currentTarget.files ?? []);
+								e.currentTarget.value = "";
+								if (picked.length > 0) setFiles((current) => mergePhotoFiles(current, picked));
 							}}
 						/>
 					</label>
@@ -238,9 +242,7 @@ export function CreateEventForm({
 				</button>
 			</div>
 			{submitted && err ? (
-				<AdminNotice variant="error" className="mt-(--form-gap)">
-					{err}
-				</AdminNotice>
+				<AdminErrorNotice className="mt-(--form-gap)">{err}</AdminErrorNotice>
 			) : null}
 		</form>
 	);

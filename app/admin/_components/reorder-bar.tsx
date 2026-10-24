@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
 import { useAdminDraftGuard } from "./admin-draft-guard";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { adminBtn, adminBtnPrimary, ICON_MD } from "./controls";
 import { usePendingVisible } from "./use-admin-action";
 
@@ -104,9 +104,7 @@ export function ReorderBar({
 	return (
 		<BottomBar>
 			{error ? (
-				<AdminNotice variant="error" className="min-w-0 flex-1">
-					{error}
-				</AdminNotice>
+				<AdminErrorNotice className="min-w-0 flex-1">{error}</AdminErrorNotice>
 			) : (
 				<p className="min-w-0 flex-1 truncate text-sm text-muted">
 					{saved ? <output className="text-accent-text">Order saved</output> : label}
@@ -162,11 +160,7 @@ export function InlineReorderControls({
 				className,
 			)}
 		>
-			{error ? (
-				<AdminNotice variant="error" className="min-w-0 basis-full">
-					{error}
-				</AdminNotice>
-			) : null}
+			{error ? <AdminErrorNotice className="min-w-0 basis-full">{error}</AdminErrorNotice> : null}
 			{!error && label && !saved ? (
 				<p className="min-w-0 truncate text-sm text-muted">{label}</p>
 			) : null}

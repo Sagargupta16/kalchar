@@ -1,18 +1,19 @@
 "use client";
 
-import { MessageSquareQuote, Star, Trash2 } from "lucide-react";
+import { ChevronDown, MessageSquareQuote, Star, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState } from "react";
+import { useId, useOptimistic, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { isFailure } from "@/lib/action-result";
+import { adminFailureMessage } from "@/lib/admin-session";
 import type { ArtworkTitle } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { SPRING_INDICATOR } from "@/lib/motion";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteTestimonial, setTestimonialFeatured } from "../testimonial-actions";
-import { AdminNotice } from "./admin-notice";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminHelp,
@@ -22,6 +23,7 @@ import {
 	adminThumb,
 	ICON_MD,
 } from "./controls";
+import { TestimonialEditor, useTestimonialEditor } from "./testimonial-editor";
 import type { UndoOffer } from "./undo-bar";
 import { useAdminAction } from "./use-admin-action";
 
@@ -29,6 +31,8 @@ export interface TestimonialRowProps {
 	testimonial: Testimonial;
 	/** The linked piece (title + image), resolved by the manager; never a raw slug. */
 	artwork?: ArtworkTitle;
+	/** Every piece, for the editor's link picker (titles shown, slugs submitted). */
+	artworks: readonly ArtworkTitle[];
 	highlighted?: boolean;
 	disabled?: boolean;
 	onChanged: (next: Testimonial) => void;
@@ -67,13 +71,13 @@ function VisibilityBadge({
  * decorative marigold quote mark opens the clamped quote, the linked piece's
  * thumbnail leads, the author line carries the visibility chip, and the
  * trailing cluster is the gold Featured star, a hairline and Delete with at
- * least 16px clear space. The body stays a plain <div> (not a dead button)
- * until the updateTestimonial server action exists (spec 7.4); the inline
- * editor lands with it.
+ * least 16px clear space. The body is the Edit button (spec 7.4): it expands
+ * the inline editor in the shared form rhythm, like a workshop row.
  */
 export function TestimonialRow({
 	testimonial: t,
 	artwork,
+	artworks,
 	highlighted = false,
 	disabled = false,
 	onChanged,
@@ -82,7 +86,12 @@ export function TestimonialRow({
 }: Readonly<TestimonialRowProps>) {
 	const confirm = useConfirm();
 	const router = useRouter();
-	const { pending, err, run } = useAdminAction();
+	const editorId = useId();
+	const textId = useId();
+	const editRef = useRef<HTMLButtonElement>(null);
+	const { pending: featurePending, err, run } = useAdminAction();
+	const editor = useTestimonialEditor(t, onChanged);
+	const pending = featurePending || editor.pending;
 	// Optimistic Feature (C12): flips the moment run starts, reverts by itself on failure.
 	const [featured, setOptimisticFeatured] = useOptimistic(t.featured);
 	// Remount key for the star glyph so each flip pops it with SPRING_INDICATOR (1.9); 0 = no mount pop.
@@ -127,7 +136,7 @@ export function TestimonialRow({
 			cancelLabel: "Keep testimonial",
 			action: async () => {
 				const result = await deleteTestimonial(t.id);
-				if (isFailure(result)) throw new Error(result.message);
+				if (isFailure(result)) throw new Error(adminFailureMessage(result.message));
 				return true;
 			},
 		});
@@ -135,6 +144,10 @@ export function TestimonialRow({
 			onDeleted(t.id);
 			router.refresh();
 		}
+	};
+
+	const closeEditor = async () => {
+		if (await editor.close()) requestAnimationFrame(() => editRef.current?.focus());
 	};
 
 	return (
@@ -148,8 +161,18 @@ export function TestimonialRow({
 			)}
 		>
 			<div className="flex flex-col gap-4 @xl/row:flex-row @xl/row:items-start @xl/row:gap-3">
-				{/* Line 1: the body (a <button> with aria-expanded once updateTestimonial exists). */}
-				<div className="flex min-w-0 flex-1 items-start gap-3">
+				{/* Line 1: the Edit body; the quote and author line describe it for screen readers. */}
+				<button
+					ref={editRef}
+					type="button"
+					aria-expanded={editor.editing}
+					aria-controls={editorId}
+					aria-label={`Edit testimonial from ${t.authorName}`}
+					aria-describedby={textId}
+					disabled={pending || disabled}
+					onClick={() => (editor.editing ? closeEditor() : editor.open())}
+					className="flex min-h-control min-w-0 flex-1 items-start gap-3 rounded-(--radius-sm) text-left transition-ui pressable hover:text-accent-text disabled:pointer-events-none disabled:opacity-50"
+				>
 					{artwork ? (
 						// biome-ignore lint/performance/noImgElement: admin-only thumb
 						<img
@@ -162,8 +185,11 @@ export function TestimonialRow({
 							<MessageSquareQuote size={ICON_MD} aria-hidden="true" />
 						</span>
 					)}
-					<div className="min-w-0 flex-1">
-						<blockquote className="whitespace-pre-wrap break-words text-sm text-ink">
+					<span id={textId} className="block min-w-0 flex-1">
+						<span
+							data-testimonial-quote=""
+							className="block whitespace-pre-wrap break-words text-sm text-ink"
+						>
 							<span
 								aria-hidden="true"
 								className="t-display float-left mr-2 text-h2 leading-none text-marigold/60"
@@ -171,7 +197,7 @@ export function TestimonialRow({
 								{'"'}
 							</span>
 							{t.quote}
-						</blockquote>
+						</span>
 						<span className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
 							<span className={cn(adminHelp, "min-w-0 break-words")}>
 								{t.authorName}
@@ -181,8 +207,17 @@ export function TestimonialRow({
 							<VisibilityBadge featured={featured} artworkTitle={artwork?.title} />
 						</span>
 						<span className="sr-only">{featured ? ", featured on the home page" : ""}</span>
-					</div>
-				</div>
+					</span>
+					<span
+						aria-hidden="true"
+						className="grid size-control shrink-0 place-items-center text-muted"
+					>
+						<ChevronDown
+							size={ICON_MD}
+							className={cn("transition-ui", editor.editing && "rotate-180")}
+						/>
+					</span>
+				</button>
 				{/* Line 2: quick state, divider, Delete */}
 				<div className="flex items-center gap-2 @xl/row:shrink-0">
 					<button
@@ -222,11 +257,17 @@ export function TestimonialRow({
 					</div>
 				</div>
 			</div>
-			{err ? (
-				<AdminNotice variant="error" className="mt-3">
-					{err}
-				</AdminNotice>
+			{editor.editing ? (
+				<TestimonialEditor
+					id={editorId}
+					testimonialId={t.id}
+					authorName={t.authorName}
+					artworks={artworks}
+					editor={editor}
+					onCancel={closeEditor}
+				/>
 			) : null}
+			{err ? <AdminErrorNotice className="mt-3">{err}</AdminErrorNotice> : null}
 		</li>
 	);
 }

@@ -2,7 +2,7 @@
 
 import { ShoppingBag } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { type ReadonlyURLSearchParams, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { GallerySearch } from "@/components/gallery/gallery-search";
 import { useLightbox } from "@/components/gallery/lightbox-context";
@@ -24,10 +24,22 @@ import { WorkFilterResults } from "./work-filter-results";
  *
  * The rail stays within reach on phones. Position-only layout animation
  * moves cards between columns without stretching the artwork.
+ *
+ * WorkFilter is the thin URL reader; WorkFilterView is the gallery itself. A
+ * static route cannot read search params at build time, so app/work/page.tsx
+ * renders WorkFilterView without them as the Suspense fallback: the static
+ * HTML carries the real unfiltered wall, and the live view takes over (with
+ * the URL's lens applied) once it mounts.
  */
 interface WorkFilterProps {
 	styles: readonly string[];
 	items: readonly Artwork[];
+}
+
+interface WorkFilterViewProps extends WorkFilterProps {
+	/** The live URL lens. Absent in the static fallback, which renders the
+	 *  unfiltered wall with its controls disabled until the live view mounts. */
+	searchParams?: ReadonlyURLSearchParams;
 }
 
 const ALL = "All" as const;
@@ -54,16 +66,22 @@ function filterFromParams(params: URLSearchParams, styles: readonly string[]): s
 	return ALL;
 }
 
-export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
-	const pathname = usePathname();
+/** Reads ?style=, ?view=, ?q= and ?piece= and renders the live gallery. */
+export function WorkFilter(props: Readonly<WorkFilterProps>) {
 	const searchParams = useSearchParams();
-	const queryParam = searchParams.get("q") ?? "";
+	return <WorkFilterView {...props} searchParams={searchParams} />;
+}
+
+export function WorkFilterView({ styles, items, searchParams }: Readonly<WorkFilterViewProps>) {
+	const live = searchParams !== undefined;
+	const pathname = usePathname();
+	const queryParam = searchParams?.get("q") ?? "";
 	const [query, setQuery] = useState(queryParam);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const allFilterRef = useRef<HTMLButtonElement>(null);
 	const resultsId = useId();
-	const active = filterFromParams(new URLSearchParams(searchParams.toString()), styles);
-	const availableOnly = searchParams.get("view") === "available";
+	const active = filterFromParams(new URLSearchParams(searchParams?.toString()), styles);
+	const availableOnly = searchParams?.get("view") === "available";
 
 	// Keep typing synchronous, while Back/Forward and reload restore the URL's search.
 	// Read the live URL so a delayed navigation snapshot cannot overwrite newer typing.
@@ -162,7 +180,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	// so the browser back button closes the modal (Android WebViews have no
 	// CloseWatcher); moving between pieces replaces; closing pops our entry.
 	const { isOpen, activeArtwork, openLightbox, closeLightbox } = useLightbox();
-	const pieceParam = searchParams.get("piece");
+	const pieceParam = searchParams?.get("piece") ?? null;
 	const openedFromUrl = useRef<string | null>(null);
 	const pushedRef = useRef(false);
 	/** True once the address bar has caught up with the open piece. */
@@ -185,8 +203,11 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 	// The URL losing ?piece= while we are open means the back button fired, so
 	// close. Closed: pop the entry we pushed, or replace when the visitor arrived
 	// on ?piece= directly and there is nothing of ours to pop.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: searchParams triggers Back/Forward reconciliation; read the current URL to avoid stale navigation snapshots
+	// searchParams triggers Back/Forward reconciliation; the body reads the
+	// current URL to avoid stale navigation snapshots.
 	useEffect(() => {
+		// The static fallback owns no history; only the live view reconciles it.
+		if (!searchParams) return;
 		// This is local viewer state. Native history integrates with Next's
 		// search params without a server navigation that can replace the trigger
 		// while the dialog is opening or restoring keyboard focus.
@@ -224,14 +245,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		urlSynced.current = false;
 		if (!urlPiece) return;
 		openedFromUrl.current = null;
-		if (pushedRef.current) {
-			pushedRef.current = false;
-			window.history.back();
-			return;
-		}
-		params.delete("piece");
-		const qs = params.toString();
-		window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+		dropPieceParam(params, pathname, pushedRef);
 	}, [isOpen, activeArtwork, searchParams, pathname, closeLightbox]);
 
 	const styleFilters = [ALL, ...styles];
@@ -246,11 +260,13 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 					onQuery={changeQuery}
 					inputRef={searchRef}
 					resultsId={resultsId}
+					disabled={!live}
 				/>
 				{forSaleCount > 0 || availableOnly ? (
 					<button
 						type="button"
 						onClick={toggleAvailability}
+						disabled={!live}
 						aria-pressed={availableOnly}
 						className={cn(
 							PILL,
@@ -283,6 +299,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 								ref={f === ALL ? allFilterRef : undefined}
 								type="button"
 								onClick={() => setActive(f)}
+								disabled={!live}
 								aria-pressed={isActive}
 								data-active={isActive || undefined}
 								className={cn(
@@ -342,4 +359,24 @@ function getStatusMessage({
 	}
 	if (active === ALL) return `Showing all ${count} pieces`;
 	return `Showing ${count} ${active} ${pieceWord}`;
+}
+
+/**
+ * The viewer closed while the URL still names a piece: pop the history entry
+ * the viewer pushed, or, when the visitor arrived on ?piece= directly and there
+ * is nothing of ours to pop, replace the URL without it.
+ */
+function dropPieceParam(
+	params: URLSearchParams,
+	pathname: string,
+	pushedRef: { current: boolean },
+): void {
+	if (pushedRef.current) {
+		pushedRef.current = false;
+		window.history.back();
+		return;
+	}
+	params.delete("piece");
+	const qs = params.toString();
+	window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
 }

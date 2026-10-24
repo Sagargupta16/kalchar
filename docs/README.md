@@ -12,9 +12,18 @@ Engineering documentation for [kalchar.co.in](https://kalchar.co.in/) -- the por
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, the scripts reference, dev notes, and the conventions a contributor follows. |
 | [OPERATIONS.md](OPERATIONS.md) | Backups, restores, migration discipline, lead retention, health checks, and incident response. |
 | [ADDING-FEATURES.md](ADDING-FEATURES.md) | Ordered recipes for a new entity, public page, image-bearing feature, or environment variable: the files to touch, the guardrails that fail fast, and the local checks that mirror CI. |
-| [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) | Findings from the September review, implementation mapping, and external verification still required. |
 | [diagrams/](diagrams/) | The README architecture picture: an [orrery](https://github.com/Sagargupta16/orrery) spec (`architecture.yaml`, with file and line evidence per component) and its rendered light and dark SVGs. Re-render after editing the spec; the command is in the spec's header. |
-| [ROADMAP.md](ROADMAP.md) | Prioritized feature roadmap from a multi-agent deep-dive: themes, phased solo-dev sequence, quick wins, big bets, RICE-scored idea pool. A decision aid, not a commitment. |
+
+## Archive
+
+[archive/](archive/) holds historical snapshots. They record what was planned or found at the time and are not kept current; the docs above win wherever they disagree.
+
+| Doc | What it was |
+| --- | --- |
+| [archive/ROADMAP.md](archive/ROADMAP.md) | The 2026-07-02 feature roadmap from a multi-agent deep-dive: themes, phased solo-dev sequence, quick wins, big bets, RICE-scored idea pool. |
+| [archive/UI-CONSISTENCY-PLAN.md](archive/UI-CONSISTENCY-PLAN.md) | The UI consistency research: elevation token foundation, phased migration, and verified per-page findings. |
+| [archive/UI-REVIEW-2026-09-14.md](archive/UI-REVIEW-2026-09-14.md) | The 2026-09-14 per-page UI review of the 23 public, admin, and recovery pages, with its verification results. |
+| [archive/REVIEW-REMEDIATION.md](archive/REVIEW-REMEDIATION.md) | Findings from the 2026-09-11 project analysis, implementation mapping, and the external verification it left open. |
 
 ## Conventions in these docs
 

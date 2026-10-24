@@ -2,7 +2,7 @@
 
 > Generated 2026-07-02 from a multi-agent deep-dive: **196 agents**, **148 ideas** across 20 product domains, RICE-scored, top 22 adversarially verified. This is a decision aid, not a commitment.
 
-> Historical planning snapshot. Statements below about missing tests, absent lead persistence, direct schema pushes, or future backend work describe the July planning baseline, not the current application. Use [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), and [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) for current implementation and operations.
+> Historical planning snapshot. Statements below about missing tests, absent lead persistence, direct schema pushes, or future backend work describe the July planning baseline, not the current application. Use [ARCHITECTURE.md](../ARCHITECTURE.md), [DATABASE.md](../DATABASE.md), and [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) for current implementation and operations.
 
 ## Strategic summary
 

@@ -12,8 +12,11 @@ export interface Category {
 	order: number;
 }
 
-/** Lifecycle of a piece in the catalog. */
-export type ArtworkStatus = "archive" | "available" | "sold";
+/**
+ * Lifecycle of a piece in the catalog. "hidden" keeps a piece in the admin
+ * only: public reads drop it and it is never for sale, even with a price.
+ */
+export type ArtworkStatus = "archive" | "available" | "sold" | "hidden";
 
 export interface Artwork {
 	slug: string;
@@ -33,7 +36,7 @@ export interface Artwork {
 	image: string;
 	/** Optional sampled palette (3-5 hex values) for chromacard / accent UI. */
 	palette?: string[];
-	/** Lifecycle state (archive / available / sold), stored directly on the row. */
+	/** Lifecycle state (archive / available / sold / hidden), stored directly on the row. */
 	status?: ArtworkStatus;
 	/** INR. When set, the piece is considered for-sale. */
 	priceInr?: number;

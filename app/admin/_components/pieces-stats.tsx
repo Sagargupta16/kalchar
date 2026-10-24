@@ -6,12 +6,15 @@ import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
 import { DUR, EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { DOT } from "./artwork-quick-state";
 import { adminStatusDot, ICON_SM } from "./controls";
 
 export interface PiecesStatsProps {
 	total: number;
 	available: number;
 	sold: number;
+	/** Pieces kept in the admin only. Passing it adds the Hidden tile. */
+	hidden?: number;
 	featured: number;
 	/** New enquiries on the newest leads page. */
 	newEnquiries: number;
@@ -25,7 +28,10 @@ interface Tile {
 	icon: LucideIcon | null;
 	/** Status dot instead of an icon (the 1.15 status tokens). */
 	dot?: string;
-	/** Tile width on phones (6-column grid): two wide on row one, three on row two; lg is one row of five. */
+	/**
+	 * Tile width on phones (6-column grid): two wide on row one, three on row two;
+	 * with the Hidden tile, two per row on three rows. lg is one row of every tile.
+	 */
 	span: string;
 	/** Tint the icon chip with the accent: something is waiting. */
 	attention?: boolean;
@@ -59,7 +65,7 @@ function CountUp({ value }: Readonly<{ value: number }>) {
 }
 
 /**
- * Dashboard overview above the Pieces grid: four inventory tiles (each a link
+ * Dashboard overview above the Pieces grid: the inventory tiles (each a link
  * into the matching ?show= lens) plus new enquiries. Tabular numerals so the
  * count-up never jitters the tile width; tiles arrive on the admin stagger.
  */
@@ -67,9 +73,27 @@ export function PiecesStats({
 	total,
 	available,
 	sold,
+	hidden,
 	featured,
 	newEnquiries,
 }: Readonly<PiecesStatsProps>) {
+	const withHidden = hidden !== undefined;
+	// Five tiles pair the headline numbers then three across; six sit two per row.
+	const lensSpan = withHidden ? "col-span-3" : "col-span-2";
+	const hiddenTile: Tile[] =
+		hidden === undefined
+			? []
+			: [
+					{
+						key: "hidden",
+						label: "Hidden",
+						value: hidden,
+						href: "/admin?show=hidden",
+						icon: null,
+						dot: DOT.hidden,
+						span: lensSpan,
+					},
+				];
 	const tiles: Tile[] = [
 		{
 			key: "all",
@@ -96,7 +120,7 @@ export function PiecesStats({
 			href: "/admin?show=available",
 			icon: null,
 			dot: "bg-status-available",
-			span: "col-span-2",
+			span: lensSpan,
 		},
 		{
 			key: "sold",
@@ -105,21 +129,27 @@ export function PiecesStats({
 			href: "/admin?show=sold",
 			icon: null,
 			dot: "bg-status-sold",
-			span: "col-span-2",
+			span: lensSpan,
 		},
+		...hiddenTile,
 		{
 			key: "featured",
 			label: "Featured",
 			value: featured,
 			href: "/admin?show=featured",
 			icon: Star,
-			span: "col-span-2",
+			span: lensSpan,
 		},
 	];
 
 	return (
 		<section aria-label="Overview">
-			<ul className="admin-stagger grid grid-cols-6 gap-2 sm:gap-3 lg:grid-cols-5 lg:gap-4">
+			<ul
+				className={cn(
+					"admin-stagger grid grid-cols-6 gap-2 sm:gap-3 lg:gap-4",
+					withHidden ? "lg:grid-cols-6" : "lg:grid-cols-5",
+				)}
+			>
 				{tiles.map((tile) => (
 					<li key={tile.key} className={cn("min-w-0 lg:col-span-1", tile.span)}>
 						<Link

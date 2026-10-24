@@ -36,26 +36,26 @@ describe("Reveal", () => {
 		expect(html).toContain("reveal-plate reveal-plate-unveil");
 	});
 
-	it("whileInView plate clips instead of translating (the image is never resampled)", () => {
+	it("in-view plate clips instead of translating (the image is never resampled)", () => {
 		const html = renderToStaticMarkup(
 			<Reveal variant="plate">
 				<span data-plate="x" />
 			</Reveal>,
 		);
-		expect(html).toContain("data-motion-reveal");
-		expect(html).toContain("clip-path");
-		expect(html).toContain("100%");
-		expect(html).not.toContain("translateY");
+		expect(html).toContain('data-motion-reveal="idle"');
+		expect(html).toContain('class="reveal-view-plate"');
+		expect(html).not.toContain("reveal-view ");
+		expect(html).not.toContain("translate");
 	});
 
-	it("whileInView default still fades up from below", () => {
+	it("in-view default fades up from below through the CSS entrance", () => {
 		const html = renderToStaticMarkup(
 			<Reveal>
 				<span>copy</span>
 			</Reveal>,
 		);
-		expect(html).toContain("opacity:0");
-		expect(html).toContain(`translateY(${REVEAL_TRAVEL.block}px)`);
+		expect(html).toContain('class="reveal-view"');
+		expect(html).toContain(`--reveal-offset-y:${REVEAL_TRAVEL.block}px`);
 		expect(html).not.toContain("clip-path");
 	});
 
@@ -75,7 +75,7 @@ describe("Reveal", () => {
 				Item
 			</Reveal>,
 		);
-		expect(html).toContain(`translateY(${REVEAL_TRAVEL.item}px)`);
+		expect(html).toContain(`--reveal-offset-y:${REVEAL_TRAVEL.item}px`);
 		expect(eager).toContain(`--reveal-offset-y:${REVEAL_TRAVEL.item}px`);
 	});
 
@@ -92,6 +92,46 @@ describe("Reveal", () => {
 		);
 		expect(eager).toContain("--reveal-offset-x:-32px");
 		expect(eager).toContain("--reveal-offset-y:0px");
-		expect(inView).toContain("translateX(-32px)");
+		expect(inView).toContain("--reveal-offset-x:-32px");
+	});
+});
+
+/** Inline styles that would hide server HTML until hydration (opacity or a closed clip). */
+function hiddenInlineStates(html: string): number {
+	return (html.match(/opacity:\s*0[;"]|clip-path:\s*inset\([^)]*100%/g) ?? []).length;
+}
+
+describe("server HTML is visible before hydration", () => {
+	it("no Reveal path renders a hidden inline state", () => {
+		const html = [
+			<Reveal key="up">copy</Reveal>,
+			<Reveal key="item" variant="item">
+				copy
+			</Reveal>,
+			<Reveal key="plate" variant="plate">
+				copy
+			</Reveal>,
+			<Reveal key="left" direction="left">
+				copy
+			</Reveal>,
+			<Reveal key="eager" eager>
+				copy
+			</Reveal>,
+		]
+			.map((node) => renderToStaticMarkup(node))
+			.join("");
+		expect(hiddenInlineStates(html)).toBe(0);
+	});
+
+	it("catalog images render without the settle from-state", async () => {
+		process.env.NEXT_PUBLIC_IMAGE_BASE_URL ??= "https://fixtures.invalid";
+		const { ResponsiveImage } = await import("@/components/gallery/responsive-image");
+		const { ArtImage } = await import("@/components/gallery/art-image");
+		const html = [
+			renderToStaticMarkup(<ResponsiveImage keyBase="events/e/p" alt="Photo" sizes="100vw" />),
+			renderToStaticMarkup(<ArtImage src="/artworks/radha.jpg" alt="Radha" sizes="100vw" />),
+		].join("");
+		expect(hiddenInlineStates(html)).toBe(0);
+		expect(html).not.toContain("scale(1.02)");
 	});
 });

@@ -132,7 +132,7 @@ test("@mobile conversion buttons meet the 44px floor", async ({ page }) => {
 	}
 
 	await page.goto("/about/");
-	const commission = page.getByRole("link", { name: "Commission a piece" });
+	const commission = page.getByRole("link", { name: "Order a custom piece" });
 	await commission.scrollIntoViewIfNeeded();
 	await expectTouchTarget(commission);
 
@@ -244,7 +244,10 @@ test("events carry anchors and the first two articles are server-visible", async
 	// Both records, their titles and dates are in the server HTML (no JS wait).
 	await page.goto("/events/", { waitUntil: "commit" });
 	await expect(page.locator("main article")).toHaveCount(2);
-	await expect(page.locator("main article h2")).toHaveText(["Studio gathering", "Community mural day"]);
+	await expect(page.locator("main article h2")).toHaveText([
+		"Studio gathering",
+		"Community mural day",
+	]);
 	await expect(page.locator("main article time")).toHaveCount(2);
 });
 

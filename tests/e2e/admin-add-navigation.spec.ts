@@ -121,17 +121,19 @@ async function mountAddNavigation(
 	await page.evaluate((options) => window.mountAddNavigation(options), { pathname, navigation });
 }
 
-const eventForm = (page: Page) =>
-	page.getByRole("form", { name: "Add an event", exact: true });
+const eventForm = (page: Page) => page.getByRole("form", { name: "Add an event", exact: true });
 const leaveDialog = (page: Page) =>
 	page.getByRole("dialog", { name: "Leave without saving?", exact: true });
 
 async function chooseAddDestination(page: Page, label: string) {
 	await page.getByRole("button", { name: "Add", exact: true }).click();
-	await page.getByRole("dialog", { name: "Add", exact: true }).getByRole("button", {
-		name: label,
-		exact: true,
-	}).click();
+	await page
+		.getByRole("dialog", { name: "Add", exact: true })
+		.getByRole("button", {
+			name: label,
+			exact: true,
+		})
+		.click();
 }
 
 async function pickGlobalPhotos(
@@ -142,10 +144,13 @@ async function pickGlobalPhotos(
 	const picker = page.waitForEvent("filechooser");
 	const path = await page.evaluate(() => window.adminTest.pathname);
 	if (path.replace(/\/$/, "") === "/admin/events") {
-		await page.getByRole("navigation", { name: "Admin", exact: true }).getByRole("button", {
-			name: navigation === "desktop" ? "Add event" : "Add an event",
-			exact: true,
-		}).click();
+		await page
+			.getByRole("navigation", { name: "Admin", exact: true })
+			.getByRole("button", {
+				name: navigation === "desktop" ? "Add event" : "Add an event",
+				exact: true,
+			})
+			.click();
 	} else {
 		await chooseAddDestination(page, "Add event");
 	}
@@ -196,16 +201,20 @@ for (const navigation of ["desktop", "mobile"] as const) {
 		await mountAddNavigation(page, "/admin/categories", navigation);
 		await pickGlobalPhotos(page, [photo("arrival.png")], navigation);
 		await expect(page).toHaveURL("http://admin-add.test/admin/events");
-		await expect(eventForm(page).getByRole("img", {
-			name: "Selection 1: arrival.png",
-		})).toBeVisible();
+		await expect(
+			eventForm(page).getByRole("img", {
+				name: "Selection 1: arrival.png",
+			}),
+		).toBeVisible();
 		await expect(leaveDialog(page)).toHaveCount(0);
 		expect(await page.evaluate(() => window.adminTest.calls)).toEqual([]);
 		expect(await page.evaluate(() => window.adminTest.stageCalls)).toEqual([]);
 	});
 }
 
-test("cancelled event navigation retains the page draft and the picked photos", async ({ page }) => {
+test("cancelled event navigation retains the page draft and the picked photos", async ({
+	page,
+}) => {
 	await mountAddNavigation(page);
 	const name = page.getByRole("textbox", { name: "Category name", exact: true });
 	await name.fill("Keep this category");
@@ -217,9 +226,11 @@ test("cancelled event navigation retains the page draft and the picked photos", 
 	await page.getByRole("link", { name: "Events page", exact: true }).click();
 	await expect(leaveDialog(page)).toBeVisible();
 	await leaveDialog(page).getByRole("button", { name: "Leave page" }).click();
-	await expect(eventForm(page).getByRole("img", {
-		name: "Selection 1: retained.png",
-	})).toBeVisible();
+	await expect(
+		eventForm(page).getByRole("img", {
+			name: "Selection 1: retained.png",
+		}),
+	).toBeVisible();
 	expect(await page.evaluate(() => window.adminTest.calls)).toEqual([]);
 });
 
@@ -269,10 +280,14 @@ test("photos picked during a submission wait for a fresh event draft", async ({ 
 	await outcome(page, "success");
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(eventForm(page).getByLabel("Title *", { exact: true })).toHaveValue("");
-	await expect(eventForm(page).getByRole("img", {
-		name: "Selection 1: next-event.png",
-	})).toBeVisible();
-	expect(await page.evaluate(() =>
-		window.adminTest.calls.filter((call) => call.name === "processEventPhoto").length,
-	)).toBe(1);
+	await expect(
+		eventForm(page).getByRole("img", {
+			name: "Selection 1: next-event.png",
+		}),
+	).toBeVisible();
+	expect(
+		await page.evaluate(
+			() => window.adminTest.calls.filter((call) => call.name === "processEventPhoto").length,
+		),
+	).toBe(1);
 });

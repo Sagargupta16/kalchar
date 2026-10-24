@@ -27,7 +27,7 @@ Catalog, event, and profile images are processed by one sharp pipeline and store
 <key-base>.jpg
 ```
 
-Artwork key-bases start with `artworks/`. Event key-bases are `events/<event-id>/<image-id>`. Profile replacements use `profile/artist-<image-id>`. Every image has 13 objects.
+Artwork key-bases start with `artworks/`. New artwork versions are keyed `artworks/<ascii-slug>-<uuid>`: the ASCII segment comes from `asciiKeySegment` in `lib/storage/image-key.ts` (NFKD, combining marks stripped, anything outside `a-z0-9` collapsed to hyphens, `piece` when nothing is left), because the `/media` rewrite only proxies `[A-Za-z0-9_-]` filenames. The URL slug itself may stay Unicode. Event key-bases are `events/<event-id>/<image-id>`. Profile replacements use `profile/artist-<image-id>`. Every image has 13 objects.
 
 The R2 `<key-base>.jpg` fallback is a normalized mozjpeg capped at 2000 px on its long edge, not the original upload. Original pre-compression bytes from older uploads cannot be recreated from these lossy outputs. Seeded source masters remain under `public/artworks/` so their variants can be regenerated and used as a final same-origin fallback if a proxied artwork request fails.
 
@@ -37,7 +37,7 @@ Image bytes never pass through a server action. Vercel rejects any function requ
 
 1. The browser asks `createUploadTicket(contentType, size)` (`app/admin/upload-actions.ts`) for a presigned PUT. That action re-checks the maintainer session, so a ticket is never issued anonymously, and validates the declared type and size.
 2. The ticket points at a `staging/<uuid>` key. `presignUpload` explicitly includes content type and length in signed headers. The type must be one of the accepted image MIME types; this is metadata binding, not proof that the bytes are a valid image. Tickets expire after 15 minutes.
-3. The browser PUTs the master straight to R2 (`stageImage` in `app/admin/_components/stage-image.ts`) and submits only the staged key in the form.
+3. The browser PUTs the master straight to R2 (`stageImage` in `app/admin/_components/stage-image.ts`) and submits only the staged key in the form. Before the PUT, `downscalePhoto` (`lib/photo-downscale.ts`) redraws a photo whose long edge is over 2400 px as a JPEG at quality 0.9, decoded through `createImageBitmap` with `imageOrientation: "from-image"` so the pixels are already upright. It fails open: the original uploads unchanged if it cannot be decoded, is already within the limit, or the copy would not be smaller.
 4. The mutation action calls `readStagedImage(key)`, which confines the key to staging, checks HEAD size, bounds the GET stream, and verifies that the downloaded length still matches. Missing uploads are distinguished from storage/network failures.
 5. Once variants exist the staged master is discarded. Leftovers under `staging/` are unreferenced debris, never live records.
 
@@ -70,15 +70,18 @@ That script needs an R2 API token with Admin Read and Write. The application tok
 
 `processArtworkImage` extracts a palette before writing variants. Each artwork creation attempt owns a unique image key, so a duplicate slug failure cannot remove the successful request's objects. Event image mutations compare the expected stored image array before committing a change. A conflict is reported rather than overwriting another maintainer's update.
 
-Multi-photo event uploads are processed in parallel. Every photo costs several seconds of variant encoding, so a batch inside one server action overran the 60 second function budget by the fifth photo. The browser stages all masters to R2 a few at a time, calls `reserveEventId` for a new event, then `processEventPhoto(eventId, stagedKey)` for up to four photos at once (each call is its own function invocation), and finally commits the finished key-bases in one ordered write through `createEvent` or `attachEventPhotos`. Those writes accept only key-bases under the event's own `events/<id>/photo-<uuid>` prefix, at most 12 per call, with no duplicates. Failed photos are reported by position while the rest are saved; if every photo fails nothing is written and the selection is kept for a retry. A photo processed but never committed is unreferenced debris under the event prefix, covered by the retention policy below. Wiring: `app/admin/_components/event-photo-batch.ts`; sequencing: `lib/event-photo-batch.ts`.
+Multi-photo event uploads are processed in parallel. Every photo costs several seconds of variant encoding, so a batch inside one server action overran the 60 second function budget by the fifth photo. The browser stages each photo to R2 on its own, three at a time, calls `reserveEventId` for a new event, then `processEventPhoto(eventId, stagedKey)` for up to four photos at once (each call is its own function invocation), and finally commits the finished key-bases in one ordered write through `createEvent` or `attachEventPhotos`. Those writes accept only key-bases under the event's own `events/<id>/photo-<uuid>` prefix, at most 12 per call, with no duplicates. Failed photos are named by file name while the rest are saved: the create form creates the event with the photos that worked, and the image manager keeps the failed ones selected so Upload retries only those. If every photo fails nothing is written and the selection is kept for a retry. A photo processed but never committed is unreferenced debris under the event prefix, covered by the retention policy below. Wiring: `app/admin/_components/event-photo-batch.ts`; sequencing: `lib/event-photo-batch.ts`.
 
 Cleanup inspects per-object deletion errors. An ambiguous database response requires checking whether the new key was committed before deleting an attempted upload. Keep committed versions when the write outcome cannot be established safely; an orphan is preferable to deleting a referenced image.
 
-The R2 writer sets:
+The R2 writer picks `Cache-Control` per key (`uploadCacheControl` in `lib/storage/r2.ts`):
 
 ```text
-Cache-Control: public, max-age=86400, must-revalidate
+UUID-versioned keys:   Cache-Control: public, max-age=31536000, immutable
+unversioned seed keys: Cache-Control: public, max-age=86400, must-revalidate
 ```
+
+A versioned key-base ends in a UUID minted per upload (`isVersionedImageKey` in `lib/storage/image-key.ts`) and is never overwritten. Seed keys can be regenerated in place by `pnpm db:images`, so they keep the day-long revalidating policy. `next.config.mjs` also adds `Vercel-CDN-Cache-Control: max-age=31536000` on the versioned `/media` paths (artworks, events, profile) so the Vercel edge keeps them too; that header is consumed by Vercel and never reaches the browser. `lib/storage/media-routes.test.ts` keeps the route pattern and the writer's rule in agreement.
 
 ## Replacement
 
@@ -103,9 +106,9 @@ Neon and R2 do not share a transaction. Retention, independently owned keys, con
 
 `ResponsiveImage` builds same-origin AVIF, WebP, and JPEG `srcset` values and lets the browser choose the first supported format and smallest suitable width. Next rewrites those paths to R2, so privacy-focused browsers never request the R2 hostname directly. `ArtImage` adapts a stored artwork filename to that generic key-base component and provides the checked-in master as a final fallback.
 
-Priority images load eagerly with high fetch priority. Other images use lazy loading and a short decode settle. Reduced-motion visitors skip the settle. A failed image renders an accessible placeholder instead of a broken browser icon.
+Priority images load eagerly with high fetch priority. Other images use lazy loading and a short decode settle, which plays whatever the OS reduced-motion setting (motion is always on). A failed image renders an accessible placeholder instead of a broken browser icon.
 
-The artwork lightbox preloads immediate neighbors with source selection aligned to the displayed viewer. It skips unnecessary preloads for Save-Data and reduced-motion users.
+The artwork lightbox preloads immediate neighbors with source selection aligned to the displayed viewer. It skips those preloads on Save-Data connections.
 
 Only generated artwork/event/profile image patterns cross the application media boundary. Staging paths and other prefixes are excluded; media responses receive `nosniff` and a restrictive content-security policy. CI fixtures map these same safe routes to a local image.
 

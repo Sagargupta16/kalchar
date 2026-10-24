@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useGlobalEventFiles } from "./add-sheet";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
-import { adminBtn, ICON_LG, ICON_MD, ICON_SM } from "./controls";
+import { adminBtnPrimary, ICON_LG, ICON_MD, ICON_SM } from "./controls";
 import { CreateEventForm } from "./event-create-form";
 import { EventItem } from "./event-item";
 import { createEventWithPhotos } from "./event-photo-batch";
@@ -179,9 +179,12 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 								{successLine(created)}{" "}
 								<Link
 									href="/events"
+									target="_blank"
+									rel="noopener noreferrer"
 									className="underline underline-offset-2 hover:text-accent-text"
 								>
-									View on site
+									{"View on site"}
+									<span className="sr-only"> (opens in a new tab)</span>
 									<ExternalLink
 										size={ICON_SM}
 										aria-hidden="true"
@@ -199,20 +202,26 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 				</div>
 
 				<section ref={listRef} tabIndex={-1} aria-labelledby={headingId} className="min-w-0">
-					<AdminPanelHeader
-						as="h2"
-						id={headingId}
-						title={`All events (${items.length})`}
-						description="Newest first. A pinned event stays at the top whatever its date."
-						action={
-							creating ? null : (
-								<button ref={addButtonRef} type="button" onClick={openPanel} className={adminBtn}>
-									<Plus size={ICON_MD} aria-hidden="true" />
-									Add event
-								</button>
-							)
-						}
-					/>
+					{/* Add sits beside the heading from sm and spans the width under it on phones. */}
+					<div className="grid gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+						<AdminPanelHeader
+							as="h2"
+							id={headingId}
+							title={`All events (${items.length})`}
+							description="Newest first. A pinned event stays at the top whatever its date."
+						/>
+						{creating ? null : (
+							<button
+								ref={addButtonRef}
+								type="button"
+								onClick={openPanel}
+								className={cn(adminBtnPrimary, "mb-(--form-gap) w-full sm:w-auto")}
+							>
+								<Plus size={ICON_MD} aria-hidden="true" />
+								Add event
+							</button>
+						)}
+					</div>
 					<ul aria-labelledby={headingId} className={cn("space-y-tight", stagger)}>
 						{orderedItems.map((event) => (
 							<EventItem
@@ -243,7 +252,11 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 								body="Add the first one with its photos and it appears on the public events page."
 								action={
 									creating ? null : (
-										<button type="button" onClick={openPanel} className={adminBtn}>
+										<button
+											type="button"
+											onClick={openPanel}
+											className={cn(adminBtnPrimary, "w-full sm:w-auto")}
+										>
 											Add event
 										</button>
 									)

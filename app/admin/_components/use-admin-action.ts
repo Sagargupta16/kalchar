@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { isFailure } from "@/lib/action-result";
+import { adminFailureMessage } from "@/lib/admin-session";
 import { PENDING_MIN_MS, PENDING_SHOW_MS } from "@/lib/motion";
 
 /**
@@ -48,7 +49,9 @@ export function usePendingVisible(pending: boolean): boolean {
 /**
  * Shared transition wrapper for admin mutations. Clears any prior error, runs
  * the server action inside a transition, fires the optional `after` callback
- * and refreshes the route on success, and surfaces a message on failure.
+ * and refreshes the route on success, and surfaces a message on failure (a
+ * lost session reads "You have been signed out..."; render it through
+ * AdminErrorNotice to add the sign-in link).
  *
  * Every admin manager performs the same pending/error/refresh dance; this
  * keeps it in one place so the behaviour stays consistent.
@@ -79,7 +82,7 @@ export function useAdminAction(): {
 					router.refresh();
 					resolve(true);
 				} catch (error) {
-					setErr(error instanceof Error ? error.message : GENERIC_FAILURE);
+					setErr(error instanceof Error ? adminFailureMessage(error.message) : GENERIC_FAILURE);
 					resolve(false);
 				} finally {
 					inFlight.current = false;

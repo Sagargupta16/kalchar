@@ -102,9 +102,7 @@ test("reverting status and Featured to their saved values clears the dirty check
 	expect(await calls(page)).toEqual([]);
 });
 
-test("adding a price selects Available and marking Sold preserves that price", async ({
-	page,
-}) => {
+test("adding a price selects Available and marking Sold preserves that price", async ({ page }) => {
 	await mountAdmin(page, "artworks");
 	await outcome(page, "success");
 	const dialog = await editPiece(page, "Alpha");
@@ -155,9 +153,7 @@ for (const closeFrom of ["Escape", "header", "backdrop"] as const) {
 	});
 }
 
-test("Escape returns from confirmation; confirmed discard then runs the exit", async ({
-	page,
-}) => {
+test("Escape returns from confirmation; confirmed discard then runs the exit", async ({ page }) => {
 	await page.clock.install();
 	await mountAdmin(page, "artworks");
 	const dialog = await editPiece(page, "Alpha");

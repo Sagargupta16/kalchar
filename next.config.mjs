@@ -30,6 +30,22 @@ const mediaPaths = [
 	{ source: `profile/${imageFile}`, destination: "profile/:image" },
 ];
 
+// Versioned variants end their key-base in a UUID minted per upload and are
+// never overwritten, so Vercel's CDN may keep them for its one-year maximum.
+// Seed keys (`artworks/<slug>-<w>.<ext>`) can be regenerated in place by
+// `pnpm db:images`, so they get no edge override. This is the route form of
+// isVersionedImageKey in lib/storage/image-key.ts; media-routes.test.ts keeps
+// the two in agreement. Vercel-CDN-Cache-Control is consumed by Vercel and
+// never reaches the browser, which still follows the object's Cache-Control.
+const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const versionedImageFile = String.raw`:image((?:[A-Za-z0-9_-]*-)?${uuid}(?:-\d+)?\.(?:avif|webp|jpg))`;
+const versionedMediaSources = [
+	`/media/artworks/${versionedImageFile}`,
+	`/media/events/:eventId([A-Za-z0-9_-]+)/${versionedImageFile}`,
+	`/media/profile/${versionedImageFile}`,
+];
+const VERSIONED_CDN_CACHE = { key: "Vercel-CDN-Cache-Control", value: "max-age=31536000" };
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	trailingSlash: true,
@@ -82,6 +98,7 @@ const nextConfig = {
 					{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" },
 				],
 			},
+			...versionedMediaSources.map((source) => ({ source, headers: [VERSIONED_CDN_CACHE] })),
 		];
 	},
 	// No serverActions.bodySizeLimit override: admin uploads PUT the master

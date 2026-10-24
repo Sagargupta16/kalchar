@@ -85,9 +85,28 @@ const maintainers: MaintainerRow[] = [
 	},
 ];
 
+/** Slug of the one staged piece: the admin preview shows the Hidden state, and no public read may return it. */
+export const FIXTURE_HIDDEN_SLUG = "fixture-hidden-study";
+
+/**
+ * A priced, hidden copy of the last piece, appended after every public one so
+ * public counts and order stay exactly those of the source catalog.
+ */
+function hiddenFixture(last: ArtworkRow, order: number): ArtworkRow {
+	return {
+		...last,
+		slug: FIXTURE_HIDDEN_SLUG,
+		title: "Unpublished study",
+		featured: false,
+		order,
+		status: "hidden",
+		priceInr: 1500,
+	};
+}
+
 /** Synthetic commercial/event data is used only by an explicitly selected test build. */
 export function createCatalogFixture(source: readonly Artwork[], site: Site) {
-	const artworks: ArtworkRow[] = source.map((art, index) => ({
+	const published: ArtworkRow[] = source.map((art, index) => ({
 		...art,
 		year: art.year ?? 2026,
 		dimensions: art.dimensions ?? "30 x 40 cm",
@@ -96,6 +115,9 @@ export function createCatalogFixture(source: readonly Artwork[], site: Site) {
 		status: fixtureStatus(index),
 		priceInr: index < 2 ? 1000 : null,
 	}));
+	const last = published.at(-1);
+	const nextOrder = Math.max(0, ...published.map((art) => art.order)) + 1;
+	const artworks = last ? [...published, hiddenFixture(last, nextOrder)] : published;
 	const categories: CategoryRow[] = [...new Set(artworks.map((art) => art.style))].map(
 		(name, index) => ({ id: `fixture-category-${index}`, name, order: index + 1 }),
 	);

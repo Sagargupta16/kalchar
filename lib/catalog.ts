@@ -21,20 +21,37 @@ export interface PricedPiece {
 	priceInr?: number | null;
 }
 
+const STORED_STATUSES: ReadonlySet<string> = new Set<ArtworkStatus>([
+	"archive",
+	"available",
+	"sold",
+	"hidden",
+]);
+
+function isStoredStatus(status: string | null | undefined): status is ArtworkStatus {
+	return typeof status === "string" && STORED_STATUSES.has(status);
+}
+
 /**
  * Resolve a piece's effective status.
  *
  * The DB stores status explicitly, but we keep a price-derived fallback so a
  * row left at the default "archive" resolves to "available" the moment a price
  * is set, without an extra admin step. A stored "archive" with a price is
- * likewise upgraded. An unknown/missing status falls back to price presence.
+ * likewise upgraded. "hidden" always stays hidden, priced or not. An
+ * unknown/missing status falls back to price presence.
  */
 export function deriveStatus(row: PricedPiece): ArtworkStatus {
-	if (row.status === "available" || row.status === "sold" || row.status === "archive") {
+	if (isStoredStatus(row.status)) {
 		if (row.status === "archive" && isPositivePrice(row.priceInr)) return "available";
 		return row.status;
 	}
 	return isPositivePrice(row.priceInr) ? "available" : "archive";
+}
+
+/** Hidden pieces stay in the admin; every public read drops them. */
+export function isPubliclyVisible(piece: PricedPiece): boolean {
+	return deriveStatus(piece) !== "hidden";
 }
 
 /** A price that actually advertises a sale: a set, positive, finite number. */
@@ -43,14 +60,14 @@ export function isPositivePrice(priceInr: number | null | undefined): priceInr i
 }
 
 /**
- * For-sale = a positive price is set AND the piece has not been sold.
+ * For-sale = a positive price is set AND the piece resolves to Available.
  *
  * Guards the "Available to buy" filter and count. Using the derived status (not
  * the raw column) means an unpriced piece can never leak into the buy filter,
- * and a sold piece is always excluded regardless of a stale price value.
+ * and a sold or hidden piece is always excluded regardless of a price value.
  */
 export function isForSale(piece: PricedPiece): boolean {
-	return isPositivePrice(piece.priceInr) && deriveStatus(piece) !== "sold";
+	return isPositivePrice(piece.priceInr) && deriveStatus(piece) === "available";
 }
 
 /** CTA label + supporting note, derived from the piece's availability state. */
@@ -58,7 +75,7 @@ export function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: stri
 	if (isSold) {
 		return {
 			label: "Ask about a similar piece",
-			note: "This piece has found a home. Reach out for a commission in the same style.",
+			note: "This piece has found a home. Reach out to order a custom piece in the same style.",
 		};
 	}
 	if (isAvailable) {
@@ -69,8 +86,31 @@ export function getCtaCopy(isAvailable: boolean, isSold: boolean): { label: stri
 	}
 	return {
 		label: "Ask about this piece",
-		note: "Listed in the archive. Reach out if you'd like a similar piece commissioned.",
+		note: "Listed in the archive. Reach out if you'd like a similar custom piece.",
 	};
+}
+
+/**
+ * The first free slug for a new piece: the title's own slug while nobody holds
+ * it, else one past the highest numeric suffix in use, so a repeated title like
+ * "Fish" becomes fish, fish-2, fish-3. Going past the highest (not filling a
+ * gap) keeps a deleted piece's old address from pointing at a different
+ * painting. `taken` only needs the slugs that share the prefix; others such as
+ * "fish-family" are ignored because their suffix is not a number.
+ */
+export function uniqueArtworkSlug(base: string, taken: Iterable<string>): string {
+	const used = new Set(taken);
+	if (!used.has(base)) return base;
+	const prefix = `${base}-`;
+	let highest = 1;
+	for (const slug of used) {
+		if (!slug.startsWith(prefix)) continue;
+		const suffix = slug.slice(prefix.length);
+		if (!/^[1-9]\d*$/.test(suffix)) continue;
+		const value = Number(suffix);
+		if (Number.isSafeInteger(value) && value > highest) highest = value;
+	}
+	return `${prefix}${highest + 1}`;
 }
 
 /** Parse a 3- or 6-digit hex colour (with or without #) to [r, g, b] 0-255. */

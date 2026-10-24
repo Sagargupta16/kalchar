@@ -4,11 +4,13 @@ import { ImagePlus, LoaderCircle, Plus, Star, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
+import { mergePhotoFiles } from "@/lib/event-photo-selection";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { removeEventImage, reorderEventImages } from "../event-actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { useConfirm } from "./confirm-dialog";
 import {
@@ -140,15 +142,17 @@ export function EventImageManager({
 
 	const handleAdd = (form: HTMLFormElement) => {
 		if (blocked || orderChanged || fileProblem || files.length === 0) return;
+		const submitted = files;
 		const fd = new FormData(form);
 		fd.delete("images");
-		for (const file of files) fd.append("images", file);
+		for (const file of submitted) fd.append("images", file);
 		setErrSlot("general");
 		setNotice(null);
 		setUploading(true);
-		setBatch({ staging: 0, done: new Set(), total: files.length });
+		setBatch({ staging: 0, done: new Set(), total: submitted.length });
 		let addedImages: string[] = [];
 		let partialUpload = false;
+		let failed: readonly number[] = [];
 		void run(
 			// Masters go straight to R2, then the server processes one photo per
 			// call, so a large batch never overruns the function budget.
@@ -162,8 +166,9 @@ export function EventImageManager({
 							done.add(index);
 							return { ...b, done };
 						}),
-					onPartial: (message) => {
+					onPartial: (message, failedIndexes) => {
 						partialUpload = true;
+						failed = failedIndexes;
 						setNotice(message);
 					},
 				}).then((result) => {
@@ -179,7 +184,8 @@ export function EventImageManager({
 					setNotice(`${addedImages.length} photo${addedImages.length === 1 ? "" : "s"} added.`);
 				}
 				form.reset();
-				setFiles([]);
+				// The photos that failed stay selected, so Upload photos retries just those.
+				setFiles(submitted.filter((_, index) => failed.includes(index)));
 			},
 		).finally(() => {
 			setUploading(false);
@@ -306,9 +312,11 @@ export function EventImageManager({
 									: `${formId}-photos-hint`
 							}
 							onChange={(e) => {
-								const next = Array.from(e.currentTarget.files ?? []);
-								if (next.length > 0) {
-									setFiles(next);
+								// A second pick adds to the first; Remove on a tile takes one out.
+								const picked = Array.from(e.currentTarget.files ?? []);
+								e.currentTarget.value = "";
+								if (picked.length > 0) {
+									setFiles((current) => mergePhotoFiles(current, picked));
 									setNotice(null);
 									setErrSlot(null);
 								}
@@ -352,7 +360,7 @@ export function EventImageManager({
 			/>
 
 			{notice ? <AdminNotice variant="info">{notice}</AdminNotice> : null}
-			{err && errSlot === "general" ? <AdminNotice variant="error">{err}</AdminNotice> : null}
+			{err && errSlot === "general" ? <AdminErrorNotice>{err}</AdminErrorNotice> : null}
 
 			<EventPhotoStrip
 				files={files}

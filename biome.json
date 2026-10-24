@@ -11,6 +11,7 @@
 			"components/**/*.{ts,tsx}",
 			"lib/**/*.{ts,tsx,mjs}",
 			"scripts/**/*.{js,mjs,ts}",
+			"tests/**/*.{ts,tsx}",
 			"data/**/*.json",
 			"*.json",
 			"*.{ts,tsx,mjs}",

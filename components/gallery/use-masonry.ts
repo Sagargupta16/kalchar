@@ -121,19 +121,22 @@ export function useMasonry<T extends HTMLElement>(
 		[ratios, columns, columnWidth, extraPx, gutter.y],
 	);
 
+	const measured = width > 0;
 	const hostStyle: CSSProperties = {
 		display: "grid",
 		gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-		gridAutoRows: `${ROW_PX}px`,
+		// Unmeasured (server HTML, first client frame) the wall is a plain grid, so
+		// the noscript rule in app/layout.tsx can show it without JavaScript.
+		gridAutoRows: measured ? `${ROW_PX}px` : undefined,
 		columnGap: gutter.x,
-		rowGap: 0,
+		rowGap: measured ? 0 : gutter.y,
 		alignItems: "start",
 		// Until the host is measured, hide the first frame rather than flash a stack.
-		visibility: width > 0 ? undefined : "hidden",
+		visibility: measured ? undefined : "hidden",
 	};
 	const itemStyle = (index: number): CSSProperties => {
 		const place = placements[index];
-		if (!place) return {};
+		if (!place || !measured) return {};
 		return {
 			gridColumn: place.column + 1,
 			gridRow: `${place.top + 1} / span ${place.span}`,

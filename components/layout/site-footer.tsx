@@ -2,7 +2,6 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 import { FooterReveal } from "@/components/layout/footer-reveal";
-import { KineticText } from "@/components/motion/kinetic-text";
 import { GmailIcon, InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/brand-icons";
 import { Container } from "@/components/ui/container";
 import { getSite } from "@/lib/data";
@@ -24,15 +23,15 @@ const FOOTER_LINK =
 /**
  * The closing band on every public page: a deep warm-ink slab (the pigment
  * band recipe over the brand terracotta, mixed low so it reads as night) with
- * cream type. The hero line rides in word by word, the column rule draws from
- * the left, and the oversized wordmark rises out of its masks when the footer
- * scrolls into view. Links, the channel row the WhatsApp disc watches, the
- * copyright and the developer credit are all kept.
+ * cream type. The tagline slides in, the column rule draws from the left,
+ * and the oversized wordmark rises out of its masks when the footer scrolls
+ * into view. The hero headline and brand description are not repeated here,
+ * so the band stays short on phones. Links, the channel row the WhatsApp disc
+ * watches, the copyright and the developer credit are all kept.
  */
 export function SiteFooter() {
-	const { brand, contact, developer, nav, sections } = getSite();
+	const { brand, contact, developer, nav } = getSite();
 	const year = new Date().getFullYear();
-	const heroLine = sections.hero?.title ?? brand.title;
 	const channels = [
 		{ key: "instagram", caption: "Art", platform: "Instagram", ...contact.instagram },
 		...(contact.instagramCommunity
@@ -64,12 +63,6 @@ export function SiteFooter() {
 							<p className="t-eyebrow reveal-eyebrow flex items-center gap-3">
 								<span aria-hidden="true" className="h-px w-8 bg-(--section-accent)" />
 								{brand.tagline}
-							</p>
-							<p className="t-headline type-section mt-4 max-w-md">
-								<KineticText text={heroLine} accentLast />
-							</p>
-							<p className="reveal-after mt-4 max-w-md text-sm leading-relaxed text-muted">
-								{brand.description}
 							</p>
 							<p className="reveal-after mt-2 text-label text-muted">{brand.location}</p>
 						</div>

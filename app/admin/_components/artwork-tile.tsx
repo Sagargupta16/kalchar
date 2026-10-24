@@ -55,7 +55,11 @@ export function ArtworkTile({
 					src={thumb}
 					alt=""
 					loading={index < 6 ? "eager" : "lazy"}
-					className="size-full object-contain p-2 transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-104"
+					className={cn(
+						"size-full object-contain p-2 transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-104",
+						// A hidden piece is off the site: the photo recedes, the chip names why.
+						status === "hidden" && "opacity-60",
+					)}
 				/>
 				<span aria-hidden="true" className={cn(adminTileBadge, "absolute top-2 left-2")}>
 					{index + 1}

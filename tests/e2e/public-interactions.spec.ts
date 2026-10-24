@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function galleryCards(page: Page) {
-	return page.locator('main a[data-artwork-card]');
+	return page.locator("main a[data-artwork-card]");
 }
 
 async function definition(page: Page, label: string) {
@@ -119,7 +119,7 @@ test("sold artwork uses the same commission intent on its page and in the viewer
 	});
 	const viewerHref = await viewerLink.getAttribute("href");
 	expect(new URL(viewerHref as string).searchParams.get("text")).toContain(
-		"commission a similar piece",
+		"order a similar custom piece",
 	);
 	await page.keyboard.press("Escape");
 	await page.goto(path as string);
@@ -213,9 +213,7 @@ test.describe("responsive artwork delivery", () => {
 	});
 });
 
-test("smooth scrolling retains its pointer gate across OS preference changes", async ({
-	page,
-}) => {
+test("smooth scrolling retains its pointer gate across OS preference changes", async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await page.goto("/about/");
 	const finePointer = await page.evaluate(
@@ -399,7 +397,10 @@ function enquiryBar(page: Page) {
 
 test("@mobile enquiry bar follows the panel", async ({ page }) => {
 	await page.goto("/work/");
-	const path = await page.locator('main a[data-artwork-card][data-status="sold"]').first().getAttribute("href");
+	const path = await page
+		.locator('main a[data-artwork-card][data-status="sold"]')
+		.first()
+		.getAttribute("href");
 	await page.goto(path as string);
 	const bar = enquiryBar(page);
 	// The panel sits on the first screen of the painted wall; once the reader
@@ -493,7 +494,10 @@ test("detail orders price before the full-width enquiry, one price on the page",
 
 test("sold detail offers the available artwork collection", async ({ page }) => {
 	await page.goto("/work/");
-	const path = await page.locator('main a[data-artwork-card][data-status="sold"]').first().getAttribute("href");
+	const path = await page
+		.locator('main a[data-artwork-card][data-status="sold"]')
+		.first()
+		.getAttribute("href");
 	await page.goto(path as string);
 	// No price renders; the wall label carries the status instead.
 	await expect(page.locator("main").getByText(/^INR [\d,]+$/)).toHaveCount(0);

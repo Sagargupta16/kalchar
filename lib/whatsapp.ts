@@ -54,12 +54,12 @@ export function extractPhoneFromWaUrl(waUrl: string): string {
 /** Pre-filled "I'm interested in this piece" message. */
 export function buyArtworkMessage(art: Artwork): string {
 	if (art.status === "sold") {
-		return `Hi, I saw "${art.title}" (${art.style}) has found a home. I'd like to commission a similar piece. Could we discuss the options?`;
+		return `Hi, I saw "${art.title}" (${art.style}) has found a home. I'd like to order a similar custom piece. Could we discuss the options?`;
 	}
 	if (isPositivePrice(art.priceInr)) {
 		return `Hi, I'd like to buy "${art.title}" (${art.style}).\nListed price: ${formatInr(art.priceInr)}\nIs this still available?`;
 	}
-	return `Hi, I'd like to ask about "${art.title}" (${art.style}). Could we discuss a similar piece or a commission?`;
+	return `Hi, I'd like to ask about "${art.title}" (${art.style}). Could we discuss a similar piece or a custom order?`;
 }
 
 /** Pre-filled custom-order brief message. */

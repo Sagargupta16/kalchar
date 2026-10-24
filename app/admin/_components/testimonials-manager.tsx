@@ -7,10 +7,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { isFailure } from "@/lib/action-result";
 import { formString } from "@/lib/admin-helpers";
 import type { ArtworkTitle } from "@/lib/data";
+import { TESTIMONIAL_LIMITS } from "@/lib/testimonial-fields";
 import type { Testimonial } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createTestimonial } from "../testimonial-actions";
 import { useAdminDraftGuard } from "./admin-draft-guard";
+import { AdminErrorNotice } from "./admin-error-notice";
 import { AdminNotice } from "./admin-notice";
 import { AdminPanelHeader } from "./admin-panel";
 import { AdminSwitch } from "./admin-switch";
@@ -41,8 +43,9 @@ function testimonialHref(testimonial: Testimonial | null): string | null {
 
 /**
  * Admin CRUD for testimonials: a collapsed create panel, then a list where
- * each row can be featured (shown on home) or deleted. The picker and the row
- * meta show piece titles, never slugs; the form value stays the slug.
+ * each row can be edited inline, featured (shown on home) or deleted. The
+ * pickers and the row meta show piece titles, never slugs; the form value
+ * stays the slug.
  */
 export function TestimonialsManager({
 	testimonials: initial,
@@ -156,26 +159,36 @@ export function TestimonialsManager({
 					aria-labelledby={headingId}
 					className={cn("min-w-0", sideColumn ? "lg:col-span-8" : "lg:col-span-12")}
 				>
-					<AdminPanelHeader
-						as="h2"
-						id={headingId}
-						title={`All testimonials (${items.length})`}
-						description="A testimonial shows in public only when it is featured or linked to a piece."
-						action={
-							creating ? null : (
-								<button ref={addRef} type="button" onClick={openPanel} className={adminBtn}>
-									<Plus size={ICON_MD} aria-hidden="true" />
-									Add testimonial
-								</button>
-							)
-						}
-					/>
+					{/* The header's action slot cannot stack, so Add sits beside it from sm and runs
+					    full width under it on phones. */}
+					<div className="sm:flex sm:items-start sm:justify-between sm:gap-3">
+						<div className="min-w-0 flex-1">
+							<AdminPanelHeader
+								as="h2"
+								id={headingId}
+								title={`All testimonials (${items.length})`}
+								description="A testimonial shows in public only when it is featured or linked to a piece."
+							/>
+						</div>
+						{creating ? null : (
+							<button
+								ref={addRef}
+								type="button"
+								onClick={openPanel}
+								className={cn(adminBtnPrimary, "mb-(--form-gap) w-full shrink-0 sm:w-auto")}
+							>
+								<Plus size={ICON_MD} aria-hidden="true" />
+								Add testimonial
+							</button>
+						)}
+					</div>
 					<ul aria-labelledby={headingId} className={cn("space-y-tight", stagger)}>
 						{items.map((t) => (
 							<TestimonialRow
 								key={t.id}
 								testimonial={t}
 								artwork={artworkBySlug.get(t.artworkSlug ?? "")}
+								artworks={artworks}
 								highlighted={t.id === arrivedId}
 								disabled={undoPending}
 								onChanged={(next) =>
@@ -323,6 +336,7 @@ function CreateTestimonialForm({
 						name="quote"
 						required
 						rows={3}
+						maxLength={TESTIMONIAL_LIMITS.quote}
 						placeholder="What they said"
 						className={cn(adminField, "min-h-32 resize-y")}
 					/>
@@ -335,6 +349,7 @@ function CreateTestimonialForm({
 						required
 						autoCapitalize="words"
 						autoCorrect="off"
+						maxLength={TESTIMONIAL_LIMITS.authorName}
 						placeholder="e.g. Priya"
 						className={adminField}
 					/>
@@ -344,6 +359,7 @@ function CreateTestimonialForm({
 					<input
 						id="new-testimonial-location"
 						name="authorLocation"
+						maxLength={TESTIMONIAL_LIMITS.authorLocation}
 						placeholder="e.g. Pune"
 						className={adminField}
 					/>
@@ -407,11 +423,7 @@ function CreateTestimonialForm({
 					Add testimonial
 				</button>
 			</div>
-			{err ? (
-				<AdminNotice variant="error" className="mt-(--form-gap)">
-					{err}
-				</AdminNotice>
-			) : null}
+			{err ? <AdminErrorNotice className="mt-(--form-gap)">{err}</AdminErrorNotice> : null}
 		</form>
 	);
 }

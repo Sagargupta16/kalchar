@@ -142,9 +142,9 @@ for (const failure of failures) {
 		await outcome(page, failure.outcome);
 		await statusGroup(page, "Alpha").getByRole("radio", { name: "Sold" }).click();
 		await expect(rowOf(page, "Alpha").getByRole("alert")).toHaveText(failure.message);
-		await expect(
-			statusGroup(page, "Alpha").getByRole("radio", { checked: true }),
-		).toHaveText(/Not for sale/);
+		await expect(statusGroup(page, "Alpha").getByRole("radio", { checked: true })).toHaveText(
+			/Not for sale/,
+		);
 		expect(await refreshes(page)).toBe(0);
 		expect((await calls(page)).at(-1)).toEqual({
 			name: "setArtworkStatus",
@@ -168,9 +168,7 @@ test("quick status persists on success and never opens a dialog", async ({ page 
 	await showList(page);
 	await outcome(page, "success");
 	await statusGroup(page, "Alpha").getByRole("radio", { name: "Sold" }).click();
-	await expect(statusGroup(page, "Alpha").getByRole("radio", { checked: true })).toHaveText(
-		/Sold/,
-	);
+	await expect(statusGroup(page, "Alpha").getByRole("radio", { checked: true })).toHaveText(/Sold/);
 	await expect.poll(() => refreshes(page)).toBe(1);
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 });

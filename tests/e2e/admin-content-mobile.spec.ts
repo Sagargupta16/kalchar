@@ -88,9 +88,10 @@ test.describe("admin content @mobile", () => {
 		await outcome(page, "failure");
 		const failedRow = page.getByRole("listitem").first();
 		await failedRow.getByRole("button", { name: "Pin Gathering to top" }).click();
-		await expect(
-			failedRow.getByRole("button", { name: "Pin Gathering to top" }),
-		).toHaveAttribute("aria-pressed", "false");
+		await expect(failedRow.getByRole("button", { name: "Pin Gathering to top" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
 		await expect(failedRow.getByRole("alert")).toHaveText("Change was rejected.");
 		expect(await page.evaluate(() => window.adminTest.refreshes)).toBe(0);
 		await expect(failedRow.getByRole("button", { name: "Delete Gathering" })).toBeEnabled();
@@ -123,27 +124,38 @@ test.describe("admin content @mobile", () => {
 		await expect(page.getByRole("button", { name: "Delete Gathering" })).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
 		await page.getByRole("button", { name: "Delete Gathering" }).click();
-		await page.getByRole("dialog").getByRole("button", { name: "Delete event", exact: true }).click();
+		await page
+			.getByRole("dialog")
+			.getByRole("button", { name: "Delete event", exact: true })
+			.click();
 		await expect(page.getByRole("listitem").first().getByRole("alert")).toHaveText(
 			"Change was rejected.",
 		);
 		await expect(page.getByRole("button", { name: "Delete Gathering" })).toBeVisible();
 		await outcome(page, "success");
 		await page.getByRole("button", { name: "Delete Gathering" }).click();
-		await page.getByRole("dialog").getByRole("button", { name: "Delete event", exact: true }).click();
+		await page
+			.getByRole("dialog")
+			.getByRole("button", { name: "Delete event", exact: true })
+			.click();
 		await expect(page.getByRole("button", { name: "Delete Gathering" })).toHaveCount(0);
 		await expect(page.getByRole("heading", { name: "All events (1)" })).toBeVisible();
 		await page
 			.getByRole("button", { name: "Delete Monsoon exhibition at the community hall" })
 			.click();
-		await page.getByRole("dialog").getByRole("button", { name: "Delete event", exact: true }).click();
+		await page
+			.getByRole("dialog")
+			.getByRole("button", { name: "Delete event", exact: true })
+			.click();
 		await expect(page.getByRole("heading", { name: "All events (0)" })).toBeVisible();
 		await expect(page.getByText("No events yet")).toBeVisible();
 	});
 
 	test("eventImages: Move buttons reorder by touch and Save order persists", async ({ page }) => {
 		await mountAdmin(page, "eventImages");
-		await expect(page.getByRole("button", { name: "Move photo 1 left", exact: true })).toBeDisabled();
+		await expect(
+			page.getByRole("button", { name: "Move photo 1 left", exact: true }),
+		).toBeDisabled();
 		await page.getByRole("button", { name: "Move photo 1 right", exact: true }).click();
 		await expect(page.getByText("photo 1, position 2 of 3", { exact: true })).toBeAttached();
 		await expect(page.getByRole("button", { name: "Reset", exact: true })).toBeVisible();
@@ -177,12 +189,18 @@ test.describe("admin content @mobile", () => {
 		await expect(dialog).toHaveCount(0);
 		await expect(page.locator("li img")).toHaveCount(3);
 		await page.getByRole("button", { name: "Remove photo 1", exact: true }).click();
-		await page.getByRole("dialog").getByRole("button", { name: "Remove photo", exact: true }).click();
+		await page
+			.getByRole("dialog")
+			.getByRole("button", { name: "Remove photo", exact: true })
+			.click();
 		await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
 		await expect(page.locator("li img")).toHaveCount(3);
 		await outcome(page, "success");
 		await page.getByRole("button", { name: "Remove photo 1", exact: true }).click();
-		await page.getByRole("dialog").getByRole("button", { name: "Remove photo", exact: true }).click();
+		await page
+			.getByRole("dialog")
+			.getByRole("button", { name: "Remove photo", exact: true })
+			.click();
 		await expect(page.locator("li img")).toHaveCount(2);
 	});
 
@@ -242,7 +260,9 @@ test.describe("admin content @mobile", () => {
 		await mountAdmin(page, "workshops");
 		await page.getByRole("button", { name: "Delete Alpha" }).click();
 		const dialog = page.getByRole("dialog", { name: 'Delete "Alpha"?' });
-		await expect(dialog.getByRole("button", { name: "Delete workshop", exact: true })).toBeVisible();
+		await expect(
+			dialog.getByRole("button", { name: "Delete workshop", exact: true }),
+		).toBeVisible();
 		await dialog.getByRole("button", { name: "Keep workshop", exact: true }).click();
 		await expect(page.getByRole("button", { name: "Delete Alpha" })).toBeVisible();
 	});
@@ -328,7 +348,12 @@ test.describe("admin content @mobile", () => {
 	}) => {
 		const cases = [
 			{ view: "eventsEmpty", action: "Add event", title: "No events yet", field: "Title *" },
-			{ view: "workshopsEmpty", action: "Add workshop", title: "No workshops yet", field: "Title *" },
+			{
+				view: "workshopsEmpty",
+				action: "Add workshop",
+				title: "No workshops yet",
+				field: "Title *",
+			},
 			{
 				view: "testimonialsEmpty",
 				action: "Add testimonial",
@@ -353,10 +378,11 @@ test.describe("admin content @mobile", () => {
 		await page.locator('input[name="images"]').setInputFiles(files);
 		await expect(page.getByText("Choose up to 12 photos at a time. You picked 13.")).toBeVisible();
 		await expect(page.getByRole("button", { name: "Add event", exact: true })).toBeDisabled();
-		await page.locator('input[name="images"]').setInputFiles(files.slice(0, 2));
+		// Picks merge, so the fix is removing a photo rather than picking again.
+		await page.getByRole("button", { name: /^Remove selected photo 13:/ }).click();
 		await expect(page.getByText("Choose up to 12 photos at a time. You picked 13.")).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Add event", exact: true })).toBeEnabled();
-		await expect(page.getByText("2 photos selected", { exact: true })).toBeVisible();
+		await expect(page.getByText("12 photos selected", { exact: true })).toBeVisible();
 	});
 
 	test("events: success notice persists until the panel reopens", async ({ page }) => {
@@ -452,7 +478,7 @@ test.describe("admin content visual pass @mobile", () => {
 		page,
 	}) => {
 		await mountAdmin(page, "testimonials");
-		const quote = page.locator("blockquote").first();
+		const quote = page.locator("[data-testimonial-quote]").first();
 		await expect(quote).toContainText("Beautiful work.");
 		await expect(quote.locator('span[aria-hidden="true"]')).toHaveText('"');
 		await expect(page.getByText("\u201cBeautiful work.\u201d")).toHaveCount(0);

@@ -42,10 +42,7 @@ test.describe("enquiries inbox at 390", () => {
 		const group = dialog.getByRole("radiogroup", {
 			name: "Status of the enquiry from Priya Sharma",
 		});
-		await expect(group.getByRole("radio", { name: "New" })).toHaveAttribute(
-			"aria-checked",
-			"true",
-		);
+		await expect(group.getByRole("radio", { name: "New" })).toHaveAttribute("aria-checked", "true");
 		await group.getByRole("radio", { name: "Contacted" }).click();
 		await expect(page.getByRole("dialog")).toHaveCount(0);
 		await expect(page.getByText("Enquiry from Priya Sharma marked contacted")).toBeVisible();
@@ -257,9 +254,7 @@ test.describe("enquiries split pane at desktop", () => {
 			pane.getByRole("radiogroup", { name: "Status of the enquiry from Priya Sharma" }),
 		).toBeVisible();
 		await expect(pane.getByText(/I would like a large Gond piece/)).toBeVisible();
-		await expect(page.getByRole("button", { name: /^Priya Sharma/ })).toHaveClass(
-			/border-accent/,
-		);
+		await expect(page.getByRole("button", { name: /^Priya Sharma/ })).toHaveClass(/border-accent/);
 		expect(await page.evaluate(() => window.location.search)).toContain("lead=lead-priya");
 		await page.getByRole("button", { name: /^Rahul Mehta/ }).click();
 		await expect(page.getByRole("region", { name: "Enquiry from Rahul Mehta" })).toBeVisible();

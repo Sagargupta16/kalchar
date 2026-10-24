@@ -7,13 +7,20 @@ async function openEditor(page: Page) {
 	return page.getByRole("dialog", { name: "Edit piece" });
 }
 
-const replacement = { name: "replacement.jpg", mimeType: "image/jpeg", buffer: Buffer.from("isolated photo fixture") };
+const replacement = {
+	name: "replacement.jpg",
+	mimeType: "image/jpeg",
+	buffer: Buffer.from("isolated photo fixture"),
+};
 
 test("filter counts follow optimistic status changes and rollback", async ({ page }) => {
 	await mountAdmin(page, "artworks");
 	await page.getByRole("button", { name: "List view" }).click();
 	await outcome(page, "pending");
-	await page.getByRole("radiogroup", { name: "Status of Alpha" }).getByRole("radio", { name: "Sold" }).click();
+	await page
+		.getByRole("radiogroup", { name: "Status of Alpha" })
+		.getByRole("radio", { name: "Sold" })
+		.click();
 	const filters = page.getByRole("group", { name: "Show" });
 	await expect(filters.getByRole("button", { name: /^Sold/ })).toHaveText("Sold2");
 	await expect(filters.getByRole("button", { name: /^Not for sale/ })).toHaveText("Not for sale0");
@@ -23,7 +30,9 @@ test("filter counts follow optimistic status changes and rollback", async ({ pag
 	await expect(filters.getByRole("button", { name: /^Not for sale/ })).toHaveText("Not for sale1");
 });
 
-test("a shared save disables other pieces and keeps a failure on its initiating row", async ({ page }) => {
+test("a shared save disables other pieces and keeps a failure on its initiating row", async ({
+	page,
+}) => {
 	await mountAdmin(page, "artworks");
 	await page.getByRole("button", { name: "List view" }).click();
 	await outcome(page, "pending");
@@ -31,19 +40,28 @@ test("a shared save disables other pieces and keeps a failure on its initiating 
 	for (const name of ["Feature Bravo", "Feature Charlie", "Edit Bravo", "Delete Bravo"]) {
 		await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
 	}
-	await expect(page.getByRole("radiogroup", { name: "Status of Bravo" }).getByRole("radio", { name: "Sold" })).toBeDisabled();
+	await expect(
+		page.getByRole("radiogroup", { name: "Status of Bravo" }).getByRole("radio", { name: "Sold" }),
+	).toBeDisabled();
 	expect(await page.evaluate(() => window.adminTest.calls)).toHaveLength(1);
 	await outcome(page, "failure");
 	await page.evaluate(() => window.adminTest.release?.());
-	const alpha = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Feature Alpha", exact: true }) });
-	const bravo = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Feature Bravo", exact: true }) });
+	const alpha = page
+		.getByRole("listitem")
+		.filter({ has: page.getByRole("button", { name: "Feature Alpha", exact: true }) });
+	const bravo = page
+		.getByRole("listitem")
+		.filter({ has: page.getByRole("button", { name: "Feature Bravo", exact: true }) });
 	await expect(alpha.getByRole("alert")).toHaveText("Change was rejected.");
 	await expect(bravo.getByRole("alert")).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Feature Bravo", exact: true })).toBeEnabled();
 	await outcome(page, "success");
 	await page.getByRole("button", { name: "Feature Bravo", exact: true }).click();
 	expect(await page.evaluate(() => window.adminTest.calls)).toHaveLength(2);
-	await expect(page.getByRole("button", { name: "Feature Bravo", exact: true })).toHaveAttribute("aria-pressed", "false");
+	await expect(page.getByRole("button", { name: "Feature Bravo", exact: true })).toHaveAttribute(
+		"aria-pressed",
+		"false",
+	);
 });
 
 test("an earlier Undo cannot compete with another piece save", async ({ page }) => {
@@ -92,10 +110,15 @@ test("a selected replacement photo survives cancelling a confirmation", async ({
 	await expect(dialog.getByText("replacement.jpg", { exact: true })).toBeVisible();
 });
 
-test("Enter saves the edited fields once and immediately updates filter counts", async ({ page }) => {
+test("Enter saves the edited fields once and immediately updates filter counts", async ({
+	page,
+}) => {
 	const dialog = await openEditor(page);
 	await outcome(page, "success");
-	await dialog.getByRole("radiogroup", { name: "Status of Alpha" }).getByRole("radio", { name: "Sold" }).click();
+	await dialog
+		.getByRole("radiogroup", { name: "Status of Alpha" })
+		.getByRole("radio", { name: "Sold" })
+		.click();
 	await dialog.getByRole("switch", { name: "Featured on home" }).click();
 	const title = dialog.getByRole("textbox", { name: "Title *" });
 	await title.fill("Updated Alpha");
@@ -127,7 +150,9 @@ test("clearing search returns focus and search supports medium names", async ({ 
 	await expect(page.getByRole("listitem")).toHaveCount(3);
 });
 
-test("deleting the last matching piece updates counts and ignores blank search text", async ({ page }) => {
+test("deleting the last matching piece updates counts and ignores blank search text", async ({
+	page,
+}) => {
 	await mountAdmin(page, "artworks");
 	await page.getByRole("button", { name: "List view" }).click();
 	const filters = page.getByRole("group", { name: "Show" });
@@ -135,7 +160,10 @@ test("deleting the last matching piece updates counts and ignores blank search t
 	await page.getByRole("searchbox", { name: "Find a piece" }).fill(" ");
 	await outcome(page, "success");
 	await page.getByRole("button", { name: "Delete Charlie" }).click();
-	await page.getByRole("dialog", { name: 'Delete "Charlie"?' }).getByRole("button", { name: "Delete piece" }).click();
+	await page
+		.getByRole("dialog", { name: 'Delete "Charlie"?' })
+		.getByRole("button", { name: "Delete piece" })
+		.click();
 	await expect(page.getByText("No sold pieces", { exact: true })).toBeVisible();
 	await expect(filters.getByRole("button", { name: /^Sold/ })).toHaveText("Sold0");
 	await expect(filters.getByRole("button", { name: /^All/ })).toHaveText("All2");
@@ -150,7 +178,9 @@ test("a quick-action error remains visible after switching to the grid", async (
 	await outcome(page, "failure");
 	await page.evaluate(() => window.adminTest.release?.());
 	await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
-	await expect(page.getByRole("button", { name: "Edit Alpha, position 1, Not for sale", exact: true })).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Edit Alpha, position 1, Not for sale", exact: true }),
+	).toBeVisible();
 });
 
 test("a replacement can be removed and the same file selected again", async ({ page }) => {
@@ -173,7 +203,9 @@ for (const price of ["0", "99999999999999999"]) {
 		await dialog.getByRole("button", { name: "Save changes" }).click();
 		await expect(field).toBeFocused();
 		await expect(field).toHaveAttribute("aria-invalid", "true");
-		await expect(dialog.getByText("Enter a price above zero, or leave it blank if it is not for sale.")).toBeVisible();
+		await expect(
+			dialog.getByText("Enter a price above zero, or leave it blank if it is not for sale."),
+		).toBeVisible();
 		expect(await page.evaluate(() => window.adminTest.calls)).toHaveLength(0);
 	});
 }
