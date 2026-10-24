@@ -74,7 +74,7 @@ export async function expectViewerReady(page: Page) {
 		.toBeLessThanOrEqual(geometryTolerancePx);
 }
 
-export async function viewerGeometry(page: Page) {
+export function viewerGeometry(page: Page) {
 	return page
 		.getByRole("dialog")
 		.locator("figure img")

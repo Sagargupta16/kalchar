@@ -213,7 +213,7 @@ test("FAQ answers render exactly as written in site.json", async ({ page }) => {
 test("event overflow tile uses the scrim token with a paper label in dark", async ({ page }) => {
 	await useTheme(page, "dark");
 	await page.goto("/events/");
-	const tile = page.getByRole("button", { name: /^View all 7 photos from / });
+	const tile = page.getByRole("button", { name: /^\+\d+, View all 7 photos from / });
 	const overlay = tile.locator("span").first();
 	await expect(overlay).toHaveClass(/bg-scrim\/60/);
 	await expect(overlay).not.toHaveClass(/bg-black/);

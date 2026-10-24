@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.40.3 (2026-10-24)
+
+### Fixed
+
+- **SonarCloud reliability gate.** The 12 admin action calls Sonar flagged as floating promises (S9383) are marked `void`: `run()` resolves `false` on failure and never rejects, so the change is behaviour-neutral and clears the failing gate on `main`. Six functions that never awaited drop `async` (S7503) and keep their promise contracts. The remaining await-in-loop findings (S9382) are deliberate sequencing (ordered migrations, batched R2 deletes, capped upload worker pools, ordered input gestures) and stay.
+- **Route types are checked in CI.** `pnpm typecheck` now runs `next typegen` before `tsc`, so the generated route types exist on a fresh checkout instead of being skipped. `next-env.d.ts` is untracked and gitignored, as the Next 16 docs advise, which also stops every build from dirtying the tree.
+- **Admin browser suite.** One retry absorbs its known load-timing flake (one test per full run on every branch).
+- **Label in name (WCAG 2.5.3).** axe 4.14 now checks that a link or button's accessible name contains its visible text in order, and found 84 violations across the public pages. The header and footer wordmarks were named "Home" while showing the Kalchar wordmark; they now read the wordmark followed by "home". Footer and contact profile links lead with what they show and add the handle for screen readers. Artwork cards and event teasers take their name from their visible text (status, title, style, price, date) instead of a different label, with the photo and the position line kept out of the name; the wall card's title is now first in reading order. The event overflow tile reads "+3, View all 7 photos from ..." and shows "View all" under the count. The contact QR codes inside those links are decorative, since the link already names the profile. Browser tests now find cards through a `data-artwork-card` / `data-status` hook instead of their old label.
+
+### Changed
+
+- **Dependency audit (issue #117).** Motion 13 to 14 (its only break removes internal APIs this repo does not use), dotenv 17 to 18 (drops preloading and vault files, neither used), `@types/node` to 24 to match the Node 24 runtime on Vercel and CI, React and React DOM 19.3.1, lucide-react 1.61, Biome 2.6 (config migrated, eight test files reformatted), Playwright 1.64, the AWS SDK, Neon, Drizzle, Tailwind 4.3.3, PostCSS, esbuild, tsx, pg, PGlite, axe-core and zxing-wasm. `pnpm audit` stays clean.
+
 ## 1.40.2 (2026-10-24)
 
 ### Security

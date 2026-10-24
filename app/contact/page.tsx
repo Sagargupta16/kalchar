@@ -316,7 +316,6 @@ function ChannelCard({
 	return (
 		<a
 			href={channel.url.trim()}
-			aria-label={`${channel.label.trim() || actionLabel}: ${title}`}
 			target="_blank"
 			rel="noopener noreferrer"
 			className={cn(linkCard, "group flex h-full flex-col p-3 sm:p-4")}
@@ -332,7 +331,7 @@ function ChannelCard({
 						<>
 							<Image
 								src={`/${qr}`}
-								alt={`QR code for ${title}`}
+								alt=""
 								width={334}
 								height={384}
 								sizes="(min-width: 1024px) 280px, 45vw"
@@ -356,6 +355,7 @@ function ChannelCard({
 				</div>
 				<figcaption className="mt-4 min-w-0 flex-1 px-1">
 					<p className="t-display text-base leading-snug [overflow-wrap:anywhere] text-ink transition-colors group-hover:text-(--section-accent) sm:text-h3">
+						<span className="sr-only">{`${channel.label.trim() || actionLabel}: `}</span>
 						{title}
 					</p>
 					{note ? <p className="mt-1 text-sm text-muted">{note}</p> : null}

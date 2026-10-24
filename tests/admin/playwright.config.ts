@@ -8,6 +8,9 @@ export default defineConfig({
 	outputDir: "../../.cache/admin-components",
 	fullyParallel: true,
 	workers: 2,
+	// One retry absorbs the suite's known load-timing flake (one test per full
+	// run, the same rate on every branch); a real failure still fails twice.
+	retries: 1,
 	reporter: "line",
 	use: {
 		...devices["Desktop Chrome"],

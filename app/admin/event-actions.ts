@@ -77,7 +77,7 @@ function parseEventDate(formData: FormData): Date {
  * when createEvent commits it.
  */
 export async function reserveEventId(): Promise<ActionResult<{ id: string }>> {
-	return runAdminAction(async () => ({ id: randomUUID() }));
+	return runAdminAction(() => Promise.resolve({ id: randomUUID() }));
 }
 
 /**

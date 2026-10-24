@@ -52,26 +52,25 @@ describe("storage reads", () => {
 		});
 	});
 
-	it.each([
-		"NotFound",
-		"NoSuchKey",
-	])("classifies only a missing object (%s) as absent", async (name) => {
-		mockSend().mockRejectedValueOnce(Object.assign(new Error("Missing"), { name }));
-		await expect(objectSize("staging/fixture")).resolves.toBeNull();
-	});
+	it.each(["NotFound", "NoSuchKey"])(
+		"classifies only a missing object (%s) as absent",
+		async (name) => {
+			mockSend().mockRejectedValueOnce(Object.assign(new Error("Missing"), { name }));
+			await expect(objectSize("staging/fixture")).resolves.toBeNull();
+		},
+	);
 
-	it.each([
-		"AccessDenied",
-		"NoSuchBucket",
-		"NetworkingError",
-	])("does not describe a provider failure (%s) as an expired upload", async (name) => {
-		const cause = Object.assign(new Error("Provider failure"), { name });
-		mockSend().mockRejectedValueOnce(cause);
-		await expect(objectSize("staging/fixture")).rejects.toMatchObject({
-			message: "Could not check the uploaded image in storage. Please try again.",
-			cause,
-		});
-	});
+	it.each(["AccessDenied", "NoSuchBucket", "NetworkingError"])(
+		"does not describe a provider failure (%s) as an expired upload",
+		async (name) => {
+			const cause = Object.assign(new Error("Provider failure"), { name });
+			mockSend().mockRejectedValueOnce(cause);
+			await expect(objectSize("staging/fixture")).rejects.toMatchObject({
+				message: "Could not check the uploaded image in storage. Please try again.",
+				cause,
+			});
+		},
+	);
 
 	it("rejects a HEAD response without a byte size", async () => {
 		mockSend().mockResolvedValueOnce({});

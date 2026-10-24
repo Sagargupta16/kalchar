@@ -67,18 +67,15 @@ describe("buyArtworkMessage", () => {
 		expect(message).not.toContain("Listed price");
 		expect(message).not.toContain("Is this still available?");
 	});
-	it.each([
-		undefined,
-		0,
-		-1,
-		Number.NaN,
-		Number.POSITIVE_INFINITY,
-	])("does not offer to buy an unpriced archive piece (%s)", (priceInr) => {
-		const message = buyArtworkMessage(artwork({ status: "archive", priceInr }));
-		expect(message).toContain("similar piece or a commission");
-		expect(message).not.toContain("I'd like to buy");
-		expect(message).not.toContain("Listed price");
-	});
+	it.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+		"does not offer to buy an unpriced archive piece (%s)",
+		(priceInr) => {
+			const message = buyArtworkMessage(artwork({ status: "archive", priceInr }));
+			expect(message).toContain("similar piece or a commission");
+			expect(message).not.toContain("I'd like to buy");
+			expect(message).not.toContain("Listed price");
+		},
+	);
 	it("carries no literal double dash (house rule)", () => {
 		expect(buyArtworkMessage(artwork({ priceInr: 500 }))).not.toContain(" -- ");
 	});

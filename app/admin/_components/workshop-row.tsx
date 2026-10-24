@@ -222,7 +222,7 @@ export function WorkshopRow({
 		}
 		const { fields } = result;
 		setShowActionError(true);
-		run(
+		void run(
 			() => updateWorkshop(workshop.slug, fields),
 			() => {
 				setTitle(fields.title);

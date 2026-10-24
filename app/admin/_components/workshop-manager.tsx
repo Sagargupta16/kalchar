@@ -363,7 +363,7 @@ function CreateWorkshopForm({
 				fd.set("durationHours", fields.durationHours?.toString() ?? "");
 				setShowActionError(true);
 				let createdSlug: string | null = null;
-				run(
+				void run(
 					() =>
 						createWorkshop(fd).then((result) => {
 							if (!isFailure(result)) createdSlug = result.slug;

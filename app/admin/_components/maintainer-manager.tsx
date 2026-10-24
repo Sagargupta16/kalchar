@@ -89,7 +89,7 @@ export function MaintainerManager({
 			return;
 		}
 		const displayName = name.trim() || null;
-		run(
+		void run(
 			() => inviteMaintainer(address, displayName ?? undefined),
 			() => {
 				setRoster((previous) =>

@@ -213,7 +213,6 @@ function HeaderBar({
 			<Link
 				href="/"
 				className="group flex min-h-control items-center gap-3 rounded-(--radius-sm) transition-colors hover:text-accent-text"
-				aria-label="Home"
 			>
 				<span
 					className={cn("inline-flex shrink-0 origin-left transition-ui", scrolled && "scale-90")}
@@ -233,6 +232,8 @@ function HeaderBar({
 						{devanagariCore}
 					</span>
 				</span>
+				{/* Name = visible wordmark + "home" (WCAG 2.5.3: the visible label stays in the name). */}
+				<span className="sr-only">, home</span>
 			</Link>
 
 			{/* Desktop nav */}

@@ -143,7 +143,7 @@ export async function stageImage(file: File, onProgress?: (fraction: number) => 
 	return "staging/fixture";
 }
 
-export async function stageFormImages(formData: FormData): Promise<number> {
+export function stageFormImages(formData: FormData): Promise<number> {
 	// Model the upload contract without requesting tickets or contacting storage.
 	const files = formData
 		.getAll("images")
@@ -152,5 +152,5 @@ export async function stageFormImages(formData: FormData): Promise<number> {
 	files.forEach((_, index) => {
 		formData.append("imageKeys", `staging/fixture-${index}`);
 	});
-	return files.length;
+	return Promise.resolve(files.length);
 }

@@ -169,7 +169,7 @@ export function CategoryManager({
 						setFieldError(null);
 						setAdded(null);
 						setErrSlot("create");
-						run(
+						void run(
 							() => createCategory(name),
 							() => {
 								focusAfterCreate.current = true;

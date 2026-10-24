@@ -114,7 +114,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		let createdId: string | null = null;
 		let partialUpload = false;
 		setBatch({ staging: 0, done: new Set(), total: photos });
-		createAction
+		void createAction
 			.run(
 				// Masters go straight to R2, then the server processes one photo per
 				// call, so a large batch never overruns the function budget.

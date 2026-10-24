@@ -135,12 +135,15 @@ describe("event metadata and featured updates", () => {
 		["metadata", () => updateEventMeta(eventId, { title: "Updated event" })],
 		["pin", () => setEventFeatured(eventId, true)],
 		["unpin", () => setEventFeatured(eventId, false)],
-	] as const)("reports a missing event for %s without announcing a successful refresh", async (_, action) => {
-		fakes.query.mockResolvedValueOnce({ rows: [] });
-		await expect(action()).resolves.toEqual({ ok: false, message: "Event not found." });
-		expect(fakes.query).toHaveBeenCalledTimes(1);
-		expect(fakes.revalidate).not.toHaveBeenCalled();
-	});
+	] as const)(
+		"reports a missing event for %s without announcing a successful refresh",
+		async (_, action) => {
+			fakes.query.mockResolvedValueOnce({ rows: [] });
+			await expect(action()).resolves.toEqual({ ok: false, message: "Event not found." });
+			expect(fakes.query).toHaveBeenCalledTimes(1);
+			expect(fakes.revalidate).not.toHaveBeenCalled();
+		},
+	);
 
 	it.each([
 		["metadata", () => updateEventMeta(eventId, { title: "Updated event" })],
@@ -241,28 +244,27 @@ describe("event image mutations", () => {
 		expect(fakes.revalidate).toHaveBeenCalledWith("/");
 	});
 
-	it.each([
-		"reorder",
-		"remove",
-		"delete",
-	] as const)("rejects stale %s instead of overwriting a concurrent image addition", async (operation) => {
-		const images = [oldImage, "events/concurrent"];
-		fakes.query.mockImplementation(async (sql, params) => {
-			if (sql.startsWith("select")) return { rows: [eventRow([oldImage])] };
-			const matches = matchesCurrent({ sql, params, column: "images" }, images);
-			return { rows: matches ? [[eventId]] : [] };
-		});
-		const action = {
-			reorder: () => reorderEventImages(eventId, [oldImage]),
-			remove: () => removeEventImage(eventId, oldImage),
-			delete: () => deleteEvent(eventId),
-		}[operation];
-		await expect(action()).resolves.toMatchObject({
-			ok: false,
-			message: "Event photos changed. Refresh and try again.",
-		});
-		expect(fakes.deleteImages).not.toHaveBeenCalled();
-	});
+	it.each(["reorder", "remove", "delete"] as const)(
+		"rejects stale %s instead of overwriting a concurrent image addition",
+		async (operation) => {
+			const images = [oldImage, "events/concurrent"];
+			fakes.query.mockImplementation(async (sql, params) => {
+				if (sql.startsWith("select")) return { rows: [eventRow([oldImage])] };
+				const matches = matchesCurrent({ sql, params, column: "images" }, images);
+				return { rows: matches ? [[eventId]] : [] };
+			});
+			const action = {
+				reorder: () => reorderEventImages(eventId, [oldImage]),
+				remove: () => removeEventImage(eventId, oldImage),
+				delete: () => deleteEvent(eventId),
+			}[operation];
+			await expect(action()).resolves.toMatchObject({
+				ok: false,
+				message: "Event photos changed. Refresh and try again.",
+			});
+			expect(fakes.deleteImages).not.toHaveBeenCalled();
+		},
+	);
 
 	it("does not restore a removed photo when an overlapping attach commits later", async () => {
 		let images = [oldImage];

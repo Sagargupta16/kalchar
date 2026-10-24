@@ -11,7 +11,7 @@ test("mobile menu keeps focus inside and closes on the current destination @mobi
 	await expect(navigation.getByRole("link", { name: /Artwork/ })).toBeFocused();
 	await expect(page.locator("#main")).toHaveAttribute("inert", "");
 
-	const home = menu.getByRole("link", { name: "Home", exact: true });
+	const home = menu.getByRole("link", { name: /, home$/ });
 	const whatsapp = menu.getByRole("link", { name: "Message on WhatsApp" });
 	await home.focus();
 	await page.keyboard.press("Shift+Tab");
