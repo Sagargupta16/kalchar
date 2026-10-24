@@ -367,7 +367,7 @@ test("floating WhatsApp disc follows the route policy", async ({ page }) => {
 	// Detail pages hand the action to the enquiry bar (2.14): never mounted.
 	await page.goto("/work/");
 	const detailPath = await page
-		.locator('main a[aria-label][href^="/work/"]')
+		.locator('main a[data-artwork-card]')
 		.first()
 		.getAttribute("href");
 	expect(detailPath).not.toBeNull();
@@ -389,7 +389,7 @@ test(
 	{ tag: "@mobile" },
 	async ({ page }) => {
 		await page.goto("/work/");
-		await page.locator("main a[aria-label]").first().click();
+		await page.locator("main a[data-artwork-card]").first().click();
 		await expect(page.getByRole("dialog")).toBeVisible();
 		await expect(page.getByText("Hover to zoom")).toBeHidden();
 	},

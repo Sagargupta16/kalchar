@@ -177,7 +177,7 @@ function PhotoTile({
 	   elevate + gold inset), the wipe clips inside the frame so the lift's
 	   shadow is never cropped, and the photo settles then zooms on hover. */
 	const photo = (
-		<div className="tile-settle absolute inset-0">
+		<div aria-hidden="true" className="tile-settle absolute inset-0">
 			<div className="absolute inset-0 transition-transform duration-(--duration-unveil) ease-(--ease-out) group-hover:scale-[1.06]">
 				<ResponsiveImage
 					keyBase={keyBase}
@@ -205,8 +205,8 @@ function PhotoTile({
 			{overflow === undefined ? null : (
 				<span className="absolute inset-0 grid place-items-center bg-scrim/60 text-bg transition-colors group-hover:bg-scrim/70 dark:text-ink">
 					<span className="text-center">
-						<span className="t-display block text-title">+{overflow}</span>
-						<span className="text-sm">View photos</span>
+						<span className="t-display block text-title">+{overflow}</span>{" "}
+						<span className="text-sm">View all</span>
 					</span>
 				</span>
 			)}
@@ -219,7 +219,7 @@ function PhotoTile({
 			aria-haspopup="dialog"
 			aria-label={
 				overflow !== undefined && totalForLabel !== undefined
-					? `View all ${totalForLabel} photos from ${title}`
+					? `+${overflow}, View all ${totalForLabel} photos from ${title}`
 					: `View photo ${index + 1} from ${title}`
 			}
 			style={{ aspectRatio: ratio }}

@@ -105,7 +105,6 @@ export function SiteFooter() {
 											<a
 												className={cn(FOOTER_LINK, "h-full gap-2 text-ink")}
 												href={channel.url}
-												aria-label={`${channel.label}: ${handle}`}
 												title={handle}
 												target={channel.url.startsWith("http") ? "_blank" : undefined}
 												rel={channel.url.startsWith("http") ? "noopener noreferrer" : undefined}
@@ -119,6 +118,7 @@ export function SiteFooter() {
 														<span className="block text-xs text-muted">{channel.platform}</span>
 													) : null}
 												</span>
+												<span className="sr-only">{`, ${handle}`}</span>
 											</a>
 										</li>
 									);
@@ -132,7 +132,6 @@ export function SiteFooter() {
 					{/* The closing wordmark is the footer's Home link. */}
 					<Link
 						href="/"
-						aria-label="Home"
 						className="footer-wordmark t-headline group mt-8 flex flex-wrap items-end gap-x-4 rounded-(--radius-sm) sm:mt-10"
 					>
 						<span className="whitespace-nowrap">
@@ -157,6 +156,7 @@ export function SiteFooter() {
 						<span className="t-display reveal-after mb-[0.35em] text-title text-muted [--after-step:2]">
 							{brand.headline.connector} {brand.headline.suffix}
 						</span>
+						<span className="sr-only">, home</span>
 					</Link>
 				</FooterReveal>
 

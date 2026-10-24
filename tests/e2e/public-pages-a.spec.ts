@@ -236,7 +236,7 @@ test("event lightbox mirrors the v2 room: paging, loop, scrim caption, no commer
 }) => {
 	await page.goto("/events/");
 	// The overflow tile is the fifth mosaic slot and opens at its own position (5 of 7).
-	await page.getByRole("button", { name: /^View all 7 photos from / }).click();
+	await page.getByRole("button", { name: /^\+\d+, View all 7 photos from / }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog).toBeVisible();
 	await expect(dialog.getByText("05 / 7")).toBeVisible();

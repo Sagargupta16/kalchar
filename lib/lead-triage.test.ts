@@ -35,13 +35,12 @@ describe("parseLeadContact", () => {
 	it("keeps an international number of 11 to 15 digits as typed", () => {
 		expect(parseLeadContact("+44 7700 900123")).toEqual({ phone: "447700900123" });
 	});
-	it.each([
-		"+65 8123 4567",
-		"0065 8123 4567",
-		"WhatsApp: +65 8123 4567",
-	])("preserves an explicit international prefix in %s", (contact) => {
-		expect(parseLeadContact(contact)).toEqual({ phone: "6581234567" });
-	});
+	it.each(["+65 8123 4567", "0065 8123 4567", "WhatsApp: +65 8123 4567"])(
+		"preserves an explicit international prefix in %s",
+		(contact) => {
+			expect(parseLeadContact(contact)).toEqual({ phone: "6581234567" });
+		},
+	);
 	it("reads an email, and both when the visitor typed both", () => {
 		expect(parseLeadContact("priya@example.com")).toEqual({ email: "priya@example.com" });
 		expect(parseLeadContact("priya@example.com or 98765 43210")).toEqual({
