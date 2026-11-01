@@ -18,7 +18,7 @@ The full system picture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (entr
 
 ## Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Motion 14 + Lenis (lazy-loaded) for animation. shadcn-style components (cva variants, no Radix). Vitest 5 + Playwright 1. pnpm 10, Node 24 (CI, Vercel and `.nvmrc`; `engines` allows `>=22`).
+Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Motion 14 + Lenis (lazy-loaded) for animation. shadcn-style components (cva variants, no Radix). Vitest 5 + Playwright 1. pnpm 12, Node 26 (CI and `.nvmrc`; Vercel resolves `engines` `>=22` to its latest major, 26.x). pnpm 12 fails the install on a skipped dependency build script, so a new dependency with one needs an `allowBuilds` entry in `pnpm-workspace.yaml`.
 
 Dynamic Next app on **Vercel**: public pages static/SSG, `/admin` + `/api` server-rendered. **Neon Postgres** (Drizzle) for catalog, **Cloudflare R2** for images, **Auth.js v5 + Google** for admin login (allowlist in the `maintainers` table). The earlier static-export-to-GitHub-Pages setup is retired (the deploy.yml Pages workflow is manual-only break-glass).
 

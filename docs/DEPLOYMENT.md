@@ -56,7 +56,7 @@ Keep the variable contract consistent while isolating actual credentials/resourc
 
 `lint, typecheck and unit tests`:
 
-1. Install the pinned pnpm and Node 24, matching the Vercel runtime.
+1. Install the pinned pnpm and Node 26, matching the Vercel runtime.
 2. Install dependencies from the frozen lockfile and run the production dependency audit.
 3. Run Biome.
 4. Reject a pull request that changes `lib/db/schema.ts` without a committed `drizzle/*.sql` migration.
