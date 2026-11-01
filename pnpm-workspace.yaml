@@ -1,10 +1,15 @@
 packages:
   - "."
 
+# pnpm 12 fails the install when a dependency's build script is skipped
+# (ERR_PNPM_IGNORED_BUILDS); esbuild's postinstall only places its binary.
+allowBuilds:
+  esbuild: true
+
 overrides:
   "postcss@<8.5.23": ">=8.5.23"
-  # nanoid <3.3.18 (GHSA-2v37-7h3g-55p8) reaches us through postcss; cap at <4
-  # because nanoid 4+ is ESM-only and postcss requires the CJS 3.x line.
+  # nanoid <3.3.18 (GHSA-2v37-7h3g-55p8) reaches us through postcss. nanoid 4+
+  # is ESM-only; postcss loads it with require(), which Node 22.12+ and 26 run.
   "nanoid@<3.3.18": "<7"
   # source-map-js <1.2.2 (GHSA-68fv-2mgg-jv7q) also reaches us through postcss.
   "source-map-js@<1.2.2": ">=1.2.2 <2"
