@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.42.0 (2026-11-01)
+
+### Changed
+
+- **pnpm 12 and Node 26.** `packageManager` moves from pnpm 10.34.9 to 12.16.1, `.nvmrc` from Node 24 to 26 (CI already ran 26), and `@types/node` to 26. pnpm 12 fails the install when a dependency's build script is skipped (`ERR_PNPM_IGNORED_BUILDS` on esbuild 0.28.2), so `pnpm-workspace.yaml` now allows esbuild's postinstall through `allowBuilds`.
+- The nanoid override for GHSA-2v37-7h3g-55p8 resolves to nanoid 6 instead of 3.x. nanoid 4+ is ESM-only, and postcss loads it with `require()`, which Node 26 supports.
+
+### Documentation
+
+- README, CLAUDE.md, ARCHITECTURE.md and DEPLOYMENT.md name pnpm 12 and Node 26 instead of pnpm 10 and Node 24.
+
 ## 1.41.1 (2026-10-24)
 
 ### Fixed

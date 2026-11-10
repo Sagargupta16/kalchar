@@ -6,7 +6,7 @@ Portfolio site for Megha Seth, traditional folk artist working in Madhubani, Pic
 
 ## Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 14 + Lenis for animation. Vitest 5 + Playwright 1 for tests. pnpm 10, Node 24.
+Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind 4 + Biome 2. Motion 14 + Lenis for animation. Vitest 5 + Playwright 1 for tests. pnpm 12, Node 26.
 
 Runs as a dynamic Next app on **Vercel**: public pages are static/SSG, the `/admin` panel + auth are server-rendered. Catalog data lives in **Neon Postgres** (read through one seam, `lib/data.ts`); artwork images live in **Cloudflare R2**; admin login is **Auth.js + Google**, gated to a maintainer allowlist in the DB. Full picture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

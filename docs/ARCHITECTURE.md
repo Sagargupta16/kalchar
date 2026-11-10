@@ -69,7 +69,7 @@ flowchart TB
 | Database | Neon Postgres + Drizzle ORM | serverless, region in `DATABASE_URL` |
 | Image storage | Cloudflare R2 (S3 API) | free egress, public bucket URL |
 | Auth | Auth.js v5 + Google OAuth | allowlist in `maintainers` table |
-| Tooling | Biome 2, Vitest 5, Playwright 1, pnpm 10, Node 24 | Node 24 in CI, on Vercel and in `.nvmrc`; `engines` allows `>=22` |
+| Tooling | Biome 2, Vitest 5, Playwright 1, pnpm 12, Node 26 | Node 26 in CI and in `.nvmrc`; Vercel resolves `engines` `>=22` to 26.x |
 
 ## Application layers
 
