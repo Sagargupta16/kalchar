@@ -92,9 +92,13 @@ jobs:
   browser:
     # The browser suite (about 1044 tests, desktop plus a mobile project that
     # re-runs the admin fixture specs) took 13 minutes on one runner with 2
-    # workers. Four shards split it by test. Each shard rebuilds on fixtures
-    # (about 14 seconds) instead of passing .next around as an artifact.
-    name: browser tests (${{ matrix.shard }}/4)
+    # workers. Five shards split it by cost: the admin specs (676 fast tests)
+    # on two shards and every other spec (368 slower public-page tests) on
+    # three, because splitting by count left two shards idle for minutes. The
+    # public filter is a catch-all (everything not starting with admin-), so a
+    # new spec file can never fall into no shard. Each shard rebuilds on
+    # fixtures (about 14 seconds) instead of passing .next around as an artifact.
+    name: browser tests (${{ matrix.group }} ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -103,7 +107,12 @@ jobs:
       # Let every shard finish so one failure does not hide the others.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        include:
+          - { group: admin, shard: 1, total: 2, filter: "tests/e2e/admin-" }
+          - { group: admin, shard: 2, total: 2, filter: "tests/e2e/admin-" }
+          - { group: public, shard: 1, total: 3, filter: "tests/e2e/(?!admin-)" }
+          - { group: public, shard: 2, total: 3, filter: "tests/e2e/(?!admin-)" }
+          - { group: public, shard: 3, total: 3, filter: "tests/e2e/(?!admin-)" }
     env:
       KALCHAR_TEST_FIXTURES: "1"
       NEXT_PUBLIC_IMAGE_BASE_URL: https://fixtures.invalid
@@ -147,9 +156,11 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       - name: Browser and accessibility tests
-        run: pnpm test:e2e --shard=${{ matrix.shard }}/4
+        run: pnpm test:e2e "$SPEC_FILTER" --shard="$SHARD"
         env:
           PLAYWRIGHT_PORT: 3001
+          SPEC_FILTER: ${{ matrix.filter }}
+          SHARD: ${{ matrix.shard }}/${{ matrix.total }}
 
   build:
     # Display name is pinned to the required status check in the "main

@@ -78,7 +78,7 @@ CI uses public fixtures without production credentials and checks migration appl
 | [`public/`](public/) | Master artwork JPGs (R2 regenerate source and final fallback), logo, `robots.txt`. |
 | [`scripts/`](scripts/) | Guarded bootstrap, migration and baseline checks, offline backup verification, image helpers, and public catalog/media health checks. |
 | [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md), [ADDING-FEATURES](docs/ADDING-FEATURES.md), plus [`diagrams/`](docs/diagrams/) (the orrery spec and SVGs for the picture above) and [`archive/`](docs/archive/) (historical snapshots). Index: [docs/README.md](docs/README.md). |
-| [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers (four Playwright shards). `health.yml` checks production daily. `staging-cleanup.yml` deletes expired R2 staging uploads daily. `deploy.yml` is the manual Pages recovery path. |
+| [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers (five Playwright shards). `health.yml` checks production daily. `staging-cleanup.yml` deletes expired R2 staging uploads daily. `deploy.yml` is the manual Pages recovery path. |
 
 ## Deploy
 

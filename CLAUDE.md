@@ -139,7 +139,7 @@ scripts/
   cleanup-staging.ts      pnpm r2:cleanup -- expired staging/ objects (dry run by default)
   cli-runner.mjs, operational-paths.mjs  shared CLI wrapper + approved-path guards
   operational.test.mjs    pnpm test:operations -- offline regression checks for the above
-.github/workflows/        ci.yml (verify + 4 Playwright shards + migrations + secret scan;
+.github/workflows/        ci.yml (verify + 5 Playwright shards + migrations + secret scan;
                           "lint, typecheck and build" aggregates them) + health.yml
                           (daily prod check) + staging-cleanup.yml (daily R2 staging
                           cleanup, main only); deploy.yml = retired Pages fallback

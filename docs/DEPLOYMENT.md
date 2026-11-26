@@ -65,11 +65,11 @@ Keep the variable contract consistent while isolating actual credentials/resourc
 
 ### Browser tests
 
-`browser tests (1/4)` through `(4/4)` run in parallel. Each shard:
+Five `browser tests` jobs run in parallel: `admin 1/2` and `admin 2/2` (the `admin-*` specs, which are many and fast) and `public 1/3` through `public 3/3` (every other spec, which is fewer and slower). The public filter is a catch-all for anything not starting with `admin-`, so a new spec file always lands in a shard. Each shard:
 
 1. Installs dependencies and builds with `KALCHAR_TEST_FIXTURES=1`, using fixture catalog rows and local media without production service credentials. Rebuilding per shard (about 14 seconds) is cheaper than passing `.next` between jobs.
 2. Restores Chromium from a cache keyed on the Playwright version, installing it on a miss, and installs its system libraries.
-3. Runs its quarter of the desktop and mobile Playwright tests (`--shard=N/4`), including axe WCAG scans.
+3. Runs its share of the desktop and mobile Playwright tests (`--shard=N/2` or `N/3` within its group), including axe WCAG scans.
 
 `pnpm test:e2e:fixtures` reproduces the same build and suite locally in one process; see [DEVELOPMENT.md](DEVELOPMENT.md#browser-tests).
 
