@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.42.1 (2026-11-26)
+
+### Changed
+
+- **Playwright shards split by cost, not count.** The four count-based shards left two runners finishing in about 100 seconds while the other two took 294 and 332 seconds in tests, so the run waited on the slowest. CI now runs five jobs: `admin 1/2` and `admin 2/2` for the 676 fast `admin-*` tests, and `public 1/3` to `public 3/3` for the other 368 slower tests. The public filter is `tests/e2e/(?!admin-)`, a catch-all, so a new spec file with any other prefix still runs. Listing the five selections returns the same 1044 tests as the whole suite, none twice. The test config, workers, retries and the required check names are unchanged.
+
+### Documentation
+
+- CLAUDE.md, README.md, DEPLOYMENT.md and ADDING-FEATURES.md describe five shards instead of four.
+
 ## 1.42.0 (2026-11-01)
 
 ### Changed
